@@ -1,12 +1,33 @@
 services:
+  app:
+    build: .
+    ports:
+      - "8099:8099"
+    environment:
+      PORT: "8099"
+      APP_ENV: development
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: vibecms
+      DB_PASSWORD: vibecms_secret
+      DB_NAME: vibecms
+      DB_SSLMODE: disable
+      SESSION_SECRET: change-me-to-a-random-64-char-string
+      SESSION_EXPIRY_HOURS: "24"
+      MONITOR_BEARER_TOKEN: change-me-to-a-random-token
+      STORAGE_DRIVER: local
+      STORAGE_PATH: /app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: vibecms
       POSTGRES_PASSWORD: vibecms_secret
       POSTGRES_DB: vibecms
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

@@ -81,6 +81,16 @@ func main() {
 
 	// --- Public routes ---
 
+	// Root route.
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"name":    "VibeCMS",
+			"version": "0.1.0",
+			"status":  "running",
+			"docs":    "/api/v1/health",
+		})
+	})
+
 	// Auth routes (login is public, logout/me require auth).
 	authHandler.RegisterRoutes(app)
 

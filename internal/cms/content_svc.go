@@ -89,6 +89,9 @@ func (s *ContentService) Create(node *models.ContentNode, userID int) error {
 	}
 
 	if err := s.db.Create(node).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505") {
+			return fmt.Errorf("slug conflict: full_url %q already exists", node.FullURL)
+		}
 		return fmt.Errorf("creating content node: %w", err)
 	}
 
