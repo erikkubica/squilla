@@ -55,14 +55,12 @@ func adminFlash(c *fiber.Ctx, msg, flashType string) {
 
 // getHomepageID reads the homepage_node_id from site_settings.
 func (h *AdminPageHandler) getHomepageID() int {
-	var setting models.SiteSetting
-	if err := h.db.Where("key = ?", "homepage_node_id").First(&setting).Error; err != nil {
+	var value string
+	err := h.db.Raw("SELECT value FROM site_settings WHERE key = ?", "homepage_node_id").Scan(&value).Error
+	if err != nil || value == "" {
 		return 0
 	}
-	if setting.Value == nil {
-		return 0
-	}
-	id, _ := strconv.Atoi(*setting.Value)
+	id, _ := strconv.Atoi(value)
 	return id
 }
 
@@ -433,18 +431,13 @@ func (h *AdminPageHandler) setHomepage(c *fiber.Ctx) error {
 		return c.Redirect("/admin/pages", fiber.StatusFound)
 	}
 
-	// Upsert into site_settings
+	// Upsert into site_settings using raw SQL for reliability
 	idStr := strconv.Itoa(id)
-	setting := models.SiteSetting{
-		Key:   "homepage_node_id",
-		Value: &idStr,
-	}
-	result := h.db.Where("key = ?", "homepage_node_id").First(&models.SiteSetting{})
-	if result.Error == gorm.ErrRecordNotFound {
-		h.db.Create(&setting)
-	} else {
-		h.db.Model(&models.SiteSetting{}).Where("key = ?", "homepage_node_id").Update("value", &idStr)
-	}
+	h.db.Exec(
+		`INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, NOW())
+		 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+		"homepage_node_id", idStr,
+	)
 
 	adminFlash(c, "Page set as homepage", "success")
 	return c.Redirect(fmt.Sprintf("/admin/pages/%d/edit", id), fiber.StatusFound)
