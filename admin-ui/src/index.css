@@ -66,7 +66,7 @@
   }
   [data-slot="table-header"] tr {
     background-color: #f8fafc !important;
-    border-bottom: 2px solid #e2e8f0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
   }
   [data-slot="table-head"] {
     color: #64748b !important;
@@ -74,12 +74,26 @@
     text-transform: uppercase !important;
     font-size: 0.7rem !important;
     letter-spacing: 0.05em !important;
+    padding: 0.75rem 1.5rem !important;
+  }
+  [data-slot="table-row"] {
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+  [data-slot="table-row"]:last-child {
+    border-bottom: none !important;
   }
   [data-slot="table-row"]:hover {
     background-color: #f8fafc !important;
   }
   [data-slot="table-cell"] {
-    padding: 0.75rem 1rem !important;
+    padding: 0.875rem 1.5rem !important;
+  }
+
+  /* Remove card content padding when it contains a table */
+  [data-slot="card-content"]:has([data-slot="table-container"]) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 0 !important;
   }
 
   /* Buttons: more depth */
