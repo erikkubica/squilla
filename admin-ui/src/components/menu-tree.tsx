@@ -95,11 +95,6 @@ function getItemAtPath(items: MenuItem[], path: number[]): MenuItem {
   return current;
 }
 
-function getParentList(items: MenuItem[], parentPath: number[]): MenuItem[] {
-  if (parentPath.length === 0) return items;
-  const parent = getItemAtPath(items, parentPath);
-  return parent.children || [];
-}
 
 export default function MenuTree({ items, onChange }: MenuTreeProps) {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
@@ -126,7 +121,7 @@ export default function MenuTree({ items, onChange }: MenuTreeProps) {
   function updateItemField(path: number[], field: string, value: unknown) {
     const next = cloneItems(items);
     const item = getItemAtPath(next, path);
-    (item as Record<string, unknown>)[field] = value;
+    (item as unknown as Record<string, unknown>)[field] = value;
     onChange(next);
   }
 

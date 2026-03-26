@@ -20,7 +20,6 @@ import {
   updateMenu,
   replaceMenuItems,
   getLanguages,
-  type Menu,
   type MenuItem,
   type Language,
 } from "@/api/client";
