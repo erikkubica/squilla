@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -31,17 +32,33 @@ type PageData struct {
 
 // PublicHandler serves the public-facing HTML pages.
 type PublicHandler struct {
-	db       *gorm.DB
-	renderer *rendering.TemplateRenderer
-	sessions *auth.SessionService
+	db             *gorm.DB
+	renderer       *rendering.TemplateRenderer
+	sessions       *auth.SessionService
+	layoutSvc      *LayoutService
+	layoutBlockSvc *LayoutBlockService
+	menuSvc        *MenuService
+	renderCtx      *RenderContext
 }
 
 // NewPublicHandler creates a new PublicHandler.
-func NewPublicHandler(db *gorm.DB, renderer *rendering.TemplateRenderer, sessions *auth.SessionService) *PublicHandler {
+func NewPublicHandler(
+	db *gorm.DB,
+	renderer *rendering.TemplateRenderer,
+	sessions *auth.SessionService,
+	layoutSvc *LayoutService,
+	layoutBlockSvc *LayoutBlockService,
+	menuSvc *MenuService,
+	renderCtx *RenderContext,
+) *PublicHandler {
 	return &PublicHandler{
-		db:       db,
-		renderer: renderer,
-		sessions: sessions,
+		db:             db,
+		renderer:       renderer,
+		sessions:       sessions,
+		layoutSvc:      layoutSvc,
+		layoutBlockSvc: layoutBlockSvc,
+		menuSvc:        menuSvc,
+		renderCtx:      renderCtx,
 	}
 }
 
@@ -65,6 +82,14 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 			if err := h.db.Where("id = ? AND status = ?", homepageID, "published").First(&node).Error; err == nil {
 				blocks := parseBlocks(node.BlocksData)
 				renderedBlocks := h.renderBlocks(blocks)
+
+				// Try layout-based rendering first
+				if html, ok := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks); ok {
+					c.Set("Content-Type", "text/html; charset=utf-8")
+					return c.SendString(html)
+				}
+
+				// Fall back to file-based template rendering
 				data := PageData{
 					Title:          node.Title + " - VibeCMS",
 					User:           user,
@@ -129,6 +154,13 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	blocks := parseBlocks(node.BlocksData)
 	renderedBlocks := h.renderBlocks(blocks)
 
+	// Try layout-based rendering first
+	if html, ok := h.renderNodeWithLayout(c, node, blocks, renderedBlocks); ok {
+		c.Set("Content-Type", "text/html; charset=utf-8")
+		return c.SendString(html)
+	}
+
+	// Fall back to file-based template rendering
 	data := PageData{
 		Title:          node.Title + " - VibeCMS",
 		User:           user,
@@ -139,6 +171,97 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 
 	c.Set("Content-Type", "text/html; charset=utf-8")
 	return h.renderer.RenderPage(c, "public/page.html", data)
+}
+
+// renderNodeWithLayout attempts to render a content node using the layout system.
+// If a layout is resolved, it returns the fully rendered HTML and true.
+// If no layout is found or an error occurs, it returns "" and false so the
+// caller can fall back to the legacy file-based rendering.
+func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentNode, blocks []map[string]interface{}, renderedBlocks []string) (string, bool) {
+	// Get default language
+	var defaultLang models.Language
+	if err := h.db.Where("is_default = ?", true).First(&defaultLang).Error; err != nil {
+		return "", false
+	}
+
+	// Resolve layout for this node
+	layout, err := h.layoutSvc.ResolveForNode(node, defaultLang.Code)
+	if err != nil || layout == nil {
+		return "", false
+	}
+
+	// Get all active languages
+	var languages []models.Language
+	h.db.Where("is_active = ?", true).Order("sort_order ASC").Find(&languages)
+
+	// Find the current language
+	var currentLang *models.Language
+	for i := range languages {
+		if languages[i].Code == node.LanguageCode {
+			currentLang = &languages[i]
+			break
+		}
+	}
+
+	// Load site settings
+	settings := h.loadSiteSettings()
+
+	// Load menus
+	menus := h.renderCtx.LoadMenus(node.LanguageCode, defaultLang.Code)
+
+	// Combine rendered blocks into a single HTML string
+	blocksHTML := strings.Join(renderedBlocks, "\n")
+
+	// Build template data
+	appData := AppData{
+		Menus:        menus,
+		Settings:     settings,
+		Languages:    languages,
+		CurrentLang:  currentLang,
+		HeadStyles:   []string{},
+		HeadScripts:  []string{},
+		FootScripts:  []string{},
+		BlockStyles:  "",
+		BlockScripts: "",
+	}
+
+	nodeData := h.renderCtx.BuildNodeData(node, blocksHTML)
+
+	templateData := TemplateData{
+		App:  appData,
+		Node: nodeData,
+	}
+
+	// Build block resolver
+	blockResolver := func(slug string) (string, error) {
+		lb, err := h.layoutBlockSvc.Resolve(slug, node.LanguageCode, defaultLang.Code)
+		if err != nil {
+			return "", err
+		}
+		return lb.TemplateCode, nil
+	}
+
+	// Render via the layout engine
+	var buf bytes.Buffer
+	if err := h.renderer.RenderLayout(&buf, layout.TemplateCode, templateData, blockResolver); err != nil {
+		log.Printf("WARN: layout render failed, falling back: %v", err)
+		return "", false
+	}
+
+	return buf.String(), true
+}
+
+// loadSiteSettings loads all site settings into a map keyed by setting key.
+func (h *PublicHandler) loadSiteSettings() map[string]string {
+	settings := make(map[string]string)
+	var allSettings []models.SiteSetting
+	h.db.Find(&allSettings)
+	for _, s := range allSettings {
+		if s.Value != nil {
+			settings[s.Key] = *s.Value
+		}
+	}
+	return settings
 }
 
 // renderBlocks renders each block's HTML template with its field values.

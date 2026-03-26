@@ -95,7 +95,8 @@ func main() {
 	menuSvc := cms.NewMenuService(database)
 	menuHandler := cms.NewMenuHandler(menuSvc)
 	healthHandler := api.NewHealthHandler(database)
-	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc)
+	renderCtx := cms.NewRenderContext(layoutSvc, layoutBlockSvc, menuSvc)
+	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc, layoutSvc, layoutBlockSvc, menuSvc, renderCtx)
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, renderer)
 
 	// --- Public HTML pages ---

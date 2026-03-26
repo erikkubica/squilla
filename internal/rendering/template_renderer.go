@@ -1,10 +1,12 @@
 package rendering
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"path/filepath"
 	"sync"
 )
@@ -106,4 +108,60 @@ func (r *TemplateRenderer) Render(w io.Writer, layoutName, pageName string, data
 // default base layout ("layouts/base.html").
 func (r *TemplateRenderer) RenderPage(w io.Writer, pageName string, data interface{}) error {
 	return r.Render(w, "layouts/base.html", pageName, data)
+}
+
+// RenderLayout renders a layout template_code string (from the DB) with a
+// blockResolver that supports the renderLayoutBlock template function.
+// The blockResolver returns the template_code for a given layout block slug.
+// Recursion is guarded to a maximum depth of 5.
+func (r *TemplateRenderer) RenderLayout(w io.Writer, templateCode string, data interface{}, blockResolver func(slug string) (string, error)) error {
+	depth := 0
+	maxDepth := 5
+
+	var renderBlock func(slug string) template.HTML
+	renderBlock = func(slug string) template.HTML {
+		depth++
+		if depth > maxDepth {
+			log.Printf("WARN: renderLayoutBlock recursion limit reached for '%s'", slug)
+			depth--
+			return ""
+		}
+		defer func() { depth-- }()
+
+		code, err := blockResolver(slug)
+		if err != nil {
+			log.Printf("WARN: layout block '%s' not found: %v", slug, err)
+			return ""
+		}
+
+		funcMap := template.FuncMap{}
+		for k, v := range r.funcMap {
+			funcMap[k] = v
+		}
+		funcMap["renderLayoutBlock"] = renderBlock
+
+		tmpl, err := template.New("partial-" + slug).Funcs(funcMap).Parse(code)
+		if err != nil {
+			log.Printf("WARN: template parse error in '%s': %v", slug, err)
+			return ""
+		}
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, data); err != nil {
+			log.Printf("WARN: template execute error in '%s': %v", slug, err)
+			return ""
+		}
+		return template.HTML(buf.String())
+	}
+
+	funcMap := template.FuncMap{}
+	for k, v := range r.funcMap {
+		funcMap[k] = v
+	}
+	funcMap["renderLayoutBlock"] = renderBlock
+
+	tmpl, err := template.New("layout").Funcs(funcMap).Parse(templateCode)
+	if err != nil {
+		return fmt.Errorf("layout template parse error: %w", err)
+	}
+	return tmpl.Execute(w, data)
 }
