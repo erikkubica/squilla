@@ -87,7 +87,9 @@ func main() {
 	nodeTypeHandler := cms.NewNodeTypeHandler(nodeTypeSvc)
 	langHandler := cms.NewLanguageHandler(langSvc)
 	blockTypeHandler := cms.NewBlockTypeHandler(blockTypeSvc)
+	layoutSvc := cms.NewLayoutService(database)
 	templateHandler := cms.NewTemplateHandler(templateSvc)
+	layoutHandler := cms.NewLayoutHandler(layoutSvc)
 	healthHandler := api.NewHealthHandler(database)
 	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc)
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, renderer)
@@ -112,6 +114,7 @@ func main() {
 	langHandler.RegisterRoutes(adminAPI)
 	blockTypeHandler.RegisterRoutes(adminAPI)
 	templateHandler.RegisterRoutes(adminAPI)
+	layoutHandler.RegisterRoutes(adminAPI)
 
 	// --- Admin SPA (serve built React app) ---
 	app.Static("/admin/assets", "./admin-ui/dist/assets")
