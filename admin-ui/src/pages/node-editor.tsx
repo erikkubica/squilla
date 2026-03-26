@@ -74,12 +74,14 @@ import {
   getLanguages,
   getBlockTypes,
   getTemplates,
+  getLayouts,
   type ContentNode,
   type NodeType,
   type NodeTypeField,
   type Language,
   type BlockType,
   type Template,
+  type Layout,
 } from "@/api/client";
 
 const BLOCK_ICON_MAP: Record<string, LucideIcon> = {
@@ -147,6 +149,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   // Block types & templates
   const [blockTypes, setBlockTypes] = useState<BlockType[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [layouts, setLayouts] = useState<Layout[]>([]);
   const [showAddBlock, setShowAddBlock] = useState(false);
   const [showInsertTemplate, setShowInsertTemplate] = useState(false);
 
@@ -156,6 +159,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   const [status, setStatus] = useState("draft");
   const [languageCode, setLanguageCode] = useState("en");
   const [parentId, setParentId] = useState("");
+  const [layoutId, setLayoutId] = useState<string>("");
   const [blocks, setBlocks] = useState<BlockData[]>([]);
   const [fieldsData, setFieldsData] = useState<Record<string, unknown>>({});
   const [originalNode, setOriginalNode] = useState<ContentNode | null>(null);
@@ -170,6 +174,13 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
     getBlockTypes().then(setBlockTypes).catch(() => {});
     getTemplates().then(setTemplates).catch(() => {});
   }, []);
+
+  // Fetch layouts filtered by language
+  useEffect(() => {
+    if (languageCode) {
+      getLayouts({ language_code: languageCode }).then(setLayouts).catch(() => {});
+    }
+  }, [languageCode]);
 
   // Fetch node type definition
   useEffect(() => {
@@ -196,6 +207,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
         setSlug(node.slug);
         setStatus(node.status);
         setLanguageCode(node.language_code || "en");
+        setLayoutId(node.layout_id ? String(node.layout_id) : "");
         setParentId(node.parent_id ? String(node.parent_id) : "");
         // Parse blocks_data into typed blocks
         const rawBlocks = (node.blocks_data ?? []) as unknown as BlockData[];
@@ -361,6 +373,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
       status: publishStatus || status,
       language_code: languageCode,
       parent_id: parentId ? Number(parentId) : null,
+      layout_id: layoutId ? Number(layoutId) : null,
       blocks_data: blocks as unknown as Record<string, unknown>[],
       fields_data: fieldsData,
     };
@@ -720,6 +733,24 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                     {languages.map((lang) => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.flag} {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Layout</Label>
+                <Select value={layoutId} onValueChange={setLayoutId}>
+                  <SelectTrigger className="rounded-lg border-slate-300">
+                    <SelectValue placeholder="Auto (cascade)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Auto (cascade)</SelectItem>
+                    {layouts.map((layout) => (
+                      <SelectItem key={layout.id} value={String(layout.id)}>
+                        {layout.name}
+                        {layout.source === "theme" ? " [theme]" : " [custom]"}
                       </SelectItem>
                     ))}
                   </SelectContent>

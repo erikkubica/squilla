@@ -19,6 +19,7 @@ export interface ContentNode {
   blocks_data: Record<string, unknown>[];
   seo_settings: Record<string, unknown>;
   fields_data: Record<string, unknown>;
+  layout_id: number | null;
   version: number;
   published_at: string | null;
   created_at: string;
