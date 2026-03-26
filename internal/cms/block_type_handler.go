@@ -1,0 +1,220 @@
+package cms
+
+import (
+	"fmt"
+	"html/template"
+	"strconv"
+	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
+
+	"vibecms/internal/api"
+	"vibecms/internal/models"
+)
+
+// BlockTypeHandler provides HTTP handlers for block type CRUD operations.
+type BlockTypeHandler struct {
+	svc *BlockTypeService
+}
+
+// NewBlockTypeHandler creates a new BlockTypeHandler with the given BlockTypeService.
+func NewBlockTypeHandler(svc *BlockTypeService) *BlockTypeHandler {
+	return &BlockTypeHandler{svc: svc}
+}
+
+// RegisterRoutes registers all block type routes on the provided router group.
+func (h *BlockTypeHandler) RegisterRoutes(router fiber.Router) {
+	router.Get("/block-types", h.List)
+	router.Post("/block-types/preview", h.PreviewBlockTemplate)
+	router.Get("/block-types/:id", h.Get)
+	router.Post("/block-types", h.Create)
+	router.Patch("/block-types/:id", h.Update)
+	router.Delete("/block-types/:id", h.Delete)
+}
+
+// List handles GET /block-types to retrieve all block types.
+func (h *BlockTypeHandler) List(c *fiber.Ctx) error {
+	blockTypes, err := h.svc.List()
+	if err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list block types")
+	}
+
+	return api.Success(c, blockTypes)
+}
+
+// Get handles GET /block-types/:id to retrieve a single block type.
+func (h *BlockTypeHandler) Get(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Block type ID must be a valid integer")
+	}
+
+	bt, err := h.svc.GetByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Block type not found")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch block type")
+	}
+
+	return api.Success(c, bt)
+}
+
+// createBlockTypeRequest represents the JSON body for creating a block type.
+type createBlockTypeRequest struct {
+	Slug         string       `json:"slug"`
+	Label        string       `json:"label"`
+	Icon         string       `json:"icon"`
+	Description  string       `json:"description"`
+	FieldSchema  models.JSONB `json:"field_schema"`
+	HTMLTemplate string       `json:"html_template"`
+	Source       string       `json:"source"`
+}
+
+// Create handles POST /block-types to create a new block type.
+func (h *BlockTypeHandler) Create(c *fiber.Ctx) error {
+	var req createBlockTypeRequest
+	if err := c.BodyParser(&req); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+
+	if req.Slug == "" {
+		return api.ValidationError(c, map[string]string{
+			"slug": "Slug is required",
+		})
+	}
+	if req.Label == "" {
+		return api.ValidationError(c, map[string]string{
+			"label": "Label is required",
+		})
+	}
+
+	bt := models.BlockType{
+		Slug:         req.Slug,
+		Label:        req.Label,
+		Icon:         req.Icon,
+		Description:  req.Description,
+		FieldSchema:  req.FieldSchema,
+		HTMLTemplate: req.HTMLTemplate,
+		Source:       req.Source,
+	}
+
+	if bt.Icon == "" {
+		bt.Icon = "square"
+	}
+	if len(bt.FieldSchema) == 0 {
+		bt.FieldSchema = models.JSONB("[]")
+	}
+	if bt.Source == "" {
+		bt.Source = "custom"
+	}
+
+	if err := h.svc.Create(&bt); err != nil {
+		if strings.Contains(err.Error(), "slug conflict") {
+			return api.Error(c, fiber.StatusConflict, "SLUG_CONFLICT", err.Error())
+		}
+		if strings.Contains(err.Error(), "validation error") {
+			return api.ValidationError(c, map[string]string{
+				"slug": err.Error(),
+			})
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "CREATE_FAILED", "Failed to create block type")
+	}
+
+	return api.Created(c, bt)
+}
+
+// Update handles PATCH /block-types/:id to partially update a block type.
+func (h *BlockTypeHandler) Update(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Block type ID must be a valid integer")
+	}
+
+	var body map[string]interface{}
+	if err := c.BodyParser(&body); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+
+	// Remove fields that should not be directly updated
+	delete(body, "id")
+	delete(body, "created_at")
+	delete(body, "updated_at")
+
+	if len(body) == 0 {
+		return api.Error(c, fiber.StatusBadRequest, "NO_UPDATES", "No valid fields to update")
+	}
+
+	updated, err := h.svc.Update(id, body)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Block type not found")
+		}
+		if strings.Contains(err.Error(), "slug conflict") {
+			return api.Error(c, fiber.StatusConflict, "SLUG_CONFLICT", err.Error())
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to update block type")
+	}
+
+	return api.Success(c, updated)
+}
+
+// PreviewBlockTemplate renders a block template with test data for live preview.
+func (h *BlockTypeHandler) PreviewBlockTemplate(c *fiber.Ctx) error {
+	var req struct {
+		HTMLTemplate string                 `json:"html_template"`
+		TestData     map[string]interface{} `json:"test_data"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	if req.HTMLTemplate == "" {
+		return c.JSON(fiber.Map{"html": ""})
+	}
+
+	if req.TestData == nil {
+		req.TestData = make(map[string]interface{})
+	}
+
+	// Mark any values containing HTML tags as template.HTML to prevent escaping
+	for k, v := range req.TestData {
+		if s, ok := v.(string); ok && strings.Contains(s, "<") {
+			req.TestData[k] = template.HTML(s)
+		}
+	}
+
+	tmpl, err := template.New("preview").Funcs(template.FuncMap{
+		"safeHTML": func(s interface{}) template.HTML {
+			return template.HTML(fmt.Sprintf("%v", s))
+		},
+	}).Parse(req.HTMLTemplate)
+	if err != nil {
+		return c.JSON(fiber.Map{"html": fmt.Sprintf("<div class=\"text-red-500 text-sm p-3 bg-red-50 rounded-lg border border-red-200\"><strong>Template Error:</strong> %s</div>", template.HTMLEscapeString(err.Error()))})
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, req.TestData); err != nil {
+		return c.JSON(fiber.Map{"html": fmt.Sprintf("<div class=\"text-red-500 text-sm p-3 bg-red-50 rounded-lg border border-red-200\"><strong>Render Error:</strong> %s</div>", template.HTMLEscapeString(err.Error()))})
+	}
+
+	return c.JSON(fiber.Map{"html": buf.String()})
+}
+
+// Delete handles DELETE /block-types/:id to remove a block type.
+func (h *BlockTypeHandler) Delete(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Block type ID must be a valid integer")
+	}
+
+	if err := h.svc.Delete(id); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Block type not found")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", "Failed to delete block type")
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}

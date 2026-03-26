@@ -1,0 +1,530 @@
+import { useEffect, useState, type FormEvent } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Save,
+  Trash2,
+  Loader2,
+  Plus,
+  ChevronUp,
+  ChevronDown,
+  X,
+  Square,
+  LayoutTemplate,
+  Type,
+  Image,
+  MousePointerClick,
+  Images,
+  Play,
+  List,
+  Quote,
+  MapPin,
+  Code,
+  SeparatorHorizontal as SeparatorIcon,
+  FileText,
+  Newspaper,
+  ShoppingBag,
+  Calendar,
+  Users,
+  Folder,
+  Bookmark,
+  Tag,
+  Star,
+  Heart,
+  type LucideIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  getTemplate,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+  getBlockTypes,
+  type Template,
+  type TemplateBlockConfig,
+  type BlockType,
+} from "@/api/client";
+
+const BLOCK_ICON_MAP: Record<string, LucideIcon> = {
+  "square": Square,
+  "layout-template": LayoutTemplate,
+  "type": Type,
+  "image": Image,
+  "mouse-pointer-click": MousePointerClick,
+  "images": Images,
+  "play": Play,
+  "list": List,
+  "quote": Quote,
+  "map-pin": MapPin,
+  "code": Code,
+  "separator": SeparatorIcon,
+  "file-text": FileText,
+  "newspaper": Newspaper,
+  "shopping-bag": ShoppingBag,
+  "calendar": Calendar,
+  "users": Users,
+  "folder": Folder,
+  "bookmark": Bookmark,
+  "tag": Tag,
+  "star": Star,
+  "heart": Heart,
+};
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export default function TemplateEditorPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const isEdit = !!id;
+
+  const [loading, setLoading] = useState(isEdit);
+  const [saving, setSaving] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [autoSlug, setAutoSlug] = useState(!isEdit);
+  const [showAddBlock, setShowAddBlock] = useState(false);
+
+  // Form state
+  const [label, setLabel] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [blockConfig, setBlockConfig] = useState<TemplateBlockConfig[]>([]);
+  const [originalTemplate, setOriginalTemplate] = useState<Template | null>(null);
+
+  // Block types
+  const [blockTypes, setBlockTypes] = useState<BlockType[]>([]);
+
+  useEffect(() => {
+    getBlockTypes().then(setBlockTypes).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    let cancelled = false;
+    setLoading(true);
+    getTemplate(id)
+      .then((tpl) => {
+        if (cancelled) return;
+        setOriginalTemplate(tpl);
+        setLabel(tpl.label);
+        setSlug(tpl.slug);
+        setDescription(tpl.description || "");
+        setBlockConfig(tpl.block_config || []);
+        setAutoSlug(false);
+      })
+      .catch(() => {
+        toast.error("Failed to load template");
+        navigate("/admin/templates", { replace: true });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isEdit, navigate]);
+
+  // Auto-generate slug from label
+  useEffect(() => {
+    if (autoSlug) {
+      setSlug(slugify(label));
+    }
+  }, [label, autoSlug]);
+
+  function getBlockTypeBySlug(btSlug: string): BlockType | undefined {
+    return blockTypes.find((bt) => bt.slug === btSlug);
+  }
+
+  function getBlockIcon(btSlug: string): LucideIcon {
+    const bt = getBlockTypeBySlug(btSlug);
+    if (bt?.icon && BLOCK_ICON_MAP[bt.icon]) return BLOCK_ICON_MAP[bt.icon];
+    return Square;
+  }
+
+  function getBlockLabel(btSlug: string): string {
+    const bt = getBlockTypeBySlug(btSlug);
+    return bt?.label || btSlug;
+  }
+
+  function handleAddBlock(btSlug: string) {
+    setBlockConfig([...blockConfig, { block_type_slug: btSlug, default_values: {} }]);
+    setShowAddBlock(false);
+  }
+
+  function handleRemoveBlock(index: number) {
+    setBlockConfig(blockConfig.filter((_, i) => i !== index));
+  }
+
+  function handleMoveBlock(index: number, direction: "up" | "down") {
+    const newConfig = [...blockConfig];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newConfig.length) return;
+    [newConfig[index], newConfig[targetIndex]] = [newConfig[targetIndex], newConfig[index]];
+    setBlockConfig(newConfig);
+  }
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault();
+
+    if (!label.trim() || !slug.trim()) {
+      toast.error("Label and slug are required");
+      return;
+    }
+
+    const data: Partial<Template> = {
+      label,
+      slug,
+      description,
+      block_config: blockConfig,
+    };
+
+    setSaving(true);
+    try {
+      if (isEdit) {
+        const updated = await updateTemplate(id, data);
+        setOriginalTemplate(updated);
+        toast.success("Template updated successfully");
+      } else {
+        const created = await createTemplate(data);
+        toast.success("Template created successfully");
+        navigate(`/admin/templates/${created.id}/edit`, { replace: true });
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save template";
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await deleteTemplate(id);
+      toast.success("Template deleted successfully");
+      navigate("/admin/templates", { replace: true });
+    } catch {
+      toast.error("Failed to delete template");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild className="rounded-lg hover:bg-slate-200">
+          <Link to="/admin/templates">
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold text-slate-900">
+          {isEdit ? "Edit Template" : "New Template"}
+        </h1>
+      </div>
+
+      <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-3">
+        {/* Main content */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Basic info */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">Basic Info</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6 pt-0">
+              <div className="space-y-2">
+                <Label htmlFor="label" className="text-sm font-medium text-slate-700">Label</Label>
+                <Input
+                  id="label"
+                  placeholder="e.g. Landing Page, Blog Post"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  required
+                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="slug" className="text-sm font-medium text-slate-700">Slug</Label>
+                  <button
+                    type="button"
+                    className="text-xs text-indigo-600 hover:underline"
+                    onClick={() => setAutoSlug(!autoSlug)}
+                  >
+                    {autoSlug ? "Edit manually" : "Auto-generate"}
+                  </button>
+                </div>
+                <Input
+                  id="slug"
+                  placeholder="template-slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setAutoSlug(false);
+                    setSlug(e.target.value);
+                  }}
+                  disabled={autoSlug}
+                  required
+                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium text-slate-700">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="A brief description of this template"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Blocks */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">Blocks</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6 pt-0">
+              {blockConfig.length === 0 && (
+                <p className="text-sm text-slate-400 text-center py-4">
+                  No blocks added yet. Add blocks to define the structure of this template.
+                </p>
+              )}
+
+              {blockConfig.length > 0 && (
+                <div className="space-y-2">
+                  {blockConfig.map((block, index) => {
+                    const IconComp = getBlockIcon(block.block_type_slug);
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
+                      >
+                        {/* Move buttons */}
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveBlock(index, "up")}
+                            disabled={index === 0}
+                            className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveBlock(index, "down")}
+                            disabled={index === blockConfig.length - 1}
+                            className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {/* Block info */}
+                        <IconComp className="h-5 w-5 text-slate-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium text-slate-800">
+                            {getBlockLabel(block.block_type_slug)}
+                          </span>
+                          <span className="ml-2 text-xs text-slate-400 font-mono">
+                            {block.block_type_slug}
+                          </span>
+                        </div>
+
+                        {/* Remove button */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-600 shrink-0"
+                          onClick={() => handleRemoveBlock(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+                onClick={() => setShowAddBlock(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Block
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">Save</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6 pt-0">
+              <Button
+                type="submit"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm"
+                disabled={saving}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? "Saving..." : isEdit ? "Update Template" : "Create Template"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Actions (edit mode only) */}
+          {isEdit && (
+            <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 p-6 pt-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium"
+                  onClick={() => setShowDelete(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Template
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Info (edit mode) */}
+          {isEdit && originalTemplate && (
+            <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <CardContent className="space-y-2 p-6 text-sm text-slate-500">
+                <div className="flex justify-between">
+                  <span>Created</span>
+                  <span>
+                    {new Date(originalTemplate.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Updated</span>
+                  <span>
+                    {new Date(originalTemplate.updated_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </form>
+
+      {/* Add Block dialog */}
+      <Dialog open={showAddBlock} onOpenChange={setShowAddBlock}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Block</DialogTitle>
+            <DialogDescription>
+              Select a block type to add to this template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto py-2">
+            {blockTypes.map((bt) => {
+              const IconComp = BLOCK_ICON_MAP[bt.icon] || Square;
+              return (
+                <button
+                  key={bt.id}
+                  type="button"
+                  onClick={() => handleAddBlock(bt.slug)}
+                  className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-all hover:border-indigo-300 hover:bg-indigo-50"
+                >
+                  <IconComp className="h-5 w-5 text-slate-500 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{bt.label}</p>
+                    {bt.description && (
+                      <p className="text-xs text-slate-400 truncate">{bt.description}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+            {blockTypes.length === 0 && (
+              <p className="col-span-2 text-center text-sm text-slate-400 py-8">
+                No block types available. Create block types first.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={showDelete} onOpenChange={setShowDelete}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Template</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{originalTemplate?.label}&quot;?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDelete(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
