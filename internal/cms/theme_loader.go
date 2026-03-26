@@ -177,13 +177,6 @@ func (tl *ThemeLoader) LoadTheme(themeDir string) error {
 
 	log.Printf("loading theme: %s v%s", manifest.Name, manifest.Version)
 
-	// Get default language from DB.
-	var defaultLang models.Language
-	if err := tl.db.Where("is_default = ?", true).First(&defaultLang).Error; err != nil {
-		log.Printf("WARN: no default language found, using 'en': %v", err)
-		defaultLang.Code = "en"
-	}
-
 	// Store theme dir in registry.
 	tl.registry.mu.Lock()
 	tl.registry.themeDir = themeDir
@@ -200,7 +193,7 @@ func (tl *ThemeLoader) LoadTheme(themeDir string) error {
 			log.Printf("WARN: layout file not found %s: %v", filePath, err)
 			continue
 		}
-		tl.upsertLayout(manifest.Name, def, string(code), defaultLang.Code)
+		tl.upsertLayout(manifest.Name, def, string(code))
 	}
 
 	// Register partials.
@@ -211,7 +204,7 @@ func (tl *ThemeLoader) LoadTheme(themeDir string) error {
 			log.Printf("WARN: partial file not found %s: %v", filePath, err)
 			continue
 		}
-		tl.upsertPartial(manifest.Name, def, string(code), defaultLang.Code)
+		tl.upsertPartial(manifest.Name, def, string(code))
 	}
 
 	// Register blocks.
@@ -254,9 +247,10 @@ func (tl *ThemeLoader) registerAssets(manifest ThemeManifest) {
 }
 
 // upsertLayout creates or updates a layout from a theme definition.
-func (tl *ThemeLoader) upsertLayout(themeName string, def ThemeLayoutDef, code string, langCode string) {
+// Theme layouts are created as universal (language_id = NULL).
+func (tl *ThemeLoader) upsertLayout(themeName string, def ThemeLayoutDef, code string) {
 	var existing models.Layout
-	result := tl.db.Where("slug = ? AND language_code = ? AND source = ?", def.Slug, langCode, "theme").First(&existing)
+	result := tl.db.Where("slug = ? AND language_id IS NULL AND source = ?", def.Slug, "theme").First(&existing)
 
 	if result.Error == nil {
 		// Update existing.
@@ -272,7 +266,7 @@ func (tl *ThemeLoader) upsertLayout(themeName string, def ThemeLayoutDef, code s
 		layout := models.Layout{
 			Slug:         def.Slug,
 			Name:         def.Name,
-			LanguageCode: langCode,
+			LanguageID:   nil,
 			TemplateCode: code,
 			Source:       "theme",
 			ThemeName:    &themeName,
@@ -285,9 +279,10 @@ func (tl *ThemeLoader) upsertLayout(themeName string, def ThemeLayoutDef, code s
 }
 
 // upsertPartial creates or updates a layout (used as partial) from a theme definition.
-func (tl *ThemeLoader) upsertPartial(themeName string, def ThemePartialDef, code string, langCode string) {
+// Theme partials are created as universal (language_id = NULL).
+func (tl *ThemeLoader) upsertPartial(themeName string, def ThemePartialDef, code string) {
 	var existing models.Layout
-	result := tl.db.Where("slug = ? AND language_code = ? AND source = ?", def.Slug, langCode, "theme").First(&existing)
+	result := tl.db.Where("slug = ? AND language_id IS NULL AND source = ?", def.Slug, "theme").First(&existing)
 
 	if result.Error == nil {
 		existing.Name = def.Name
@@ -298,9 +293,9 @@ func (tl *ThemeLoader) upsertPartial(themeName string, def ThemePartialDef, code
 		}
 	} else {
 		layout := models.Layout{
-			Slug:         def.Slug,
-			Name:         def.Name,
-			LanguageCode: langCode,
+			Slug:       def.Slug,
+			Name:       def.Name,
+			LanguageID: nil,
 			TemplateCode: code,
 			Source:       "theme",
 			ThemeName:    &themeName,

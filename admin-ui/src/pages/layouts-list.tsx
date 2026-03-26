@@ -47,8 +47,8 @@ export default function LayoutsListPage() {
   const fetchLayouts = useCallback(async () => {
     setLoading(true);
     try {
-      const params: { language_code?: string } = {};
-      if (langFilter) params.language_code = langFilter;
+      const params: { language_id?: number } = {};
+      if (langFilter) params.language_id = Number(langFilter);
       const data = await getLayouts(params);
       setLayouts(data);
     } catch {
@@ -96,7 +96,7 @@ export default function LayoutsListPage() {
           >
             <option value="">All Languages</option>
             {languages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
+              <option key={lang.id} value={String(lang.id)}>
                 {lang.flag} {lang.name}
               </option>
             ))}
@@ -156,7 +156,7 @@ export default function LayoutsListPage() {
                       {layout.slug}
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
-                      {layout.language_code || "—"}
+                      {layout.language_id != null ? (languages.find(l => l.id === layout.language_id)?.name || String(layout.language_id)) : "All"}
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
                       {layout.source === "theme" ? (

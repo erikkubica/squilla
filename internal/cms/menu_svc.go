@@ -21,12 +21,12 @@ func NewMenuService(db *gorm.DB) *MenuService {
 	return &MenuService{db: db}
 }
 
-// List retrieves menus with an optional language_code filter.
-func (s *MenuService) List(languageCode string) ([]models.Menu, error) {
+// List retrieves menus with an optional language_id filter.
+func (s *MenuService) List(languageID *int) ([]models.Menu, error) {
 	var menus []models.Menu
 	q := s.db.Order("name ASC")
-	if languageCode != "" {
-		q = q.Where("language_code = ?", languageCode)
+	if languageID != nil {
+		q = q.Where("language_id = ?", *languageID)
 	}
 	if err := q.Find(&menus).Error; err != nil {
 		return nil, fmt.Errorf("failed to list menus: %w", err)
@@ -53,7 +53,11 @@ func (s *MenuService) GetByID(id int) (*models.Menu, error) {
 // Create inserts a new menu after validating slug+language uniqueness.
 func (s *MenuService) Create(menu *models.Menu) error {
 	var count int64
-	s.db.Model(&models.Menu{}).Where("slug = ? AND language_code = ?", menu.Slug, menu.LanguageCode).Count(&count)
+	if menu.LanguageID != nil {
+		s.db.Model(&models.Menu{}).Where("slug = ? AND language_id = ?", menu.Slug, *menu.LanguageID).Count(&count)
+	} else {
+		s.db.Model(&models.Menu{}).Where("slug = ? AND language_id IS NULL", menu.Slug).Count(&count)
+	}
 	if count > 0 {
 		return fmt.Errorf("SLUG_CONFLICT")
 	}
@@ -78,12 +82,21 @@ func (s *MenuService) Update(id int, updates map[string]interface{}) (*models.Me
 
 	// Validate slug+language uniqueness if slug is being changed.
 	if newSlug, ok := updates["slug"].(string); ok && newSlug != "" && newSlug != existing.Slug {
-		langCode := existing.LanguageCode
-		if lc, ok := updates["language_code"].(string); ok && lc != "" {
-			langCode = lc
+		langID := existing.LanguageID
+		if lid, ok := updates["language_id"]; ok {
+			if lid == nil {
+				langID = nil
+			} else if lidFloat, ok := lid.(float64); ok {
+				lidInt := int(lidFloat)
+				langID = &lidInt
+			}
 		}
 		var count int64
-		s.db.Model(&models.Menu{}).Where("slug = ? AND language_code = ? AND id != ?", newSlug, langCode, id).Count(&count)
+		if langID != nil {
+			s.db.Model(&models.Menu{}).Where("slug = ? AND language_id = ? AND id != ?", newSlug, *langID, id).Count(&count)
+		} else {
+			s.db.Model(&models.Menu{}).Where("slug = ? AND language_id IS NULL AND id != ?", newSlug, id).Count(&count)
+		}
 		if count > 0 {
 			return nil, fmt.Errorf("SLUG_CONFLICT")
 		}
@@ -165,18 +178,22 @@ func (s *MenuService) ReplaceItems(menuID, clientVersion int, tree []models.Menu
 	})
 }
 
-// Resolve finds a menu by slug, trying the requested language first then the default language.
+// Resolve finds a menu by slug, trying the specific language_id first then NULL (all languages).
 // Results are cached.
-func (s *MenuService) Resolve(slug, lang, defaultLang string) (*models.Menu, error) {
-	langs := []string{lang}
-	if defaultLang != lang {
-		langs = append(langs, defaultLang)
+func (s *MenuService) Resolve(slug string, languageID *int) (*models.Menu, error) {
+	type langQuery struct {
+		id       *int
+		cacheKey string
 	}
-	langs = append(langs, "*")
 
-	for _, l := range langs {
-		cacheKey := fmt.Sprintf("resolve:%s:%s", slug, l)
-		if cached, ok := s.cache.Load(cacheKey); ok {
+	queries := []langQuery{}
+	if languageID != nil {
+		queries = append(queries, langQuery{id: languageID, cacheKey: fmt.Sprintf("resolve:%s:%d", slug, *languageID)})
+	}
+	queries = append(queries, langQuery{id: nil, cacheKey: fmt.Sprintf("resolve:%s:null", slug)})
+
+	for _, q := range queries {
+		if cached, ok := s.cache.Load(q.cacheKey); ok {
 			if cached == nil {
 				continue
 			}
@@ -184,9 +201,14 @@ func (s *MenuService) Resolve(slug, lang, defaultLang string) (*models.Menu, err
 		}
 
 		var menu models.Menu
-		err := s.db.Where("slug = ? AND language_code = ?", slug, l).First(&menu).Error
+		var err error
+		if q.id != nil {
+			err = s.db.Where("slug = ? AND language_id = ?", slug, *q.id).First(&menu).Error
+		} else {
+			err = s.db.Where("slug = ? AND language_id IS NULL", slug).First(&menu).Error
+		}
 		if err != nil {
-			s.cache.Store(cacheKey, nil)
+			s.cache.Store(q.cacheKey, nil)
 			continue
 		}
 
@@ -197,7 +219,7 @@ func (s *MenuService) Resolve(slug, lang, defaultLang string) (*models.Menu, err
 		}
 		menu.Items = buildTree(items)
 
-		s.cache.Store(cacheKey, &menu)
+		s.cache.Store(q.cacheKey, &menu)
 		return &menu, nil
 	}
 

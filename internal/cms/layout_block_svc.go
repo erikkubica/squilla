@@ -21,12 +21,12 @@ func NewLayoutBlockService(db *gorm.DB) *LayoutBlockService {
 	return &LayoutBlockService{db: db}
 }
 
-// List retrieves layout blocks with optional filters for language_code and source.
-func (s *LayoutBlockService) List(languageCode, source string) ([]models.LayoutBlock, error) {
+// List retrieves layout blocks with optional filters for language_id and source.
+func (s *LayoutBlockService) List(languageID *int, source string) ([]models.LayoutBlock, error) {
 	var blocks []models.LayoutBlock
 	q := s.db.Order("name ASC")
-	if languageCode != "" {
-		q = q.Where("language_code = ?", languageCode)
+	if languageID != nil {
+		q = q.Where("language_id = ?", *languageID)
 	}
 	if source != "" {
 		q = q.Where("source = ?", source)
@@ -46,18 +46,22 @@ func (s *LayoutBlockService) GetByID(id int) (*models.LayoutBlock, error) {
 	return &block, nil
 }
 
-// Resolve finds a layout block by slug, trying the requested language first then falling back to the default language.
+// Resolve finds a layout block by slug, trying the specific language_id first then falling back to NULL (all languages).
 // Results are cached for performance.
-func (s *LayoutBlockService) Resolve(slug, lang, defaultLang string) (*models.LayoutBlock, error) {
-	langs := []string{lang}
-	if defaultLang != lang {
-		langs = append(langs, defaultLang)
+func (s *LayoutBlockService) Resolve(slug string, languageID *int) (*models.LayoutBlock, error) {
+	type langQuery struct {
+		id       *int
+		cacheKey string
 	}
-	langs = append(langs, "*")
 
-	for _, l := range langs {
-		cacheKey := fmt.Sprintf("slug:%s:lang:%s", slug, l)
-		if cached, ok := s.cache.Load(cacheKey); ok {
+	queries := []langQuery{}
+	if languageID != nil {
+		queries = append(queries, langQuery{id: languageID, cacheKey: fmt.Sprintf("slug:%s:lang:%d", slug, *languageID)})
+	}
+	queries = append(queries, langQuery{id: nil, cacheKey: fmt.Sprintf("slug:%s:lang:null", slug)})
+
+	for _, q := range queries {
+		if cached, ok := s.cache.Load(q.cacheKey); ok {
 			if cached == nil {
 				continue
 			}
@@ -65,12 +69,17 @@ func (s *LayoutBlockService) Resolve(slug, lang, defaultLang string) (*models.La
 		}
 
 		var block models.LayoutBlock
-		err := s.db.Where("slug = ? AND language_code = ?", slug, l).First(&block).Error
+		var err error
+		if q.id != nil {
+			err = s.db.Where("slug = ? AND language_id = ?", slug, *q.id).First(&block).Error
+		} else {
+			err = s.db.Where("slug = ? AND language_id IS NULL", slug).First(&block).Error
+		}
 		if err != nil {
-			s.cache.Store(cacheKey, nil)
+			s.cache.Store(q.cacheKey, nil)
 			continue
 		}
-		s.cache.Store(cacheKey, &block)
+		s.cache.Store(q.cacheKey, &block)
 		return &block, nil
 	}
 
@@ -79,9 +88,13 @@ func (s *LayoutBlockService) Resolve(slug, lang, defaultLang string) (*models.La
 
 // Create inserts a new layout block after validating slug+language uniqueness.
 func (s *LayoutBlockService) Create(block *models.LayoutBlock) error {
-	// Check slug+language_code uniqueness
+	// Check slug+language_id uniqueness
 	var count int64
-	s.db.Model(&models.LayoutBlock{}).Where("slug = ? AND language_code = ?", block.Slug, block.LanguageCode).Count(&count)
+	if block.LanguageID != nil {
+		s.db.Model(&models.LayoutBlock{}).Where("slug = ? AND language_id = ?", block.Slug, *block.LanguageID).Count(&count)
+	} else {
+		s.db.Model(&models.LayoutBlock{}).Where("slug = ? AND language_id IS NULL", block.Slug).Count(&count)
+	}
 	if count > 0 {
 		return fmt.Errorf("SLUG_CONFLICT")
 	}
@@ -111,12 +124,21 @@ func (s *LayoutBlockService) Update(id int, updates map[string]interface{}) (*mo
 
 	// Validate slug+language uniqueness if slug is being changed
 	if newSlug, ok := updates["slug"].(string); ok && newSlug != "" && newSlug != existing.Slug {
-		langCode := existing.LanguageCode
-		if lc, ok := updates["language_code"].(string); ok && lc != "" {
-			langCode = lc
+		langID := existing.LanguageID
+		if lid, ok := updates["language_id"]; ok {
+			if lid == nil {
+				langID = nil
+			} else if lidFloat, ok := lid.(float64); ok {
+				lidInt := int(lidFloat)
+				langID = &lidInt
+			}
 		}
 		var count int64
-		s.db.Model(&models.LayoutBlock{}).Where("slug = ? AND language_code = ? AND id != ?", newSlug, langCode, id).Count(&count)
+		if langID != nil {
+			s.db.Model(&models.LayoutBlock{}).Where("slug = ? AND language_id = ? AND id != ?", newSlug, *langID, id).Count(&count)
+		} else {
+			s.db.Model(&models.LayoutBlock{}).Where("slug = ? AND language_id IS NULL AND id != ?", newSlug, id).Count(&count)
+		}
 		if count > 0 {
 			return nil, fmt.Errorf("SLUG_CONFLICT")
 		}

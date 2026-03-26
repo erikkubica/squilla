@@ -4,18 +4,21 @@ CREATE TABLE IF NOT EXISTS layouts (
     slug VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT DEFAULT '',
-    language_code VARCHAR(10) NOT NULL DEFAULT '*',
+    language_id INT REFERENCES languages(id) ON DELETE SET NULL,
     template_code TEXT NOT NULL DEFAULT '',
     source VARCHAR(20) NOT NULL DEFAULT 'custom',
     theme_name VARCHAR(100),
     is_default BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(slug, language_code)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Partial unique indexes to handle NULL language_id (universal/all languages)
+CREATE UNIQUE INDEX IF NOT EXISTS layouts_slug_lang ON layouts(slug, language_id) WHERE language_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS layouts_slug_universal ON layouts(slug) WHERE language_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_layouts_source_theme ON layouts(source, theme_name);
-CREATE UNIQUE INDEX IF NOT EXISTS layouts_one_default_per_lang ON layouts(language_code) WHERE is_default = true;
+CREATE UNIQUE INDEX IF NOT EXISTS layouts_one_default_per_lang ON layouts(language_id) WHERE is_default = true AND language_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS layouts_one_default_universal ON layouts(is_default) WHERE is_default = true AND language_id IS NULL;
 
 -- Layout Blocks (partials)
 CREATE TABLE IF NOT EXISTS layout_blocks (
@@ -23,15 +26,16 @@ CREATE TABLE IF NOT EXISTS layout_blocks (
     slug VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT DEFAULT '',
-    language_code VARCHAR(10) NOT NULL DEFAULT '*',
+    language_id INT REFERENCES languages(id) ON DELETE SET NULL,
     template_code TEXT NOT NULL DEFAULT '',
     source VARCHAR(20) NOT NULL DEFAULT 'custom',
     theme_name VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(slug, language_code)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS layout_blocks_slug_lang ON layout_blocks(slug, language_id) WHERE language_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS layout_blocks_slug_universal ON layout_blocks(slug) WHERE language_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_layout_blocks_source_theme ON layout_blocks(source, theme_name);
 
 -- Menus
@@ -39,12 +43,14 @@ CREATE TABLE IF NOT EXISTS menus (
     id SERIAL PRIMARY KEY,
     slug VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    language_code VARCHAR(10) NOT NULL DEFAULT '*',
+    language_id INT REFERENCES languages(id) ON DELETE SET NULL,
     version INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(slug, language_code)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS menus_slug_lang ON menus(slug, language_id) WHERE language_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS menus_slug_universal ON menus(slug) WHERE language_id IS NULL;
 
 -- Menu Items
 CREATE TABLE IF NOT EXISTS menu_items (
@@ -75,9 +81,9 @@ ALTER TABLE block_types ADD COLUMN IF NOT EXISTS view_file VARCHAR(255);
 ALTER TABLE block_types ADD COLUMN IF NOT EXISTS block_css TEXT;
 ALTER TABLE block_types ADD COLUMN IF NOT EXISTS block_js TEXT;
 
--- Seed default layout (universal / all languages)
-INSERT INTO layouts (slug, name, description, language_code, template_code, source, is_default)
-VALUES ('default', 'Default Layout', 'Default page layout', '*',
+-- Seed default layout (universal / all languages — language_id = NULL)
+INSERT INTO layouts (slug, name, description, language_id, template_code, source, is_default)
+VALUES ('default', 'Default Layout', 'Default page layout', NULL,
 '<!DOCTYPE html>
 <html lang="{{.app.current_lang.code}}">
 <head>
@@ -95,4 +101,4 @@ VALUES ('default', 'Default Layout', 'Default page layout', '*',
 </body>
 </html>',
 'custom', true)
-ON CONFLICT (slug, language_code) DO NOTHING;
+ON CONFLICT DO NOTHING;

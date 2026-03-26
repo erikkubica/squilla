@@ -60,7 +60,7 @@ export default function MenuEditorPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-  const [languageCode, setLanguageCode] = useState("*");
+  const [languageId, setLanguageId] = useState<number | null>(null);
   const [version, setVersion] = useState(1);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
@@ -72,7 +72,7 @@ export default function MenuEditorPage() {
       setName(menu.name);
       setSlug(menu.slug);
       setSlugTouched(true);
-      setLanguageCode(menu.language_code);
+      setLanguageId(menu.language_id);
       setVersion(menu.version);
       setMenuItems(menu.items || []);
     } catch {
@@ -92,7 +92,7 @@ export default function MenuEditorPage() {
         setLanguages(langs);
         if (!id && langs.length > 0) {
           const def = langs.find((l) => l.is_default);
-          if (def) setLanguageCode(def.code);
+          if (def) setLanguageId(def.id);
         }
       })
       .catch(() => {});
@@ -125,7 +125,7 @@ export default function MenuEditorPage() {
         const menu = await createMenu({
           name,
           slug,
-          language_code: languageCode,
+          language_id: languageId,
           items: menuItems,
         });
         toast.success("Menu created successfully");
@@ -135,7 +135,7 @@ export default function MenuEditorPage() {
         await updateMenu(id!, {
           name,
           slug,
-          language_code: languageCode,
+          language_id: languageId,
         });
         // Replace menu items with version check
         try {
@@ -325,12 +325,12 @@ export default function MenuEditorPage() {
                 </label>
                 <select
                   className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  value={languageCode}
-                  onChange={(e) => setLanguageCode(e.target.value)}
+                  value={languageId === null ? "" : String(languageId)}
+                  onChange={(e) => setLanguageId(e.target.value === "" ? null : Number(e.target.value))}
                 >
-                  <option value="*">All Languages</option>
+                  <option value="">All Languages</option>
                   {languages.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
+                    <option key={lang.id} value={String(lang.id)}>
                       {lang.flag} {lang.name}
                     </option>
                   ))}

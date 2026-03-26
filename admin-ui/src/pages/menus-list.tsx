@@ -46,8 +46,8 @@ export default function MenusListPage() {
   const fetchMenus = useCallback(async () => {
     setLoading(true);
     try {
-      const params: { language_code?: string } = {};
-      if (langFilter) params.language_code = langFilter;
+      const params: { language_id?: number } = {};
+      if (langFilter) params.language_id = Number(langFilter);
       const data = await getMenus(params);
       setMenus(data);
     } catch {
@@ -95,7 +95,7 @@ export default function MenusListPage() {
           >
             <option value="">All Languages</option>
             {languages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
+              <option key={lang.id} value={String(lang.id)}>
                 {lang.flag} {lang.name}
               </option>
             ))}
@@ -155,7 +155,7 @@ export default function MenusListPage() {
                       {menu.slug}
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
-                      {menu.language_code || "\u2014"}
+                      {menu.language_id != null ? (languages.find(l => l.id === menu.language_id)?.name || String(menu.language_id)) : "All"}
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
                       <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-100 border-0 text-xs">

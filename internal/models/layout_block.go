@@ -8,7 +8,7 @@ type LayoutBlock struct {
 	Slug         string    `gorm:"column:slug;type:varchar(255);not null" json:"slug"`
 	Name         string    `gorm:"column:name;type:varchar(255);not null" json:"name"`
 	Description  string    `gorm:"column:description;type:text" json:"description"`
-	LanguageCode string    `gorm:"column:language_code;type:varchar(10);not null" json:"language_code"`
+	LanguageID   *int      `gorm:"column:language_id" json:"language_id"`
 	TemplateCode string    `gorm:"column:template_code;type:text;not null" json:"template_code"`
 	Source       string    `gorm:"column:source;type:varchar(20);not null;default:'custom'" json:"source"`
 	ThemeName    *string   `gorm:"column:theme_name;type:varchar(100)" json:"theme_name"`

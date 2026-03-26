@@ -7,7 +7,7 @@ type Menu struct {
 	ID           int        `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	Slug         string     `gorm:"column:slug;type:varchar(255);not null" json:"slug"`
 	Name         string     `gorm:"column:name;type:varchar(255);not null" json:"name"`
-	LanguageCode string     `gorm:"column:language_code;type:varchar(10);not null" json:"language_code"`
+	LanguageID   *int       `gorm:"column:language_id" json:"language_id"`
 	Version      int        `gorm:"column:version;type:int;not null;default:1" json:"version"`
 	CreatedAt    time.Time  `gorm:"column:created_at;autoCreateTime" json:"created_at"`
 	UpdatedAt    time.Time  `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`

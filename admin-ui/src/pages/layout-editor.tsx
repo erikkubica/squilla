@@ -83,7 +83,7 @@ export default function LayoutEditorPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [languageCode, setLanguageCode] = useState("*");
+  const [languageId, setLanguageId] = useState<number | null>(null);
   const [templateCode, setTemplateCode] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [source, setSource] = useState("custom");
@@ -111,7 +111,7 @@ export default function LayoutEditorPage() {
         setName(layout.name);
         setSlug(layout.slug);
         setDescription(layout.description || "");
-        setLanguageCode(layout.language_code || "");
+        setLanguageId(layout.language_id);
         setTemplateCode(layout.template_code || "");
         setIsDefault(layout.is_default);
         setSource(layout.source || "custom");
@@ -148,7 +148,7 @@ export default function LayoutEditorPage() {
       name,
       slug,
       description,
-      language_code: languageCode,
+      language_id: languageId,
       template_code: templateCode,
       is_default: isDefault,
     };
@@ -390,13 +390,13 @@ export default function LayoutEditorPage() {
                 <select
                   id="language"
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
-                  value={languageCode}
-                  onChange={(e) => setLanguageCode(e.target.value)}
+                  value={languageId === null ? "" : String(languageId)}
+                  onChange={(e) => setLanguageId(e.target.value === "" ? null : Number(e.target.value))}
                   disabled={isTheme}
                 >
-                  <option value="*">All Languages</option>
+                  <option value="">All Languages</option>
                   {languages.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
+                    <option key={lang.id} value={String(lang.id)}>
                       {lang.flag} {lang.name}
                     </option>
                   ))}

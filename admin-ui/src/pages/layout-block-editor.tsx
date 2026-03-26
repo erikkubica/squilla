@@ -88,7 +88,7 @@ export default function LayoutBlockEditorPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [languageCode, setLanguageCode] = useState("*");
+  const [languageId, setLanguageId] = useState<number | null>(null);
   const [templateCode, setTemplateCode] = useState("");
   const [source, setSource] = useState("custom");
 
@@ -102,7 +102,7 @@ export default function LayoutBlockEditorPage() {
       setName(data.name);
       setSlug(data.slug);
       setDescription(data.description || "");
-      setLanguageCode(data.language_code || "");
+      setLanguageId(data.language_id);
       setTemplateCode(data.template_code || "");
       setSource(data.source || "custom");
       setSlugManual(true);
@@ -154,7 +154,7 @@ export default function LayoutBlockEditorPage() {
         name: name.trim(),
         slug: slug.trim(),
         description: description.trim(),
-        language_code: languageCode,
+        language_id: languageId,
         template_code: templateCode,
       };
 
@@ -382,17 +382,17 @@ export default function LayoutBlockEditorPage() {
               <div className="space-y-2">
                 <Label htmlFor="language">Language</Label>
                 <Select
-                  value={languageCode}
-                  onValueChange={(v) => setLanguageCode(v)}
+                  value={languageId === null ? "all" : String(languageId)}
+                  onValueChange={(v) => setLanguageId(v === "all" ? null : Number(v))}
                   disabled={isTheme}
                 >
                   <SelectTrigger id="language">
                     <SelectValue placeholder="All Languages" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="*">All Languages</SelectItem>
+                    <SelectItem value="all">All Languages</SelectItem>
                     {languages.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code}>
+                      <SelectItem key={lang.id} value={String(lang.id)}>
                         {lang.flag} {lang.name}
                       </SelectItem>
                     ))}

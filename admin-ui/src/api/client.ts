@@ -418,7 +418,7 @@ export interface Layout {
   slug: string;
   name: string;
   description: string;
-  language_code: string;
+  language_id: number | null;
   template_code: string;
   source: string;
   theme_name: string | null;
@@ -427,9 +427,9 @@ export interface Layout {
   updated_at: string;
 }
 
-export async function getLayouts(params?: { language_code?: string; source?: string }): Promise<Layout[]> {
+export async function getLayouts(params?: { language_id?: number; source?: string }): Promise<Layout[]> {
   const searchParams = new URLSearchParams();
-  if (params?.language_code) searchParams.set("language_code", params.language_code);
+  if (params?.language_id != null) searchParams.set("language_id", String(params.language_id));
   if (params?.source) searchParams.set("source", params.source);
   const qs = searchParams.toString();
   const res = await api<ApiResponse<Layout[]>>(`/admin/api/layouts${qs ? `?${qs}` : ""}`);
@@ -475,7 +475,7 @@ export interface LayoutBlock {
   slug: string;
   name: string;
   description: string;
-  language_code: string;
+  language_id: number | null;
   template_code: string;
   source: string;
   theme_name: string | null;
@@ -483,9 +483,9 @@ export interface LayoutBlock {
   updated_at: string;
 }
 
-export async function getLayoutBlocks(params?: { language_code?: string; source?: string }): Promise<LayoutBlock[]> {
+export async function getLayoutBlocks(params?: { language_id?: number; source?: string }): Promise<LayoutBlock[]> {
   const searchParams = new URLSearchParams();
-  if (params?.language_code) searchParams.set("language_code", params.language_code);
+  if (params?.language_id != null) searchParams.set("language_id", String(params.language_id));
   if (params?.source) searchParams.set("source", params.source);
   const qs = searchParams.toString();
   const res = await api<ApiResponse<LayoutBlock[]>>(`/admin/api/layout-blocks${qs ? `?${qs}` : ""}`);
@@ -541,16 +541,16 @@ export interface Menu {
   id: number;
   slug: string;
   name: string;
-  language_code: string;
+  language_id: number | null;
   version: number;
   items: MenuItem[];
   created_at: string;
   updated_at: string;
 }
 
-export async function getMenus(params?: { language_code?: string }): Promise<Menu[]> {
+export async function getMenus(params?: { language_id?: number }): Promise<Menu[]> {
   const searchParams = new URLSearchParams();
-  if (params?.language_code) searchParams.set("language_code", params.language_code);
+  if (params?.language_id != null) searchParams.set("language_id", String(params.language_id));
   const qs = searchParams.toString();
   const res = await api<ApiResponse<Menu[]>>(`/admin/api/menus${qs ? `?${qs}` : ""}`);
   return res.data;

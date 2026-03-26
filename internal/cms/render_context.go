@@ -161,9 +161,9 @@ func (rc *RenderContext) BuildNodeData(node *models.ContentNode, blocksHTML stri
 
 // LoadMenus resolves all menus for the current language into a map keyed by slug.
 // Menus are converted to snake_case maps for consistent template access.
-func (rc *RenderContext) LoadMenus(lang, defaultLang string) map[string]interface{} {
+func (rc *RenderContext) LoadMenus(languageID *int) map[string]interface{} {
 	menus := make(map[string]interface{})
-	allMenus, err := rc.menuSvc.List("")
+	allMenus, err := rc.menuSvc.List(nil)
 	if err != nil {
 		log.Printf("WARN: failed to load menus: %v", err)
 		return menus
@@ -173,7 +173,7 @@ func (rc *RenderContext) LoadMenus(lang, defaultLang string) map[string]interfac
 		slugs[m.Slug] = true
 	}
 	for slug := range slugs {
-		menu, err := rc.menuSvc.Resolve(slug, lang, defaultLang)
+		menu, err := rc.menuSvc.Resolve(slug, languageID)
 		if err != nil {
 			continue
 		}
@@ -185,11 +185,11 @@ func (rc *RenderContext) LoadMenus(lang, defaultLang string) map[string]interfac
 // menuToMap converts a Menu struct to a snake_case map for template access.
 func menuToMap(menu *models.Menu) map[string]interface{} {
 	return map[string]interface{}{
-		"id":            menu.ID,
-		"slug":          menu.Slug,
-		"name":          menu.Name,
-		"language_code": menu.LanguageCode,
-		"items":         menuItemsToMaps(menu.Items),
+		"id":          menu.ID,
+		"slug":        menu.Slug,
+		"name":        menu.Name,
+		"language_id": menu.LanguageID,
+		"items":       menuItemsToMaps(menu.Items),
 	}
 }
 

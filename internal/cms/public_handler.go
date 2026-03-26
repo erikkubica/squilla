@@ -185,14 +185,15 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 // If no layout is found or an error occurs, it returns "" and false so the
 // caller can fall back to the legacy file-based rendering.
 func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentNode, blocks []map[string]interface{}, renderedBlocks []string) (string, bool) {
-	// Get default language
-	var defaultLang models.Language
-	if err := h.db.Where("is_default = ?", true).First(&defaultLang).Error; err != nil {
-		return "", false
+	// Resolve the node's language to get its ID
+	var nodeLang models.Language
+	var languageID *int
+	if err := h.db.Where("code = ?", node.LanguageCode).First(&nodeLang).Error; err == nil {
+		languageID = &nodeLang.ID
 	}
 
 	// Resolve layout for this node
-	layout, err := h.layoutSvc.ResolveForNode(node, defaultLang.Code)
+	layout, err := h.layoutSvc.ResolveForNode(node, languageID)
 	if err != nil || layout == nil {
 		return "", false
 	}
@@ -214,7 +215,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	settings := h.loadSiteSettings()
 
 	// Load menus
-	menus := h.renderCtx.LoadMenus(node.LanguageCode, defaultLang.Code)
+	menus := h.renderCtx.LoadMenus(languageID)
 
 	// Combine rendered blocks into a single HTML string
 	blocksHTML := strings.Join(renderedBlocks, "\n")
@@ -241,7 +242,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 
 	// Build block resolver
 	blockResolver := func(slug string) (string, error) {
-		lb, err := h.layoutBlockSvc.Resolve(slug, node.LanguageCode, defaultLang.Code)
+		lb, err := h.layoutBlockSvc.Resolve(slug, languageID)
 		if err != nil {
 			return "", err
 		}
@@ -265,11 +266,16 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 	if err := h.db.Where("is_default = ?", true).First(&defaultLang).Error; err != nil {
 		return "", false
 	}
+	defaultLangID := &defaultLang.ID
 
-	// Find default layout
+	// Find default layout — try language-specific first, then universal (NULL)
 	var layout models.Layout
-	if err := h.db.Where("is_default = ? AND language_code = ?", true, defaultLang.Code).First(&layout).Error; err != nil {
-		return "", false
+	err := h.db.Where("is_default = ? AND language_id = ?", true, *defaultLangID).First(&layout).Error
+	if err != nil {
+		// Fall back to universal default layout
+		if err2 := h.db.Where("is_default = ? AND language_id IS NULL", true).First(&layout).Error; err2 != nil {
+			return "", false
+		}
 	}
 
 	// Get languages, settings, menus
@@ -285,7 +291,7 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 	}
 
 	settings := h.loadSiteSettings()
-	menus := h.renderCtx.LoadMenus(defaultLang.Code, defaultLang.Code)
+	menus := h.renderCtx.LoadMenus(defaultLangID)
 
 	// Build 404 content
 	notFoundHTML := `<div class="text-center py-24">
@@ -321,7 +327,7 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 	templateData := TemplateData{App: appData, Node: nodeData}
 
 	blockResolver := func(slug string) (string, error) {
-		lb, err := h.layoutBlockSvc.Resolve(slug, defaultLang.Code, defaultLang.Code)
+		lb, err := h.layoutBlockSvc.Resolve(slug, defaultLangID)
 		if err != nil {
 			return "", err
 		}

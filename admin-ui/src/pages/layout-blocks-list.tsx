@@ -54,9 +54,9 @@ export default function LayoutBlocksListPage() {
   const fetchLayoutBlocks = useCallback(async () => {
     setLoading(true);
     try {
-      const params: { language_code?: string } = {};
+      const params: { language_id?: number } = {};
       if (languageFilter && languageFilter !== "all") {
-        params.language_code = languageFilter;
+        params.language_id = Number(languageFilter);
       }
       const data = await getLayoutBlocks(params);
       setLayoutBlocks(data);
@@ -122,7 +122,7 @@ export default function LayoutBlocksListPage() {
           <SelectContent>
             <SelectItem value="all">All Languages</SelectItem>
             {languages.map((lang) => (
-              <SelectItem key={lang.code} value={lang.code}>
+              <SelectItem key={lang.id} value={String(lang.id)}>
                 {lang.flag} {lang.name}
               </SelectItem>
             ))}
@@ -175,7 +175,7 @@ export default function LayoutBlocksListPage() {
                       {lb.slug}
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
-                      {lb.language_code || "all"}
+                      {lb.language_id != null ? (languages.find(l => l.id === lb.language_id)?.name || String(lb.language_id)) : "All"}
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
                       {lb.source === "theme" ? (

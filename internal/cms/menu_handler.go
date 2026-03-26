@@ -33,9 +33,16 @@ func (h *MenuHandler) RegisterRoutes(router fiber.Router) {
 
 // List handles GET /menus to retrieve all menus with optional language filter.
 func (h *MenuHandler) List(c *fiber.Ctx) error {
-	languageCode := c.Query("language_code")
+	var languageID *int
+	if langIDStr := c.Query("language_id"); langIDStr != "" {
+		id, err := strconv.Atoi(langIDStr)
+		if err != nil {
+			return api.Error(c, fiber.StatusBadRequest, "INVALID_LANGUAGE_ID", "language_id must be a valid integer")
+		}
+		languageID = &id
+	}
 
-	menus, err := h.svc.List(languageCode)
+	menus, err := h.svc.List(languageID)
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list menus")
 	}
@@ -63,9 +70,9 @@ func (h *MenuHandler) Get(c *fiber.Ctx) error {
 
 // createMenuRequest represents the JSON body for creating a menu.
 type createMenuRequest struct {
-	Slug         string `json:"slug"`
-	Name         string `json:"name"`
-	LanguageCode string `json:"language_code"`
+	Slug       string `json:"slug"`
+	Name       string `json:"name"`
+	LanguageID *int   `json:"language_id"`
 }
 
 // Create handles POST /menus to create a new menu.
@@ -83,17 +90,14 @@ func (h *MenuHandler) Create(c *fiber.Ctx) error {
 	if req.Name == "" {
 		fields["name"] = "Name is required"
 	}
-	if req.LanguageCode == "" {
-		fields["language_code"] = "Language code is required"
-	}
 	if len(fields) > 0 {
 		return api.ValidationError(c, fields)
 	}
 
 	menu := models.Menu{
-		Slug:         req.Slug,
-		Name:         req.Name,
-		LanguageCode: req.LanguageCode,
+		Slug:       req.Slug,
+		Name:       req.Name,
+		LanguageID: req.LanguageID,
 	}
 
 	if err := h.svc.Create(&menu); err != nil {
@@ -162,8 +166,8 @@ func (h *MenuHandler) Delete(c *fiber.Ctx) error {
 
 // replaceItemsRequest represents the JSON body for replacing menu items.
 type replaceItemsRequest struct {
-	Version int                    `json:"version"`
-	Items   []models.MenuItemTree  `json:"items"`
+	Version int                   `json:"version"`
+	Items   []models.MenuItemTree `json:"items"`
 }
 
 // ReplaceItems handles PUT /menus/:id/items to atomically replace all menu items.

@@ -33,10 +33,17 @@ func (h *LayoutHandler) RegisterRoutes(router fiber.Router) {
 
 // List handles GET /layouts to retrieve all layouts with optional filters.
 func (h *LayoutHandler) List(c *fiber.Ctx) error {
-	languageCode := c.Query("language_code")
+	var languageID *int
+	if langIDStr := c.Query("language_id"); langIDStr != "" {
+		id, err := strconv.Atoi(langIDStr)
+		if err != nil {
+			return api.Error(c, fiber.StatusBadRequest, "INVALID_LANGUAGE_ID", "language_id must be a valid integer")
+		}
+		languageID = &id
+	}
 	source := c.Query("source")
 
-	layouts, err := h.svc.List(languageCode, source)
+	layouts, err := h.svc.List(languageID, source)
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list layouts")
 	}
@@ -67,7 +74,7 @@ type createLayoutRequest struct {
 	Slug         string `json:"slug"`
 	Name         string `json:"name"`
 	Description  string `json:"description"`
-	LanguageCode string `json:"language_code"`
+	LanguageID   *int   `json:"language_id"`
 	TemplateCode string `json:"template_code"`
 	IsDefault    bool   `json:"is_default"`
 }
@@ -87,9 +94,6 @@ func (h *LayoutHandler) Create(c *fiber.Ctx) error {
 	if req.Name == "" {
 		fields["name"] = "Name is required"
 	}
-	if req.LanguageCode == "" {
-		fields["language_code"] = "Language code is required"
-	}
 	if req.TemplateCode == "" {
 		fields["template_code"] = "Template code is required"
 	}
@@ -101,7 +105,7 @@ func (h *LayoutHandler) Create(c *fiber.Ctx) error {
 		Slug:         req.Slug,
 		Name:         req.Name,
 		Description:  req.Description,
-		LanguageCode: req.LanguageCode,
+		LanguageID:   req.LanguageID,
 		TemplateCode: req.TemplateCode,
 		Source:       "custom",
 		IsDefault:    req.IsDefault,

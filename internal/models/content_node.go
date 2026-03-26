@@ -58,6 +58,7 @@ type ContentNode struct {
 	NodeType           string         `gorm:"column:node_type;type:varchar(50);not null;default:'page'" json:"node_type"`
 	Status             string         `gorm:"column:status;type:varchar(20);not null;default:'draft'" json:"status"`
 	LanguageCode       string         `gorm:"column:language_code;type:varchar(10);not null;default:'en'" json:"language_code"`
+	LanguageID         *int           `gorm:"column:language_id" json:"language_id,omitempty"`
 	Slug               string         `gorm:"column:slug;type:varchar(255);not null" json:"slug"`
 	FullURL            string         `gorm:"column:full_url;type:text;uniqueIndex;not null" json:"full_url"`
 	Title              string         `gorm:"column:title;type:varchar(255);not null" json:"title"`
