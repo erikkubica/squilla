@@ -83,7 +83,7 @@ ALTER TABLE block_types ADD COLUMN IF NOT EXISTS block_js TEXT;
 
 -- Seed default layout (universal / all languages — language_id = NULL)
 INSERT INTO layouts (slug, name, description, language_id, template_code, source, is_default)
-VALUES ('default', 'Default Layout', 'Default page layout', NULL,
+SELECT 'default', 'Default Layout', 'Default page layout', NULL,
 '<!DOCTYPE html>
 <html lang="{{.app.current_lang.code}}">
 <head>
@@ -100,5 +100,5 @@ VALUES ('default', 'Default Layout', 'Default page layout', NULL,
     {{.app.block_scripts}}
 </body>
 </html>',
-'custom', true)
-ON CONFLICT DO NOTHING;
+'custom', true
+WHERE NOT EXISTS (SELECT 1 FROM layouts WHERE slug = 'default' AND language_id IS NULL);
