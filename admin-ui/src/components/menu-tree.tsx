@@ -431,10 +431,13 @@ export default function MenuTree({ items, onChange }: MenuTreeProps) {
                           <NodeSearchInput
                             value={fi.item.node_id ?? null}
                             onChange={(nodeId, title) => {
-                              updateItemField(fi.path, "node_id", nodeId);
-                              if (title && !fi.item.title) {
-                                updateItemField(fi.path, "title", title);
+                              const next = cloneItems(items);
+                              const item = getItemAtPath(next, fi.path);
+                              (item as unknown as Record<string, unknown>)["node_id"] = nodeId;
+                              if (title && !item.title) {
+                                item.title = title;
                               }
+                              onChange(next);
                             }}
                           />
                         </div>
