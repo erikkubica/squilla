@@ -72,8 +72,9 @@ CREATE INDEX IF NOT EXISTS idx_menu_items_menu_sort ON menu_items(menu_id, sort_
 CREATE INDEX IF NOT EXISTS idx_menu_items_menu_parent ON menu_items(menu_id, parent_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_node ON menu_items(node_id);
 
--- Add layout_id to content_nodes
+-- Add layout_id and language_id to content_nodes
 ALTER TABLE content_nodes ADD COLUMN IF NOT EXISTS layout_id INT REFERENCES layouts(id) ON DELETE SET NULL;
+ALTER TABLE content_nodes ADD COLUMN IF NOT EXISTS language_id INT REFERENCES languages(id) ON DELETE SET NULL;
 
 -- Add theme fields to block_types
 ALTER TABLE block_types ADD COLUMN IF NOT EXISTS theme_name VARCHAR(100);
