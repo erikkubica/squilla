@@ -741,12 +741,12 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">Layout</Label>
-                <Select value={layoutId} onValueChange={setLayoutId}>
+                <Select value={layoutId || "auto"} onValueChange={(v) => setLayoutId(v === "auto" ? "" : v)}>
                   <SelectTrigger className="rounded-lg border-slate-300">
                     <SelectValue placeholder="Auto (cascade)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Auto (cascade)</SelectItem>
+                    <SelectItem value="auto">Auto (cascade)</SelectItem>
                     {layouts.map((layout) => (
                       <SelectItem key={layout.id} value={String(layout.id)}>
                         {layout.name}
