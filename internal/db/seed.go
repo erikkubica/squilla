@@ -11,62 +11,69 @@ import (
 	"vibecms/internal/models"
 )
 
-// Site header template with Tailwind CSS styling, Alpine.js mobile menu, and main-nav integration.
+// Primary navigation — renders "main-nav" menu with dropdown support.
+const primaryNavTemplate = `{{- $menu := index .app.menus "main-nav" -}}
+{{- if $menu -}}
+<nav class="hidden md:flex items-center space-x-1">
+    {{- range $menu.items -}}
+    {{- if .children -}}
+    <div class="relative" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
+        <a href="{{.url}}" class="inline-flex items-center px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors" :class="{ 'text-indigo-600 bg-slate-50': open }">
+            {{.title}}
+            <svg class="ml-1 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
+        </a>
+        <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute left-0 mt-0 w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5 py-1 z-50" style="display: none;">
+            {{- range .children -}}
+            <a href="{{.url}}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">{{.title}}</a>
+            {{- end -}}
+        </div>
+    </div>
+    {{- else -}}
+    <a href="{{.url}}" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">{{.title}}</a>
+    {{- end -}}
+    {{- end -}}
+</nav>
+{{- end -}}`
+
+// User menu — login/register when logged out, dashboard/logout when logged in.
+const userMenuTemplate = `<div class="hidden md:flex items-center space-x-3">
+    {{if .user.logged_in}}
+    <span class="text-sm text-slate-500">{{.user.full_name}}</span>
+    <a href="/admin" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Dashboard</a>
+    <a href="/logout" class="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">Logout</a>
+    {{else}}
+    <a href="/login" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Login</a>
+    <a href="/register" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">Register</a>
+    {{end}}
+</div>`
+
+// Site header — shell that includes primary-nav and user-menu layout blocks.
 const siteHeaderTemplate = `<header class="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm" x-data="{ mobileOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-            {{/* Logo / Site Name */}}
-            <div class="flex-shrink-0">
+            <div class="flex items-center space-x-8">
                 <a href="/" class="text-xl font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
                     {{.app.settings.site_name}}
                 </a>
+                {{renderLayoutBlock "primary-nav"}}
             </div>
 
-            {{/* Desktop Navigation */}}
-            {{- $menu := index .app.menus "main-nav" -}}
-            {{- if $menu -}}
-            <nav class="hidden md:flex items-center space-x-1">
-                {{- range $menu.items -}}
-                {{- if .children -}}
-                <div class="relative" x-data="{ open: false }" @mouseenter="open = true" @mouseleave="open = false">
-                    <a href="{{.url}}" class="inline-flex items-center px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors" :class="{ 'text-indigo-600 bg-slate-50': open }">
-                        {{.title}}
-                        <svg class="ml-1 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
-                    </a>
-                    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute left-0 mt-0 w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5 py-1 z-50" style="display: none;">
-                        {{- range .children -}}
-                        <a href="{{.url}}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">{{.title}}</a>
-                        {{- end -}}
-                    </div>
+            <div class="flex items-center">
+                {{renderLayoutBlock "user-menu"}}
+
+                {{/* Mobile Menu Button */}}
+                <div class="md:hidden">
+                    <button @click="mobileOpen = !mobileOpen" class="inline-flex items-center justify-center p-2 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors" aria-label="Toggle menu">
+                        <svg x-show="!mobileOpen" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                        <svg x-show="mobileOpen" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="display: none;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                    </button>
                 </div>
-                {{- else -}}
-                <a href="{{.url}}" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">{{.title}}</a>
-                {{- end -}}
-                {{- end -}}
-            </nav>
-            {{- end -}}
-
-            {{/* Auth Links */}}
-            <div class="hidden md:flex items-center space-x-3">
-                {{if .user.logged_in}}
-                <a href="/admin" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Dashboard</a>
-                <a href="/logout" class="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">Logout</a>
-                {{else}}
-                <a href="/login" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Login</a>
-                {{end}}
-            </div>
-
-            {{/* Mobile Menu Button */}}
-            <div class="md:hidden">
-                <button @click="mobileOpen = !mobileOpen" class="inline-flex items-center justify-center p-2 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors" aria-label="Toggle menu">
-                    <svg x-show="!mobileOpen" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
-                    <svg x-show="mobileOpen" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="display: none;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
-                </button>
             </div>
         </div>
     </div>
 
     {{/* Mobile Navigation */}}
+    {{- $menu := index .app.menus "main-nav" -}}
     {{- if $menu -}}
     <div x-show="mobileOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-1" class="md:hidden border-t border-slate-200 bg-white" style="display: none;">
         <nav class="px-4 py-3 space-y-1">
@@ -90,17 +97,24 @@ const siteHeaderTemplate = `<header class="sticky top-0 z-50 bg-white border-b b
     {{- end -}}
 </header>`
 
-// Site footer template with Tailwind CSS styling.
+// Footer navigation — renders "footer-nav" menu.
+const footerNavTemplate = `{{- $menu := index .app.menus "footer-nav" -}}
+{{- if $menu -}}
+<nav class="flex items-center space-x-6">
+    {{- range $menu.items -}}
+    <a href="{{.url}}" class="text-sm text-slate-500 hover:text-indigo-600 transition-colors">{{.title}}</a>
+    {{- end -}}
+</nav>
+{{- end -}}`
+
+// Site footer — uses footer-nav layout block for links.
 const siteFooterTemplate = `<footer class="bg-white border-t border-slate-200 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="text-sm text-slate-500">
                 &copy; 2026 <span class="font-medium text-slate-700">{{.app.settings.site_name}}</span>. All rights reserved.
             </div>
-            <nav class="flex items-center space-x-6">
-                <a href="/" class="text-sm text-slate-500 hover:text-indigo-600 transition-colors">Home</a>
-                <a href="/about" class="text-sm text-slate-500 hover:text-indigo-600 transition-colors">About</a>
-            </nav>
+            {{renderLayoutBlock "footer-nav"}}
         </div>
     </div>
 </footer>`
@@ -153,7 +167,7 @@ func Seed(db *gorm.DB) error {
 	if err := seedDefaultLayout(db); err != nil {
 		return err
 	}
-	if err := seedMainMenu(db); err != nil {
+	if err := seedMenus(db); err != nil {
 		return err
 	}
 	// Seed default site name setting
@@ -214,17 +228,41 @@ func seedContentNode(db *gorm.DB) error {
 func seedLayoutBlocks(db *gorm.DB) error {
 	blocks := []models.LayoutBlock{
 		{
+			Slug:         "primary-nav",
+			Name:         "Primary Navigation",
+			Description:  "Main navigation menu with dropdown support (uses main-nav menu)",
+			LanguageID:   nil,
+			TemplateCode: primaryNavTemplate,
+			Source:       "custom",
+		},
+		{
+			Slug:         "user-menu",
+			Name:         "User Menu",
+			Description:  "Login/register or dashboard/logout based on auth state",
+			LanguageID:   nil,
+			TemplateCode: userMenuTemplate,
+			Source:       "custom",
+		},
+		{
 			Slug:         "site-header",
 			Name:         "Site Header",
-			Description:  "Primary site header with navigation and mobile menu",
+			Description:  "Full site header — includes primary-nav and user-menu blocks",
 			LanguageID:   nil,
 			TemplateCode: siteHeaderTemplate,
 			Source:       "custom",
 		},
 		{
+			Slug:         "footer-nav",
+			Name:         "Footer Navigation",
+			Description:  "Footer links from footer-nav menu",
+			LanguageID:   nil,
+			TemplateCode: footerNavTemplate,
+			Source:       "custom",
+		},
+		{
 			Slug:         "site-footer",
 			Name:         "Site Footer",
-			Description:  "Site footer with copyright and links",
+			Description:  "Site footer with copyright and footer-nav block",
 			LanguageID:   nil,
 			TemplateCode: siteFooterTemplate,
 			Source:       "custom",
@@ -279,56 +317,57 @@ func seedDefaultLayout(db *gorm.DB) error {
 	return nil
 }
 
-func seedMainMenu(db *gorm.DB) error {
-	var existing models.Menu
-	result := db.Where("slug = ? AND language_id IS NULL", "main-nav").First(&existing)
-	if result.Error == nil {
-		// Menu already exists; ensure it has items
-		var count int64
-		db.Model(&models.MenuItem{}).Where("menu_id = ?", existing.ID).Count(&count)
-		if count > 0 {
-			return nil // Already has items, skip
+func seedMenus(db *gorm.DB) error {
+	menus := []struct {
+		slug  string
+		name  string
+		items []models.MenuItem
+	}{
+		{
+			slug: "main-nav",
+			name: "Main Navigation",
+			items: []models.MenuItem{
+				{Title: "Home", ItemType: "custom", URL: "/", Target: "_self", SortOrder: 0},
+				{Title: "About", ItemType: "custom", URL: "/about", Target: "_self", SortOrder: 1},
+			},
+		},
+		{
+			slug: "footer-nav",
+			name: "Footer Navigation",
+			items: []models.MenuItem{
+				{Title: "Home", ItemType: "custom", URL: "/", Target: "_self", SortOrder: 0},
+				{Title: "About", ItemType: "custom", URL: "/about", Target: "_self", SortOrder: 1},
+				{Title: "Privacy", ItemType: "custom", URL: "/privacy", Target: "_self", SortOrder: 2},
+				{Title: "Terms", ItemType: "custom", URL: "/terms", Target: "_self", SortOrder: 3},
+			},
+		},
+	}
+
+	for _, m := range menus {
+		var existing models.Menu
+		result := db.Where("slug = ? AND language_id IS NULL", m.slug).First(&existing)
+		if result.Error == nil {
+			var count int64
+			db.Model(&models.MenuItem{}).Where("menu_id = ?", existing.ID).Count(&count)
+			if count > 0 {
+				continue
+			}
+			for i := range m.items {
+				m.items[i].MenuID = existing.ID
+				db.Create(&m.items[i])
+			}
+			continue
 		}
-		// Add default items to existing menu
-		return seedMenuItems(db, existing.ID)
-	}
 
-	menu := models.Menu{
-		Slug:       "main-nav",
-		Name:       "Main Navigation",
-		LanguageID: nil,
-		Version:    1,
-	}
-	if err := db.Create(&menu).Error; err != nil {
-		return fmt.Errorf("failed to seed main-nav menu: %w", err)
-	}
-
-	return seedMenuItems(db, menu.ID)
-}
-
-func seedMenuItems(db *gorm.DB, menuID int) error {
-	items := []models.MenuItem{
-		{
-			MenuID:    menuID,
-			Title:     "Home",
-			ItemType:  "custom",
-			URL:       "/",
-			Target:    "_self",
-			SortOrder: 0,
-		},
-		{
-			MenuID:    menuID,
-			Title:     "About",
-			ItemType:  "custom",
-			URL:       "/about",
-			Target:    "_self",
-			SortOrder: 1,
-		},
-	}
-
-	for _, item := range items {
-		if err := db.Create(&item).Error; err != nil {
-			return fmt.Errorf("failed to seed menu item %q: %w", item.Title, err)
+		menu := models.Menu{Slug: m.slug, Name: m.name, LanguageID: nil, Version: 1}
+		if err := db.Create(&menu).Error; err != nil {
+			return fmt.Errorf("failed to seed menu %q: %w", m.slug, err)
+		}
+		for i := range m.items {
+			m.items[i].MenuID = menu.ID
+			if err := db.Create(&m.items[i]).Error; err != nil {
+				return fmt.Errorf("failed to seed menu item %q: %w", m.items[i].Title, err)
+			}
 		}
 	}
 	return nil
