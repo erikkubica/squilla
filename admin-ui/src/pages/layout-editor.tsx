@@ -6,8 +6,6 @@ import {
   Trash2,
   Loader2,
   Unplug,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,7 +78,6 @@ export default function LayoutEditorPage() {
   const [deleting, setDeleting] = useState(false);
   const [detaching, setDetaching] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!isEdit);
-  const [refOpen, setRefOpen] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -295,23 +292,12 @@ export default function LayoutEditorPage() {
 
           {/* Reference Panel */}
           <Card className="rounded-xl border border-slate-200 shadow-sm">
-            <CardHeader
-              className="cursor-pointer select-none"
-              onClick={() => setRefOpen(!refOpen)}
-            >
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-slate-800">
-                  Template Reference
-                </CardTitle>
-                {refOpen ? (
-                  <ChevronUp className="h-4 w-4 text-slate-400" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
-                )}
-              </div>
+            <CardHeader>
+              <CardTitle className="text-base font-semibold text-slate-800">
+                Template Reference
+              </CardTitle>
             </CardHeader>
-            {refOpen && (
-              <CardContent className="border-t border-slate-100 pt-4">
+            <CardContent className="border-t border-slate-100 pt-4">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div>
                     <h3 className="mb-3 text-sm font-semibold text-slate-700">App Variables</h3>
@@ -349,7 +335,6 @@ export default function LayoutEditorPage() {
                   </div>
                 </div>
               </CardContent>
-            )}
           </Card>
         </div>
 

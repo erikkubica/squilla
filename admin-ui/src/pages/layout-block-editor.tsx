@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import CodeEditor from "@/components/ui/code-editor";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,26 @@ import {
   type LayoutBlock,
   type Language,
 } from "@/api/client";
+
+const TEMPLATE_VARIABLES = [
+  "app.menus",
+  "app.settings",
+  "app.languages",
+  "app.current_lang",
+  "app.head_styles",
+  "app.head_scripts",
+  "app.foot_scripts",
+  "app.block_styles",
+  "app.block_scripts",
+  "node.title",
+  "node.slug",
+  "node.full_url",
+  "node.blocks_html",
+  "node.fields",
+  "node.seo",
+  "node.node_type",
+  "node.language_code",
+];
 
 function slugify(text: string): string {
   return text
@@ -266,13 +287,13 @@ export default function LayoutBlockEditorPage() {
               <CardTitle className="text-base font-semibold text-slate-900">Template Code</CardTitle>
             </CardHeader>
             <CardContent>
-              <textarea
+              <CodeEditor
                 value={templateCode}
-                onChange={(e) => setTemplateCode(e.target.value)}
+                onChange={setTemplateCode}
                 disabled={isTheme}
-                className="w-full h-96 font-mono text-sm bg-slate-950 text-slate-100 rounded-lg p-4 border-0 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-y disabled:opacity-60"
-                placeholder={`{{/* Layout block template */}}\n<header class="site-header">\n  <nav>...</nav>\n</header>`}
-                spellCheck={false}
+                height="400px"
+                placeholder="Enter your Go html/template code here..."
+                variables={TEMPLATE_VARIABLES}
               />
             </CardContent>
           </Card>
