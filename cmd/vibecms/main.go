@@ -109,6 +109,7 @@ func main() {
 	renderCtx := cms.NewRenderContext(database, layoutSvc, layoutBlockSvc, menuSvc, themeAssets)
 	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc, layoutSvc, layoutBlockSvc, menuSvc, renderCtx)
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, renderer)
+	pageAuthHandler.SetLayoutRenderer(publicHandler.RenderWithLayout)
 
 	// --- Public HTML pages ---
 	pageAuthHandler.RegisterRoutes(app)

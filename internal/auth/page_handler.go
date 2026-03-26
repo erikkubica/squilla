@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"bytes"
+	"html/template"
 	"log"
 	"strings"
 	"time"
@@ -22,11 +24,16 @@ type pageData struct {
 	Token     string
 }
 
+// LayoutRenderer is a callback that renders content inside the site layout.
+// It takes the fiber context, page title, and inner HTML content, and returns the full page HTML.
+type LayoutRenderer func(c *fiber.Ctx, title string, innerHTML template.HTML) (string, bool)
+
 // PageAuthHandler serves HTML authentication pages (login, register, etc.).
 type PageAuthHandler struct {
-	db         *gorm.DB
-	sessionSvc *SessionService
-	renderer   *rendering.TemplateRenderer
+	db             *gorm.DB
+	sessionSvc     *SessionService
+	renderer       *rendering.TemplateRenderer
+	layoutRenderer LayoutRenderer
 }
 
 // NewPageAuthHandler creates a new PageAuthHandler.
@@ -36,6 +43,11 @@ func NewPageAuthHandler(db *gorm.DB, sessionSvc *SessionService, renderer *rende
 		sessionSvc: sessionSvc,
 		renderer:   renderer,
 	}
+}
+
+// SetLayoutRenderer sets the layout rendering callback.
+func (h *PageAuthHandler) SetLayoutRenderer(lr LayoutRenderer) {
+	h.layoutRenderer = lr
 }
 
 // RegisterRoutes registers all auth page routes on the Fiber app.
@@ -51,7 +63,7 @@ func (h *PageAuthHandler) RegisterRoutes(app *fiber.App) {
 	app.Get("/logout", h.Logout)
 }
 
-// renderTemplate renders the named auth template with the base layout.
+// renderTemplate renders the named auth template, wrapped in the site layout if available.
 func (h *PageAuthHandler) renderTemplate(c *fiber.Ctx, name string, data pageData) error {
 	if data.FlashMsg == "" {
 		data.FlashMsg = c.Cookies("flash_msg")
@@ -61,12 +73,23 @@ func (h *PageAuthHandler) renderTemplate(c *fiber.Ctx, name string, data pageDat
 
 	c.Set("Content-Type", "text/html; charset=utf-8")
 
-	var buf strings.Builder
+	// Render the auth form HTML fragment
+	var buf bytes.Buffer
 	if err := h.renderer.RenderPage(&buf, "auth/"+name, data); err != nil {
 		log.Printf("template render error (%s): %v", name, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
-	return c.SendString(buf.String())
+	formHTML := buf.String()
+
+	// Try to wrap in site layout
+	if h.layoutRenderer != nil {
+		if html, ok := h.layoutRenderer(c, data.Title, template.HTML(formHTML)); ok {
+			return c.SendString(html)
+		}
+	}
+
+	// Fallback to raw form HTML
+	return c.SendString(formHTML)
 }
 
 // setFlash sets flash message cookies for the next request.

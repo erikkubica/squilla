@@ -345,6 +345,73 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 	return buf.String(), true
 }
 
+// RenderWithLayout renders arbitrary HTML content inside the default site layout.
+// Used by auth pages, error pages, etc. that need the full site chrome.
+func (h *PublicHandler) RenderWithLayout(c *fiber.Ctx, title string, innerHTML template.HTML) (string, bool) {
+	var defaultLang models.Language
+	if err := h.db.Where("is_default = ?", true).First(&defaultLang).Error; err != nil {
+		return "", false
+	}
+	defaultLangID := &defaultLang.ID
+
+	var layout models.Layout
+	if err := h.db.Where("is_default = ? AND language_id = ?", true, defaultLangID).First(&layout).Error; err != nil {
+		if err2 := h.db.Where("is_default = ? AND language_id IS NULL", true).First(&layout).Error; err2 != nil {
+			return "", false
+		}
+	}
+
+	var languages []models.Language
+	h.db.Where("is_active = ?", true).Order("sort_order ASC").Find(&languages)
+
+	var currentLang *models.Language
+	for i := range languages {
+		if languages[i].Code == defaultLang.Code {
+			currentLang = &languages[i]
+			break
+		}
+	}
+
+	settings := h.loadSiteSettings()
+	menus := h.renderCtx.LoadMenus(defaultLangID)
+	user := h.currentUser(c)
+
+	appData := AppData{
+		Menus:       menus,
+		Settings:    settings,
+		Languages:   languages,
+		CurrentLang: currentLang,
+	}
+
+	nodeData := NodeData{
+		Title:      title,
+		Slug:       "",
+		FullURL:    c.Path(),
+		BlocksHTML: innerHTML,
+		Fields:     make(map[string]interface{}),
+		SEO:        map[string]interface{}{"title": title},
+		NodeType:   "page",
+	}
+
+	templateData := TemplateData{App: appData, Node: nodeData, User: buildUserData(user)}
+
+	blockResolver := func(slug string) (string, error) {
+		lb, err := h.layoutBlockSvc.Resolve(slug, defaultLangID)
+		if err != nil {
+			return "", err
+		}
+		return lb.TemplateCode, nil
+	}
+
+	var buf bytes.Buffer
+	if err := h.renderer.RenderLayout(&buf, layout.TemplateCode, templateData.ToMap(), blockResolver); err != nil {
+		log.Printf("WARN: layout render failed for page %q: %v", title, err)
+		return "", false
+	}
+
+	return buf.String(), true
+}
+
 // loadSiteSettings loads all site settings into a map keyed by setting key.
 func (h *PublicHandler) loadSiteSettings() map[string]string {
 	settings := make(map[string]string)
