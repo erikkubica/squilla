@@ -7,6 +7,65 @@ import { keymap } from "@codemirror/view";
 import { format } from "prettier/standalone";
 import * as htmlParser from "prettier/plugins/html";
 
+// Re-indent lines containing Go template control structures.
+// {{if}}, {{range}}, {{with}}, {{define}}, {{block}} increase indent.
+// {{end}} decreases indent. {{else}} temporarily decreases then re-increases.
+function indentTemplateBlocks(code: string): string {
+  const lines = code.split("\n");
+  const result: string[] = [];
+  let depth = 0;
+  const indent = "  ";
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      result.push("");
+      continue;
+    }
+
+    // Check if line is purely a template tag (no HTML mixed in)
+    const isPureTag = /^\{\{.*\}\}$/.test(trimmed);
+
+    if (isPureTag) {
+      // {{end}} or {{else}} decrease indent first
+      if (/^\{\{\s*end\s*\}\}$/.test(trimmed)) {
+        depth = Math.max(0, depth - 1);
+        result.push(indent.repeat(depth) + trimmed);
+        continue;
+      }
+      if (/^\{\{\s*else\s*\}\}$/.test(trimmed)) {
+        result.push(indent.repeat(Math.max(0, depth - 1)) + trimmed);
+        continue;
+      }
+
+      // Output at current depth
+      result.push(indent.repeat(depth) + trimmed);
+
+      // {{if}}, {{range}}, {{with}}, {{define}}, {{block}} increase indent
+      if (/^\{\{\s*(if|range|with|define|block)\b/.test(trimmed)) {
+        depth++;
+      }
+    } else {
+      // Mixed HTML+template or pure HTML — use current depth
+      // But check for inline {{end}}, {{if}} etc. to adjust
+      const hasEnd = /\{\{\s*end\s*\}\}/.test(trimmed);
+      const hasOpen = /\{\{\s*(if|range|with|define|block)\b/.test(trimmed);
+
+      if (hasEnd && !hasOpen) {
+        depth = Math.max(0, depth - 1);
+      }
+
+      result.push(indent.repeat(depth) + trimmed);
+
+      if (hasOpen && !hasEnd) {
+        depth++;
+      }
+    }
+  }
+
+  return result.join("\n");
+}
+
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -48,7 +107,10 @@ export default function CodeEditor({
 
       // Restore Go template tags
       const restored = formatted.replace(/<!--TMPL(\d+)-->/g, (_, i) => tags[Number(i)]);
-      onChange(restored.trimEnd());
+
+      // Re-indent Go template control structures
+      const indented = indentTemplateBlocks(restored);
+      onChange(indented.trimEnd());
     } catch {
       // If formatting fails (invalid HTML), silently ignore
     } finally {
