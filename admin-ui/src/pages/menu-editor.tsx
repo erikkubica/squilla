@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Globe,
   Link as LinkIcon,
-  Hash,
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
