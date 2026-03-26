@@ -75,9 +75,8 @@ import {
   getLanguages,
   getBlockTypes,
   getTemplates,
+  getTemplate,
   getLayouts,
-  listPageTemplates,
-  getPageTemplate,
   type ContentNode,
   type NodeType,
   type NodeTypeField,
@@ -85,7 +84,6 @@ import {
   type BlockType,
   type Template,
   type Layout,
-  type PageTemplate,
 } from "@/api/client";
 
 const BLOCK_ICON_MAP: Record<string, LucideIcon> = {
@@ -172,9 +170,9 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   // Page templates
   const [showLoadTemplate, setShowLoadTemplate] = useState(false);
   const [showConfirmTemplate, setShowConfirmTemplate] = useState(false);
-  const [pageTemplates, setPageTemplates] = useState<PageTemplate[]>([]);
-  const [selectedPageTemplate, setSelectedPageTemplate] = useState<string | null>(null);
-  const [loadingPageTemplates, setLoadingPageTemplates] = useState(false);
+  const [availableTemplates, setAvailableTemplates] = useState<Template[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
 
   // Block editor state
@@ -253,17 +251,23 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   useEffect(() => {
     const templateSlug = searchParams.get("template");
     if (templateSlug && !isEdit && !loading) {
-      getPageTemplate(templateSlug)
+      getTemplates()
+        .then((templates) => {
+          const match = templates.find((t) => t.slug === templateSlug);
+          if (!match) throw new Error("Template not found");
+          return getTemplate(match.id);
+        })
         .then((detail) => {
-          const newBlocks: BlockData[] = detail.blocks.map((b) => ({
-            type: b.type,
-            fields: { ...b.fields },
+          const config = detail.block_config as Array<{ block_type_slug: string; default_values: Record<string, unknown> }>;
+          const newBlocks: BlockData[] = config.map((b) => ({
+            type: b.block_type_slug,
+            fields: { ...(b.default_values || {}) },
           }));
           setBlocks(newBlocks);
-          toast.success(`Loaded template "${detail.name}" with ${newBlocks.length} block(s)`);
+          toast.success(`Loaded template "${detail.label}" with ${newBlocks.length} block(s)`);
         })
         .catch(() => {
-          toast.error("Failed to load page template");
+          toast.error("Failed to load template");
         });
     }
   }, [searchParams, isEdit, loading]);
@@ -395,41 +399,42 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
 
   async function openLoadTemplate() {
     setShowLoadTemplate(true);
-    setLoadingPageTemplates(true);
+    setLoadingTemplates(true);
     try {
-      const templates = await listPageTemplates();
-      setPageTemplates(templates);
+      const templates = await getTemplates();
+      setAvailableTemplates(templates);
     } catch {
-      toast.error("Failed to load page templates");
+      toast.error("Failed to load templates");
     } finally {
-      setLoadingPageTemplates(false);
+      setLoadingTemplates(false);
     }
   }
 
-  function selectPageTemplate(slug: string) {
-    setSelectedPageTemplate(slug);
+  function selectTemplate(id: number) {
+    setSelectedTemplateId(id);
     setShowLoadTemplate(false);
     setShowConfirmTemplate(true);
   }
 
-  async function applyPageTemplate() {
-    if (!selectedPageTemplate) return;
+  async function applyTemplate() {
+    if (!selectedTemplateId) return;
     setApplyingTemplate(true);
     try {
-      const detail = await getPageTemplate(selectedPageTemplate);
-      const newBlocks: BlockData[] = detail.blocks.map((b) => ({
-        type: b.type,
-        fields: { ...b.fields },
+      const detail = await getTemplate(selectedTemplateId);
+      const config = detail.block_config as Array<{ block_type_slug: string; default_values: Record<string, unknown> }>;
+      const newBlocks: BlockData[] = config.map((b) => ({
+        type: b.block_type_slug,
+        fields: { ...(b.default_values || {}) },
       }));
       setBlocks(newBlocks);
       setCollapsedBlocks(new Set());
-      toast.success(`Loaded template "${detail.name}" with ${newBlocks.length} block(s)`);
+      toast.success(`Loaded template "${detail.label}" with ${newBlocks.length} block(s)`);
     } catch {
       toast.error("Failed to load template");
     } finally {
       setApplyingTemplate(false);
       setShowConfirmTemplate(false);
-      setSelectedPageTemplate(null);
+      setSelectedTemplateId(null);
     }
   }
 
@@ -1037,36 +1042,28 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
               Select a page template to apply. This will replace all existing blocks.
             </DialogDescription>
           </DialogHeader>
-          {loadingPageTemplates ? (
+          {loadingTemplates ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
             </div>
-          ) : pageTemplates.length === 0 ? (
+          ) : availableTemplates.length === 0 ? (
             <p className="text-center text-sm text-slate-400 py-12">
-              No page templates available.
+              No templates available.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto py-2">
-              {pageTemplates.map((tpl) => (
+              {availableTemplates.map((tpl) => (
                 <button
-                  key={tpl.slug}
+                  key={tpl.id}
                   type="button"
-                  onClick={() => selectPageTemplate(tpl.slug)}
+                  onClick={() => selectTemplate(tpl.id)}
                   className="flex flex-col items-start gap-2 rounded-lg border border-slate-200 bg-white p-4 text-left transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-sm"
                 >
-                  {tpl.thumbnail ? (
-                    <img
-                      src={tpl.thumbnail}
-                      alt={tpl.name}
-                      className="w-full h-24 object-cover rounded-md bg-slate-100"
-                    />
-                  ) : (
-                    <div className="w-full h-24 flex items-center justify-center rounded-md bg-slate-100">
-                      <LayoutTemplate className="h-8 w-8 text-slate-300" />
-                    </div>
-                  )}
+                  <div className="w-full h-24 flex items-center justify-center rounded-md bg-slate-100">
+                    <LayoutTemplate className="h-8 w-8 text-slate-300" />
+                  </div>
                   <div className="min-w-0 w-full">
-                    <p className="text-sm font-medium text-slate-800 truncate">{tpl.name}</p>
+                    <p className="text-sm font-medium text-slate-800 truncate">{tpl.label}</p>
                     {tpl.description && (
                       <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">{tpl.description}</p>
                     )}
@@ -1082,7 +1079,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
       <Dialog open={showConfirmTemplate} onOpenChange={(open) => {
         if (!open) {
           setShowConfirmTemplate(false);
-          setSelectedPageTemplate(null);
+          setSelectedTemplateId(null);
         }
       }}>
         <DialogContent>
@@ -1097,7 +1094,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
               variant="outline"
               onClick={() => {
                 setShowConfirmTemplate(false);
-                setSelectedPageTemplate(null);
+                setSelectedTemplateId(null);
               }}
               disabled={applyingTemplate}
             >
@@ -1105,7 +1102,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
             </Button>
             <Button
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
-              onClick={applyPageTemplate}
+              onClick={applyTemplate}
               disabled={applyingTemplate}
             >
               {applyingTemplate ? "Applying..." : "Apply Template"}

@@ -84,7 +84,6 @@ const staticNavTop: NavItem[] = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/pages", label: "Pages", icon: FileText },
   { to: "/admin/posts", label: "Posts", icon: Newspaper },
-  { to: "/admin/page-templates", label: "Page Templates", icon: LayoutTemplate },
 ];
 
 const staticNavBottom: NavEntry[] = [

@@ -118,7 +118,6 @@ func main() {
 	// Theme management.
 	themeMgmtSvc := cms.NewThemeMgmtService(database, themeLoader, "themes")
 	themeHandler := cms.NewThemeHandler(database, themeMgmtSvc)
-	pageTemplateHandler := cms.NewPageTemplateHandler(themeAssets)
 
 	renderCtx := cms.NewRenderContext(database, layoutSvc, layoutBlockSvc, menuSvc, themeAssets)
 	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc, layoutSvc, layoutBlockSvc, menuSvc, renderCtx)
@@ -147,7 +146,6 @@ func main() {
 	roleHandler.RegisterRoutes(adminAPI)
 	emailHandler.RegisterRoutes(adminAPI)
 	themeHandler.RegisterRoutes(adminAPI)
-	pageTemplateHandler.RegisterRoutes(adminAPI)
 
 	// Theme deploy webhook (public, authenticated by secret).
 	themeHandler.RegisterWebhook(app)

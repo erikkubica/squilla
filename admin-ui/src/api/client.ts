@@ -923,24 +923,3 @@ export async function updateThemeGitConfig(
     body: JSON.stringify(data),
   });
 }
-
-// --- Page Templates ---
-
-export interface PageTemplate {
-  slug: string;
-  name: string;
-  description: string;
-  thumbnail: string;
-}
-
-export interface PageTemplateDetail extends PageTemplate {
-  blocks: Array<{ type: string; fields: Record<string, unknown> }>;
-}
-
-export async function listPageTemplates(): Promise<PageTemplate[]> {
-  return api<ApiResponse<PageTemplate[]>>("/admin/api/page-templates").then(r => r.data);
-}
-
-export async function getPageTemplate(slug: string): Promise<PageTemplateDetail> {
-  return api<ApiResponse<PageTemplateDetail>>(`/admin/api/page-templates/${slug}`).then(r => r.data);
-}
