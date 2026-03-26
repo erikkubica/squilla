@@ -46,6 +46,16 @@ const siteHeaderTemplate = `<header class="sticky top-0 z-50 bg-white border-b b
             </nav>
             {{- end -}}
 
+            {{/* Auth Links */}}
+            <div class="hidden md:flex items-center space-x-3">
+                {{if .user.logged_in}}
+                <a href="/admin" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Dashboard</a>
+                <a href="/logout" class="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">Logout</a>
+                {{else}}
+                <a href="/login" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Login</a>
+                {{end}}
+            </div>
+
             {{/* Mobile Menu Button */}}
             <div class="md:hidden">
                 <button @click="mobileOpen = !mobileOpen" class="inline-flex items-center justify-center p-2 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors" aria-label="Toggle menu">
@@ -68,6 +78,13 @@ const siteHeaderTemplate = `<header class="sticky top-0 z-50 bg-white border-b b
             {{- end -}}
             {{- end -}}
             {{- end -}}
+            <hr class="my-2 border-slate-200">
+            {{if .user.logged_in}}
+            <a href="/admin" class="block px-3 py-2 text-base font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Dashboard</a>
+            <a href="/logout" class="block px-3 py-2 text-base font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Logout</a>
+            {{else}}
+            <a href="/login" class="block px-3 py-2 text-base font-medium text-indigo-600 hover:bg-slate-50 rounded-md transition-colors">Login</a>
+            {{end}}
         </nav>
     </div>
     {{- end -}}

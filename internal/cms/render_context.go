@@ -35,10 +35,20 @@ type NodeData struct {
 	LanguageCode string
 }
 
+// UserData holds the .user namespace for layout templates.
+type UserData struct {
+	LoggedIn bool
+	ID       int
+	Email    string
+	Role     string
+	FullName string
+}
+
 // TemplateData is the top-level context passed to layout templates.
 type TemplateData struct {
 	App  AppData
 	Node NodeData
+	User UserData
 }
 
 // ToMap converts TemplateData to a map with snake_case keys for template access.
@@ -66,6 +76,13 @@ func (td TemplateData) ToMap() map[string]interface{} {
 			"seo":           td.Node.SEO,
 			"node_type":     td.Node.NodeType,
 			"language_code": td.Node.LanguageCode,
+		},
+		"user": map[string]interface{}{
+			"logged_in": td.User.LoggedIn,
+			"id":        td.User.ID,
+			"email":     td.User.Email,
+			"role":      td.User.Role,
+			"full_name": td.User.FullName,
 		},
 	}
 }

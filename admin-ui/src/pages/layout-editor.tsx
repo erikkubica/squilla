@@ -338,6 +338,14 @@ export default function LayoutEditorPage() {
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.flag}}"}</code> <span className="text-slate-500">e.g. emoji flag</span></div>
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{range .app.languages}}{{.code}}{{end}}"}</code> <span className="text-slate-500">all languages</span></div>
                     </div>
+                    <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">User / Auth</h3>
+                    <div className="space-y-2 text-sm">
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{if .user.logged_in}}...{{end}}"}</code> <span className="text-slate-500">check if logged in</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.user.email}}"}</code> <span className="text-slate-500">user email</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.user.role}}"}</code> <span className="text-slate-500">user role (admin, editor...)</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.user.full_name}}"}</code> <span className="text-slate-500">display name</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.user.id}}"}</code> <span className="text-slate-500">user ID</span></div>
+                    </div>
                   </div>
                 </div>
               </CardContent>

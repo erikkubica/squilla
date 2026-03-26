@@ -84,7 +84,7 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 				renderedBlocks := h.renderBlocks(blocks)
 
 				// Try layout-based rendering first
-				if html, ok := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks); ok {
+				if html, ok := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user); ok {
 					c.Set("Content-Type", "text/html; charset=utf-8")
 					return c.SendString(html)
 				}
@@ -162,7 +162,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	renderedBlocks := h.renderBlocks(blocks)
 
 	// Try layout-based rendering first
-	if html, ok := h.renderNodeWithLayout(c, node, blocks, renderedBlocks); ok {
+	if html, ok := h.renderNodeWithLayout(c, node, blocks, renderedBlocks, user); ok {
 		c.Set("Content-Type", "text/html; charset=utf-8")
 		return c.SendString(html)
 	}
@@ -184,7 +184,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 // If a layout is resolved, it returns the fully rendered HTML and true.
 // If no layout is found or an error occurs, it returns "" and false so the
 // caller can fall back to the legacy file-based rendering.
-func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentNode, blocks []map[string]interface{}, renderedBlocks []string) (string, bool) {
+func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentNode, blocks []map[string]interface{}, renderedBlocks []string, user *models.User) (string, bool) {
 	// Resolve the node's language to get its ID
 	var nodeLang models.Language
 	var languageID *int
@@ -238,6 +238,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	templateData := TemplateData{
 		App:  appData,
 		Node: nodeData,
+		User: buildUserData(user),
 	}
 
 	// Build block resolver
@@ -324,7 +325,8 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 		LanguageCode: defaultLang.Code,
 	}
 
-	templateData := TemplateData{App: appData, Node: nodeData}
+	user := h.currentUser(c)
+	templateData := TemplateData{App: appData, Node: nodeData, User: buildUserData(user)}
 
 	blockResolver := func(slug string) (string, error) {
 		lb, err := h.layoutBlockSvc.Resolve(slug, defaultLangID)
@@ -660,6 +662,24 @@ func (h *PublicHandler) currentUser(c *fiber.Ctx) *models.User {
 		return nil
 	}
 	return user
+}
+
+// buildUserData converts a User model (possibly nil) to template-friendly UserData.
+func buildUserData(user *models.User) UserData {
+	if user == nil {
+		return UserData{LoggedIn: false}
+	}
+	fullName := ""
+	if user.FullName != nil {
+		fullName = *user.FullName
+	}
+	return UserData{
+		LoggedIn: true,
+		ID:       user.ID,
+		Email:    user.Email,
+		Role:     user.Role,
+		FullName: fullName,
+	}
 }
 
 // parseBlocks unmarshals JSONB blocks_data into a slice of maps.
