@@ -110,6 +110,24 @@ func (r *TemplateRenderer) RenderPage(w io.Writer, pageName string, data interfa
 	return r.Render(w, "layouts/base.html", pageName, data)
 }
 
+// RenderFragment renders only the "content" block from a page template,
+// without wrapping in any layout. Used when the site layout engine handles the wrapper.
+func (r *TemplateRenderer) RenderFragment(w io.Writer, pageName string, data interface{}) error {
+	pagePath := filepath.Join(r.templateDir, pageName)
+
+	// Parse with a minimal base that just executes the content block
+	base := `{{template "content" .}}`
+	tmpl, err := template.New("fragment").Funcs(r.funcMap).Parse(base)
+	if err != nil {
+		return fmt.Errorf("fragment base parse error: %w", err)
+	}
+	tmpl, err = tmpl.ParseFiles(pagePath)
+	if err != nil {
+		return fmt.Errorf("fragment parse error [%s]: %w", pageName, err)
+	}
+	return tmpl.Execute(w, data)
+}
+
 // RenderLayout renders a layout template_code string (from the DB) with a
 // blockResolver that supports the renderLayoutBlock template function.
 // The blockResolver returns the template_code for a given layout block slug.

@@ -73,23 +73,23 @@ func (h *PageAuthHandler) renderTemplate(c *fiber.Ctx, name string, data pageDat
 
 	c.Set("Content-Type", "text/html; charset=utf-8")
 
-	// Render the auth form HTML fragment
-	var buf bytes.Buffer
+	// If layout renderer is available, render only the form fragment and wrap in site layout
+	if h.layoutRenderer != nil {
+		var buf bytes.Buffer
+		if err := h.renderer.RenderFragment(&buf, "auth/"+name, data); err == nil {
+			if html, ok := h.layoutRenderer(c, data.Title, template.HTML(buf.String())); ok {
+				return c.SendString(html)
+			}
+		}
+	}
+
+	// Fallback to full page rendering with base layout
+	var buf strings.Builder
 	if err := h.renderer.RenderPage(&buf, "auth/"+name, data); err != nil {
 		log.Printf("template render error (%s): %v", name, err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
 	}
-	formHTML := buf.String()
-
-	// Try to wrap in site layout
-	if h.layoutRenderer != nil {
-		if html, ok := h.layoutRenderer(c, data.Title, template.HTML(formHTML)); ok {
-			return c.SendString(html)
-		}
-	}
-
-	// Fallback to raw form HTML
-	return c.SendString(formHTML)
+	return c.SendString(buf.String())
 }
 
 // setFlash sets flash message cookies for the next request.
