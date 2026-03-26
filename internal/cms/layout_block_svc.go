@@ -53,6 +53,7 @@ func (s *LayoutBlockService) Resolve(slug, lang, defaultLang string) (*models.La
 	if defaultLang != lang {
 		langs = append(langs, defaultLang)
 	}
+	langs = append(langs, "*")
 
 	for _, l := range langs {
 		cacheKey := fmt.Sprintf("slug:%s:lang:%s", slug, l)

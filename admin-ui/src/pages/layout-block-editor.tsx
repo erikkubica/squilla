@@ -88,7 +88,7 @@ export default function LayoutBlockEditorPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [languageCode, setLanguageCode] = useState("");
+  const [languageCode, setLanguageCode] = useState("*");
   const [templateCode, setTemplateCode] = useState("");
   const [source, setSource] = useState("custom");
 
@@ -118,12 +118,6 @@ export default function LayoutBlockEditorPage() {
     try {
       const data = await getLanguages(true);
       setLanguages(data);
-      // Default to the default language if creating new
-      if (!id && !languageCode) {
-        const defaultLang = data.find((l: Language) => l.is_default);
-        if (defaultLang) setLanguageCode(defaultLang.code);
-        else if (data.length > 0) setLanguageCode(data[0].code);
-      }
     } catch {
       // silent
     }
@@ -388,14 +382,15 @@ export default function LayoutBlockEditorPage() {
               <div className="space-y-2">
                 <Label htmlFor="language">Language</Label>
                 <Select
-                  value={languageCode || ""}
+                  value={languageCode}
                   onValueChange={(v) => setLanguageCode(v)}
                   disabled={isTheme}
                 >
                   <SelectTrigger id="language">
-                    <SelectValue placeholder="Select language..." />
+                    <SelectValue placeholder="All Languages" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="*">All Languages</SelectItem>
                     {languages.map((lang) => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.flag} {lang.name}

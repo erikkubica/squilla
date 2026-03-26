@@ -83,7 +83,7 @@ export default function LayoutEditorPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [languageCode, setLanguageCode] = useState("");
+  const [languageCode, setLanguageCode] = useState("*");
   const [templateCode, setTemplateCode] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [source, setSource] = useState("custom");
@@ -96,15 +96,7 @@ export default function LayoutEditorPage() {
 
   useEffect(() => {
     getLanguages(true)
-      .then((langs) => {
-        setLanguages(langs);
-        // Default to the default language if not editing
-        if (!isEdit && !languageCode) {
-          const defaultLang = langs.find((l) => l.is_default);
-          if (defaultLang) setLanguageCode(defaultLang.code);
-          else if (langs.length > 0) setLanguageCode(langs[0].code);
-        }
-      })
+      .then((langs) => setLanguages(langs))
       .catch(() => {});
   }, []);
 
@@ -402,7 +394,7 @@ export default function LayoutEditorPage() {
                   onChange={(e) => setLanguageCode(e.target.value)}
                   disabled={isTheme}
                 >
-                  <option value="" disabled>Select language...</option>
+                  <option value="*">All Languages</option>
                   {languages.map((lang) => (
                     <option key={lang.code} value={lang.code}>
                       {lang.flag} {lang.name}

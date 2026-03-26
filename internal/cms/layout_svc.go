@@ -198,12 +198,13 @@ func (s *LayoutService) ResolveForNode(node *models.ContentNode, defaultLang str
 	return nil, fmt.Errorf("no layout found")
 }
 
-// findBySlugAndLang looks up a layout by slug, trying requestedLang first then defaultLang.
+// findBySlugAndLang looks up a layout by slug, trying requestedLang, then defaultLang, then "*" (all languages).
 func (s *LayoutService) findBySlugAndLang(slug, requestedLang, defaultLang string) *models.Layout {
 	langs := []string{requestedLang}
 	if defaultLang != requestedLang {
 		langs = append(langs, defaultLang)
 	}
+	langs = append(langs, "*")
 
 	for _, lang := range langs {
 		cacheKey := fmt.Sprintf("slug:%s:lang:%s", slug, lang)
@@ -226,12 +227,13 @@ func (s *LayoutService) findBySlugAndLang(slug, requestedLang, defaultLang strin
 	return nil
 }
 
-// findDefault looks up the default layout, trying requestedLang first then defaultLang.
+// findDefault looks up the default layout, trying requestedLang, then defaultLang, then "*" (all languages).
 func (s *LayoutService) findDefault(requestedLang, defaultLang string) *models.Layout {
 	langs := []string{requestedLang}
 	if defaultLang != requestedLang {
 		langs = append(langs, defaultLang)
 	}
+	langs = append(langs, "*")
 
 	for _, lang := range langs {
 		cacheKey := fmt.Sprintf("default:lang:%s", lang)

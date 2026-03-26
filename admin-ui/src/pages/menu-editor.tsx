@@ -60,7 +60,7 @@ export default function MenuEditorPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-  const [languageCode, setLanguageCode] = useState("");
+  const [languageCode, setLanguageCode] = useState("*");
   const [version, setVersion] = useState(1);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
@@ -328,7 +328,7 @@ export default function MenuEditorPage() {
                   value={languageCode}
                   onChange={(e) => setLanguageCode(e.target.value)}
                 >
-                  <option value="">Select language</option>
+                  <option value="*">All Languages</option>
                   {languages.map((lang) => (
                     <option key={lang.code} value={lang.code}>
                       {lang.flag} {lang.name}

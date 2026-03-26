@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS layouts (
     slug VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT DEFAULT '',
-    language_code VARCHAR(10) NOT NULL REFERENCES languages(code),
+    language_code VARCHAR(10) NOT NULL DEFAULT '*',
     template_code TEXT NOT NULL DEFAULT '',
     source VARCHAR(20) NOT NULL DEFAULT 'custom',
     theme_name VARCHAR(100),
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS layout_blocks (
     slug VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT DEFAULT '',
-    language_code VARCHAR(10) NOT NULL REFERENCES languages(code),
+    language_code VARCHAR(10) NOT NULL DEFAULT '*',
     template_code TEXT NOT NULL DEFAULT '',
     source VARCHAR(20) NOT NULL DEFAULT 'custom',
     theme_name VARCHAR(100),
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS menus (
     id SERIAL PRIMARY KEY,
     slug VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    language_code VARCHAR(10) NOT NULL REFERENCES languages(code),
+    language_code VARCHAR(10) NOT NULL DEFAULT '*',
     version INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -75,15 +75,15 @@ ALTER TABLE block_types ADD COLUMN IF NOT EXISTS view_file VARCHAR(255);
 ALTER TABLE block_types ADD COLUMN IF NOT EXISTS block_css TEXT;
 ALTER TABLE block_types ADD COLUMN IF NOT EXISTS block_js TEXT;
 
--- Seed default layout for default language
+-- Seed default layout (universal / all languages)
 INSERT INTO layouts (slug, name, description, language_code, template_code, source, is_default)
-SELECT 'default', 'Default Layout', 'Default page layout', code,
+VALUES ('default', 'Default Layout', 'Default page layout', '*',
 '<!DOCTYPE html>
 <html lang="{{.app.current_lang.code}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.node.seo.title}}</title>
+    <title>{{or (index .node.seo "title") .node.title "VibeCMS"}}</title>
     {{range .app.head_styles}}<link rel="stylesheet" href="{{.}}">{{end}}
     {{range .app.head_scripts}}<script src="{{.}}"></script>{{end}}
     {{.app.block_styles}}
@@ -94,6 +94,5 @@ SELECT 'default', 'Default Layout', 'Default page layout', code,
     {{.app.block_scripts}}
 </body>
 </html>',
-'custom', true
-FROM languages WHERE is_default = true
+'custom', true)
 ON CONFLICT (slug, language_code) DO NOTHING;

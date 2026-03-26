@@ -172,6 +172,7 @@ func (s *MenuService) Resolve(slug, lang, defaultLang string) (*models.Menu, err
 	if defaultLang != lang {
 		langs = append(langs, defaultLang)
 	}
+	langs = append(langs, "*")
 
 	for _, l := range langs {
 		cacheKey := fmt.Sprintf("resolve:%s:%s", slug, l)
