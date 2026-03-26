@@ -139,6 +139,8 @@ func Seed(db *gorm.DB) error {
 	if err := seedMainMenu(db); err != nil {
 		return err
 	}
+	// Seed default site name setting
+	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_name', 'VibeCMS', NOW()) ON CONFLICT (key) DO NOTHING`)
 	return nil
 }
 
@@ -164,7 +166,6 @@ func seedAdminUser(db *gorm.DB) error {
 }
 
 func seedContentNode(db *gorm.DB) error {
-	blocksData := json.RawMessage(`[{"type":"heading","data":{"text":"Welcome to VibeCMS","level":1}},{"type":"paragraph","data":{"text":"This is your first page. Edit it from the admin panel."}}]`)
 	seoSettings := json.RawMessage(`{"meta_title":"Welcome to VibeCMS","meta_description":"A high-performance, AI-native CMS."}`)
 	now := time.Now()
 
@@ -175,7 +176,7 @@ func seedContentNode(db *gorm.DB) error {
 		Slug:         "home",
 		FullURL:      "/",
 		Title:        "Welcome to VibeCMS",
-		BlocksData:   models.JSONB(blocksData),
+		BlocksData:   models.JSONB(json.RawMessage(`[]`)),
 		SeoSettings:  models.JSONB(seoSettings),
 		Version:      1,
 		PublishedAt:  &now,
@@ -185,6 +186,11 @@ func seedContentNode(db *gorm.DB) error {
 	if result.Error != nil {
 		return fmt.Errorf("failed to seed sample content node: %w", result.Error)
 	}
+
+	// Set as homepage
+	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('homepage_node_id', ?, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+		fmt.Sprintf("%d", node.ID))
+
 	return nil
 }
 
