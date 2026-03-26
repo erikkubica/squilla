@@ -303,7 +303,7 @@ export default function LayoutEditorPage() {
                     <h3 className="mb-3 text-sm font-semibold text-slate-700">App Variables</h3>
                     <div className="space-y-2 text-sm">
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.settings.site_name}}"}</code> <span className="text-slate-500">site setting by key</span></div>
-                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.Code}}"}</code> <span className="text-slate-500">current language code</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.code}}"}</code> <span className="text-slate-500">current language code</span></div>
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.block_styles}}"}</code> <span className="text-slate-500">inline block CSS (HTML)</span></div>
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.block_scripts}}"}</code> <span className="text-slate-500">inline block JS (HTML)</span></div>
                     </div>
@@ -312,7 +312,7 @@ export default function LayoutEditorPage() {
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.head_styles}}<link rel="stylesheet" href="{{.}}">{{end}}'}</code></div>
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.head_scripts}}<script src="{{.}}"></script>{{end}}'}</code></div>
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.foot_scripts}}<script src="{{.}}" defer></script>{{end}}'}</code></div>
-                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.languages}}{{.Code}}{{end}}'}</code></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.languages}}{{.code}}{{end}}'}</code></div>
                     </div>
                   </div>
                   <div>
@@ -330,7 +330,21 @@ export default function LayoutEditorPage() {
                     <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">Functions</h3>
                     <div className="space-y-2 text-sm">
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{renderLayoutBlock \"slug\"}}"}</code> <span className="text-slate-500">render a partial/layout block</span></div>
+                    </div>
+                    <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">Menus</h3>
+                    <div className="space-y-2 text-sm">
                       <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{$menu := index .app.menus "main-nav"}}'}</code> <span className="text-slate-500">get menu by slug</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{range $menu.items}}"}</code> <span className="text-slate-500">loop menu items</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.title}} {{.url}} {{.target}}"}</code> <span className="text-slate-500">item fields</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.css_class}} {{.item_type}}"}</code> <span className="text-slate-500">more item fields</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{range .children}}...{{end}}"}</code> <span className="text-slate-500">nested submenu items</span></div>
+                    </div>
+                    <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">Language</h3>
+                    <div className="space-y-2 text-sm">
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.code}}"}</code> <span className="text-slate-500">e.g. "en"</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.name}}"}</code> <span className="text-slate-500">e.g. "English"</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.flag}}"}</code> <span className="text-slate-500">e.g. emoji flag</span></div>
+                      <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{range .app.languages}}{{.code}}{{end}}"}</code> <span className="text-slate-500">all languages</span></div>
                     </div>
                   </div>
                 </div>

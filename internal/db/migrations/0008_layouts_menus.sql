@@ -79,7 +79,7 @@ ALTER TABLE block_types ADD COLUMN IF NOT EXISTS block_js TEXT;
 INSERT INTO layouts (slug, name, description, language_code, template_code, source, is_default)
 SELECT 'default', 'Default Layout', 'Default page layout', code,
 '<!DOCTYPE html>
-<html lang="{{.app.current_lang.Code}}">
+<html lang="{{.app.current_lang.code}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

@@ -41,13 +41,14 @@ type TemplateData struct {
 
 // ToMap converts TemplateData to a map with snake_case keys for template access.
 // All keys use snake_case for consistency: {{.app.head_styles}}, {{.node.blocks_html}}.
+// All nested structs (languages, current_lang) are also converted to maps.
 func (td TemplateData) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"app": map[string]interface{}{
 			"menus":         td.App.Menus,
 			"settings":      td.App.Settings,
-			"languages":     td.App.Languages,
-			"current_lang":  td.App.CurrentLang,
+			"languages":     languagesToMaps(td.App.Languages),
+			"current_lang":  languageToMap(td.App.CurrentLang),
 			"head_styles":   td.App.HeadStyles,
 			"head_scripts":  td.App.HeadScripts,
 			"foot_scripts":  td.App.FootScripts,
@@ -65,6 +66,32 @@ func (td TemplateData) ToMap() map[string]interface{} {
 			"language_code": td.Node.LanguageCode,
 		},
 	}
+}
+
+// languageToMap converts a Language struct to a snake_case map.
+func languageToMap(lang *models.Language) map[string]interface{} {
+	if lang == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"code":        lang.Code,
+		"slug":        lang.Slug,
+		"name":        lang.Name,
+		"native_name": lang.NativeName,
+		"flag":        lang.Flag,
+		"is_default":  lang.IsDefault,
+		"is_active":   lang.IsActive,
+		"hide_prefix": lang.HidePrefix,
+	}
+}
+
+// languagesToMaps converts a slice of Language structs to snake_case maps.
+func languagesToMaps(langs []models.Language) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(langs))
+	for i := range langs {
+		result = append(result, languageToMap(&langs[i]))
+	}
+	return result
 }
 
 // RenderContext builds template data for layout rendering.
@@ -133,6 +160,7 @@ func (rc *RenderContext) BuildNodeData(node *models.ContentNode, blocksHTML stri
 }
 
 // LoadMenus resolves all menus for the current language into a map keyed by slug.
+// Menus are converted to snake_case maps for consistent template access.
 func (rc *RenderContext) LoadMenus(lang, defaultLang string) map[string]interface{} {
 	menus := make(map[string]interface{})
 	allMenus, err := rc.menuSvc.List("")
@@ -149,7 +177,39 @@ func (rc *RenderContext) LoadMenus(lang, defaultLang string) map[string]interfac
 		if err != nil {
 			continue
 		}
-		menus[slug] = menu
+		menus[slug] = menuToMap(menu)
 	}
 	return menus
+}
+
+// menuToMap converts a Menu struct to a snake_case map for template access.
+func menuToMap(menu *models.Menu) map[string]interface{} {
+	return map[string]interface{}{
+		"id":            menu.ID,
+		"slug":          menu.Slug,
+		"name":          menu.Name,
+		"language_code": menu.LanguageCode,
+		"items":         menuItemsToMaps(menu.Items),
+	}
+}
+
+// menuItemsToMaps converts MenuItem structs to snake_case maps recursively.
+func menuItemsToMaps(items []models.MenuItem) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(items))
+	for _, item := range items {
+		m := map[string]interface{}{
+			"id":        item.ID,
+			"title":     item.Title,
+			"item_type": item.ItemType,
+			"url":       item.URL,
+			"target":    item.Target,
+			"css_class": item.CSSClass,
+			"children":  menuItemsToMaps(item.Children),
+		}
+		if item.NodeID != nil {
+			m["node_id"] = *item.NodeID
+		}
+		result = append(result, m)
+	}
+	return result
 }
