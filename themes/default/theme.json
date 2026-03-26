@@ -16,7 +16,8 @@
     { "slug": "site-footer", "name": "Site Footer", "file": "site-footer.html" },
     { "slug": "primary-nav", "name": "Primary Navigation", "file": "primary-nav.html" },
     { "slug": "user-menu", "name": "User Menu", "file": "user-menu.html" },
-    { "slug": "footer-nav", "name": "Footer Navigation", "file": "footer-nav.html" }
+    { "slug": "footer-nav", "name": "Footer Navigation", "file": "footer-nav.html" },
+    { "slug": "language-switcher", "name": "Language Switcher", "file": "language-switcher.html" }
   ],
   "blocks": [
     { "slug": "hero", "dir": "hero" },

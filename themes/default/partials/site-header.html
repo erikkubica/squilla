@@ -14,8 +14,11 @@
                 {{renderLayoutBlock "primary-nav"}}
             </div>
 
-            <!-- Desktop User Menu (right) -->
-            {{renderLayoutBlock "user-menu"}}
+            <!-- Desktop Right: Language Switcher + User Menu -->
+            <div class="hidden md:flex items-center gap-2">
+                {{renderLayoutBlock "language-switcher"}}
+                {{renderLayoutBlock "user-menu"}}
+            </div>
 
             <!-- Mobile Hamburger Button -->
             <div class="flex md:hidden">

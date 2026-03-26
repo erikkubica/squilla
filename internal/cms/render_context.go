@@ -34,6 +34,7 @@ type NodeData struct {
 	SEO          map[string]interface{}
 	NodeType     string
 	LanguageCode string
+	Translations []map[string]interface{}
 }
 
 // UserData holds the .user namespace for layout templates.
@@ -78,6 +79,7 @@ func (td TemplateData) ToMap() map[string]interface{} {
 			"seo":           td.Node.SEO,
 			"node_type":     td.Node.NodeType,
 			"language_code": td.Node.LanguageCode,
+			"translations":  td.Node.Translations,
 		},
 		"user": map[string]interface{}{
 			"logged_in": td.User.LoggedIn,
@@ -172,6 +174,9 @@ func (rc *RenderContext) BuildNodeData(node *models.ContentNode, blocksHTML stri
 		}
 	}
 
+	// Load translations for language switcher
+	translations := rc.loadTranslations(node)
+
 	return NodeData{
 		Title:        node.Title,
 		Slug:         node.Slug,
@@ -181,7 +186,47 @@ func (rc *RenderContext) BuildNodeData(node *models.ContentNode, blocksHTML stri
 		SEO:          seo,
 		NodeType:     node.NodeType,
 		LanguageCode: node.LanguageCode,
+		Translations: translations,
 	}
+}
+
+// loadTranslations returns translation siblings for a node, including the current node.
+// Each entry has: language_code, full_url, title, flag, language_name, is_current.
+func (rc *RenderContext) loadTranslations(node *models.ContentNode) []map[string]interface{} {
+	if node.TranslationGroupID == nil || *node.TranslationGroupID == "" {
+		return nil
+	}
+
+	var siblings []models.ContentNode
+	rc.db.Where("translation_group_id = ? AND status = 'published' AND deleted_at IS NULL", *node.TranslationGroupID).
+		Select("id, title, slug, full_url, language_code").
+		Find(&siblings)
+
+	if len(siblings) <= 1 {
+		return nil
+	}
+
+	// Load languages for flags/names
+	var langs []models.Language
+	rc.db.Where("is_active = ?", true).Find(&langs)
+	langMap := make(map[string]models.Language)
+	for _, l := range langs {
+		langMap[l.Code] = l
+	}
+
+	result := make([]map[string]interface{}, 0, len(siblings))
+	for _, s := range siblings {
+		lang := langMap[s.LanguageCode]
+		result = append(result, map[string]interface{}{
+			"language_code": s.LanguageCode,
+			"language_name": lang.Name,
+			"flag":          lang.Flag,
+			"title":         s.Title,
+			"full_url":      s.FullURL,
+			"is_current":    s.LanguageCode == node.LanguageCode,
+		})
+	}
+	return result
 }
 
 // LoadMenus resolves all menus for the current language into a map keyed by slug.
