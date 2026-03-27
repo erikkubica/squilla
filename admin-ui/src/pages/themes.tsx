@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Palette,
   Upload,
@@ -26,7 +27,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import FileBrowser from "@/components/file-browser";
 import {
   getThemes,
   uploadTheme,
@@ -69,8 +69,8 @@ export default function ThemesPage() {
   // Pull state
   const [pullingId, setPullingId] = useState<number | null>(null);
 
-  // File browser
-  const [browseTarget, setBrowseTarget] = useState<Theme | null>(null);
+  // Navigation
+  const navigate = useNavigate();
 
   // Activate/deactivate state
   const [togglingId, setTogglingId] = useState<number | null>(null);
@@ -517,7 +517,7 @@ export default function ThemesPage() {
                     size="sm"
                     variant="outline"
                     className="text-xs"
-                    onClick={() => setBrowseTarget(theme)}
+                    onClick={() => navigate(`/admin/themes/${theme.id}/files`)}
                   >
                     <FolderOpen className="mr-1 h-3 w-3" />
                     Files
@@ -649,15 +649,6 @@ export default function ThemesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* File browser dialog */}
-      {browseTarget && (
-        <FileBrowser
-          apiBase={`/admin/api/themes/${browseTarget.id}/files`}
-          title={browseTarget.name}
-          open={!!browseTarget}
-          onClose={() => setBrowseTarget(null)}
-        />
-      )}
     </div>
   );
 }

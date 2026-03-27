@@ -29,7 +29,9 @@ import EmailRuleEditorPage from "@/pages/email-rule-editor";
 import EmailLogsPage from "@/pages/email-logs";
 import EmailSettingsPage from "@/pages/email-settings";
 import ThemesPage from "@/pages/themes";
+import ThemeFilesPage from "@/pages/theme-files";
 import ExtensionsPage from "@/pages/extensions";
+import ExtensionFilesPage from "@/pages/extension-files";
 import { AdminLanguageProvider } from "@/hooks/use-admin-language";
 import { Loader2 } from "lucide-react";
 
@@ -135,7 +137,9 @@ function AppRoutes() {
         <Route path="email-logs" element={<EmailLogsPage />} />
         <Route path="email-settings" element={<EmailSettingsPage />} />
         <Route path="themes" element={<ThemesPage />} />
+        <Route path="themes/:id/files" element={<ThemeFilesPage />} />
         <Route path="extensions" element={<ExtensionsPage />} />
+        <Route path="extensions/:slug/files" element={<ExtensionFilesPage />} />
         <Route
           path="content/:nodeType"
           element={<DynamicNodeList />}

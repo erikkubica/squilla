@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Puzzle,
   Upload,
@@ -23,7 +24,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import FileBrowser from "@/components/file-browser";
 import {
   getExtensions,
   activateExtension,
@@ -39,8 +39,8 @@ export default function ExtensionsPage() {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
-  const [browseTarget, setBrowseTarget] = useState<Extension | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Extension | null>(null);
+  const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -317,7 +317,7 @@ export default function ExtensionsPage() {
                     size="sm"
                     variant="outline"
                     className="text-xs"
-                    onClick={() => setBrowseTarget(ext)}
+                    onClick={() => navigate(`/admin/extensions/${ext.slug}/files`)}
                   >
                     <FolderOpen className="mr-1 h-3 w-3" />
                     Files
@@ -378,15 +378,6 @@ export default function ExtensionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* File browser dialog */}
-      {browseTarget && (
-        <FileBrowser
-          apiBase={`/admin/api/extensions/${browseTarget.slug}/files`}
-          title={browseTarget.name}
-          open={!!browseTarget}
-          onClose={() => setBrowseTarget(null)}
-        />
-      )}
     </div>
   );
 }

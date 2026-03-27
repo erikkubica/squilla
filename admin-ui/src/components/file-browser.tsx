@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   File,
   FileCode,
@@ -8,15 +9,12 @@ import {
   FolderOpen,
   ChevronRight,
   ChevronDown,
+  ChevronLeft,
   Loader2,
   FileQuestion,
+  FileType,
+  FileCode2,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
 /* ------------------------------------------------------------------ */
@@ -28,7 +26,6 @@ interface FileEntry {
   path: string;
   is_dir: boolean;
   size?: number;
-  /** provided by API only for files */
   language?: string;
 }
 
@@ -41,8 +38,8 @@ interface TreeNode extends FileEntry {
 export interface FileBrowserProps {
   apiBase: string;
   title: string;
-  open: boolean;
-  onClose: () => void;
+  backUrl: string;
+  backLabel: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -75,11 +72,15 @@ async function fetchFile(
 function iconForFile(name: string) {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   if (["go", "ts", "tsx", "js", "jsx", "tgo", "tengo", "py", "rs", "sh"].includes(ext))
-    return <FileCode className="h-4 w-4 shrink-0 text-sky-500" />;
+    return <FileCode2 className="h-4 w-4 shrink-0 text-sky-500" />;
   if (["json", "jsonc"].includes(ext))
     return <FileJson className="h-4 w-4 shrink-0 text-amber-500" />;
-  if (["html", "htm", "md", "txt", "toml", "yaml", "yml", "css", "scss"].includes(ext))
+  if (["html", "htm"].includes(ext))
+    return <FileType className="h-4 w-4 shrink-0 text-orange-500" />;
+  if (["md", "txt"].includes(ext))
     return <FileText className="h-4 w-4 shrink-0 text-emerald-500" />;
+  if (["css", "scss", "toml", "yaml", "yml"].includes(ext))
+    return <FileCode className="h-4 w-4 shrink-0 text-purple-500" />;
   return <File className="h-4 w-4 shrink-0 text-slate-400" />;
 }
 
@@ -139,7 +140,7 @@ function TreeItem({
   return (
     <>
       <button
-        className={`flex w-full items-center gap-1.5 py-1 px-2 text-left text-sm transition-colors hover:bg-slate-100 ${
+        className={`flex w-full items-center gap-1.5 py-1.5 px-2 text-left text-sm transition-colors hover:bg-slate-100 ${
           isSelected ? "bg-indigo-50 text-indigo-700 font-medium" : "text-slate-700"
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -173,11 +174,8 @@ function TreeItem({
         <span className="truncate">{node.name}</span>
       </button>
 
-      {/* Children */}
       {node.is_dir && node.expanded && (
-        <div
-          className="overflow-hidden transition-all duration-150"
-        >
+        <div className="overflow-hidden transition-all duration-150">
           {!node.loaded ? (
             <div
               className="flex items-center gap-2 py-1 text-xs text-slate-400"
@@ -215,12 +213,11 @@ function TreeItem({
 /*  FileBrowser                                                        */
 /* ------------------------------------------------------------------ */
 
-export default function FileBrowser({ apiBase, title, open, onClose }: FileBrowserProps) {
+export default function FileBrowser({ apiBase, title, backUrl, backLabel }: FileBrowserProps) {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [treeLoading, setTreeLoading] = useState(true);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
-  // File preview state
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileMeta, setFileMeta] = useState<{
     path: string;
@@ -233,7 +230,6 @@ export default function FileBrowser({ apiBase, title, open, onClose }: FileBrows
 
   // Load root directory
   useEffect(() => {
-    if (!open) return;
     let cancelled = false;
     setTreeLoading(true);
     fetchDir(apiBase, ".")
@@ -249,17 +245,7 @@ export default function FileBrowser({ apiBase, title, open, onClose }: FileBrows
     return () => {
       cancelled = true;
     };
-  }, [apiBase, open]);
-
-  // Reset state when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setTree([]);
-      setSelectedPath(null);
-      setFileContent(null);
-      setFileMeta(null);
-    }
-  }, [open]);
+  }, [apiBase]);
 
   // Deep-update a node inside the tree by path
   const updateNode = useCallback(
@@ -281,12 +267,10 @@ export default function FileBrowser({ apiBase, title, open, onClose }: FileBrows
       if (!node.is_dir) return;
 
       if (node.expanded) {
-        // Collapse
         setTree((prev) => updateNode(prev, node.path, (n) => ({ ...n, expanded: false })));
         return;
       }
 
-      // Expand
       setTree((prev) =>
         updateNode(prev, node.path, (n) => ({ ...n, expanded: true })),
       );
@@ -346,109 +330,115 @@ export default function FileBrowser({ apiBase, title, open, onClose }: FileBrows
   const lines = fileContent?.split("\n") ?? [];
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-3">
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Folder className="h-4 w-4 text-amber-500" />
-            {title} — Files
-          </DialogTitle>
-        </DialogHeader>
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      {/* Header */}
+      <div className="shrink-0 flex items-center gap-3 border-b border-slate-200 bg-white px-6 py-3">
+        <Link
+          to={backUrl}
+          className="flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to {backLabel}
+        </Link>
+        <div className="h-5 w-px bg-slate-200" />
+        <h1 className="text-base font-semibold text-slate-900">
+          {title} <span className="font-normal text-slate-500">— File Browser</span>
+        </h1>
+      </div>
 
-        <div className="flex flex-1 min-h-0">
-          {/* ---- Left panel: file tree ---- */}
-          <div className="w-[250px] shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
-            {treeLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-              </div>
-            ) : tree.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2">
-                <Folder className="h-8 w-8" />
-                <span>No files</span>
-              </div>
-            ) : (
-              <div className="py-1">
-                {tree.map((node) => (
-                  <TreeItem
-                    key={node.path}
-                    node={node}
-                    depth={0}
-                    selected={selectedPath}
-                    onToggle={handleToggle}
-                    onSelect={handleSelect}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* ---- Right panel: code preview ---- */}
-          <div className="flex-1 flex flex-col min-w-0 bg-slate-900">
-            {!selectedPath ? (
-              /* Empty state */
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
-                <FileQuestion className="h-12 w-12 text-slate-600" />
-                <span className="text-sm">Select a file to preview</span>
-              </div>
-            ) : fileLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
-              </div>
-            ) : (
-              <>
-                {/* File info bar */}
-                <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-slate-700 bg-slate-800 text-xs">
-                  <span className="text-slate-300 font-mono truncate">
-                    {fileMeta?.path}
-                  </span>
-                  <div className="flex-1" />
-                  {fileMeta && (
-                    <>
-                      <Badge className="bg-slate-700 text-slate-300 hover:bg-slate-700 border-0 text-[10px] font-mono">
-                        {fileMeta.language}
-                      </Badge>
-                      <span className="text-slate-500">
-                        {formatSize(fileMeta.size)}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* Content area */}
-                <div className="flex-1 overflow-auto">
-                  {fileMeta?.binary ? (
-                    <div className="flex items-center justify-center h-full text-slate-500 text-sm">
-                      Binary file — cannot preview
-                    </div>
-                  ) : fileMeta?.too_large ? (
-                    <div className="flex items-center justify-center h-full text-slate-500 text-sm">
-                      File too large to preview
-                    </div>
-                  ) : (
-                    <div className="flex min-w-fit">
-                      {/* Line numbers gutter */}
-                      <div className="shrink-0 sticky left-0 bg-slate-900 border-r border-slate-800 select-none pr-3 pl-3 py-3 text-right font-mono text-xs leading-5 text-slate-600">
-                        {lines.map((_, i) => (
-                          <div key={i}>{i + 1}</div>
-                        ))}
-                      </div>
-                      {/* Code */}
-                      <pre className="flex-1 py-3 pl-4 pr-4 font-mono text-xs leading-5 text-slate-100 whitespace-pre overflow-x-visible">
-                        {lines.map((line, i) => (
-                          <div key={i} className="hover:bg-slate-800/50">
-                            {line || "\n"}
-                          </div>
-                        ))}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+      {/* Two-panel layout */}
+      <div className="flex flex-1 min-h-0">
+        {/* Left panel: file tree */}
+        <div className="w-[280px] shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
+          {treeLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+            </div>
+          ) : tree.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2">
+              <Folder className="h-8 w-8" />
+              <span>No files</span>
+            </div>
+          ) : (
+            <div className="py-2">
+              {tree.map((node) => (
+                <TreeItem
+                  key={node.path}
+                  node={node}
+                  depth={0}
+                  selected={selectedPath}
+                  onToggle={handleToggle}
+                  onSelect={handleSelect}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </DialogContent>
-    </Dialog>
+
+        {/* Right panel: code preview */}
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-950">
+          {!selectedPath ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
+              <FileQuestion className="h-12 w-12 text-slate-600" />
+              <span className="text-sm">Select a file to preview</span>
+            </div>
+          ) : fileLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+            </div>
+          ) : (
+            <>
+              {/* File info bar */}
+              <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-slate-800 bg-slate-900 text-xs">
+                <span className="text-slate-300 font-mono truncate">
+                  {fileMeta?.path}
+                </span>
+                <div className="flex-1" />
+                {fileMeta && (
+                  <>
+                    <Badge className="bg-slate-800 text-slate-300 hover:bg-slate-800 border-0 text-[10px] font-mono">
+                      {fileMeta.language}
+                    </Badge>
+                    <span className="text-slate-500">
+                      {formatSize(fileMeta.size)}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Content area */}
+              <div className="flex-1 overflow-auto">
+                {fileMeta?.binary ? (
+                  <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+                    Binary file — cannot be previewed
+                  </div>
+                ) : fileMeta?.too_large ? (
+                  <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+                    File too large to preview
+                  </div>
+                ) : (
+                  <div className="flex min-w-fit">
+                    {/* Line numbers gutter */}
+                    <div className="shrink-0 sticky left-0 bg-slate-950 border-r border-slate-800/50 select-none pr-3 pl-4 py-3 text-right font-mono text-xs leading-5 text-slate-600">
+                      {lines.map((_, i) => (
+                        <div key={i}>{i + 1}</div>
+                      ))}
+                    </div>
+                    {/* Code */}
+                    <pre className="flex-1 py-3 pl-4 pr-6 font-mono text-sm leading-5 text-slate-200 whitespace-pre overflow-x-visible">
+                      {lines.map((line, i) => (
+                        <div key={i} className="hover:bg-slate-800/40">
+                          {line || "\n"}
+                        </div>
+                      ))}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
