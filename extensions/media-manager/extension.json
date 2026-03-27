@@ -21,7 +21,7 @@
         "menu": {
             "label": "Media",
             "icon": "Image",
-            "position": 3
+            "position": "3"
         }
     }
 }
