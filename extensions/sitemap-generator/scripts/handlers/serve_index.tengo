@@ -1,0 +1,53 @@
+// serve_index.tengo — Serves the sitemap index XML.
+// Determines language from the URL path prefix.
+// /sitemap.xml → default language (en)
+// /de/sitemap.xml → German
+
+settings := import("core/settings")
+
+// Extract language from request path.
+// The request.path will be /sitemap.xml or /de/sitemap.xml
+path := request.path
+lang := ""
+
+// Check if path starts with a language prefix (e.g., /de/sitemap.xml)
+if path != "/sitemap.xml" {
+	parts := []
+	current := ""
+	for ch in path {
+		if string(ch) == "/" {
+			if current != "" {
+				parts = append(parts, current)
+			}
+			current = ""
+		} else {
+			current += string(ch)
+		}
+	}
+	if current != "" {
+		parts = append(parts, current)
+	}
+	// If we have ["de", "sitemap.xml"], the first part is the language
+	if len(parts) >= 2 {
+		lang = parts[0]
+	}
+}
+
+// Default to "en" if no language prefix
+if lang == "" {
+	lang = "en"
+}
+
+key := "sitemap_index_" + lang
+sitemap_xml := settings.get(key)
+
+if sitemap_xml == "" || sitemap_xml == undefined {
+	sitemap_xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>`
+}
+
+response = {
+	status: 200,
+	content_type: "application/xml; charset=utf-8",
+	body: sitemap_xml
+}

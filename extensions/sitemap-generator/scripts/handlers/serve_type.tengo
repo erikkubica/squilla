@@ -1,0 +1,57 @@
+// serve_type.tengo — Serves a node-type sub-sitemap XML.
+// /sitemap-page.xml → pages in default language
+// /de/sitemap-page.xml → pages in German
+
+settings := import("core/settings")
+
+// Get the node type from the route parameter
+node_type := request.params.type
+if node_type == "" || node_type == undefined {
+	node_type = "page"
+}
+
+// Extract language from request path
+path := request.path
+lang := ""
+
+// Check for language prefix: /de/sitemap-page.xml → lang="de"
+if len(path) > 1 {
+	parts := []
+	current := ""
+	for ch in path {
+		if string(ch) == "/" {
+			if current != "" {
+				parts = append(parts, current)
+			}
+			current = ""
+		} else {
+			current += string(ch)
+		}
+	}
+	if current != "" {
+		parts = append(parts, current)
+	}
+	// ["de", "sitemap-page.xml"] → lang is first part if we have 2+ parts
+	if len(parts) >= 2 {
+		lang = parts[0]
+	}
+}
+
+// Default to "en" if no language prefix
+if lang == "" {
+	lang = "en"
+}
+
+key := "sitemap_" + node_type + "_" + lang
+sitemap_xml := settings.get(key)
+
+if sitemap_xml == "" || sitemap_xml == undefined {
+	sitemap_xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`
+}
+
+response = {
+	status: 200,
+	content_type: "application/xml; charset=utf-8",
+	body: sitemap_xml
+}

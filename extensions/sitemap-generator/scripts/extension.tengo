@@ -4,9 +4,16 @@ routes := import("core/routes")
 
 log.info("Sitemap Generator extension loaded!")
 
-// Rebuild sitemap when content is published or deleted
+// Rebuild sitemaps when content changes
 events.on("node.published", "handlers/rebuild_sitemap", 10)
 events.on("node.deleted", "handlers/rebuild_sitemap", 10)
 
-// Serve sitemap.xml
-routes.register("GET", "/sitemap.xml", "handlers/serve_sitemap")
+// Sitemap index: /sitemap.xml (default lang)
+routes.register("GET", "/sitemap.xml", "handlers/serve_index")
+// Sitemap index: /:lang/sitemap.xml (other languages)
+routes.register("GET", "/:lang/sitemap.xml", "handlers/serve_index")
+
+// Sub-sitemaps: /sitemap-:type.xml (default lang)
+routes.register("GET", "/sitemap-:type.xml", "handlers/serve_type")
+// Sub-sitemaps: /:lang/sitemap-:type.xml (other languages)
+routes.register("GET", "/:lang/sitemap-:type.xml", "handlers/serve_type")
