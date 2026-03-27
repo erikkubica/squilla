@@ -225,3 +225,35 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string) error {
 	log.Printf("[script] extension %s scripts loaded", slug)
 	return nil
 }
+
+// UnloadExtensionScripts removes all event and filter handlers registered by an extension.
+func (e *ScriptEngine) UnloadExtensionScripts(extDir string, slug string) {
+	extScriptsDir := filepath.Join(extDir, "scripts")
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Remove event handlers from this extension
+	for name, handlers := range e.eventHandlers {
+		filtered := make([]scriptHandler, 0, len(handlers))
+		for _, h := range handlers {
+			if h.baseDir != extScriptsDir {
+				filtered = append(filtered, h)
+			}
+		}
+		e.eventHandlers[name] = filtered
+	}
+
+	// Remove filter handlers from this extension
+	for name, handlers := range e.filterHandlers {
+		filtered := make([]scriptHandler, 0, len(handlers))
+		for _, h := range handlers {
+			if h.baseDir != extScriptsDir {
+				filtered = append(filtered, h)
+			}
+		}
+		e.filterHandlers[name] = filtered
+	}
+
+	log.Printf("[script] extension %s scripts unloaded", slug)
+}

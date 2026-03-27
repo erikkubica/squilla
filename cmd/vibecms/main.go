@@ -168,6 +168,7 @@ func main() {
 
 	// Extension admin handler.
 	extHandler := cms.NewExtensionHandler(database, extLoader)
+	extHandler.SetScriptLoader(scriptEngine)
 	extHandler.RegisterRoutes(adminAPI)
 
 	// Theme deploy webhook (public, authenticated by secret).

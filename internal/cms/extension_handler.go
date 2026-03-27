@@ -19,15 +19,27 @@ import (
 	"gorm.io/gorm"
 )
 
+// ExtensionScriptLoader is an interface for loading/unloading extension scripts at runtime.
+type ExtensionScriptLoader interface {
+	LoadExtensionScripts(extDir string, slug string) error
+	UnloadExtensionScripts(extDir string, slug string)
+}
+
 // ExtensionHandler provides HTTP handlers for extension management.
 type ExtensionHandler struct {
-	db     *gorm.DB
-	loader *ExtensionLoader
+	db           *gorm.DB
+	loader       *ExtensionLoader
+	scriptLoader ExtensionScriptLoader
 }
 
 // NewExtensionHandler creates a new ExtensionHandler.
 func NewExtensionHandler(db *gorm.DB, loader *ExtensionLoader) *ExtensionHandler {
 	return &ExtensionHandler{db: db, loader: loader}
+}
+
+// SetScriptLoader sets the script engine for hot-reloading extension scripts.
+func (h *ExtensionHandler) SetScriptLoader(sl ExtensionScriptLoader) {
+	h.scriptLoader = sl
 }
 
 // RegisterRoutes registers all admin API extension routes on the provided router group.
@@ -197,18 +209,39 @@ func (h *ExtensionHandler) Activate(c *fiber.Ctx) error {
 		}
 		return api.Error(c, fiber.StatusInternalServerError, "ACTIVATE_FAILED", "Failed to activate extension")
 	}
+
+	// Hot-load extension scripts if script engine is available
+	if h.scriptLoader != nil {
+		ext, err := h.loader.GetBySlug(slug)
+		if err == nil {
+			if loadErr := h.scriptLoader.LoadExtensionScripts(ext.Path, slug); loadErr != nil {
+				log.Printf("[extensions] warning: failed to hot-load scripts for %s: %v", slug, loadErr)
+			}
+		}
+	}
+
 	return api.Success(c, fiber.Map{"message": "Extension activated"})
 }
 
 // Deactivate handles POST /extensions/:slug/deactivate.
 func (h *ExtensionHandler) Deactivate(c *fiber.Ctx) error {
 	slug := c.Params("slug")
+
+	// Get extension path before deactivating (for script unloading)
+	ext, _ := h.loader.GetBySlug(slug)
+
 	if err := h.loader.Deactivate(slug); err != nil {
 		if err.Error() == "extension not found: "+slug {
 			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
 		}
 		return api.Error(c, fiber.StatusInternalServerError, "DEACTIVATE_FAILED", "Failed to deactivate extension")
 	}
+
+	// Hot-unload extension scripts
+	if h.scriptLoader != nil && ext != nil {
+		h.scriptLoader.UnloadExtensionScripts(ext.Path, slug)
+	}
+
 	return api.Success(c, fiber.Map{"message": "Extension deactivated"})
 }
 

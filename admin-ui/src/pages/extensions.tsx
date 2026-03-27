@@ -7,7 +7,6 @@ import {
   Power,
   PowerOff,
   Loader2,
-  AlertCircle,
   Package,
   Trash2,
   FolderOpen,
@@ -102,10 +101,10 @@ export default function ExtensionsPage() {
     try {
       if (ext.is_active) {
         await deactivateExtension(ext.slug);
-        toast.success(`"${ext.name}" deactivated. Restart required to take effect.`);
+        toast.success(`"${ext.name}" deactivated`);
       } else {
         await activateExtension(ext.slug);
-        toast.success(`"${ext.name}" activated. Restart required to take effect.`);
+        toast.success(`"${ext.name}" activated`);
       }
       fetchExtensions();
     } catch {
@@ -152,19 +151,6 @@ export default function ExtensionsPage() {
         </Button>
       </div>
 
-      {/* Restart Notice */}
-      <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
-        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-        <div>
-          <p className="text-sm font-medium text-amber-800">
-            Restart required for changes
-          </p>
-          <p className="text-xs text-amber-600 mt-0.5">
-            Activating or deactivating extensions requires a server restart to load/unload scripts.
-          </p>
-        </div>
-      </div>
-
       {/* Extensions Grid */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
@@ -189,27 +175,32 @@ export default function ExtensionsPage() {
                   : "border border-slate-200 hover:border-slate-300"
               }`}
             >
-              <div className="relative h-28 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                <Puzzle className="h-12 w-12 text-slate-300" />
-                <div className="absolute top-3 right-3">
-                  {ext.is_active ? (
-                    <Badge className="bg-emerald-500 text-white hover:bg-emerald-500 border-0 text-xs shadow-sm">
-                      <Check className="mr-1 h-3 w-3" />
-                      Active
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-slate-400 text-white hover:bg-slate-400 border-0 text-xs">
-                      Inactive
-                    </Badge>
-                  )}
+              {/* Card header */}
+              <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Puzzle className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs font-medium text-slate-500 truncate">
+                    {ext.priority !== 50 ? `Extension \u00b7 Priority ${ext.priority}` : "Extension"}
+                  </span>
                 </div>
-                {ext.priority !== 50 && (
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="outline" className="text-xs bg-white/80">
-                      Priority {ext.priority}
-                    </Badge>
-                  </div>
+                {ext.is_active ? (
+                  <Badge className="bg-emerald-500 text-white hover:bg-emerald-500 border-0 text-xs shadow-sm">
+                    <Check className="mr-1 h-3 w-3" />
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge className="bg-slate-400 text-white hover:bg-slate-400 border-0 text-xs">
+                    Inactive
+                  </Badge>
                 )}
+              </div>
+
+              <div className="relative h-28 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-3 rounded-lg overflow-hidden">
+                <img
+                  src="/previews/default-extension.svg"
+                  alt={ext.name}
+                  className="h-full w-full object-cover"
+                />
               </div>
 
               <CardContent className="p-4 space-y-3">
