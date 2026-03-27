@@ -989,3 +989,30 @@ export async function uploadExtension(file: File): Promise<void> {
 export async function deleteExtension(slug: string): Promise<void> {
   await api<void>(`/admin/api/extensions/${slug}`, { method: "DELETE" });
 }
+
+// Extension settings
+export async function getExtensionSettings(slug: string): Promise<Record<string, string>> {
+  const res = await api<ApiResponse<Record<string, string>>>(`/admin/api/extensions/${slug}/settings`);
+  return res.data;
+}
+
+export async function updateExtensionSettings(slug: string, data: Record<string, string>): Promise<void> {
+  await api<void>(`/admin/api/extensions/${slug}/settings`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+// Extension manifests
+export async function getExtensionManifests(): Promise<Array<{
+  slug: string;
+  name: string;
+  manifest: Record<string, unknown>;
+}>> {
+  const res = await api<ApiResponse<Array<{
+    slug: string;
+    name: string;
+    manifest: Record<string, unknown>;
+  }>>>("/admin/api/extensions/manifests");
+  return res.data;
+}

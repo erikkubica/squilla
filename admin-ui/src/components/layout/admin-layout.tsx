@@ -45,6 +45,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
+import { useExtensions } from "@/hooks/use-extensions";
 import { getNodeTypes, type NodeType } from "@/api/client";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -88,34 +89,27 @@ const staticNavTop: NavItem[] = [
 ];
 
 const staticNavBottom: NavEntry[] = [
+  { to: "/admin/media", label: "Media", icon: Image, disabled: true },
   {
-    label: "Users",
-    icon: UsersIcon,
-    children: [
-      { to: "/admin/users", label: "Users", icon: UsersIcon },
-      { to: "/admin/roles", label: "Roles", icon: Shield },
-    ],
-  },
-  { to: "/admin/menus", label: "Menus", icon: ListTree },
-  {
-    label: "Design",
+    label: "Appearance",
     icon: Palette,
     children: [
       { to: "/admin/themes", label: "Themes", icon: Palette },
       { to: "/admin/layouts", label: "Layouts", icon: PanelTop },
       { to: "/admin/layout-blocks", label: "Layout Blocks", icon: Component },
-      { to: "/admin/templates", label: "Templates", icon: LayoutTemplate },
+      { to: "/admin/menus", label: "Menus", icon: ListTree },
     ],
   },
-  { to: "/admin/extensions", label: "Extensions", icon: Puzzle },
   {
-    label: "Schema",
+    label: "Content",
     icon: Boxes,
     children: [
       { to: "/admin/content-types", label: "Content Types", icon: Boxes },
       { to: "/admin/block-types", label: "Block Types", icon: Square },
+      { to: "/admin/templates", label: "Templates", icon: LayoutTemplate },
     ],
   },
+  { to: "/admin/extensions", label: "Extensions", icon: Puzzle },
   {
     label: "Email",
     icon: Mail,
@@ -126,9 +120,25 @@ const staticNavBottom: NavEntry[] = [
       { to: "/admin/email-settings", label: "Settings", icon: Settings },
     ],
   },
-  { to: "/admin/languages", label: "Languages", icon: Globe },
-  { to: "/admin/media", label: "Media", icon: Image, disabled: true },
-  { to: "/admin/settings", label: "Settings", icon: Settings, disabled: true },
+  {
+    label: "Users",
+    icon: UsersIcon,
+    children: [
+      { to: "/admin/users", label: "Users", icon: UsersIcon },
+      { to: "/admin/roles", label: "Roles", icon: Shield },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    children: [
+      { to: "/admin/settings/site", label: "Site", icon: Settings, disabled: true },
+      { to: "/admin/languages", label: "Languages", icon: Globe },
+      { to: "/admin/settings/api", label: "API", icon: Settings, disabled: true },
+      { to: "/admin/settings/ai", label: "AI", icon: Settings, disabled: true },
+      { to: "/admin/settings/mcp", label: "MCP", icon: Settings, disabled: true },
+    ],
+  },
 ];
 
 function getBreadcrumb(pathname: string): string[] {
@@ -179,7 +189,31 @@ export default function AdminLayout() {
     icon: iconMap[t.icon] || FileText,
   }));
 
-  const navEntries: NavEntry[] = [...staticNavTop, ...customNavItems, ...staticNavBottom];
+  const { menus: extensionMenus } = useExtensions();
+
+  // Build extension nav groups
+  const extensionNavGroups: NavEntry[] = extensionMenus.map((menu) => ({
+    label: menu.label,
+    icon: iconMap[menu.icon] || Puzzle,
+    children: menu.children.map((child) => ({
+      to: `/admin/ext/${menu.slug}/${child.route}`,
+      label: child.label,
+      icon: iconMap[menu.icon] || Puzzle,
+    })),
+  }));
+
+  // Insert extension menus before the "Appearance" group
+  const appearanceIdx = staticNavBottom.findIndex(
+    (e) => "label" in e && e.label === "Appearance"
+  );
+  const bottomWithExtensions = [...staticNavBottom];
+  if (appearanceIdx >= 0) {
+    bottomWithExtensions.splice(appearanceIdx, 0, ...extensionNavGroups);
+  } else {
+    bottomWithExtensions.unshift(...extensionNavGroups);
+  }
+
+  const navEntries: NavEntry[] = [...staticNavTop, ...customNavItems, ...bottomWithExtensions];
 
   const sidebarWidth = collapsed ? "w-16" : "w-64";
 
@@ -262,18 +296,28 @@ export default function AdminLayout() {
                     {entry.children.map((child) => (
                       <NavLink
                         key={child.to}
-                        to={child.to}
-                        onClick={() => setSidebarOpen(false)}
+                        to={child.disabled ? "#" : child.to}
+                        onClick={(e) => {
+                          if (child.disabled) e.preventDefault();
+                          else setSidebarOpen(false);
+                        }}
                         className={({ isActive }) =>
                           `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                            isActive
-                              ? "bg-slate-700/50 text-white"
-                              : "text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                            child.disabled
+                              ? "cursor-not-allowed text-slate-500"
+                              : isActive
+                                ? "bg-slate-700/50 text-white"
+                                : "text-slate-300 hover:bg-slate-700/50 hover:text-white"
                           } ${collapsed ? "justify-center" : ""}`
                         }
                       >
                         <child.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span>{child.label}</span>}
+                        {!collapsed && child.disabled && (
+                          <span className="ml-auto rounded bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">
+                            Soon
+                          </span>
+                        )}
                       </NavLink>
                     ))}
                   </div>

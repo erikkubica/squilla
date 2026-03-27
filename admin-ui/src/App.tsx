@@ -33,6 +33,8 @@ import ThemeFilesPage from "@/pages/theme-files";
 import ExtensionsPage from "@/pages/extensions";
 import ExtensionFilesPage from "@/pages/extension-files";
 import { AdminLanguageProvider } from "@/hooks/use-admin-language";
+import { ExtensionsProvider } from "@/hooks/use-extensions";
+import { ExtensionPageLoader } from "@/components/extension-page-loader";
 import { Loader2 } from "lucide-react";
 
 function DynamicNodeList() {
@@ -72,7 +74,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AdminLanguageProvider>
-              <AdminLayout />
+              <ExtensionsProvider>
+                <AdminLayout />
+              </ExtensionsProvider>
             </AdminLanguageProvider>
           </ProtectedRoute>
         }
@@ -152,6 +156,8 @@ function AppRoutes() {
           path="content/:nodeType/:id/edit"
           element={<DynamicNodeEditor />}
         />
+        {/* Extension pages */}
+        <Route path="ext/:slug/*" element={<ExtensionPageLoader />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
     </Routes>
