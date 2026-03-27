@@ -1,0 +1,27 @@
+{
+    "name": "Media Manager",
+    "slug": "media-manager",
+    "version": "1.0.0",
+    "author": "VibeCMS",
+    "description": "Upload, organize, and manage media files. Supports images, documents, and other file types.",
+    "provides": ["media"],
+    "capabilities": [
+        "media:read",
+        "media:write",
+        "media:delete",
+        "settings:read",
+        "log:write"
+    ],
+    "admin_ui": {
+        "entry": "dist/index.js",
+        "routes": [
+            {"path": "/media", "component": "MediaLibrary"},
+            {"path": "/media/:id", "component": "MediaDetail"}
+        ],
+        "menu": {
+            "label": "Media",
+            "icon": "Image",
+            "position": 3
+        }
+    }
+}
