@@ -25,6 +25,5 @@ export const Tabs = UI.Tabs;
 export const TabsList = UI.TabsList;
 export const TabsTrigger = UI.TabsTrigger;
 export const TabsContent = UI.TabsContent;
-export const Switch = UI.Switch;
 export const Textarea = UI.Textarea;
 export default UI;

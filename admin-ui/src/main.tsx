@@ -21,7 +21,6 @@ import * as BadgeModule from "@/components/ui/badge";
 import * as DialogModule from "@/components/ui/dialog";
 import * as SelectModule from "@/components/ui/select";
 import * as TabsModule from "@/components/ui/tabs";
-import * as SwitchModule from "@/components/ui/switch";
 import * as TextareaModule from "@/components/ui/textarea";
 
 // API client
@@ -48,7 +47,6 @@ window.__VIBECMS_SHARED__ = {
     ...DialogModule,
     ...SelectModule,
     ...TabsModule,
-    ...SwitchModule,
     ...TextareaModule,
   },
   api: apiClient,
