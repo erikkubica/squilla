@@ -12,26 +12,25 @@ import {
   Copy,
   X,
   Check,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+} from "@vibecms/icons";
 import {
+  Button,
+  Input,
+  Card,
+  CardContent,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+  Label,
+} from "@vibecms/ui";
 import { toast } from "sonner";
 
 // ---------- Types ----------
@@ -179,7 +178,7 @@ const MIME_FILTERS: { value: string; label: string }[] = [
 
 // ---------- Component ----------
 
-export default function MediaLibraryPage() {
+export default function MediaLibrary() {
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -360,7 +359,7 @@ export default function MediaLibraryPage() {
           <Input
             placeholder="Search media files..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
             className="pl-9 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
           />
         </div>
@@ -406,7 +405,7 @@ export default function MediaLibraryPage() {
                 ? "border-indigo-400 bg-indigo-50/50"
                 : "border-slate-200"
             }`}
-            onDragOver={(e) => {
+            onDragOver={(e: React.DragEvent) => {
               e.preventDefault();
               setDragOver(true);
             }}
@@ -631,7 +630,7 @@ export default function MediaLibraryPage() {
                       id="alt-text"
                       placeholder="Describe this file..."
                       value={editAlt}
-                      onChange={(e) => setEditAlt(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAlt(e.target.value)}
                       className="rounded-lg border-slate-300 text-sm"
                     />
                     <Button
@@ -683,7 +682,7 @@ export default function MediaLibraryPage() {
       {/* Delete dialog */}
       <Dialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}
       >
         <DialogContent>
           <DialogHeader>

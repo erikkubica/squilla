@@ -13,10 +13,9 @@
         "log:write"
     ],
     "admin_ui": {
-        "entry": "dist/index.js",
+        "entry": "admin-ui/dist/index.js",
         "routes": [
-            {"path": "/media", "component": "MediaLibrary"},
-            {"path": "/media/:id", "component": "MediaDetail"}
+            {"path": "/", "component": "MediaLibrary"}
         ],
         "menu": {
             "label": "Media",
