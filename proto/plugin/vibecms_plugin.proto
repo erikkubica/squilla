@@ -12,9 +12,16 @@ service ExtensionPlugin {
 
   // Shutdown tells the plugin to clean up and exit gracefully.
   rpc Shutdown(Empty) returns (Empty);
+
+  // Initialize passes the host service broker ID so the plugin can call back.
+  rpc Initialize(InitializeRequest) returns (Empty);
 }
 
 message Empty {}
+
+message InitializeRequest {
+  uint32 host_service_id = 1;
+}
 
 message Subscription {
   string event_name = 1;

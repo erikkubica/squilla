@@ -25,6 +25,7 @@ type ExtensionPlugin interface {
 	GetSubscriptions() ([]*pb.Subscription, error)
 	HandleEvent(action string, payload []byte) (*pb.EventResponse, error)
 	Shutdown() error
+	Initialize(hostConn *grpc.ClientConn) error
 }
 
 // ExtensionGRPCPlugin implements plugin.GRPCPlugin for the extension interface.
@@ -34,12 +35,12 @@ type ExtensionGRPCPlugin struct {
 }
 
 func (p *ExtensionGRPCPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	pb.RegisterExtensionPluginServer(s, &GRPCServer{Impl: p.Impl})
+	pb.RegisterExtensionPluginServer(s, &GRPCServer{Impl: p.Impl, broker: broker})
 	return nil
 }
 
 func (p *ExtensionGRPCPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
-	return &GRPCClient{client: pb.NewExtensionPluginClient(c)}, nil
+	return &GRPCClient{client: pb.NewExtensionPluginClient(c), broker: broker}, nil
 }
 
 // --- GRPCClient (host side) ---
@@ -47,6 +48,7 @@ func (p *ExtensionGRPCPlugin) GRPCClient(ctx context.Context, broker *plugin.GRP
 // GRPCClient is used by the host to call into the plugin process.
 type GRPCClient struct {
 	client pb.ExtensionPluginClient
+	broker *plugin.GRPCBroker
 }
 
 func (c *GRPCClient) GetSubscriptions() ([]*pb.Subscription, error) {
@@ -69,12 +71,30 @@ func (c *GRPCClient) Shutdown() error {
 	return err
 }
 
+// Initialize starts a gRPC host service on the broker and tells the plugin
+// where to connect back. registerServer is called with the *grpc.Server so
+// the caller can register the VibeCMSHost service implementation.
+func (c *GRPCClient) Initialize(registerServer func(s *grpc.Server)) error {
+	hostServiceID := c.broker.NextId()
+	go c.broker.AcceptAndServe(hostServiceID, func(opts []grpc.ServerOption) *grpc.Server {
+		s := grpc.NewServer(opts...)
+		registerServer(s)
+		return s
+	})
+
+	_, err := c.client.Initialize(context.Background(), &pb.InitializeRequest{
+		HostServiceId: hostServiceID,
+	})
+	return err
+}
+
 // --- GRPCServer (plugin side) ---
 
-// GRPCServer wraps an ExtensionPlugin implementation for gRPC serving.
+// GRPCServer wraps an ExtensionPlugin implementation for gRPC serving (runs in plugin process).
 type GRPCServer struct {
 	pb.UnimplementedExtensionPluginServer
-	Impl ExtensionPlugin
+	Impl   ExtensionPlugin
+	broker *plugin.GRPCBroker
 }
 
 func (s *GRPCServer) GetSubscriptions(ctx context.Context, _ *pb.Empty) (*pb.SubscriptionList, error) {
@@ -91,4 +111,15 @@ func (s *GRPCServer) HandleEvent(ctx context.Context, req *pb.EventRequest) (*pb
 
 func (s *GRPCServer) Shutdown(ctx context.Context, _ *pb.Empty) (*pb.Empty, error) {
 	return &pb.Empty{}, s.Impl.Shutdown()
+}
+
+func (s *GRPCServer) Initialize(ctx context.Context, req *pb.InitializeRequest) (*pb.Empty, error) {
+	conn, err := s.broker.Dial(req.HostServiceId)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.Impl.Initialize(conn); err != nil {
+		return nil, err
+	}
+	return &pb.Empty{}, nil
 }

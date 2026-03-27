@@ -1,0 +1,225 @@
+syntax = "proto3";
+package vibecms.coreapi;
+option go_package = "vibecms/pkg/plugin/coreapipb";
+
+service VibeCMSHost {
+  rpc GetNode(GetNodeRequest) returns (NodeResponse);
+  rpc QueryNodes(QueryNodesRequest) returns (QueryNodesResponse);
+  rpc CreateNode(CreateNodeRequest) returns (NodeResponse);
+  rpc UpdateNode(UpdateNodeRequest) returns (NodeResponse);
+  rpc DeleteNode(DeleteNodeRequest) returns (Empty);
+  rpc GetSetting(GetSettingRequest) returns (SettingResponse);
+  rpc SetSetting(SetSettingRequest) returns (Empty);
+  rpc GetSettings(GetSettingsRequest) returns (SettingsResponse);
+  rpc EmitEvent(EmitEventRequest) returns (Empty);
+  rpc SendEmail(SendEmailRequest) returns (Empty);
+  rpc GetMenu(GetMenuRequest) returns (MenuResponse);
+  rpc GetMenus(Empty) returns (MenuListResponse);
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc QueryUsers(QueryUsersRequest) returns (UserListResponse);
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+  rpc Log(LogRequest) returns (Empty);
+}
+
+message Empty {}
+
+// --- Node messages ---
+
+message GetNodeRequest {
+  uint32 id = 1;
+}
+
+message QueryNodesRequest {
+  string node_type = 1;
+  string status = 2;
+  uint32 parent_id = 3;
+  bool has_parent_id = 4;
+  string language_code = 5;
+  string slug = 6;
+  string search = 7;
+  int32 limit = 8;
+  int32 offset = 9;
+  string order_by = 10;
+}
+
+message CreateNodeRequest {
+  NodeInput input = 1;
+}
+
+message UpdateNodeRequest {
+  uint32 id = 1;
+  NodeInput input = 2;
+}
+
+message DeleteNodeRequest {
+  uint32 id = 1;
+}
+
+message NodeInput {
+  uint32 parent_id = 1;
+  bool has_parent_id = 2;
+  string node_type = 3;
+  string status = 4;
+  string language_code = 5;
+  string slug = 6;
+  string title = 7;
+  string blocks_data_json = 8;   // JSON-encoded
+  string fields_data_json = 9;   // JSON-encoded map[string]any
+  map<string, string> seo_settings = 10;
+}
+
+message NodeResponse {
+  NodeMessage node = 1;
+}
+
+message QueryNodesResponse {
+  repeated NodeMessage nodes = 1;
+  int64 total = 2;
+}
+
+message NodeMessage {
+  uint32 id = 1;
+  string uuid = 2;
+  uint32 parent_id = 3;
+  bool has_parent_id = 4;
+  string node_type = 5;
+  string status = 6;
+  string language_code = 7;
+  string slug = 8;
+  string full_url = 9;
+  string title = 10;
+  string blocks_data_json = 11;  // JSON-encoded
+  string fields_data_json = 12;  // JSON-encoded map[string]any
+  map<string, string> seo_settings = 13;
+  string published_at = 14;      // RFC3339 or empty
+  string created_at = 15;        // RFC3339
+  string updated_at = 16;        // RFC3339
+}
+
+// --- Settings messages ---
+
+message GetSettingRequest {
+  string key = 1;
+}
+
+message SettingResponse {
+  string value = 1;
+}
+
+message SetSettingRequest {
+  string key = 1;
+  string value = 2;
+}
+
+message GetSettingsRequest {
+  string prefix = 1;
+}
+
+message SettingsResponse {
+  map<string, string> settings = 1;
+}
+
+// --- Event messages ---
+
+message EmitEventRequest {
+  string action = 1;
+  string payload_json = 2; // JSON-encoded map[string]any
+}
+
+// --- Email messages ---
+
+message SendEmailRequest {
+  repeated string to = 1;
+  string subject = 2;
+  string html = 3;
+}
+
+// --- Menu messages ---
+
+message GetMenuRequest {
+  string slug = 1;
+}
+
+message MenuResponse {
+  MenuMessage menu = 1;
+}
+
+message MenuListResponse {
+  repeated MenuMessage menus = 1;
+}
+
+message MenuMessage {
+  uint32 id = 1;
+  string name = 2;
+  string slug = 3;
+  repeated MenuItemMessage items = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message MenuItemMessage {
+  uint32 id = 1;
+  string label = 2;
+  string url = 3;
+  string target = 4;
+  uint32 parent_id = 5;
+  bool has_parent_id = 6;
+  int32 position = 7;
+  repeated MenuItemMessage children = 8;
+}
+
+// --- User messages ---
+
+message GetUserRequest {
+  uint32 id = 1;
+}
+
+message QueryUsersRequest {
+  string role_slug = 1;
+  string search = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message UserResponse {
+  UserMessage user = 1;
+}
+
+message UserListResponse {
+  repeated UserMessage users = 1;
+}
+
+message UserMessage {
+  uint32 id = 1;
+  string email = 2;
+  string name = 3;
+  uint32 role_id = 4;
+  bool has_role_id = 5;
+  string role_slug = 6;
+  int32 language_id = 7;
+  bool has_language_id = 8;
+}
+
+// --- Fetch messages ---
+
+message FetchRequest {
+  string method = 1;
+  string url = 2;
+  map<string, string> headers = 3;
+  string body = 4;
+  int32 timeout = 5;
+}
+
+message FetchResponse {
+  int32 status_code = 1;
+  map<string, string> headers = 2;
+  string body = 3;
+}
+
+// --- Log messages ---
+
+message LogRequest {
+  string level = 1;
+  string message = 2;
+  string fields_json = 3; // JSON-encoded map[string]any
+}
