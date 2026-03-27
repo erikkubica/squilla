@@ -1,0 +1,4 @@
+events := import("cms/events")
+
+// Register email send handler
+events.on("email.send", "handlers/send_email", 10)

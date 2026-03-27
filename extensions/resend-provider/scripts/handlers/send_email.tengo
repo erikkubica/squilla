@@ -1,0 +1,42 @@
+fetch := import("cms/fetch")
+json := import("json")
+
+// Event payload is at event.payload
+payload := event.payload
+
+// Extract settings
+settings := payload.settings
+api_key := settings.api_key
+from_email := settings.from_email
+from_name := settings.from_name
+
+// Build from address
+from := from_email
+if from_name != "" {
+    from = from_name + " <" + from_email + ">"
+}
+
+// Build request body
+body := json.encode({
+    from: from,
+    to: payload.to,
+    subject: payload.subject,
+    html: payload.html
+})
+
+// Send via Resend API
+result := fetch.post("https://api.resend.com/emails", {
+    headers: {
+        "Authorization": "Bearer " + api_key,
+        "Content-Type": "application/json"
+    },
+    body: body
+})
+
+if result.error != "" {
+    response = "error: " + result.error
+} else if result.status_code < 200 || result.status_code >= 300 {
+    response = "error: Resend API returned status " + string(result.status_code) + ": " + result.body
+} else {
+    response = "ok"
+}
