@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: plugin.proto
+// source: vibecms_plugin.proto
 
 package proto
 
@@ -29,7 +29,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_plugin_proto_msgTypes[0]
+	mi := &file_vibecms_plugin_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +41,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[0]
+	mi := &file_vibecms_plugin_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,7 +54,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{0}
+	return file_vibecms_plugin_proto_rawDescGZIP(), []int{0}
 }
 
 type Subscription struct {
@@ -67,7 +67,7 @@ type Subscription struct {
 
 func (x *Subscription) Reset() {
 	*x = Subscription{}
-	mi := &file_plugin_proto_msgTypes[1]
+	mi := &file_vibecms_plugin_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -79,7 +79,7 @@ func (x *Subscription) String() string {
 func (*Subscription) ProtoMessage() {}
 
 func (x *Subscription) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[1]
+	mi := &file_vibecms_plugin_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -92,7 +92,7 @@ func (x *Subscription) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subscription.ProtoReflect.Descriptor instead.
 func (*Subscription) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{1}
+	return file_vibecms_plugin_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Subscription) GetEventName() string {
@@ -118,7 +118,7 @@ type SubscriptionList struct {
 
 func (x *SubscriptionList) Reset() {
 	*x = SubscriptionList{}
-	mi := &file_plugin_proto_msgTypes[2]
+	mi := &file_vibecms_plugin_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -130,7 +130,7 @@ func (x *SubscriptionList) String() string {
 func (*SubscriptionList) ProtoMessage() {}
 
 func (x *SubscriptionList) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[2]
+	mi := &file_vibecms_plugin_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -143,7 +143,7 @@ func (x *SubscriptionList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscriptionList.ProtoReflect.Descriptor instead.
 func (*SubscriptionList) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{2}
+	return file_vibecms_plugin_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SubscriptionList) GetSubscriptions() []*Subscription {
@@ -163,7 +163,7 @@ type EventRequest struct {
 
 func (x *EventRequest) Reset() {
 	*x = EventRequest{}
-	mi := &file_plugin_proto_msgTypes[3]
+	mi := &file_vibecms_plugin_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +175,7 @@ func (x *EventRequest) String() string {
 func (*EventRequest) ProtoMessage() {}
 
 func (x *EventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[3]
+	mi := &file_vibecms_plugin_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +188,7 @@ func (x *EventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventRequest.ProtoReflect.Descriptor instead.
 func (*EventRequest) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{3}
+	return file_vibecms_plugin_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *EventRequest) GetAction() string {
@@ -216,7 +216,7 @@ type EventResponse struct {
 
 func (x *EventResponse) Reset() {
 	*x = EventResponse{}
-	mi := &file_plugin_proto_msgTypes[4]
+	mi := &file_vibecms_plugin_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -228,7 +228,7 @@ func (x *EventResponse) String() string {
 func (*EventResponse) ProtoMessage() {}
 
 func (x *EventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugin_proto_msgTypes[4]
+	mi := &file_vibecms_plugin_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -241,7 +241,7 @@ func (x *EventResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventResponse.ProtoReflect.Descriptor instead.
 func (*EventResponse) Descriptor() ([]byte, []int) {
-	return file_plugin_proto_rawDescGZIP(), []int{4}
+	return file_vibecms_plugin_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EventResponse) GetHandled() bool {
@@ -265,11 +265,11 @@ func (x *EventResponse) GetResult() []byte {
 	return nil
 }
 
-var File_plugin_proto protoreflect.FileDescriptor
+var File_vibecms_plugin_proto protoreflect.FileDescriptor
 
-const file_plugin_proto_rawDesc = "" +
+const file_vibecms_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\fplugin.proto\x12\rvibecmsplugin\"\a\n" +
+	"\x14vibecms_plugin.proto\x12\rvibecmsplugin\"\a\n" +
 	"\x05Empty\"I\n" +
 	"\fSubscription\x12\x1d\n" +
 	"\n" +
@@ -290,26 +290,26 @@ const file_plugin_proto_rawDesc = "" +
 	"\bShutdown\x12\x14.vibecmsplugin.Empty\x1a\x14.vibecmsplugin.EmptyB\x1aZ\x18vibecms/pkg/plugin/protob\x06proto3"
 
 var (
-	file_plugin_proto_rawDescOnce sync.Once
-	file_plugin_proto_rawDescData []byte
+	file_vibecms_plugin_proto_rawDescOnce sync.Once
+	file_vibecms_plugin_proto_rawDescData []byte
 )
 
-func file_plugin_proto_rawDescGZIP() []byte {
-	file_plugin_proto_rawDescOnce.Do(func() {
-		file_plugin_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_plugin_proto_rawDesc), len(file_plugin_proto_rawDesc)))
+func file_vibecms_plugin_proto_rawDescGZIP() []byte {
+	file_vibecms_plugin_proto_rawDescOnce.Do(func() {
+		file_vibecms_plugin_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_vibecms_plugin_proto_rawDesc), len(file_vibecms_plugin_proto_rawDesc)))
 	})
-	return file_plugin_proto_rawDescData
+	return file_vibecms_plugin_proto_rawDescData
 }
 
-var file_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_plugin_proto_goTypes = []any{
+var file_vibecms_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_vibecms_plugin_proto_goTypes = []any{
 	(*Empty)(nil),            // 0: vibecmsplugin.Empty
 	(*Subscription)(nil),     // 1: vibecmsplugin.Subscription
 	(*SubscriptionList)(nil), // 2: vibecmsplugin.SubscriptionList
 	(*EventRequest)(nil),     // 3: vibecmsplugin.EventRequest
 	(*EventResponse)(nil),    // 4: vibecmsplugin.EventResponse
 }
-var file_plugin_proto_depIdxs = []int32{
+var file_vibecms_plugin_proto_depIdxs = []int32{
 	1, // 0: vibecmsplugin.SubscriptionList.subscriptions:type_name -> vibecmsplugin.Subscription
 	0, // 1: vibecmsplugin.ExtensionPlugin.GetSubscriptions:input_type -> vibecmsplugin.Empty
 	3, // 2: vibecmsplugin.ExtensionPlugin.HandleEvent:input_type -> vibecmsplugin.EventRequest
@@ -324,26 +324,26 @@ var file_plugin_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_plugin_proto_init() }
-func file_plugin_proto_init() {
-	if File_plugin_proto != nil {
+func init() { file_vibecms_plugin_proto_init() }
+func file_vibecms_plugin_proto_init() {
+	if File_vibecms_plugin_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_plugin_proto_rawDesc), len(file_plugin_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_vibecms_plugin_proto_rawDesc), len(file_vibecms_plugin_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_plugin_proto_goTypes,
-		DependencyIndexes: file_plugin_proto_depIdxs,
-		MessageInfos:      file_plugin_proto_msgTypes,
+		GoTypes:           file_vibecms_plugin_proto_goTypes,
+		DependencyIndexes: file_vibecms_plugin_proto_depIdxs,
+		MessageInfos:      file_vibecms_plugin_proto_msgTypes,
 	}.Build()
-	File_plugin_proto = out.File
-	file_plugin_proto_goTypes = nil
-	file_plugin_proto_depIdxs = nil
+	File_vibecms_plugin_proto = out.File
+	file_vibecms_plugin_proto_goTypes = nil
+	file_vibecms_plugin_proto_depIdxs = nil
 }

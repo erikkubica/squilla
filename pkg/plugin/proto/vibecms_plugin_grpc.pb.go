@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.21.12
-// source: plugin.proto
+// source: vibecms_plugin.proto
 
 package proto
 
@@ -199,5 +199,5 @@ var ExtensionPlugin_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "plugin.proto",
+	Metadata: "vibecms_plugin.proto",
 }
