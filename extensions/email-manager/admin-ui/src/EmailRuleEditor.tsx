@@ -1,22 +1,20 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ArrowLeft, Save, Loader2 } from "@vibecms/icons";
 import {
+  Button,
+  Input,
+  Label,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@vibecms/ui";
 import { toast } from "sonner";
 import {
   getEmailRule,
@@ -26,17 +24,42 @@ import {
   getSystemActions,
   getNodeTypes,
   getRoles,
-  type EmailRule,
-  type EmailTemplate,
-  type SystemAction,
-  type NodeType,
-  type Role,
-} from "@/api/client";
+} from "@vibecms/api";
 
-export default function EmailRuleEditorPage() {
+interface EmailTemplate {
+  id: number;
+  name: string;
+}
+
+interface SystemAction {
+  slug: string;
+  label: string;
+}
+
+interface NodeType {
+  slug: string;
+  label: string;
+}
+
+interface Role {
+  slug: string;
+  name: string;
+}
+
+interface EmailRule {
+  id: number;
+  action: string;
+  node_type: string | null;
+  template_id: number;
+  recipient_type: string;
+  recipient_value: string;
+  enabled: boolean;
+}
+
+export default function EmailRuleEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEdit = !!id;
+  const isEdit = !!id && id !== "new";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,7 +108,7 @@ export default function EmailRuleEditorPage() {
       } catch {
         if (!cancelled) {
           toast.error("Failed to load data");
-          navigate("/admin/email-rules", { replace: true });
+          navigate("/admin/ext/email-manager/rules", { replace: true });
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -123,7 +146,7 @@ export default function EmailRuleEditorPage() {
       } else {
         const created = await createEmailRule(data);
         toast.success("Email rule created successfully");
-        navigate(`/admin/email-rules/${created.id}/edit`, { replace: true });
+        navigate(`/admin/ext/email-manager/rules/${created.id}`, { replace: true });
       }
     } catch (err) {
       const message =
@@ -148,7 +171,7 @@ export default function EmailRuleEditorPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-            <Link to="/admin/email-rules">
+            <Link to="/admin/ext/email-manager/rules">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
@@ -264,7 +287,7 @@ export default function EmailRuleEditorPage() {
                   <Input
                     placeholder="email1@example.com, email2@example.com"
                     value={formRecipientValue}
-                    onChange={(e) => setFormRecipientValue(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormRecipientValue(e.target.value)}
                     className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   />
                 </div>

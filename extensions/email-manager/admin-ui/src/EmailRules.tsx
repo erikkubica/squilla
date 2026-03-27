@@ -1,30 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Mail, Plus, Pencil, Trash2, Loader2 } from "@vibecms/icons";
 import {
+  Button,
+  Badge,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@vibecms/ui";
 import { toast } from "sonner";
 import {
   getEmailRules,
@@ -32,12 +28,29 @@ import {
   deleteEmailRule,
   getEmailTemplates,
   getSystemActions,
-  type EmailRule,
-  type EmailTemplate,
-  type SystemAction,
-} from "@/api/client";
+} from "@vibecms/api";
 
-export default function EmailRulesPage() {
+interface EmailTemplate {
+  id: number;
+  name: string;
+}
+
+interface SystemAction {
+  slug: string;
+  label: string;
+}
+
+interface EmailRule {
+  id: number;
+  action: string;
+  node_type: string | null;
+  template_id: number;
+  recipient_type: string;
+  recipient_value: string;
+  enabled: boolean;
+}
+
+export default function EmailRules() {
   const [rules, setRules] = useState<EmailRule[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -148,7 +161,7 @@ export default function EmailRulesPage() {
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm"
           asChild
         >
-          <Link to="/admin/email-rules/new">
+          <Link to="/admin/ext/email-manager/rules/new">
             <Plus className="mr-2 h-4 w-4" />
             Add Rule
           </Link>
@@ -232,7 +245,7 @@ export default function EmailRulesPage() {
                         className="h-8 w-8 text-slate-500 hover:text-indigo-600"
                         asChild
                       >
-                        <Link to={`/admin/email-rules/${rule.id}/edit`}>
+                        <Link to={`/admin/ext/email-manager/rules/${rule.id}`}>
                           <Pencil className="h-4 w-4" />
                         </Link>
                       </Button>

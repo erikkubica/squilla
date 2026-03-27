@@ -1,45 +1,58 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Save, Loader2, Eye } from "lucide-react";
-import CodeEditor from "@/components/ui/code-editor";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ArrowLeft, Save, Loader2, Eye } from "@vibecms/icons";
 import {
+  Button,
+  Input,
+  Label,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { toast } from "sonner";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  Textarea,
+} from "@vibecms/ui";
+import { toast } from "sonner";
 import {
   getEmailTemplate,
   createEmailTemplate,
   updateEmailTemplate,
   getLanguages,
-  type EmailTemplate,
-  type Language,
-} from "@/api/client";
+} from "@vibecms/api";
+
+interface EmailTemplate {
+  id: number;
+  slug: string;
+  name: string;
+  language_id: number | null;
+  subject_template: string;
+  body_template: string;
+  test_data: Record<string, any>;
+}
+
+interface Language {
+  id: number;
+  code: string;
+  name: string;
+  flag: string;
+}
 
 function renderPreview(bodyTemplate: string, testData: Record<string, any>): string {
   let html = bodyTemplate;
-  html = html.replace(/\{\{\.\s*(\w+)\s*\}\}/g, (_match, key) => {
+  html = html.replace(/\{\{\.\s*(\w+)\s*\}\}/g, (_match: string, key: string) => {
     return testData[key] !== undefined ? String(testData[key]) : `{{.${key}}}`;
   });
   return html;
 }
 
-export default function EmailTemplateEditorPage() {
+export default function EmailTemplateEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEdit = !!id;
+  const isEdit = !!id && id !== "new";
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -56,14 +69,14 @@ export default function EmailTemplateEditorPage() {
 
   useEffect(() => {
     let cancelled = false;
-    getLanguages().then((langs) => {
+    getLanguages().then((langs: Language[]) => {
       if (!cancelled) setLanguages(langs);
     }).catch(() => {});
 
     if (!isEdit) return;
     setLoading(true);
     getEmailTemplate(Number(id))
-      .then((tpl) => {
+      .then((tpl: EmailTemplate) => {
         if (cancelled) return;
         setFormSlug(tpl.slug);
         setFormName(tpl.name);
@@ -74,7 +87,7 @@ export default function EmailTemplateEditorPage() {
       })
       .catch(() => {
         toast.error("Failed to load email template");
-        navigate("/admin/email-templates", { replace: true });
+        navigate("/admin/ext/email-manager/templates", { replace: true });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -117,7 +130,7 @@ export default function EmailTemplateEditorPage() {
       } else {
         const created = await createEmailTemplate(data);
         toast.success("Email template created successfully");
-        navigate(`/admin/email-templates/${created.id}/edit`, { replace: true });
+        navigate(`/admin/ext/email-manager/templates/${created.id}`, { replace: true });
       }
     } catch (err) {
       const message =
@@ -127,16 +140,6 @@ export default function EmailTemplateEditorPage() {
       setSaving(false);
     }
   }
-
-  // Extract keys from test data for CodeEditor variable autocomplete
-  const testDataKeys: string[] = (() => {
-    try {
-      const parsed = JSON.parse(formTestData);
-      return Object.keys(parsed);
-    } catch {
-      return [];
-    }
-  })();
 
   function getPreviewHtml(): string {
     try {
@@ -161,7 +164,7 @@ export default function EmailTemplateEditorPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-            <Link to="/admin/email-templates">
+            <Link to="/admin/ext/email-manager/templates">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
@@ -195,7 +198,7 @@ export default function EmailTemplateEditorPage() {
                   id="tpl-slug"
                   placeholder="e.g. welcome-email"
                   value={formSlug}
-                  onChange={(e) => setFormSlug(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSlug(e.target.value)}
                   required
                   className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
@@ -208,7 +211,7 @@ export default function EmailTemplateEditorPage() {
                   id="tpl-name"
                   placeholder="e.g. Welcome Email"
                   value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
                   required
                   className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
@@ -237,7 +240,7 @@ export default function EmailTemplateEditorPage() {
                   id="tpl-subject"
                   placeholder="e.g. Welcome to {{.site_name}}"
                   value={formSubject}
-                  onChange={(e) => setFormSubject(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSubject(e.target.value)}
                   className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
@@ -252,11 +255,10 @@ export default function EmailTemplateEditorPage() {
               <CardTitle className="text-base font-semibold text-slate-800">Body Template</CardTitle>
             </CardHeader>
             <CardContent>
-              <CodeEditor
+              <Textarea
                 value={formBody}
-                onChange={setFormBody}
-                height="400px"
-                variables={testDataKeys}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormBody(e.target.value)}
+                className="min-h-[400px] font-mono text-sm rounded-lg border-slate-300"
                 placeholder={"<div style=\"font-family: sans-serif;\">\n  <h2>Hello {{.user_full_name}}</h2>\n  <p>Welcome to {{.site_name}}</p>\n</div>"}
               />
             </CardContent>
@@ -287,10 +289,10 @@ export default function EmailTemplateEditorPage() {
             <CardTitle className="text-base font-semibold text-slate-800">Test Data (JSON)</CardTitle>
           </CardHeader>
           <CardContent>
-            <CodeEditor
+            <Textarea
               value={formTestData}
-              onChange={setFormTestData}
-              height="150px"
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormTestData(e.target.value)}
+              className="min-h-[150px] font-mono text-sm rounded-lg border-slate-300"
               placeholder='{"user_full_name": "John", "site_name": "My Site"}'
             />
           </CardContent>

@@ -22,6 +22,7 @@ import * as DialogModule from "@/components/ui/dialog";
 import * as SelectModule from "@/components/ui/select";
 import * as TabsModule from "@/components/ui/tabs";
 import * as TextareaModule from "@/components/ui/textarea";
+import * as TableModule from "@/components/ui/table";
 
 // API client
 import * as apiClient from "@/api/client";
@@ -48,6 +49,7 @@ window.__VIBECMS_SHARED__ = {
     ...SelectModule,
     ...TabsModule,
     ...TextareaModule,
+    ...TableModule,
   },
   api: apiClient,
 };

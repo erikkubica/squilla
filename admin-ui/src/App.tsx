@@ -22,12 +22,6 @@ import UsersPage from "@/pages/users";
 import UserEditorPage from "@/pages/user-editor";
 import RolesPage from "@/pages/roles";
 import RoleEditorPage from "@/pages/role-editor";
-import EmailTemplatesPage from "@/pages/email-templates";
-import EmailTemplateEditorPage from "@/pages/email-template-editor";
-import EmailRulesPage from "@/pages/email-rules";
-import EmailRuleEditorPage from "@/pages/email-rule-editor";
-import EmailLogsPage from "@/pages/email-logs";
-import EmailSettingsPage from "@/pages/email-settings";
 import ThemesPage from "@/pages/themes";
 import ThemeFilesPage from "@/pages/theme-files";
 import ExtensionsPage from "@/pages/extensions";
@@ -132,14 +126,6 @@ function AppRoutes() {
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/new" element={<RoleEditorPage />} />
         <Route path="roles/:id/edit" element={<RoleEditorPage />} />
-        <Route path="email-templates" element={<EmailTemplatesPage />} />
-        <Route path="email-templates/new" element={<EmailTemplateEditorPage />} />
-        <Route path="email-templates/:id/edit" element={<EmailTemplateEditorPage />} />
-        <Route path="email-rules" element={<EmailRulesPage />} />
-        <Route path="email-rules/new" element={<EmailRuleEditorPage />} />
-        <Route path="email-rules/:id/edit" element={<EmailRuleEditorPage />} />
-        <Route path="email-logs" element={<EmailLogsPage />} />
-        <Route path="email-settings" element={<EmailSettingsPage />} />
         <Route path="themes" element={<ThemesPage />} />
         <Route path="themes/:id/files" element={<ThemeFilesPage />} />
         <Route path="extensions" element={<ExtensionsPage />} />

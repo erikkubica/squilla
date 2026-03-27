@@ -13,24 +13,26 @@
         "log:write"
     ],
     "admin_ui": {
-        "entry": "dist/index.js",
+        "entry": "admin-ui/dist/index.js",
         "routes": [
-            {"path": "/email/templates", "component": "EmailTemplates"},
-            {"path": "/email/templates/:id", "component": "EmailTemplateEditor"},
-            {"path": "/email/rules", "component": "EmailRules"},
-            {"path": "/email/rules/:id", "component": "EmailRuleEditor"},
-            {"path": "/email/logs", "component": "EmailLogs"},
-            {"path": "/email/settings", "component": "EmailSettings"}
+            {"path": "/templates", "component": "EmailTemplates"},
+            {"path": "/templates/new", "component": "EmailTemplateEditor"},
+            {"path": "/templates/:id", "component": "EmailTemplateEditor"},
+            {"path": "/rules", "component": "EmailRules"},
+            {"path": "/rules/new", "component": "EmailRuleEditor"},
+            {"path": "/rules/:id", "component": "EmailRuleEditor"},
+            {"path": "/logs", "component": "EmailLogs"},
+            {"path": "/settings", "component": "EmailSettings"}
         ],
         "menu": {
             "label": "Email",
             "icon": "Mail",
             "position": "6",
             "children": [
-                {"label": "Templates", "route": "/admin/email/templates"},
-                {"label": "Rules", "route": "/admin/email/rules"},
-                {"label": "Logs", "route": "/admin/email/logs"},
-                {"label": "Settings", "route": "/admin/email/settings"}
+                {"label": "Templates", "route": "/admin/ext/email-manager/templates"},
+                {"label": "Rules", "route": "/admin/ext/email-manager/rules"},
+                {"label": "Logs", "route": "/admin/ext/email-manager/logs"},
+                {"label": "Settings", "route": "/admin/ext/email-manager/settings"}
             ]
         }
     }

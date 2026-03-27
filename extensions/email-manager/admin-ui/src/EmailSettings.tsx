@@ -1,18 +1,17 @@
 import { useState } from "react";
-import { Settings, Send, Loader2, Puzzle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Settings, Send, Loader2, Puzzle } from "@vibecms/icons";
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from "@vibecms/ui";
 import { toast } from "sonner";
-import { sendTestEmail } from "@/api/client";
-import { ExtensionSlot } from "@/components/extension-slot";
+import { sendTestEmail } from "@vibecms/api";
 
-export default function EmailSettingsPage() {
+export default function EmailSettings() {
   const [testing, setTesting] = useState(false);
 
   async function handleTestEmail() {
@@ -57,29 +56,24 @@ export default function EmailSettingsPage() {
         </Button>
       </div>
 
-      {/* Extension-provided settings */}
-      <ExtensionSlot
-        name="email-settings"
-        fallback={
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900">
-                No Email Provider
-              </CardTitle>
-              <CardDescription>
-                Install and activate an email provider extension to enable email sending.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center gap-3 py-8 text-slate-400">
-              <Puzzle className="h-12 w-12" />
-              <p className="text-sm text-center max-w-md">
-                Go to <strong>Extensions</strong> and activate an email provider
-                (SMTP or Resend) to configure email delivery.
-              </p>
-            </CardContent>
-          </Card>
-        }
-      />
+      {/* Provider info card */}
+      <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-slate-900">
+            Email Provider
+          </CardTitle>
+          <CardDescription>
+            Configure your email provider via the provider-specific extension (SMTP or Resend).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-8 text-slate-400">
+          <Puzzle className="h-12 w-12" />
+          <p className="text-sm text-center max-w-md">
+            Go to <strong>Extensions</strong> and activate an email provider
+            (SMTP or Resend) to configure email delivery settings.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

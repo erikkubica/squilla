@@ -22,7 +22,6 @@ import {
   User,
   Users as UsersIcon,
   Shield,
-  Mail,
   ShoppingBag,
   Calendar,
   Users,
@@ -109,16 +108,6 @@ const staticNavBottom: NavEntry[] = [
     ],
   },
   { to: "/admin/extensions", label: "Extensions", icon: Puzzle },
-  {
-    label: "Email",
-    icon: Mail,
-    children: [
-      { to: "/admin/email-templates", label: "Templates", icon: LayoutTemplate },
-      { to: "/admin/email-rules", label: "Rules", icon: ListTree },
-      { to: "/admin/email-logs", label: "Logs", icon: FileText },
-      { to: "/admin/email-settings", label: "Settings", icon: Settings },
-    ],
-  },
   {
     label: "Users",
     icon: UsersIcon,

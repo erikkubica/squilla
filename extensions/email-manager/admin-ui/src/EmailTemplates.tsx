@@ -1,39 +1,39 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Plus, Pencil, Trash2, Loader2, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Mail, Plus, Pencil, Trash2, Loader2, Globe } from "@vibecms/icons";
 import {
+  Button,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@vibecms/ui";
 import { toast } from "sonner";
-import {
-  getEmailTemplates,
-  deleteEmailTemplate,
-  type EmailTemplate,
-} from "@/api/client";
-import { useAdminLanguage } from "@/hooks/use-admin-language";
+import { getEmailTemplates, deleteEmailTemplate } from "@vibecms/api";
 
-export default function EmailTemplatesPage() {
-  const { languages, currentCode: globalLangCode } = useAdminLanguage();
+interface EmailTemplate {
+  id: number;
+  slug: string;
+  name: string;
+  language_id: number | null;
+  subject_template: string;
+  body_template: string;
+  test_data: Record<string, any>;
+}
+
+export default function EmailTemplates() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,22 +56,6 @@ export default function EmailTemplatesPage() {
   useEffect(() => {
     fetchTemplates();
   }, []);
-
-  // Filter by selected language
-  const filteredTemplates = templates.filter((tpl) => {
-    if (globalLangCode === "all") return true;
-    const lang = languages.find((l) => l.code === globalLangCode);
-    if (!lang) return true;
-    // Show templates matching selected language OR universal (null)
-    return tpl.language_id === lang.id || tpl.language_id === null;
-  });
-
-  // Get language label for a template
-  function getLangLabel(langId: number | null): string {
-    if (langId === null) return "Universal";
-    const lang = languages.find((l) => l.id === langId);
-    return lang ? `${lang.flag} ${lang.name}` : `ID:${langId}`;
-  }
 
   function openDeleteDialog(tpl: EmailTemplate) {
     setDeletingTemplate(tpl);
@@ -116,7 +100,7 @@ export default function EmailTemplatesPage() {
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm"
           asChild
         >
-          <Link to="/admin/email-templates/new">
+          <Link to="/admin/ext/email-manager/templates/new">
             <Plus className="mr-2 h-4 w-4" />
             Add Template
           </Link>
@@ -127,7 +111,7 @@ export default function EmailTemplatesPage() {
       <Card className="rounded-xl border border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-slate-900">
-            {globalLangCode === "all" ? "All Email Templates" : "Email Templates"}
+            All Email Templates
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -136,33 +120,23 @@ export default function EmailTemplatesPage() {
               <TableRow className="border-slate-200 hover:bg-transparent">
                 <TableHead className="text-slate-500 font-medium">Name</TableHead>
                 <TableHead className="text-slate-500 font-medium">Slug</TableHead>
-                <TableHead className="text-slate-500 font-medium">Language</TableHead>
                 <TableHead className="text-slate-500 font-medium">Subject</TableHead>
                 <TableHead className="text-slate-500 font-medium text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTemplates.length === 0 && (
+              {templates.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-slate-400">
+                  <TableCell colSpan={4} className="text-center py-12 text-slate-400">
                     No email templates found. Click "Add Template" to get started.
                   </TableCell>
                 </TableRow>
               )}
-              {filteredTemplates.map((tpl) => (
+              {templates.map((tpl) => (
                 <TableRow key={tpl.id} className="border-slate-100">
                   <TableCell className="font-medium text-slate-800">{tpl.name}</TableCell>
                   <TableCell>
                     <span className="font-mono text-sm text-indigo-600">{tpl.slug}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center gap-1 text-sm text-slate-600">
-                      {tpl.language_id === null ? (
-                        <><Globe className="h-3.5 w-3.5 text-slate-400" /> Universal</>
-                      ) : (
-                        getLangLabel(tpl.language_id)
-                      )}
-                    </span>
                   </TableCell>
                   <TableCell className="text-slate-600 max-w-xs truncate">
                     {tpl.subject_template}
@@ -175,7 +149,7 @@ export default function EmailTemplatesPage() {
                         className="h-8 w-8 text-slate-500 hover:text-indigo-600"
                         asChild
                       >
-                        <Link to={`/admin/email-templates/${tpl.id}/edit`}>
+                        <Link to={`/admin/ext/email-manager/templates/${tpl.id}`}>
                           <Pencil className="h-4 w-4" />
                         </Link>
                       </Button>

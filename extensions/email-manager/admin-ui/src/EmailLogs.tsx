@@ -1,44 +1,48 @@
 import { useEffect, useState } from "react";
-import { Mail, Eye, RefreshCw, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Mail, Eye, RefreshCw, Loader2 } from "@vibecms/icons";
 import {
+  Button,
+  Input,
+  Label,
+  Badge,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@vibecms/ui";
 import { toast } from "sonner";
-import {
-  getEmailLogs,
-  resendEmail,
-  getSystemActions,
-  type EmailLog,
-  type SystemAction,
-} from "@/api/client";
+import { getEmailLogs, resendEmail, getSystemActions } from "@vibecms/api";
+
+interface EmailLog {
+  id: number;
+  action: string;
+  recipient_email: string;
+  subject: string;
+  rendered_body: string;
+  status: string;
+  error_message: string;
+  created_at: string;
+}
+
+interface SystemAction {
+  slug: string;
+  label: string;
+}
 
 const PER_PAGE = 20;
 
@@ -60,7 +64,7 @@ function statusBadge(status: string) {
   }
 }
 
-export default function EmailLogsPage() {
+export default function EmailLogs() {
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -193,7 +197,7 @@ export default function EmailLogsPage() {
               <Input
                 placeholder="Search recipient..."
                 value={filterRecipient}
-                onChange={(e) => setFilterRecipient(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterRecipient(e.target.value)}
                 className="w-48 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
@@ -202,7 +206,7 @@ export default function EmailLogsPage() {
               <Input
                 type="date"
                 value={filterDateFrom}
-                onChange={(e) => setFilterDateFrom(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateFrom(e.target.value)}
                 className="w-40 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
@@ -211,7 +215,7 @@ export default function EmailLogsPage() {
               <Input
                 type="date"
                 value={filterDateTo}
-                onChange={(e) => setFilterDateTo(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateTo(e.target.value)}
                 className="w-40 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
