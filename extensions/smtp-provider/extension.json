@@ -6,6 +6,12 @@
   "description": "Send emails via any SMTP server",
   "priority": 50,
   "provides": ["email.provider"],
+  "plugins": [
+    {
+      "binary": "bin/smtp-provider",
+      "events": ["email.send"]
+    }
+  ],
   "admin_ui": {
     "entry": "admin-ui/dist/index.js",
     "slots": {
