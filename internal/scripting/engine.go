@@ -9,22 +9,19 @@ import (
 	"sync"
 	"time"
 
-	"vibecms/internal/cms"
+	"vibecms/internal/coreapi"
 	"vibecms/internal/events"
 
 	"github.com/d5/tengo/v2"
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
 // ScriptEngine manages the Tengo scripting runtime for themes.
 // It loads theme.tengo as the entry script, provides API modules for
 // CMS operations, and manages event handler and HTTP route registrations.
 type ScriptEngine struct {
-	db         *gorm.DB
-	eventBus   *events.EventBus
-	contentSvc *cms.ContentService
-	menuSvc    *cms.MenuService
+	eventBus *events.EventBus
+	coreAPI  coreapi.CoreAPI
 
 	themeDir   string // path to active theme root
 	scriptsDir string // themeDir + "/scripts"
@@ -33,8 +30,11 @@ type ScriptEngine struct {
 	// and used by registration functions to set baseDir on handlers.
 	activeScriptsDir string
 
+	// activeSlug tracks the current extension/theme slug being loaded
+	activeSlug string
+
 	// Registered handlers populated during theme.tengo execution
-	mu            sync.RWMutex
+	mu             sync.RWMutex
 	eventHandlers  map[string][]scriptHandler // event name -> handlers sorted by priority
 	filterHandlers map[string][]scriptHandler // filter name -> handlers sorted by priority
 	httpRoutes     []httpRoute
@@ -42,16 +42,12 @@ type ScriptEngine struct {
 
 // NewScriptEngine creates a new ScriptEngine.
 func NewScriptEngine(
-	db *gorm.DB,
 	eventBus *events.EventBus,
-	contentSvc *cms.ContentService,
-	menuSvc *cms.MenuService,
+	coreAPI coreapi.CoreAPI,
 ) *ScriptEngine {
 	return &ScriptEngine{
-		db:            db,
-		eventBus:      eventBus,
-		contentSvc:    contentSvc,
-		menuSvc:       menuSvc,
+		eventBus:       eventBus,
+		coreAPI:        coreAPI,
 		eventHandlers:  make(map[string][]scriptHandler),
 		filterHandlers: make(map[string][]scriptHandler),
 	}
@@ -81,10 +77,12 @@ func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
 
 	// Set activeScriptsDir so registration functions capture it on handlers.
 	e.activeScriptsDir = e.scriptsDir
+	e.activeSlug = "theme"
 
 	// Compile and execute the entry script
 	script := tengo.NewScript(src)
-	script.SetImports(e.buildModuleMap(nil))
+	caller := coreapi.CallerInfo{Slug: "theme", Type: "tengo", Capabilities: nil}
+	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, nil, e.scriptsDir))
 
 	// Set a max execution time for safety
 	script.SetMaxAllocs(50000)
@@ -95,10 +93,12 @@ func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
 	_, err = script.RunContext(ctx)
 	if err != nil {
 		e.activeScriptsDir = ""
+		e.activeSlug = ""
 		return fmt.Errorf("executing theme.tengo: %w", err)
 	}
 
 	e.activeScriptsDir = ""
+	e.activeSlug = ""
 
 	// Wire event handlers to the EventBus
 	e.subscribeEventHandlers()
@@ -145,7 +145,8 @@ func (e *ScriptEngine) runScript(scriptPath string, vars map[string]interface{},
 	}
 
 	script := tengo.NewScript(src)
-	script.SetImports(e.buildModuleMap(renderCtx, scriptsDir))
+	caller := coreapi.CallerInfo{Slug: e.activeSlug, Type: "tengo", Capabilities: nil}
+	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, renderCtx, scriptsDir))
 	script.SetMaxAllocs(50000)
 
 	// Inject context variables — convert to Tengo objects first to handle
@@ -184,8 +185,9 @@ func (e *ScriptEngine) runScript(scriptPath string, vars map[string]interface{},
 
 // LoadExtensionScripts loads and executes an extension's entry script (scripts/extension.tengo).
 // This works like LoadThemeScripts but uses the extension's scripts/ directory for module resolution.
+// capabilities is the set of permissions declared in the extension manifest.
 // Returns nil if no scripts directory or entry script exists.
-func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string) error {
+func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string, capabilities ...map[string]bool) error {
 	extScriptsDir := filepath.Join(extDir, "scripts")
 	entryScript := filepath.Join(extScriptsDir, "extension.tengo")
 
@@ -203,9 +205,16 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string) error {
 
 	// Set activeScriptsDir so registration functions capture it on handlers.
 	e.activeScriptsDir = extScriptsDir
+	e.activeSlug = slug
 
+	var caps map[string]bool
+	if len(capabilities) > 0 {
+		caps = capabilities[0]
+	}
+
+	caller := coreapi.CallerInfo{Slug: slug, Type: "tengo", Capabilities: caps}
 	script := tengo.NewScript(src)
-	script.SetImports(e.buildModuleMap(nil, extScriptsDir))
+	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, nil, extScriptsDir))
 	script.SetMaxAllocs(50000)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -214,10 +223,12 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string) error {
 	_, err = script.RunContext(ctx)
 	if err != nil {
 		e.activeScriptsDir = ""
+		e.activeSlug = ""
 		return fmt.Errorf("executing extension.tengo for %s: %w", slug, err)
 	}
 
 	e.activeScriptsDir = ""
+	e.activeSlug = ""
 
 	// Wire any new event handlers to the EventBus
 	e.subscribeEventHandlers()

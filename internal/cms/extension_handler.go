@@ -21,7 +21,7 @@ import (
 
 // ExtensionScriptLoader is an interface for loading/unloading extension scripts at runtime.
 type ExtensionScriptLoader interface {
-	LoadExtensionScripts(extDir string, slug string) error
+	LoadExtensionScripts(extDir string, slug string, capabilities ...map[string]bool) error
 	UnloadExtensionScripts(extDir string, slug string)
 }
 
