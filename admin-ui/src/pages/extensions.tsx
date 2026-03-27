@@ -11,6 +11,7 @@ import {
   Package,
   Trash2,
   FolderOpen,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,12 +37,15 @@ import {
 export default function ExtensionsPage() {
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Extension | null>(null);
-  const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
+
+  // Install dialog
+  const [installOpen, setInstallOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchExtensions = useCallback(async () => {
@@ -70,6 +74,7 @@ export default function ExtensionsPage() {
     try {
       await uploadExtension(file);
       toast.success("Extension uploaded successfully");
+      setInstallOpen(false);
       fetchExtensions();
     } catch {
       toast.error("Failed to upload extension");
@@ -138,58 +143,14 @@ export default function ExtensionsPage() {
             {extensions.length} installed, {activeCount} active
           </p>
         </div>
+        <Button
+          onClick={() => setInstallOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Install
+        </Button>
       </div>
-
-      {/* Upload Section */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <CardContent className="p-6">
-          <div
-            className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
-              dragOver
-                ? "border-indigo-400 bg-indigo-50"
-                : "border-slate-300 bg-slate-50 hover:border-slate-400"
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-          >
-            <Puzzle className="mb-3 h-10 w-10 text-slate-400" />
-            <p className="mb-1 text-sm font-medium text-slate-700">
-              Drag and drop an extension ZIP file here
-            </p>
-            <p className="mb-4 text-xs text-slate-500">
-              Extension must contain an extension.json manifest
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".zip"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Choose File
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Restart Notice */}
       <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -214,9 +175,7 @@ export default function ExtensionsPage() {
           <CardContent className="flex h-64 flex-col items-center justify-center gap-3 text-slate-400">
             <Puzzle className="h-12 w-12" />
             <p className="text-lg font-medium">No extensions installed</p>
-            <p className="text-sm">
-              Upload an extension ZIP to get started
-            </p>
+            <p className="text-sm">Click Install to add your first extension</p>
           </CardContent>
         </Card>
       ) : (
@@ -230,7 +189,6 @@ export default function ExtensionsPage() {
                   : "border border-slate-200 hover:border-slate-300"
               }`}
             >
-              {/* Header area */}
               <div className="relative h-28 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
                 <Puzzle className="h-12 w-12 text-slate-300" />
                 <div className="absolute top-3 right-3">
@@ -255,34 +213,22 @@ export default function ExtensionsPage() {
               </div>
 
               <CardContent className="p-4 space-y-3">
-                {/* Name & version */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-slate-900 truncate">
-                      {ext.name}
-                    </h3>
+                    <h3 className="font-semibold text-slate-900 truncate">{ext.name}</h3>
                     {ext.author && (
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        by {ext.author}
-                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">by {ext.author}</p>
                     )}
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 text-xs font-mono"
-                  >
+                  <Badge variant="outline" className="shrink-0 text-xs font-mono">
                     v{ext.version}
                   </Badge>
                 </div>
 
-                {/* Description */}
                 {ext.description && (
-                  <p className="text-xs text-slate-500 line-clamp-2">
-                    {ext.description}
-                  </p>
+                  <p className="text-xs text-slate-500 line-clamp-2">{ext.description}</p>
                 )}
 
-                {/* Slug */}
                 <div className="flex items-center gap-2">
                   <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-100 border-0 text-xs font-mono">
                     <Package className="mr-1 h-3 w-3" />
@@ -290,7 +236,6 @@ export default function ExtensionsPage() {
                   </Badge>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
                   <Button
                     size="sm"
@@ -346,6 +291,61 @@ export default function ExtensionsPage() {
         </div>
       )}
 
+      {/* Install dialog */}
+      <Dialog open={installOpen} onOpenChange={setInstallOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Install Extension</DialogTitle>
+            <DialogDescription>
+              Upload a ZIP archive containing an extension with an extension.json manifest.
+            </DialogDescription>
+          </DialogHeader>
+          <div
+            className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
+              dragOver
+                ? "border-indigo-400 bg-indigo-50"
+                : "border-slate-300 bg-slate-50 hover:border-slate-400"
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <Puzzle className="mb-3 h-10 w-10 text-slate-400" />
+            <p className="mb-1 text-sm font-medium text-slate-700">
+              Drag and drop a ZIP file here
+            </p>
+            <p className="mb-4 text-xs text-slate-500">or click to browse</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Choose File
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation dialog */}
       <Dialog
         open={!!deleteTarget}
@@ -377,7 +377,6 @@ export default function ExtensionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

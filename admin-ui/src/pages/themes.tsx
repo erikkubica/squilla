@@ -12,6 +12,7 @@ import {
   Loader2,
   Settings,
   FolderOpen,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +43,9 @@ import {
 export default function ThemesPage() {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Install dialog
+  const [installOpen, setInstallOpen] = useState(false);
   const [installTab, setInstallTab] = useState<"upload" | "git">("upload");
 
   // Upload state
@@ -101,6 +105,7 @@ export default function ThemesPage() {
     try {
       await uploadTheme(file);
       toast.success("Theme uploaded successfully");
+      setInstallOpen(false);
       fetchThemes();
     } catch {
       toast.error("Failed to upload theme");
@@ -140,6 +145,7 @@ export default function ThemesPage() {
       setGitUrl("");
       setGitBranch("main");
       setGitToken("");
+      setInstallOpen(false);
       fetchThemes();
     } catch {
       toast.error("Failed to install theme from Git");
@@ -230,135 +236,14 @@ export default function ThemesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Themes</h1>
+        <Button
+          onClick={() => setInstallOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Install
+        </Button>
       </div>
-
-      {/* Install Section */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 bg-slate-50 px-6 py-3">
-          <div className="flex gap-1">
-            <button
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                installTab === "upload"
-                  ? "bg-white text-indigo-700 shadow-sm border border-slate-200"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-              onClick={() => setInstallTab("upload")}
-            >
-              <Upload className="mr-2 inline-block h-4 w-4" />
-              Upload ZIP
-            </button>
-            <button
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                installTab === "git"
-                  ? "bg-white text-indigo-700 shadow-sm border border-slate-200"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-              onClick={() => setInstallTab("git")}
-            >
-              <GitBranch className="mr-2 inline-block h-4 w-4" />
-              Install from Git
-            </button>
-          </div>
-        </div>
-        <CardContent className="p-6">
-          {installTab === "upload" ? (
-            <div
-              className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
-                dragOver
-                  ? "border-indigo-400 bg-indigo-50"
-                  : "border-slate-300 bg-slate-50 hover:border-slate-400"
-              }`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-            >
-              <Package className="mb-3 h-10 w-10 text-slate-400" />
-              <p className="mb-1 text-sm font-medium text-slate-700">
-                Drag and drop a theme ZIP file here
-              </p>
-              <p className="mb-4 text-xs text-slate-500">or click to browse</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".zip"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Choose File
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleGitInstall} className="space-y-4 max-w-xl">
-              <div className="space-y-2">
-                <Label htmlFor="git-url">Repository URL</Label>
-                <Input
-                  id="git-url"
-                  placeholder="https://github.com/user/theme.git"
-                  value={gitUrl}
-                  onChange={(e) => setGitUrl(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="git-branch">Branch</Label>
-                  <Input
-                    id="git-branch"
-                    placeholder="main"
-                    value={gitBranch}
-                    onChange={(e) => setGitBranch(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="git-token">Deploy Token (optional)</Label>
-                  <Input
-                    id="git-token"
-                    type="password"
-                    placeholder="Token for private repos"
-                    value={gitToken}
-                    onChange={(e) => setGitToken(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button
-                type="submit"
-                disabled={installing}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
-              >
-                {installing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Installing...
-                  </>
-                ) : (
-                  <>
-                    <GitBranch className="mr-2 h-4 w-4" />
-                    Install Theme
-                  </>
-                )}
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Theme Grid */}
       {loading ? (
@@ -545,6 +430,138 @@ export default function ThemesPage() {
           ))}
         </div>
       )}
+
+      {/* Install dialog */}
+      <Dialog open={installOpen} onOpenChange={setInstallOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Install Theme</DialogTitle>
+            <DialogDescription>
+              Upload a ZIP archive or install from a Git repository.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-1 border-b border-slate-200 pb-3">
+            <button
+              className={`cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                installTab === "upload"
+                  ? "bg-slate-100 text-indigo-700 shadow-sm border border-slate-200"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+              onClick={() => setInstallTab("upload")}
+            >
+              <Upload className="mr-2 inline-block h-4 w-4" />
+              Upload ZIP
+            </button>
+            <button
+              className={`cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                installTab === "git"
+                  ? "bg-slate-100 text-indigo-700 shadow-sm border border-slate-200"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+              onClick={() => setInstallTab("git")}
+            >
+              <GitBranch className="mr-2 inline-block h-4 w-4" />
+              From Git
+            </button>
+          </div>
+          {installTab === "upload" ? (
+            <div
+              className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
+                dragOver
+                  ? "border-indigo-400 bg-indigo-50"
+                  : "border-slate-300 bg-slate-50 hover:border-slate-400"
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+            >
+              <Package className="mb-3 h-10 w-10 text-slate-400" />
+              <p className="mb-1 text-sm font-medium text-slate-700">
+                Drag and drop a theme ZIP file here
+              </p>
+              <p className="mb-4 text-xs text-slate-500">or click to browse</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".zip"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Choose File
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleGitInstall} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="git-url">Repository URL</Label>
+                <Input
+                  id="git-url"
+                  placeholder="https://github.com/user/theme.git"
+                  value={gitUrl}
+                  onChange={(e) => setGitUrl(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="git-branch">Branch</Label>
+                  <Input
+                    id="git-branch"
+                    placeholder="main"
+                    value={gitBranch}
+                    onChange={(e) => setGitBranch(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="git-token">Deploy Token (optional)</Label>
+                  <Input
+                    id="git-token"
+                    type="password"
+                    placeholder="Token for private repos"
+                    value={gitToken}
+                    onChange={(e) => setGitToken(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button
+                type="submit"
+                disabled={installing}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+              >
+                {installing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Installing...
+                  </>
+                ) : (
+                  <>
+                    <GitBranch className="mr-2 h-4 w-4" />
+                    Install Theme
+                  </>
+                )}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
       <Dialog
