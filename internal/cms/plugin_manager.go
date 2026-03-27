@@ -79,8 +79,10 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 		// Start the plugin process
 		client := goplugin.NewClient(&goplugin.ClientConfig{
 			HandshakeConfig: vibeplugin.Handshake,
-			Plugins:         vibeplugin.PluginMap,
-			Cmd:             exec.Command(binaryPath),
+			VersionedPlugins: map[int]goplugin.PluginSet{
+				2: vibeplugin.PluginMap,
+			},
+			Cmd:              exec.Command(binaryPath),
 			AllowedProtocols: []goplugin.Protocol{goplugin.ProtocolGRPC},
 		})
 
