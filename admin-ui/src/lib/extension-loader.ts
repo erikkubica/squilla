@@ -45,7 +45,9 @@ export interface LoadedExtension {
 const extensionCache = new Map<string, LoadedExtension>();
 
 export async function fetchExtensionManifests(): Promise<ExtensionManifestEntry[]> {
-  const res = await fetch("/admin/api/extensions/manifests");
+  const res = await fetch("/admin/api/extensions/manifests", {
+    credentials: "include",
+  });
   if (!res.ok) return [];
   const json = await res.json();
   return json.data || [];
