@@ -1,0 +1,2 @@
+log := import("core/log")
+log.info("Email Manager extension loaded!")

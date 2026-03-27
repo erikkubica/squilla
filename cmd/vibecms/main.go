@@ -111,7 +111,7 @@ func main() {
 	mediaHandler := cms.NewMediaHandler(database)
 	healthHandler := api.NewHealthHandler(database)
 	roleHandler := rbac.NewRoleHandler(database)
-	emailHandler := email.NewEmailHandler(database)
+	emailHandler := email.NewEmailHandler(database) // Admin API for extensions/email-manager
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, eventBus)
 
 	// Theme loading.
@@ -176,7 +176,7 @@ func main() {
 	menuHandler.RegisterRoutes(adminAPI)
 	mediaHandler.RegisterRoutes(adminAPI)
 	roleHandler.RegisterRoutes(adminAPI)
-	emailHandler.RegisterRoutes(adminAPI)
+	emailHandler.RegisterRoutes(adminAPI) // Managed by extensions/email-manager
 	themeHandler.RegisterRoutes(adminAPI)
 
 	// Plugin manager for gRPC extension plugins.

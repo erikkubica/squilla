@@ -1,0 +1,37 @@
+{
+    "name": "Email Manager",
+    "slug": "email-manager",
+    "version": "1.0.0",
+    "author": "VibeCMS",
+    "description": "Manage email templates, rules, delivery logs, and provider settings.",
+    "provides": ["email-management"],
+    "capabilities": [
+        "email:send",
+        "settings:read",
+        "settings:write",
+        "events:subscribe",
+        "log:write"
+    ],
+    "admin_ui": {
+        "entry": "dist/index.js",
+        "routes": [
+            {"path": "/email/templates", "component": "EmailTemplates"},
+            {"path": "/email/templates/:id", "component": "EmailTemplateEditor"},
+            {"path": "/email/rules", "component": "EmailRules"},
+            {"path": "/email/rules/:id", "component": "EmailRuleEditor"},
+            {"path": "/email/logs", "component": "EmailLogs"},
+            {"path": "/email/settings", "component": "EmailSettings"}
+        ],
+        "menu": {
+            "label": "Email",
+            "icon": "Mail",
+            "position": "6",
+            "children": [
+                {"label": "Templates", "route": "/admin/email/templates"},
+                {"label": "Rules", "route": "/admin/email/rules"},
+                {"label": "Logs", "route": "/admin/email/logs"},
+                {"label": "Settings", "route": "/admin/email/settings"}
+            ]
+        }
+    }
+}
