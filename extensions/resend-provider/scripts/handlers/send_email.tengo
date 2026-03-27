@@ -1,4 +1,4 @@
-fetch := import("cms/fetch")
+http := import("core/http")
 json := import("json")
 
 // Event payload is at event.payload
@@ -25,7 +25,7 @@ body := json.encode({
 })
 
 // Send via Resend API
-result := fetch.post("https://api.resend.com/emails", {
+result := http.post("https://api.resend.com/emails", {
     headers: {
         "Authorization": "Bearer " + api_key,
         "Content-Type": "application/json"

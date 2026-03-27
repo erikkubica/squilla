@@ -1,7 +1,7 @@
 // nodes_by_type.tengo — List published nodes by type.
 // GET /api/theme/nodes/:type?page=1&per_page=20
 
-nodes := import("cms/nodes")
+nodes := import("core/nodes")
 
 node_type := ""
 if request.params.type != undefined {

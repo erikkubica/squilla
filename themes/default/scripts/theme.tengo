@@ -1,9 +1,9 @@
 // theme.tengo — Entry point for theme scripting.
 // This script runs once at startup to register event handlers and API routes.
 
-log := import("cms/log")
-events := import("cms/events")
-http := import("cms/http")
+log := import("core/log")
+events := import("core/events")
+http := import("core/http")
 
 log.info("Default theme scripts initializing...")
 
@@ -25,7 +25,7 @@ http.get("/nodes/:type", "api/nodes_by_type")
 // Register filter scripts that transform values through a chain.
 // Third argument is priority (default 50). Lower = runs first.
 
-filters := import("cms/filters")
+filters := import("core/filters")
 filters.add("node.title", "filters/site_title_suffix", 90)
 
 log.info("Default theme scripts loaded!")

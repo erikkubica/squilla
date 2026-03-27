@@ -2,7 +2,7 @@
 // GET /api/theme/search?q=keyword&type=page&limit=10
 // The `request` variable is injected with {method, path, query, params, headers, body, ip}.
 
-nodes := import("cms/nodes")
+nodes := import("core/nodes")
 
 q := ""
 if request.query.q != undefined {

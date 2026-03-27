@@ -2,7 +2,7 @@
 // Uses cms/routing to detect if the current page is the homepage.
 // Language-aware: works on all homepage translations.
 
-routing := import("cms/routing")
+routing := import("core/routing")
 
 if routing.is_homepage() {
 	response = {

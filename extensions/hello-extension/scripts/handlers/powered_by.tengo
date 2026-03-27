@@ -1,4 +1,4 @@
-routing := import("cms/routing")
+routing := import("core/routing")
 
 if !routing.is_404() {
     response = {
