@@ -269,8 +269,28 @@ export default function ThemesPage() {
                   : "border border-slate-200 hover:border-slate-300"
               }`}
             >
+              {/* Card header */}
+              <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Palette className="h-4 w-4 text-indigo-400 shrink-0" />
+                  <span className="text-xs font-medium text-slate-500 truncate">
+                    {theme.source === "git" ? "Git Theme" : "Uploaded Theme"}
+                  </span>
+                </div>
+                {theme.is_active ? (
+                  <Badge className="bg-emerald-500 text-white hover:bg-emerald-500 border-0 text-xs shadow-sm">
+                    <Check className="mr-1 h-3 w-3" />
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge className="bg-slate-400 text-white hover:bg-slate-400 border-0 text-xs">
+                    Inactive
+                  </Badge>
+                )}
+              </div>
+
               {/* Thumbnail area */}
-              <div className="relative h-36 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+              <div className="relative h-36 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-3 rounded-lg overflow-hidden">
                 {theme.thumbnail ? (
                   <img
                     src={theme.thumbnail}
@@ -278,22 +298,11 @@ export default function ThemesPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <Palette className="h-12 w-12 text-slate-300" />
-                )}
-                {theme.is_active && (
-                  <div className="absolute top-3 right-3">
-                    <Badge className="bg-emerald-500 text-white hover:bg-emerald-500 border-0 text-xs shadow-sm">
-                      <Check className="mr-1 h-3 w-3" />
-                      Active
-                    </Badge>
-                  </div>
-                )}
-                {!theme.is_active && (
-                  <div className="absolute top-3 right-3">
-                    <Badge className="bg-slate-400 text-white hover:bg-slate-400 border-0 text-xs">
-                      Inactive
-                    </Badge>
-                  </div>
+                  <img
+                    src="/previews/default-theme.svg"
+                    alt={theme.name}
+                    className="h-full w-full object-cover"
+                  />
                 )}
               </div>
 

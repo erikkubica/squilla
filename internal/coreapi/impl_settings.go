@@ -14,7 +14,7 @@ import (
 // Returns an empty string (not an error) if the key is missing.
 func (c *coreImpl) GetSetting(_ context.Context, key string) (string, error) {
 	var s models.SiteSetting
-	if err := c.db.Where("`key` = ?", key).First(&s).Error; err != nil {
+	if err := c.db.Where("\"key\" = ?", key).First(&s).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return "", nil
 		}
@@ -29,7 +29,7 @@ func (c *coreImpl) GetSetting(_ context.Context, key string) (string, error) {
 // SetSetting upserts a site setting (insert or update).
 func (c *coreImpl) SetSetting(_ context.Context, key, value string) error {
 	var s models.SiteSetting
-	result := c.db.Where("`key` = ?", key).First(&s)
+	result := c.db.Where("\"key\" = ?", key).First(&s)
 
 	if result.Error == gorm.ErrRecordNotFound {
 		s = models.SiteSetting{Key: key, Value: &value}
@@ -57,7 +57,7 @@ func (c *coreImpl) GetSettings(_ context.Context, prefix string) (map[string]str
 
 	query := c.db.Model(&models.SiteSetting{})
 	if prefix != "" {
-		query = query.Where("`key` LIKE ?", prefix+"%")
+		query = query.Where("\"key\" LIKE ?", prefix+"%")
 	}
 
 	if err := query.Find(&settings).Error; err != nil {
