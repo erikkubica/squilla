@@ -180,15 +180,26 @@ export default function AdminLayout() {
   const { menus: extensionMenus } = useExtensions();
 
   // Build extension nav groups
-  const extensionNavGroups: NavEntry[] = extensionMenus.map((menu) => ({
-    label: menu.label,
-    icon: iconMap[menu.icon] || Puzzle,
-    children: menu.children.map((child) => ({
-      to: `/admin/ext/${menu.slug}/${child.route}`,
-      label: child.label,
+  const extensionNavEntries: NavEntry[] = extensionMenus.map((menu) => {
+    if (menu.children && menu.children.length > 0) {
+      // Group with children (e.g., Email → Templates, Rules, Logs, Settings)
+      return {
+        label: menu.label,
+        icon: iconMap[menu.icon] || Puzzle,
+        children: menu.children.map((child) => ({
+          to: child.route.startsWith("/admin") ? child.route : `/admin/ext/${menu.slug}${child.route}`,
+          label: child.label,
+          icon: iconMap[menu.icon] || Puzzle,
+        })),
+      } as NavEntry;
+    }
+    // Direct nav item (e.g., Media → /admin/ext/media-manager/)
+    return {
+      to: `/admin/ext/${menu.slug}/`,
+      label: menu.label,
       icon: iconMap[menu.icon] || Puzzle,
-    })),
-  }));
+    } as NavEntry;
+  });
 
   // Insert extension menus before the "Appearance" group
   const appearanceIdx = staticNavBottom.findIndex(
@@ -196,9 +207,9 @@ export default function AdminLayout() {
   );
   const bottomWithExtensions = [...staticNavBottom];
   if (appearanceIdx >= 0) {
-    bottomWithExtensions.splice(appearanceIdx, 0, ...extensionNavGroups);
+    bottomWithExtensions.splice(appearanceIdx, 0, ...extensionNavEntries);
   } else {
-    bottomWithExtensions.unshift(...extensionNavGroups);
+    bottomWithExtensions.unshift(...extensionNavEntries);
   }
 
   const navEntries: NavEntry[] = [...staticNavTop, ...customNavItems, ...bottomWithExtensions];
