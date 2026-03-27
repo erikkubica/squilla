@@ -1,0 +1,8 @@
+// Appends site name to page titles for SEO
+settings := import("cms/settings")
+site_name := settings.get("site_name")
+if site_name != undefined && value != undefined {
+    response = value + " | " + site_name
+} else {
+    response = value
+}

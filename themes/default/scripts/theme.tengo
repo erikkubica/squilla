@@ -21,4 +21,11 @@ events.on("node.published", "handlers/on_node_published")
 http.get("/search", "api/search")
 http.get("/nodes/:type", "api/nodes_by_type")
 
+// ─── Filters ─────────────────────────────────────────────────────
+// Register filter scripts that transform values through a chain.
+// Third argument is priority (default 50). Lower = runs first.
+
+filters := import("cms/filters")
+filters.add("node.title", "filters/site_title_suffix", 90)
+
 log.info("Default theme scripts loaded!")

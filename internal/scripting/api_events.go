@@ -106,6 +106,15 @@ func (e *ScriptEngine) eventsEmit(args ...tengo.Object) (tengo.Object, error) {
 		}
 	}
 
+	// Support optional third argument: an array of extra args
+	if len(args) > 2 {
+		if arr, ok := args[2].(*tengo.Array); ok {
+			payload["_args"] = tengoArrayToGo(arr.Value)
+		} else if arr, ok := args[2].(*tengo.ImmutableArray); ok {
+			payload["_args"] = tengoArrayToGo(arr.Value)
+		}
+	}
+
 	e.eventBus.Publish(name, payload)
 	return tengo.UndefinedValue, nil
 }
@@ -150,7 +159,7 @@ func (e *ScriptEngine) subscribeEventHandlers() {
 // sorted by priority, and returns concatenated HTML output.
 // Called by {{event "name" .}} in templates. Also works for non-render events
 // (handlers that don't set response are simply ignored).
-func (e *ScriptEngine) RunEvent(name string, ctx interface{}) template.HTML {
+func (e *ScriptEngine) RunEvent(name string, ctx interface{}, args []interface{}) template.HTML {
 	e.mu.RLock()
 	handlers, ok := e.eventHandlers[name]
 	if !ok || len(handlers) == 0 {
@@ -164,9 +173,17 @@ func (e *ScriptEngine) RunEvent(name string, ctx interface{}) template.HTML {
 
 	renderCtx := normalizeForTengo(ctx)
 
+	// Pass args as a script variable so handler scripts can inspect them
+	var vars map[string]interface{}
+	if len(args) > 0 {
+		vars = map[string]interface{}{
+			"args": args,
+		}
+	}
+
 	var sb strings.Builder
 	for _, h := range sorted {
-		result, err := e.runScript(h.scriptPath, nil, renderCtx)
+		result, err := e.runScript(h.scriptPath, vars, renderCtx)
 		if err != nil {
 			log.Printf("[script] event error: %s (%s): %v", name, h.scriptPath, err)
 			continue

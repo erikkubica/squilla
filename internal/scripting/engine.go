@@ -31,8 +31,9 @@ type ScriptEngine struct {
 
 	// Registered handlers populated during theme.tengo execution
 	mu            sync.RWMutex
-	eventHandlers map[string][]scriptHandler // event name -> handlers sorted by priority
-	httpRoutes    []httpRoute
+	eventHandlers  map[string][]scriptHandler // event name -> handlers sorted by priority
+	filterHandlers map[string][]scriptHandler // filter name -> handlers sorted by priority
+	httpRoutes     []httpRoute
 }
 
 // NewScriptEngine creates a new ScriptEngine.
@@ -47,7 +48,8 @@ func NewScriptEngine(
 		eventBus:      eventBus,
 		contentSvc:    contentSvc,
 		menuSvc:       menuSvc,
-		eventHandlers: make(map[string][]scriptHandler),
+		eventHandlers:  make(map[string][]scriptHandler),
+		filterHandlers: make(map[string][]scriptHandler),
 	}
 }
 
@@ -96,10 +98,14 @@ func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
 	for _, handlers := range e.eventHandlers {
 		numEvents += len(handlers)
 	}
+	numFilters := 0
+	for _, handlers := range e.filterHandlers {
+		numFilters += len(handlers)
+	}
 	numRoutes := len(e.httpRoutes)
 	e.mu.RUnlock()
 
-	log.Printf("[script] theme scripts loaded: %d event handlers, %d HTTP routes", numEvents, numRoutes)
+	log.Printf("[script] theme scripts loaded: %d event handlers, %d filters, %d HTTP routes", numEvents, numFilters, numRoutes)
 
 	return nil
 }

@@ -19,14 +19,21 @@ type TemplateRenderer struct {
 	mu          sync.RWMutex
 	isDev        bool
 	funcMap      template.FuncMap
-	eventRunner func(string, interface{}) template.HTML
+	eventRunner  func(string, interface{}, []interface{}) template.HTML
+	filterRunner func(string, interface{}, interface{}) interface{}
 }
 
 // SetEventRunner sets the function called by {{event "name" .}} in templates.
 // This connects the template engine to the scripting event system.
 // The second argument receives the current template context (node, app, user data).
-func (r *TemplateRenderer) SetEventRunner(fn func(string, interface{}) template.HTML) {
+func (r *TemplateRenderer) SetEventRunner(fn func(string, interface{}, []interface{}) template.HTML) {
 	r.eventRunner = fn
+}
+
+// SetFilterRunner sets the function called by {{filter "name" value}} in templates.
+// This connects the template engine to the scripting filter system.
+func (r *TemplateRenderer) SetFilterRunner(fn func(string, interface{}, interface{}) interface{}) {
+	r.filterRunner = fn
 }
 
 // NewTemplateRenderer creates a new TemplateRenderer.
@@ -38,12 +45,24 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 		cache:       make(map[string]*template.Template),
 		isDev:       isDev,
 	}
-	// Default no-op event runner (replaced when scripting engine is loaded)
-	r.eventRunner = func(name string, ctx interface{}) template.HTML { return "" }
+	// Default no-op runners (replaced when scripting engine is loaded)
+	r.eventRunner = func(name string, ctx interface{}, args []interface{}) template.HTML { return "" }
+	r.filterRunner = func(name string, value interface{}, ctx interface{}) interface{} { return value }
 
 	r.funcMap = template.FuncMap{
-		"event": func(name string, ctx interface{}) template.HTML {
-			return r.eventRunner(name, ctx)
+		"filter": func(name string, value interface{}) interface{} {
+			return r.filterRunner(name, value, nil)
+		},
+		"event": func(name string, args ...interface{}) template.HTML {
+			var ctx interface{}
+			var extra []interface{}
+			if len(args) > 0 {
+				ctx = args[0]
+			}
+			if len(args) > 1 {
+				extra = args[1:]
+			}
+			return r.eventRunner(name, ctx, extra)
 		},
 		"deref": func(v interface{}) interface{} {
 			if v == nil {
