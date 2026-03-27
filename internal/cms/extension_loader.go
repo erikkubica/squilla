@@ -59,14 +59,15 @@ type SettingsField struct {
 
 // ExtensionManifest represents the extension.json manifest file.
 type ExtensionManifest struct {
-	Name           string                   `json:"name"`
-	Slug           string                   `json:"slug"`
-	Version        string                   `json:"version"`
-	Author         string                   `json:"author"`
-	Description    string                   `json:"description"`
-	Priority       int                      `json:"priority"`
-	Provides       []string                 `json:"provides"`
-	AdminUI        *AdminUIManifest         `json:"admin_ui"`
+	Name           string                  `json:"name"`
+	Slug           string                  `json:"slug"`
+	Version        string                  `json:"version"`
+	Author         string                  `json:"author"`
+	Description    string                  `json:"description"`
+	Priority       int                     `json:"priority"`
+	Provides       []string                `json:"provides"`
+	Plugins        []PluginManifestEntry   `json:"plugins"`
+	AdminUI        *AdminUIManifest        `json:"admin_ui"`
 	SettingsSchema map[string]SettingsField `json:"settings_schema"`
 }
 

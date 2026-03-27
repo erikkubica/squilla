@@ -14,12 +14,27 @@ import (
 	"vibecms/internal/models"
 )
 
-// Dispatcher ties together rules, templates, providers, and logging to handle
-// system events and send the appropriate emails.
+// SendRequest contains everything needed to send an email.
+type SendRequest struct {
+	To        []string          `json:"to"`
+	Subject   string            `json:"subject"`
+	HTML      string            `json:"html"`
+	FromEmail string            `json:"from_email"`
+	FromName  string            `json:"from_name"`
+	Settings  map[string]string `json:"settings"` // provider-specific settings
+}
+
+// SendFunc is a function that sends an email. Returns nil on success.
+// This is the hook point — plugins and Tengo scripts implement this.
+type SendFunc func(req SendRequest) error
+
+// Dispatcher ties together rules, templates, and logging to handle
+// system events and send the appropriate emails via a pluggable SendFunc.
 type Dispatcher struct {
-	db      *gorm.DB
-	ruleSvc *RuleService
-	logSvc  *LogService
+	db       *gorm.DB
+	ruleSvc  *RuleService
+	logSvc   *LogService
+	sendFunc SendFunc
 }
 
 // NewDispatcher creates a new Dispatcher.
@@ -29,6 +44,12 @@ func NewDispatcher(db *gorm.DB, ruleSvc *RuleService, logSvc *LogService) *Dispa
 		ruleSvc: ruleSvc,
 		logSvc:  logSvc,
 	}
+}
+
+// SetSendFunc sets the function used to actually send emails.
+// If nil, emails will be logged as "no provider configured".
+func (d *Dispatcher) SetSendFunc(fn SendFunc) {
+	d.sendFunc = fn
 }
 
 // HandleEvent is called by the event bus for every event.
@@ -53,43 +74,20 @@ func (d *Dispatcher) HandleEvent(action string, payload events.Payload) {
 	// 3. Load site settings once for all rules.
 	settings := loadSiteSettings(d.db)
 	providerName := settings["email_provider"]
-	var provider Provider
 
-	// Try extension-based provider first (ext. prefixed settings)
-	if providerName != "" && providerName != "smtp" && providerName != "resend" {
+	// Load provider extension settings if applicable.
+	providerSettings := make(map[string]string)
+	providerSettings["provider"] = providerName
+	if providerName != "" {
 		extPrefix := "ext." + providerName + "."
-		extSettings := make(map[string]string)
 		for k, v := range settings {
 			if strings.HasPrefix(k, extPrefix) {
-				extSettings[strings.TrimPrefix(k, extPrefix)] = v
+				providerSettings[strings.TrimPrefix(k, extPrefix)] = v
 			}
 		}
-		// Map extension setting names to legacy field names for provider constructors
-		if providerName == "smtp-provider" {
-			if v, ok := extSettings["host"]; ok {
-				extSettings["smtp_host"] = v
-			}
-			if v, ok := extSettings["port"]; ok {
-				extSettings["smtp_port"] = v
-			}
-			if v, ok := extSettings["username"]; ok {
-				extSettings["smtp_username"] = v
-			}
-			if v, ok := extSettings["password"]; ok {
-				extSettings["smtp_password"] = v
-			}
-		} else if providerName == "resend-provider" {
-			if v, ok := extSettings["api_key"]; ok {
-				extSettings["resend_api_key"] = v
-			}
-		}
-		provider = NewProviderFromExtension(providerName, extSettings)
 	}
-
-	// Fallback to legacy provider resolution
-	if provider == nil {
-		provider = NewProvider(providerName, settings)
-	}
+	providerSettings["from_email"] = settings["from_email"]
+	providerSettings["from_name"] = settings["from_name"]
 
 	// Build site data for template rendering.
 	siteData := map[string]string{
@@ -101,7 +99,7 @@ func (d *Dispatcher) HandleEvent(action string, payload events.Payload) {
 	baseLayout := settings["email_base_layout"]
 
 	for _, rule := range rules {
-		d.processRule(action, payload, rule, siteData, baseLayout, provider)
+		d.processRule(action, payload, rule, siteData, baseLayout, providerSettings)
 	}
 }
 
@@ -112,7 +110,7 @@ func (d *Dispatcher) processRule(
 	rule models.EmailRule,
 	siteData map[string]string,
 	baseLayout string,
-	provider Provider,
+	providerSettings map[string]string,
 ) {
 	// Resolve recipients with their language info.
 	recipientInfos := d.resolveRecipientsWithLang(action, rule, payload)
@@ -160,7 +158,7 @@ func (d *Dispatcher) processRule(
 			}
 		}
 
-		d.sendAndLog(action, rule, tmpl.Slug, ri.email, subject, body, provider)
+		d.sendAndLog(action, rule, tmpl.Slug, ri.email, subject, body, providerSettings)
 	}
 }
 
@@ -201,7 +199,7 @@ func (d *Dispatcher) resolveTemplateForLang(slug string, langID *int) *models.Em
 	return nil
 }
 
-// sendAndLog sends an email to a single recipient and logs the result.
+// sendAndLog sends an email via the configured SendFunc and logs the result.
 func (d *Dispatcher) sendAndLog(
 	action string,
 	rule models.EmailRule,
@@ -209,8 +207,9 @@ func (d *Dispatcher) sendAndLog(
 	recipient string,
 	subject string,
 	body string,
-	provider Provider,
+	providerSettings map[string]string,
 ) {
+	providerName := providerSettings["provider"]
 	logEntry := &models.EmailLog{
 		RuleID:         &rule.ID,
 		TemplateSlug:   templateSlug,
@@ -218,9 +217,10 @@ func (d *Dispatcher) sendAndLog(
 		RecipientEmail: recipient,
 		Subject:        subject,
 		RenderedBody:   body,
+		Provider:       &providerName,
 	}
 
-	if provider == nil {
+	if d.sendFunc == nil {
 		errMsg := "no email provider configured"
 		logEntry.Status = "failed"
 		logEntry.ErrorMessage = &errMsg
@@ -230,10 +230,16 @@ func (d *Dispatcher) sendAndLog(
 		return
 	}
 
-	pName := provider.Name()
-	logEntry.Provider = &pName
+	req := SendRequest{
+		To:        []string{recipient},
+		Subject:   subject,
+		HTML:      body,
+		FromEmail: providerSettings["from_email"],
+		FromName:  providerSettings["from_name"],
+		Settings:  providerSettings,
+	}
 
-	if err := provider.Send([]string{recipient}, subject, body); err != nil {
+	if err := d.sendFunc(req); err != nil {
 		errMsg := err.Error()
 		logEntry.Status = "failed"
 		logEntry.ErrorMessage = &errMsg
