@@ -20,6 +20,7 @@ import * as LabelModule from "@/components/ui/label";
 import * as BadgeModule from "@/components/ui/badge";
 import * as DialogModule from "@/components/ui/dialog";
 import * as SelectModule from "@/components/ui/select";
+import * as TabsModule from "@/components/ui/tabs";
 import * as SwitchModule from "@/components/ui/switch";
 import * as TextareaModule from "@/components/ui/textarea";
 
@@ -46,6 +47,7 @@ window.__VIBECMS_SHARED__ = {
     ...BadgeModule,
     ...DialogModule,
     ...SelectModule,
+    ...TabsModule,
     ...SwitchModule,
     ...TextareaModule,
   },
