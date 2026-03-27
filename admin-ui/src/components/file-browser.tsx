@@ -443,7 +443,7 @@ export default function FileBrowser({ apiBase, title, backUrl, backLabel }: File
               </div>
 
               {/* Content area */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 min-h-0">
                 {fileMeta?.binary ? (
                   <div className="flex items-center justify-center h-full text-slate-500 text-sm">
                     Binary file — cannot be previewed
@@ -453,11 +453,14 @@ export default function FileBrowser({ apiBase, title, backUrl, backLabel }: File
                     File too large to preview
                   </div>
                 ) : (
-                  <CodeViewer
-                    value={fileContent ?? ""}
-                    filename={fileMeta?.path}
-                    language={fileMeta?.language ? detectLanguage(fileMeta.path) : undefined}
-                  />
+                  <div className="h-full overflow-auto">
+                    <CodeViewer
+                      value={fileContent ?? ""}
+                      filename={fileMeta?.path}
+                      language={fileMeta?.language ? detectLanguage(fileMeta.path) : undefined}
+                      height="auto"
+                    />
+                  </div>
                 )}
               </div>
             </>
