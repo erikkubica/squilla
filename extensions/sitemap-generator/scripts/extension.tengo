@@ -1,0 +1,8 @@
+log := import("core/log")
+events := import("core/events")
+
+log.info("Sitemap Generator extension loaded!")
+
+// Rebuild sitemap when content is published or deleted
+events.on("node.published", "handlers/rebuild_sitemap", 10)
+events.on("node.deleted", "handlers/rebuild_sitemap", 10)

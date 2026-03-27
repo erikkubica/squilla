@@ -1,0 +1,23 @@
+{
+  "name": "Sitemap Generator",
+  "slug": "sitemap-generator",
+  "version": "1.0.0",
+  "author": "VibeCMS",
+  "description": "Automatic XML sitemap generation. Rebuilds when content changes.",
+  "provides": ["sitemap"],
+  "capabilities": [
+    "nodes:read",
+    "settings:read",
+    "settings:write",
+    "events:subscribe",
+    "events:emit",
+    "routes:register",
+    "log:write"
+  ],
+  "plugins": [
+    {
+      "binary": "bin/sitemap-generator",
+      "events": ["sitemap.rebuild", "sitemap.get"]
+    }
+  ]
+}

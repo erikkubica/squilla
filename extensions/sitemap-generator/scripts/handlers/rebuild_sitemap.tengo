@@ -1,0 +1,9 @@
+// rebuild_sitemap.tengo — Triggers a sitemap rebuild when content changes.
+
+events := import("core/events")
+log := import("core/log")
+
+log.info("Sitemap rebuild triggered")
+
+// Emit event for the gRPC plugin to pick up and regenerate the sitemap
+events.emit("sitemap.rebuild", {})

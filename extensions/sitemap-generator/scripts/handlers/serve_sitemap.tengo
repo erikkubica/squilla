@@ -1,0 +1,17 @@
+// serve_sitemap.tengo — HTTP handler for GET /sitemap.xml
+// Returns the cached sitemap XML from settings, or a minimal empty sitemap.
+
+settings := import("core/settings")
+
+sitemap_xml := settings.get("sitemap_xml_cache")
+
+if sitemap_xml == "" || sitemap_xml == undefined {
+	sitemap_xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`
+}
+
+response = {
+	status: 200,
+	content_type: "application/xml",
+	body: sitemap_xml
+}
