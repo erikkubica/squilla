@@ -7,13 +7,26 @@ type Provider interface {
 }
 
 // NewProvider creates a provider from site settings map.
-// Returns nil if provider name is empty or unknown.
+// Supports both legacy names ("smtp", "resend") and extension slugs ("smtp-provider", "resend-provider").
 func NewProvider(name string, settings map[string]string) Provider {
 	switch name {
-	case "smtp":
+	case "smtp", "smtp-provider":
 		return NewSMTPProvider(settings)
-	case "resend":
+	case "resend", "resend-provider":
 		return NewResendProvider(settings)
+	default:
+		return nil
+	}
+}
+
+// NewProviderFromExtension creates a provider using extension-scoped settings.
+// Settings should already be the extension-scoped settings (without the ext.slug. prefix).
+func NewProviderFromExtension(providerSlug string, extSettings map[string]string) Provider {
+	switch providerSlug {
+	case "smtp-provider":
+		return NewSMTPProvider(extSettings)
+	case "resend-provider":
+		return NewResendProvider(extSettings)
 	default:
 		return nil
 	}

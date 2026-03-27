@@ -53,7 +53,43 @@ func (d *Dispatcher) HandleEvent(action string, payload events.Payload) {
 	// 3. Load site settings once for all rules.
 	settings := loadSiteSettings(d.db)
 	providerName := settings["email_provider"]
-	provider := NewProvider(providerName, settings)
+	var provider Provider
+
+	// Try extension-based provider first (ext. prefixed settings)
+	if providerName != "" && providerName != "smtp" && providerName != "resend" {
+		extPrefix := "ext." + providerName + "."
+		extSettings := make(map[string]string)
+		for k, v := range settings {
+			if strings.HasPrefix(k, extPrefix) {
+				extSettings[strings.TrimPrefix(k, extPrefix)] = v
+			}
+		}
+		// Map extension setting names to legacy field names for provider constructors
+		if providerName == "smtp-provider" {
+			if v, ok := extSettings["host"]; ok {
+				extSettings["smtp_host"] = v
+			}
+			if v, ok := extSettings["port"]; ok {
+				extSettings["smtp_port"] = v
+			}
+			if v, ok := extSettings["username"]; ok {
+				extSettings["smtp_username"] = v
+			}
+			if v, ok := extSettings["password"]; ok {
+				extSettings["smtp_password"] = v
+			}
+		} else if providerName == "resend-provider" {
+			if v, ok := extSettings["api_key"]; ok {
+				extSettings["resend_api_key"] = v
+			}
+		}
+		provider = NewProviderFromExtension(providerName, extSettings)
+	}
+
+	// Fallback to legacy provider resolution
+	if provider == nil {
+		provider = NewProvider(providerName, settings)
+	}
 
 	// Build site data for template rendering.
 	siteData := map[string]string{
