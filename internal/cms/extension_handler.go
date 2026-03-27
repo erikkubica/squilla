@@ -33,8 +33,12 @@ func NewExtensionHandler(db *gorm.DB, loader *ExtensionLoader) *ExtensionHandler
 // RegisterRoutes registers all admin API extension routes on the provided router group.
 func (h *ExtensionHandler) RegisterRoutes(router fiber.Router) {
 	g := router.Group("/extensions", auth.CapabilityRequired("manage_settings"))
+	g.Get("/manifests", h.Manifests)
 	g.Get("/", h.List)
 	g.Get("/:slug/files", h.BrowseFiles)
+	g.Get("/:slug/settings", h.GetSettings)
+	g.Put("/:slug/settings", h.UpdateSettings)
+	g.Get("/:slug/assets/*", h.ServeAsset)
 	g.Get("/:slug", h.Get)
 	g.Post("/:slug/activate", h.Activate)
 	g.Post("/:slug/deactivate", h.Deactivate)
@@ -62,6 +66,99 @@ func (h *ExtensionHandler) Get(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch extension")
 	}
 	return api.Success(c, ext)
+}
+
+// Manifests handles GET /extensions/manifests — returns admin_ui manifests for all active extensions.
+func (h *ExtensionHandler) Manifests(c *fiber.Ctx) error {
+	exts, err := h.loader.GetActive()
+	if err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list extensions")
+	}
+
+	type manifestEntry struct {
+		Slug     string          `json:"slug"`
+		Name     string          `json:"name"`
+		Manifest json.RawMessage `json:"manifest"`
+	}
+
+	entries := make([]manifestEntry, 0, len(exts))
+	for _, ext := range exts {
+		entries = append(entries, manifestEntry{
+			Slug:     ext.Slug,
+			Name:     ext.Name,
+			Manifest: json.RawMessage(ext.Manifest),
+		})
+	}
+	return api.Success(c, entries)
+}
+
+// GetSettings handles GET /extensions/:slug/settings — returns extension settings.
+func (h *ExtensionHandler) GetSettings(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+
+	if _, err := h.loader.GetBySlug(slug); err != nil {
+		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
+	}
+
+	prefix := "ext." + slug + "."
+	var settings []models.SiteSetting
+	h.db.Where("key LIKE ?", prefix+"%").Find(&settings)
+
+	result := make(map[string]string)
+	for _, s := range settings {
+		key := strings.TrimPrefix(s.Key, prefix)
+		if s.Value != nil {
+			result[key] = *s.Value
+		}
+	}
+	return api.Success(c, result)
+}
+
+// UpdateSettings handles PUT /extensions/:slug/settings — updates extension settings.
+func (h *ExtensionHandler) UpdateSettings(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+
+	if _, err := h.loader.GetBySlug(slug); err != nil {
+		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
+	}
+
+	var body map[string]string
+	if err := c.BodyParser(&body); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+
+	prefix := "ext." + slug + "."
+	for key, value := range body {
+		v := value
+		setting := models.SiteSetting{
+			Key:   prefix + key,
+			Value: &v,
+		}
+		h.db.Where("key = ?", setting.Key).Assign(models.SiteSetting{Value: &v}).FirstOrCreate(&setting)
+	}
+
+	return api.Success(c, fiber.Map{"message": "Settings saved"})
+}
+
+// ServeAsset handles GET /extensions/:slug/assets/* — serves static files from extension admin-ui/dist/.
+func (h *ExtensionHandler) ServeAsset(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	filePath := c.Params("*")
+
+	ext, err := h.loader.GetBySlug(slug)
+	if err != nil {
+		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
+	}
+
+	fullPath := filepath.Join(ext.Path, "admin-ui", "dist", filePath)
+	cleanPath := filepath.Clean(fullPath)
+	basePath := filepath.Clean(filepath.Join(ext.Path, "admin-ui", "dist"))
+
+	if !strings.HasPrefix(cleanPath, basePath) {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_PATH", "Path traversal not allowed")
+	}
+
+	return c.SendFile(cleanPath)
 }
 
 // BrowseFiles handles GET /extensions/:slug/files?path= — browse extension files.
