@@ -25,14 +25,38 @@ interface FileEntry {
   name: string;
   path: string;
   is_dir: boolean;
-  size?: number;
-  language?: string;
+  size: number;
 }
 
 interface TreeNode extends FileEntry {
   children?: TreeNode[];
   loaded?: boolean;
   expanded?: boolean;
+}
+
+// API response types (from Go backend)
+interface ApiDirEntry {
+  name: string;
+  type: "file" | "directory";
+  size: number;
+  modified: string;
+}
+
+interface ApiDirResponse {
+  type: "directory";
+  path: string;
+  entries: ApiDirEntry[];
+}
+
+interface ApiFileResponse {
+  type: "file";
+  path: string;
+  name: string;
+  content: string;
+  size: number;
+  language: string;
+  binary?: boolean;
+  too_large?: boolean;
 }
 
 export interface FileBrowserProps {
@@ -46,14 +70,20 @@ export interface FileBrowserProps {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-async function fetchDir(apiBase: string, path: string): Promise<FileEntry[]> {
+async function fetchDir(apiBase: string, parentPath: string): Promise<FileEntry[]> {
   const res = await fetch(
-    `${apiBase}?path=${encodeURIComponent(path)}`,
+    `${apiBase}?path=${encodeURIComponent(parentPath)}`,
     { credentials: "include" },
   );
   if (!res.ok) throw new Error("Failed to load");
   const body = await res.json();
-  return body.data;
+  const data = body.data as ApiDirResponse;
+  return (data.entries || []).map((e) => ({
+    name: e.name,
+    path: parentPath ? `${parentPath}/${e.name}` : e.name,
+    is_dir: e.type === "directory",
+    size: e.size,
+  }));
 }
 
 async function fetchFile(
@@ -61,12 +91,19 @@ async function fetchFile(
   path: string,
 ): Promise<{ content: string; size: number; language: string; binary: boolean; too_large: boolean }> {
   const res = await fetch(
-    `${apiBase}/content?path=${encodeURIComponent(path)}`,
+    `${apiBase}?path=${encodeURIComponent(path)}`,
     { credentials: "include" },
   );
   if (!res.ok) throw new Error("Failed to load file");
   const body = await res.json();
-  return body.data;
+  const data = body.data as ApiFileResponse;
+  return {
+    content: data.content ?? "",
+    size: data.size,
+    language: data.language,
+    binary: !!data.binary,
+    too_large: !!data.too_large,
+  };
 }
 
 function iconForFile(name: string) {
@@ -232,7 +269,7 @@ export default function FileBrowser({ apiBase, title, backUrl, backLabel }: File
   useEffect(() => {
     let cancelled = false;
     setTreeLoading(true);
-    fetchDir(apiBase, ".")
+    fetchDir(apiBase, "")
       .then((entries) => {
         if (!cancelled) {
           setTree(entriesToNodes(entries));
