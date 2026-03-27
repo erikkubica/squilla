@@ -11,6 +11,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o vibecms ./cmd/vibecms
+# Build extension plugin binaries
+RUN CGO_ENABLED=0 go build -o extensions/smtp-provider/bin/smtp-provider ./extensions/smtp-provider/cmd/plugin/
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
