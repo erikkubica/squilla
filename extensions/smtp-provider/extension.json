@@ -1,0 +1,29 @@
+{
+  "name": "SMTP Provider",
+  "slug": "smtp-provider",
+  "version": "1.0.0",
+  "author": "VibeCMS",
+  "description": "Send emails via any SMTP server",
+  "priority": 50,
+  "provides": ["email.provider"],
+  "admin_ui": {
+    "entry": "admin-ui/dist/index.js",
+    "slots": {
+      "email-settings": {
+        "component": "SmtpSettings",
+        "label": "SMTP"
+      }
+    },
+    "routes": [],
+    "menu": null
+  },
+  "settings_schema": {
+    "host": { "type": "string", "label": "SMTP Host", "required": true },
+    "port": { "type": "number", "label": "SMTP Port", "default": 587 },
+    "username": { "type": "string", "label": "Username" },
+    "password": { "type": "string", "label": "Password", "sensitive": true },
+    "from_email": { "type": "string", "label": "From Email", "required": true },
+    "from_name": { "type": "string", "label": "From Name" },
+    "encryption": { "type": "string", "label": "Encryption", "enum": ["none", "tls", "starttls"], "default": "tls" }
+  }
+}
