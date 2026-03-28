@@ -70,11 +70,13 @@ async function fetchMedia(params: {
   if (params.mime_type) qs.set("mime_type", params.mime_type);
   if (params.search) qs.set("search", params.search);
 
-  const res = await fetch(`/admin/api/media?${qs.toString()}`, {
+  const res = await fetch(`/admin/api/ext/media-manager/?${qs.toString()}`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch media");
-  return res.json();
+  const body = await res.json();
+  // Plugin returns { data, meta: { total, page, per_page } }
+  return { data: body.data, total: body.meta.total, page: body.meta.page, per_page: body.meta.per_page };
 }
 
 async function uploadMediaFile(
@@ -83,7 +85,7 @@ async function uploadMediaFile(
 ): Promise<MediaFile> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/admin/api/media/upload");
+    xhr.open("POST", "/admin/api/ext/media-manager/upload");
     xhr.withCredentials = true;
 
     xhr.upload.addEventListener("progress", (e) => {
@@ -114,7 +116,7 @@ async function uploadMediaFile(
 }
 
 async function updateMediaAlt(id: number, alt: string): Promise<MediaFile> {
-  const res = await fetch(`/admin/api/media/${id}`, {
+  const res = await fetch(`/admin/api/ext/media-manager/${id}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -126,7 +128,7 @@ async function updateMediaAlt(id: number, alt: string): Promise<MediaFile> {
 }
 
 async function deleteMedia(id: number): Promise<void> {
-  const res = await fetch(`/admin/api/media/${id}`, {
+  const res = await fetch(`/admin/api/ext/media-manager/${id}`, {
     method: "DELETE",
     credentials: "include",
   });
