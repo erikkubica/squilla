@@ -751,17 +751,17 @@ export interface EmailRule {
 }
 
 export async function getEmailRules(): Promise<EmailRule[]> {
-  const res = await api<ApiResponse<EmailRule[]>>("/admin/api/email-rules");
+  const res = await api<ApiResponse<EmailRule[]>>("/admin/api/ext/email-manager/rules");
   return res.data;
 }
 
 export async function getEmailRule(id: number): Promise<EmailRule> {
-  const res = await api<ApiResponse<EmailRule>>(`/admin/api/email-rules/${id}`);
+  const res = await api<ApiResponse<EmailRule>>(`/admin/api/ext/email-manager/rules/${id}`);
   return res.data;
 }
 
 export async function createEmailRule(data: Partial<EmailRule>): Promise<EmailRule> {
-  const res = await api<ApiResponse<EmailRule>>("/admin/api/email-rules", {
+  const res = await api<ApiResponse<EmailRule>>("/admin/api/ext/email-manager/rules", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -769,7 +769,7 @@ export async function createEmailRule(data: Partial<EmailRule>): Promise<EmailRu
 }
 
 export async function updateEmailRule(id: number, data: Partial<EmailRule>): Promise<EmailRule> {
-  const res = await api<ApiResponse<EmailRule>>(`/admin/api/email-rules/${id}`, {
+  const res = await api<ApiResponse<EmailRule>>(`/admin/api/ext/email-manager/rules/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -777,7 +777,7 @@ export async function updateEmailRule(id: number, data: Partial<EmailRule>): Pro
 }
 
 export async function deleteEmailRule(id: number): Promise<void> {
-  await api<void>(`/admin/api/email-rules/${id}`, { method: "DELETE" });
+  await api<void>(`/admin/api/ext/email-manager/rules/${id}`, { method: "DELETE" });
 }
 
 // --- Email Logs ---
@@ -814,37 +814,37 @@ export async function getEmailLogs(params?: {
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.per_page) searchParams.set("per_page", String(params.per_page));
   const qs = searchParams.toString();
-  const res = await api<{ data: EmailLog[]; total: number; page: number; per_page: number }>(
-    `/admin/api/email-logs${qs ? `?${qs}` : ""}`
+  const res = await api<{ data: EmailLog[]; meta: { total: number; page: number; per_page: number; total_pages: number } }>(
+    `/admin/api/ext/email-manager/logs${qs ? `?${qs}` : ""}`
   );
-  return res;
+  return { data: res.data, total: res.meta.total, page: res.meta.page, per_page: res.meta.per_page };
 }
 
 export async function getEmailLog(id: number): Promise<EmailLog> {
-  const res = await api<ApiResponse<EmailLog>>(`/admin/api/email-logs/${id}`);
+  const res = await api<ApiResponse<EmailLog>>(`/admin/api/ext/email-manager/logs/${id}`);
   return res.data;
 }
 
 export async function resendEmail(id: number): Promise<void> {
-  await api<void>(`/admin/api/email-logs/${id}/resend`, { method: "POST" });
+  await api<void>(`/admin/api/ext/email-manager/logs/${id}/resend`, { method: "POST" });
 }
 
 // --- Email Settings ---
 
 export async function getEmailSettings(): Promise<Record<string, string>> {
-  const res = await api<ApiResponse<Record<string, string>>>("/admin/api/email-settings");
+  const res = await api<ApiResponse<Record<string, string>>>("/admin/api/ext/email-manager/settings");
   return res.data;
 }
 
 export async function saveEmailSettings(data: Record<string, string>): Promise<void> {
-  await api<void>("/admin/api/email-settings", {
+  await api<void>("/admin/api/ext/email-manager/settings", {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export async function sendTestEmail(): Promise<void> {
-  await api<void>("/admin/api/email-settings/test", { method: "POST" });
+  await api<void>("/admin/api/ext/email-manager/settings/test", { method: "POST" });
 }
 
 // --- Themes ---
