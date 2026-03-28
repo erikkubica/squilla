@@ -12,17 +12,17 @@ import * as ReactRouterDOM from "react-router-dom";
 import * as Sonner from "sonner";
 import * as LucideReact from "lucide-react";
 
-// shadcn/ui components
-import * as ButtonModule from "@/components/ui/button";
-import * as CardModule from "@/components/ui/card";
-import * as InputModule from "@/components/ui/input";
-import * as LabelModule from "@/components/ui/label";
-import * as BadgeModule from "@/components/ui/badge";
-import * as DialogModule from "@/components/ui/dialog";
-import * as SelectModule from "@/components/ui/select";
-import * as TabsModule from "@/components/ui/tabs";
-import * as TextareaModule from "@/components/ui/textarea";
-import * as TableModule from "@/components/ui/table";
+// shadcn/ui components — explicit named imports for reliable sharing
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter, CardAction } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter, TableCaption } from "@/components/ui/table";
 
 // API client
 import * as apiClient from "@/api/client";
@@ -40,16 +40,16 @@ window.__VIBECMS_SHARED__ = {
   Sonner,
   icons: LucideReact,
   ui: {
-    ...ButtonModule,
-    ...CardModule,
-    ...InputModule,
-    ...LabelModule,
-    ...BadgeModule,
-    ...DialogModule,
-    ...SelectModule,
-    ...TabsModule,
-    ...TextareaModule,
-    ...TableModule,
+    Button,
+    Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter, CardAction,
+    Input,
+    Label,
+    Badge,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    Tabs, TabsList, TabsTrigger, TabsContent,
+    Textarea,
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter, TableCaption,
   },
   api: apiClient,
 };

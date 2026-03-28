@@ -22,7 +22,9 @@ func NewExtensionProxy(pm *PluginManager) *ExtensionProxy {
 
 // RegisterRoutes registers the catch-all proxy route on the given router.
 func (ep *ExtensionProxy) RegisterRoutes(router fiber.Router) {
+	log.Println("[extension-proxy] registering routes on /ext/:slug/*")
 	router.All("/ext/:slug/*", ep.handleRequest)
+	router.All("/ext/:slug", ep.handleRequest)
 }
 
 func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
@@ -82,6 +84,13 @@ func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
 		log.Printf("[extension-proxy] gRPC error from %s: %v", slug, err)
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "plugin request failed"})
 	}
+
+	// Debug: log first 500 chars of response body
+	bodyPreview := string(resp.Body)
+	if len(bodyPreview) > 500 {
+		bodyPreview = bodyPreview[:500]
+	}
+	log.Printf("[extension-proxy] %s %s -> %d (%d bytes): %s", c.Method(), relativePath, resp.StatusCode, len(resp.Body), bodyPreview)
 
 	// Write response headers.
 	for k, v := range resp.Headers {
