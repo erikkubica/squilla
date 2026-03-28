@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: proto/coreapi/vibecms_coreapi.proto
+// source: vibecms_coreapi.proto
 
 package coreapipb
 
@@ -29,7 +29,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[0]
+	mi := &file_vibecms_coreapi_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +41,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[0]
+	mi := &file_vibecms_coreapi_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,7 +54,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{0}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{0}
 }
 
 type GetNodeRequest struct {
@@ -66,7 +66,7 @@ type GetNodeRequest struct {
 
 func (x *GetNodeRequest) Reset() {
 	*x = GetNodeRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[1]
+	mi := &file_vibecms_coreapi_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -78,7 +78,7 @@ func (x *GetNodeRequest) String() string {
 func (*GetNodeRequest) ProtoMessage() {}
 
 func (x *GetNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[1]
+	mi := &file_vibecms_coreapi_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -91,7 +91,7 @@ func (x *GetNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeRequest.ProtoReflect.Descriptor instead.
 func (*GetNodeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{1}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetNodeRequest) GetId() uint32 {
@@ -119,7 +119,7 @@ type QueryNodesRequest struct {
 
 func (x *QueryNodesRequest) Reset() {
 	*x = QueryNodesRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[2]
+	mi := &file_vibecms_coreapi_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +131,7 @@ func (x *QueryNodesRequest) String() string {
 func (*QueryNodesRequest) ProtoMessage() {}
 
 func (x *QueryNodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[2]
+	mi := &file_vibecms_coreapi_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +144,7 @@ func (x *QueryNodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryNodesRequest.ProtoReflect.Descriptor instead.
 func (*QueryNodesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{2}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *QueryNodesRequest) GetNodeType() string {
@@ -226,7 +226,7 @@ type CreateNodeRequest struct {
 
 func (x *CreateNodeRequest) Reset() {
 	*x = CreateNodeRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[3]
+	mi := &file_vibecms_coreapi_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -238,7 +238,7 @@ func (x *CreateNodeRequest) String() string {
 func (*CreateNodeRequest) ProtoMessage() {}
 
 func (x *CreateNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[3]
+	mi := &file_vibecms_coreapi_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -251,7 +251,7 @@ func (x *CreateNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateNodeRequest.ProtoReflect.Descriptor instead.
 func (*CreateNodeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{3}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateNodeRequest) GetInput() *NodeInput {
@@ -271,7 +271,7 @@ type UpdateNodeRequest struct {
 
 func (x *UpdateNodeRequest) Reset() {
 	*x = UpdateNodeRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[4]
+	mi := &file_vibecms_coreapi_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -283,7 +283,7 @@ func (x *UpdateNodeRequest) String() string {
 func (*UpdateNodeRequest) ProtoMessage() {}
 
 func (x *UpdateNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[4]
+	mi := &file_vibecms_coreapi_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -296,7 +296,7 @@ func (x *UpdateNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateNodeRequest.ProtoReflect.Descriptor instead.
 func (*UpdateNodeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{4}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateNodeRequest) GetId() uint32 {
@@ -322,7 +322,7 @@ type DeleteNodeRequest struct {
 
 func (x *DeleteNodeRequest) Reset() {
 	*x = DeleteNodeRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[5]
+	mi := &file_vibecms_coreapi_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -334,7 +334,7 @@ func (x *DeleteNodeRequest) String() string {
 func (*DeleteNodeRequest) ProtoMessage() {}
 
 func (x *DeleteNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[5]
+	mi := &file_vibecms_coreapi_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -347,7 +347,7 @@ func (x *DeleteNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteNodeRequest.ProtoReflect.Descriptor instead.
 func (*DeleteNodeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{5}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DeleteNodeRequest) GetId() uint32 {
@@ -375,7 +375,7 @@ type NodeInput struct {
 
 func (x *NodeInput) Reset() {
 	*x = NodeInput{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[6]
+	mi := &file_vibecms_coreapi_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -387,7 +387,7 @@ func (x *NodeInput) String() string {
 func (*NodeInput) ProtoMessage() {}
 
 func (x *NodeInput) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[6]
+	mi := &file_vibecms_coreapi_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -400,7 +400,7 @@ func (x *NodeInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeInput.ProtoReflect.Descriptor instead.
 func (*NodeInput) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{6}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *NodeInput) GetParentId() uint32 {
@@ -482,7 +482,7 @@ type NodeResponse struct {
 
 func (x *NodeResponse) Reset() {
 	*x = NodeResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[7]
+	mi := &file_vibecms_coreapi_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -494,7 +494,7 @@ func (x *NodeResponse) String() string {
 func (*NodeResponse) ProtoMessage() {}
 
 func (x *NodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[7]
+	mi := &file_vibecms_coreapi_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -507,7 +507,7 @@ func (x *NodeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeResponse.ProtoReflect.Descriptor instead.
 func (*NodeResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{7}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *NodeResponse) GetNode() *NodeMessage {
@@ -527,7 +527,7 @@ type QueryNodesResponse struct {
 
 func (x *QueryNodesResponse) Reset() {
 	*x = QueryNodesResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[8]
+	mi := &file_vibecms_coreapi_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -539,7 +539,7 @@ func (x *QueryNodesResponse) String() string {
 func (*QueryNodesResponse) ProtoMessage() {}
 
 func (x *QueryNodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[8]
+	mi := &file_vibecms_coreapi_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -552,7 +552,7 @@ func (x *QueryNodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryNodesResponse.ProtoReflect.Descriptor instead.
 func (*QueryNodesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{8}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *QueryNodesResponse) GetNodes() []*NodeMessage {
@@ -593,7 +593,7 @@ type NodeMessage struct {
 
 func (x *NodeMessage) Reset() {
 	*x = NodeMessage{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[9]
+	mi := &file_vibecms_coreapi_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -605,7 +605,7 @@ func (x *NodeMessage) String() string {
 func (*NodeMessage) ProtoMessage() {}
 
 func (x *NodeMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[9]
+	mi := &file_vibecms_coreapi_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +618,7 @@ func (x *NodeMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeMessage.ProtoReflect.Descriptor instead.
 func (*NodeMessage) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{9}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *NodeMessage) GetId() uint32 {
@@ -742,7 +742,7 @@ type GetSettingRequest struct {
 
 func (x *GetSettingRequest) Reset() {
 	*x = GetSettingRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[10]
+	mi := &file_vibecms_coreapi_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -754,7 +754,7 @@ func (x *GetSettingRequest) String() string {
 func (*GetSettingRequest) ProtoMessage() {}
 
 func (x *GetSettingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[10]
+	mi := &file_vibecms_coreapi_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -767,7 +767,7 @@ func (x *GetSettingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingRequest.ProtoReflect.Descriptor instead.
 func (*GetSettingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{10}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetSettingRequest) GetKey() string {
@@ -786,7 +786,7 @@ type SettingResponse struct {
 
 func (x *SettingResponse) Reset() {
 	*x = SettingResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[11]
+	mi := &file_vibecms_coreapi_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -798,7 +798,7 @@ func (x *SettingResponse) String() string {
 func (*SettingResponse) ProtoMessage() {}
 
 func (x *SettingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[11]
+	mi := &file_vibecms_coreapi_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -811,7 +811,7 @@ func (x *SettingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SettingResponse.ProtoReflect.Descriptor instead.
 func (*SettingResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{11}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SettingResponse) GetValue() string {
@@ -831,7 +831,7 @@ type SetSettingRequest struct {
 
 func (x *SetSettingRequest) Reset() {
 	*x = SetSettingRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[12]
+	mi := &file_vibecms_coreapi_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -843,7 +843,7 @@ func (x *SetSettingRequest) String() string {
 func (*SetSettingRequest) ProtoMessage() {}
 
 func (x *SetSettingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[12]
+	mi := &file_vibecms_coreapi_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -856,7 +856,7 @@ func (x *SetSettingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSettingRequest.ProtoReflect.Descriptor instead.
 func (*SetSettingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{12}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetSettingRequest) GetKey() string {
@@ -882,7 +882,7 @@ type GetSettingsRequest struct {
 
 func (x *GetSettingsRequest) Reset() {
 	*x = GetSettingsRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[13]
+	mi := &file_vibecms_coreapi_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +894,7 @@ func (x *GetSettingsRequest) String() string {
 func (*GetSettingsRequest) ProtoMessage() {}
 
 func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[13]
+	mi := &file_vibecms_coreapi_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -907,7 +907,7 @@ func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{13}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetSettingsRequest) GetPrefix() string {
@@ -926,7 +926,7 @@ type SettingsResponse struct {
 
 func (x *SettingsResponse) Reset() {
 	*x = SettingsResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[14]
+	mi := &file_vibecms_coreapi_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -938,7 +938,7 @@ func (x *SettingsResponse) String() string {
 func (*SettingsResponse) ProtoMessage() {}
 
 func (x *SettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[14]
+	mi := &file_vibecms_coreapi_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -951,7 +951,7 @@ func (x *SettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SettingsResponse.ProtoReflect.Descriptor instead.
 func (*SettingsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{14}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SettingsResponse) GetSettings() map[string]string {
@@ -971,7 +971,7 @@ type EmitEventRequest struct {
 
 func (x *EmitEventRequest) Reset() {
 	*x = EmitEventRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[15]
+	mi := &file_vibecms_coreapi_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -983,7 +983,7 @@ func (x *EmitEventRequest) String() string {
 func (*EmitEventRequest) ProtoMessage() {}
 
 func (x *EmitEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[15]
+	mi := &file_vibecms_coreapi_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -996,7 +996,7 @@ func (x *EmitEventRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmitEventRequest.ProtoReflect.Descriptor instead.
 func (*EmitEventRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{15}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *EmitEventRequest) GetAction() string {
@@ -1024,7 +1024,7 @@ type SendEmailRequest struct {
 
 func (x *SendEmailRequest) Reset() {
 	*x = SendEmailRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[16]
+	mi := &file_vibecms_coreapi_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1036,7 +1036,7 @@ func (x *SendEmailRequest) String() string {
 func (*SendEmailRequest) ProtoMessage() {}
 
 func (x *SendEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[16]
+	mi := &file_vibecms_coreapi_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1049,7 +1049,7 @@ func (x *SendEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailRequest.ProtoReflect.Descriptor instead.
 func (*SendEmailRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{16}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SendEmailRequest) GetTo() []string {
@@ -1082,7 +1082,7 @@ type GetMenuRequest struct {
 
 func (x *GetMenuRequest) Reset() {
 	*x = GetMenuRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[17]
+	mi := &file_vibecms_coreapi_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1094,7 +1094,7 @@ func (x *GetMenuRequest) String() string {
 func (*GetMenuRequest) ProtoMessage() {}
 
 func (x *GetMenuRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[17]
+	mi := &file_vibecms_coreapi_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1107,7 +1107,7 @@ func (x *GetMenuRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMenuRequest.ProtoReflect.Descriptor instead.
 func (*GetMenuRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{17}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetMenuRequest) GetSlug() string {
@@ -1126,7 +1126,7 @@ type MenuResponse struct {
 
 func (x *MenuResponse) Reset() {
 	*x = MenuResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[18]
+	mi := &file_vibecms_coreapi_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1138,7 +1138,7 @@ func (x *MenuResponse) String() string {
 func (*MenuResponse) ProtoMessage() {}
 
 func (x *MenuResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[18]
+	mi := &file_vibecms_coreapi_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1151,7 +1151,7 @@ func (x *MenuResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuResponse.ProtoReflect.Descriptor instead.
 func (*MenuResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{18}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *MenuResponse) GetMenu() *MenuMessage {
@@ -1170,7 +1170,7 @@ type MenuListResponse struct {
 
 func (x *MenuListResponse) Reset() {
 	*x = MenuListResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[19]
+	mi := &file_vibecms_coreapi_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1182,7 +1182,7 @@ func (x *MenuListResponse) String() string {
 func (*MenuListResponse) ProtoMessage() {}
 
 func (x *MenuListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[19]
+	mi := &file_vibecms_coreapi_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1195,7 +1195,7 @@ func (x *MenuListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuListResponse.ProtoReflect.Descriptor instead.
 func (*MenuListResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{19}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *MenuListResponse) GetMenus() []*MenuMessage {
@@ -1219,7 +1219,7 @@ type MenuMessage struct {
 
 func (x *MenuMessage) Reset() {
 	*x = MenuMessage{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[20]
+	mi := &file_vibecms_coreapi_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1231,7 +1231,7 @@ func (x *MenuMessage) String() string {
 func (*MenuMessage) ProtoMessage() {}
 
 func (x *MenuMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[20]
+	mi := &file_vibecms_coreapi_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1244,7 +1244,7 @@ func (x *MenuMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuMessage.ProtoReflect.Descriptor instead.
 func (*MenuMessage) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{20}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *MenuMessage) GetId() uint32 {
@@ -1305,7 +1305,7 @@ type MenuItemMessage struct {
 
 func (x *MenuItemMessage) Reset() {
 	*x = MenuItemMessage{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[21]
+	mi := &file_vibecms_coreapi_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1317,7 +1317,7 @@ func (x *MenuItemMessage) String() string {
 func (*MenuItemMessage) ProtoMessage() {}
 
 func (x *MenuItemMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[21]
+	mi := &file_vibecms_coreapi_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1330,7 +1330,7 @@ func (x *MenuItemMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuItemMessage.ProtoReflect.Descriptor instead.
 func (*MenuItemMessage) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{21}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MenuItemMessage) GetId() uint32 {
@@ -1398,7 +1398,7 @@ type GetUserRequest struct {
 
 func (x *GetUserRequest) Reset() {
 	*x = GetUserRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[22]
+	mi := &file_vibecms_coreapi_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1410,7 +1410,7 @@ func (x *GetUserRequest) String() string {
 func (*GetUserRequest) ProtoMessage() {}
 
 func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[22]
+	mi := &file_vibecms_coreapi_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1423,7 +1423,7 @@ func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{22}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetUserRequest) GetId() uint32 {
@@ -1445,7 +1445,7 @@ type QueryUsersRequest struct {
 
 func (x *QueryUsersRequest) Reset() {
 	*x = QueryUsersRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[23]
+	mi := &file_vibecms_coreapi_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1457,7 +1457,7 @@ func (x *QueryUsersRequest) String() string {
 func (*QueryUsersRequest) ProtoMessage() {}
 
 func (x *QueryUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[23]
+	mi := &file_vibecms_coreapi_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1470,7 +1470,7 @@ func (x *QueryUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryUsersRequest.ProtoReflect.Descriptor instead.
 func (*QueryUsersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{23}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *QueryUsersRequest) GetRoleSlug() string {
@@ -1510,7 +1510,7 @@ type UserResponse struct {
 
 func (x *UserResponse) Reset() {
 	*x = UserResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[24]
+	mi := &file_vibecms_coreapi_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1522,7 +1522,7 @@ func (x *UserResponse) String() string {
 func (*UserResponse) ProtoMessage() {}
 
 func (x *UserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[24]
+	mi := &file_vibecms_coreapi_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1535,7 +1535,7 @@ func (x *UserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserResponse.ProtoReflect.Descriptor instead.
 func (*UserResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{24}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *UserResponse) GetUser() *UserMessage {
@@ -1554,7 +1554,7 @@ type UserListResponse struct {
 
 func (x *UserListResponse) Reset() {
 	*x = UserListResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[25]
+	mi := &file_vibecms_coreapi_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1566,7 +1566,7 @@ func (x *UserListResponse) String() string {
 func (*UserListResponse) ProtoMessage() {}
 
 func (x *UserListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[25]
+	mi := &file_vibecms_coreapi_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1579,7 +1579,7 @@ func (x *UserListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserListResponse.ProtoReflect.Descriptor instead.
 func (*UserListResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{25}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *UserListResponse) GetUsers() []*UserMessage {
@@ -1605,7 +1605,7 @@ type UserMessage struct {
 
 func (x *UserMessage) Reset() {
 	*x = UserMessage{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[26]
+	mi := &file_vibecms_coreapi_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1617,7 +1617,7 @@ func (x *UserMessage) String() string {
 func (*UserMessage) ProtoMessage() {}
 
 func (x *UserMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[26]
+	mi := &file_vibecms_coreapi_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1630,7 +1630,7 @@ func (x *UserMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserMessage.ProtoReflect.Descriptor instead.
 func (*UserMessage) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{26}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *UserMessage) GetId() uint32 {
@@ -1702,7 +1702,7 @@ type FetchRequest struct {
 
 func (x *FetchRequest) Reset() {
 	*x = FetchRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[27]
+	mi := &file_vibecms_coreapi_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1714,7 +1714,7 @@ func (x *FetchRequest) String() string {
 func (*FetchRequest) ProtoMessage() {}
 
 func (x *FetchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[27]
+	mi := &file_vibecms_coreapi_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1727,7 +1727,7 @@ func (x *FetchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchRequest.ProtoReflect.Descriptor instead.
 func (*FetchRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{27}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *FetchRequest) GetMethod() string {
@@ -1776,7 +1776,7 @@ type FetchResponse struct {
 
 func (x *FetchResponse) Reset() {
 	*x = FetchResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[28]
+	mi := &file_vibecms_coreapi_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1788,7 +1788,7 @@ func (x *FetchResponse) String() string {
 func (*FetchResponse) ProtoMessage() {}
 
 func (x *FetchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[28]
+	mi := &file_vibecms_coreapi_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1801,7 +1801,7 @@ func (x *FetchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchResponse.ProtoReflect.Descriptor instead.
 func (*FetchResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{28}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *FetchResponse) GetStatusCode() int32 {
@@ -1836,7 +1836,7 @@ type LogRequest struct {
 
 func (x *LogRequest) Reset() {
 	*x = LogRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[29]
+	mi := &file_vibecms_coreapi_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1848,7 +1848,7 @@ func (x *LogRequest) String() string {
 func (*LogRequest) ProtoMessage() {}
 
 func (x *LogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[29]
+	mi := &file_vibecms_coreapi_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1861,7 +1861,7 @@ func (x *LogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogRequest.ProtoReflect.Descriptor instead.
 func (*LogRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{29}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *LogRequest) GetLevel() string {
@@ -1895,7 +1895,7 @@ type DataGetRequest struct {
 
 func (x *DataGetRequest) Reset() {
 	*x = DataGetRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[30]
+	mi := &file_vibecms_coreapi_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1907,7 +1907,7 @@ func (x *DataGetRequest) String() string {
 func (*DataGetRequest) ProtoMessage() {}
 
 func (x *DataGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[30]
+	mi := &file_vibecms_coreapi_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1920,7 +1920,7 @@ func (x *DataGetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataGetRequest.ProtoReflect.Descriptor instead.
 func (*DataGetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{30}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DataGetRequest) GetTable() string {
@@ -1946,7 +1946,7 @@ type DataRowResponse struct {
 
 func (x *DataRowResponse) Reset() {
 	*x = DataRowResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[31]
+	mi := &file_vibecms_coreapi_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1958,7 +1958,7 @@ func (x *DataRowResponse) String() string {
 func (*DataRowResponse) ProtoMessage() {}
 
 func (x *DataRowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[31]
+	mi := &file_vibecms_coreapi_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1971,7 +1971,7 @@ func (x *DataRowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataRowResponse.ProtoReflect.Descriptor instead.
 func (*DataRowResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{31}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DataRowResponse) GetRowJson() []byte {
@@ -1997,7 +1997,7 @@ type DataQueryRequest struct {
 
 func (x *DataQueryRequest) Reset() {
 	*x = DataQueryRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[32]
+	mi := &file_vibecms_coreapi_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2009,7 +2009,7 @@ func (x *DataQueryRequest) String() string {
 func (*DataQueryRequest) ProtoMessage() {}
 
 func (x *DataQueryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[32]
+	mi := &file_vibecms_coreapi_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2022,7 +2022,7 @@ func (x *DataQueryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataQueryRequest.ProtoReflect.Descriptor instead.
 func (*DataQueryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{32}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *DataQueryRequest) GetTable() string {
@@ -2091,7 +2091,7 @@ type DataQueryResponse struct {
 
 func (x *DataQueryResponse) Reset() {
 	*x = DataQueryResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[33]
+	mi := &file_vibecms_coreapi_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2103,7 +2103,7 @@ func (x *DataQueryResponse) String() string {
 func (*DataQueryResponse) ProtoMessage() {}
 
 func (x *DataQueryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[33]
+	mi := &file_vibecms_coreapi_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2116,7 +2116,7 @@ func (x *DataQueryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataQueryResponse.ProtoReflect.Descriptor instead.
 func (*DataQueryResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{33}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *DataQueryResponse) GetRowsJson() [][]byte {
@@ -2143,7 +2143,7 @@ type DataCreateRequest struct {
 
 func (x *DataCreateRequest) Reset() {
 	*x = DataCreateRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[34]
+	mi := &file_vibecms_coreapi_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2155,7 +2155,7 @@ func (x *DataCreateRequest) String() string {
 func (*DataCreateRequest) ProtoMessage() {}
 
 func (x *DataCreateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[34]
+	mi := &file_vibecms_coreapi_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2168,7 +2168,7 @@ func (x *DataCreateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataCreateRequest.ProtoReflect.Descriptor instead.
 func (*DataCreateRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{34}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *DataCreateRequest) GetTable() string {
@@ -2196,7 +2196,7 @@ type DataUpdateRequest struct {
 
 func (x *DataUpdateRequest) Reset() {
 	*x = DataUpdateRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[35]
+	mi := &file_vibecms_coreapi_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2208,7 +2208,7 @@ func (x *DataUpdateRequest) String() string {
 func (*DataUpdateRequest) ProtoMessage() {}
 
 func (x *DataUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[35]
+	mi := &file_vibecms_coreapi_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2221,7 +2221,7 @@ func (x *DataUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataUpdateRequest.ProtoReflect.Descriptor instead.
 func (*DataUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{35}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *DataUpdateRequest) GetTable() string {
@@ -2255,7 +2255,7 @@ type DataDeleteRequest struct {
 
 func (x *DataDeleteRequest) Reset() {
 	*x = DataDeleteRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[36]
+	mi := &file_vibecms_coreapi_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2267,7 +2267,7 @@ func (x *DataDeleteRequest) String() string {
 func (*DataDeleteRequest) ProtoMessage() {}
 
 func (x *DataDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[36]
+	mi := &file_vibecms_coreapi_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2280,7 +2280,7 @@ func (x *DataDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataDeleteRequest.ProtoReflect.Descriptor instead.
 func (*DataDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{36}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *DataDeleteRequest) GetTable() string {
@@ -2307,7 +2307,7 @@ type DataExecRequest struct {
 
 func (x *DataExecRequest) Reset() {
 	*x = DataExecRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[37]
+	mi := &file_vibecms_coreapi_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2319,7 +2319,7 @@ func (x *DataExecRequest) String() string {
 func (*DataExecRequest) ProtoMessage() {}
 
 func (x *DataExecRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[37]
+	mi := &file_vibecms_coreapi_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2332,7 +2332,7 @@ func (x *DataExecRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataExecRequest.ProtoReflect.Descriptor instead.
 func (*DataExecRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{37}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *DataExecRequest) GetSql() string {
@@ -2358,7 +2358,7 @@ type DataExecResponse struct {
 
 func (x *DataExecResponse) Reset() {
 	*x = DataExecResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[38]
+	mi := &file_vibecms_coreapi_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2370,7 +2370,7 @@ func (x *DataExecResponse) String() string {
 func (*DataExecResponse) ProtoMessage() {}
 
 func (x *DataExecResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[38]
+	mi := &file_vibecms_coreapi_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2383,7 +2383,7 @@ func (x *DataExecResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataExecResponse.ProtoReflect.Descriptor instead.
 func (*DataExecResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{38}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *DataExecResponse) GetRowsAffected() int64 {
@@ -2403,7 +2403,7 @@ type StoreFileRequest struct {
 
 func (x *StoreFileRequest) Reset() {
 	*x = StoreFileRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[39]
+	mi := &file_vibecms_coreapi_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2415,7 +2415,7 @@ func (x *StoreFileRequest) String() string {
 func (*StoreFileRequest) ProtoMessage() {}
 
 func (x *StoreFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[39]
+	mi := &file_vibecms_coreapi_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2428,7 +2428,7 @@ func (x *StoreFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoreFileRequest.ProtoReflect.Descriptor instead.
 func (*StoreFileRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{39}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *StoreFileRequest) GetPath() string {
@@ -2454,7 +2454,7 @@ type StoreFileResponse struct {
 
 func (x *StoreFileResponse) Reset() {
 	*x = StoreFileResponse{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[40]
+	mi := &file_vibecms_coreapi_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2466,7 +2466,7 @@ func (x *StoreFileResponse) String() string {
 func (*StoreFileResponse) ProtoMessage() {}
 
 func (x *StoreFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[40]
+	mi := &file_vibecms_coreapi_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2479,7 +2479,7 @@ func (x *StoreFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoreFileResponse.ProtoReflect.Descriptor instead.
 func (*StoreFileResponse) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{40}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *StoreFileResponse) GetUrl() string {
@@ -2498,7 +2498,7 @@ type DeleteFileRequest struct {
 
 func (x *DeleteFileRequest) Reset() {
 	*x = DeleteFileRequest{}
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[41]
+	mi := &file_vibecms_coreapi_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2510,7 +2510,7 @@ func (x *DeleteFileRequest) String() string {
 func (*DeleteFileRequest) ProtoMessage() {}
 
 func (x *DeleteFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_coreapi_vibecms_coreapi_proto_msgTypes[41]
+	mi := &file_vibecms_coreapi_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2523,7 +2523,7 @@ func (x *DeleteFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFileRequest.ProtoReflect.Descriptor instead.
 func (*DeleteFileRequest) Descriptor() ([]byte, []int) {
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP(), []int{41}
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *DeleteFileRequest) GetPath() string {
@@ -2533,11 +2533,507 @@ func (x *DeleteFileRequest) GetPath() string {
 	return ""
 }
 
-var File_proto_coreapi_vibecms_coreapi_proto protoreflect.FileDescriptor
+type NodeTypeFieldMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Required      bool                   `protobuf:"varint,4,opt,name=required,proto3" json:"required,omitempty"`
+	Options       []string               `protobuf:"bytes,5,rep,name=options,proto3" json:"options,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_proto_coreapi_vibecms_coreapi_proto_rawDesc = "" +
+func (x *NodeTypeFieldMessage) Reset() {
+	*x = NodeTypeFieldMessage{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeTypeFieldMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeTypeFieldMessage) ProtoMessage() {}
+
+func (x *NodeTypeFieldMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeTypeFieldMessage.ProtoReflect.Descriptor instead.
+func (*NodeTypeFieldMessage) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *NodeTypeFieldMessage) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *NodeTypeFieldMessage) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *NodeTypeFieldMessage) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *NodeTypeFieldMessage) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
+func (x *NodeTypeFieldMessage) GetOptions() []string {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+type NodeTypeInputMessage struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Slug          string                  `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Label         string                  `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Icon          string                  `protobuf:"bytes,3,opt,name=icon,proto3" json:"icon,omitempty"`
+	Description   string                  `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	FieldSchema   []*NodeTypeFieldMessage `protobuf:"bytes,5,rep,name=field_schema,json=fieldSchema,proto3" json:"field_schema,omitempty"`
+	UrlPrefixes   map[string]string       `protobuf:"bytes,6,rep,name=url_prefixes,json=urlPrefixes,proto3" json:"url_prefixes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeTypeInputMessage) Reset() {
+	*x = NodeTypeInputMessage{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeTypeInputMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeTypeInputMessage) ProtoMessage() {}
+
+func (x *NodeTypeInputMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeTypeInputMessage.ProtoReflect.Descriptor instead.
+func (*NodeTypeInputMessage) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *NodeTypeInputMessage) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *NodeTypeInputMessage) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *NodeTypeInputMessage) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *NodeTypeInputMessage) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *NodeTypeInputMessage) GetFieldSchema() []*NodeTypeFieldMessage {
+	if x != nil {
+		return x.FieldSchema
+	}
+	return nil
+}
+
+func (x *NodeTypeInputMessage) GetUrlPrefixes() map[string]string {
+	if x != nil {
+		return x.UrlPrefixes
+	}
+	return nil
+}
+
+type NodeTypeMessage struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Id            int32                   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Slug          string                  `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
+	Label         string                  `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	Icon          string                  `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	Description   string                  `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	FieldSchema   []*NodeTypeFieldMessage `protobuf:"bytes,6,rep,name=field_schema,json=fieldSchema,proto3" json:"field_schema,omitempty"`
+	UrlPrefixes   map[string]string       `protobuf:"bytes,7,rep,name=url_prefixes,json=urlPrefixes,proto3" json:"url_prefixes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     string                  `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                  `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeTypeMessage) Reset() {
+	*x = NodeTypeMessage{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeTypeMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeTypeMessage) ProtoMessage() {}
+
+func (x *NodeTypeMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeTypeMessage.ProtoReflect.Descriptor instead.
+func (*NodeTypeMessage) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *NodeTypeMessage) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *NodeTypeMessage) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *NodeTypeMessage) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *NodeTypeMessage) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *NodeTypeMessage) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *NodeTypeMessage) GetFieldSchema() []*NodeTypeFieldMessage {
+	if x != nil {
+		return x.FieldSchema
+	}
+	return nil
+}
+
+func (x *NodeTypeMessage) GetUrlPrefixes() map[string]string {
+	if x != nil {
+		return x.UrlPrefixes
+	}
+	return nil
+}
+
+func (x *NodeTypeMessage) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *NodeTypeMessage) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type NodeTypeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeType      *NodeTypeMessage       `protobuf:"bytes,1,opt,name=node_type,json=nodeType,proto3" json:"node_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeTypeResponse) Reset() {
+	*x = NodeTypeResponse{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeTypeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeTypeResponse) ProtoMessage() {}
+
+func (x *NodeTypeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeTypeResponse.ProtoReflect.Descriptor instead.
+func (*NodeTypeResponse) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *NodeTypeResponse) GetNodeType() *NodeTypeMessage {
+	if x != nil {
+		return x.NodeType
+	}
+	return nil
+}
+
+type NodeTypeListResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeTypes     []*NodeTypeMessage     `protobuf:"bytes,1,rep,name=node_types,json=nodeTypes,proto3" json:"node_types,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeTypeListResponse) Reset() {
+	*x = NodeTypeListResponse{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeTypeListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeTypeListResponse) ProtoMessage() {}
+
+func (x *NodeTypeListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeTypeListResponse.ProtoReflect.Descriptor instead.
+func (*NodeTypeListResponse) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *NodeTypeListResponse) GetNodeTypes() []*NodeTypeMessage {
+	if x != nil {
+		return x.NodeTypes
+	}
+	return nil
+}
+
+type GetNodeTypeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeTypeRequest) Reset() {
+	*x = GetNodeTypeRequest{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeTypeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeTypeRequest) ProtoMessage() {}
+
+func (x *GetNodeTypeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeTypeRequest.ProtoReflect.Descriptor instead.
+func (*GetNodeTypeRequest) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *GetNodeTypeRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type UpdateNodeTypeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Input         *NodeTypeInputMessage  `protobuf:"bytes,2,opt,name=input,proto3" json:"input,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateNodeTypeRequest) Reset() {
+	*x = UpdateNodeTypeRequest{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateNodeTypeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateNodeTypeRequest) ProtoMessage() {}
+
+func (x *UpdateNodeTypeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateNodeTypeRequest.ProtoReflect.Descriptor instead.
+func (*UpdateNodeTypeRequest) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *UpdateNodeTypeRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *UpdateNodeTypeRequest) GetInput() *NodeTypeInputMessage {
+	if x != nil {
+		return x.Input
+	}
+	return nil
+}
+
+type DeleteNodeTypeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteNodeTypeRequest) Reset() {
+	*x = DeleteNodeTypeRequest{}
+	mi := &file_vibecms_coreapi_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteNodeTypeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteNodeTypeRequest) ProtoMessage() {}
+
+func (x *DeleteNodeTypeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_vibecms_coreapi_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteNodeTypeRequest.ProtoReflect.Descriptor instead.
+func (*DeleteNodeTypeRequest) Descriptor() ([]byte, []int) {
+	return file_vibecms_coreapi_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *DeleteNodeTypeRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+var File_vibecms_coreapi_proto protoreflect.FileDescriptor
+
+const file_vibecms_coreapi_proto_rawDesc = "" +
 	"\n" +
-	"#proto/coreapi/vibecms_coreapi.proto\x12\x0fvibecms.coreapi\"\a\n" +
+	"\x15vibecms_coreapi.proto\x12\x0fvibecms.coreapi\"\a\n" +
 	"\x05Empty\" \n" +
 	"\x0eGetNodeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\"\xa3\x02\n" +
@@ -2731,7 +3227,50 @@ const file_proto_coreapi_vibecms_coreapi_proto_rawDesc = "" +
 	"\x11StoreFileResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\"'\n" +
 	"\x11DeleteFileRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path2\xcf\x0e\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\"\x8a\x01\n" +
+	"\x14NodeTypeFieldMessage\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x12\x1a\n" +
+	"\brequired\x18\x04 \x01(\bR\brequired\x12\x18\n" +
+	"\aoptions\x18\x05 \x03(\tR\aoptions\"\xdb\x02\n" +
+	"\x14NodeTypeInputMessage\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
+	"\x04icon\x18\x03 \x01(\tR\x04icon\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12H\n" +
+	"\ffield_schema\x18\x05 \x03(\v2%.vibecms.coreapi.NodeTypeFieldMessageR\vfieldSchema\x12Y\n" +
+	"\furl_prefixes\x18\x06 \x03(\v26.vibecms.coreapi.NodeTypeInputMessage.UrlPrefixesEntryR\vurlPrefixes\x1a>\n" +
+	"\x10UrlPrefixesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9f\x03\n" +
+	"\x0fNodeTypeMessage\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
+	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x12\n" +
+	"\x04icon\x18\x04 \x01(\tR\x04icon\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12H\n" +
+	"\ffield_schema\x18\x06 \x03(\v2%.vibecms.coreapi.NodeTypeFieldMessageR\vfieldSchema\x12T\n" +
+	"\furl_prefixes\x18\a \x03(\v21.vibecms.coreapi.NodeTypeMessage.UrlPrefixesEntryR\vurlPrefixes\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\tR\tupdatedAt\x1a>\n" +
+	"\x10UrlPrefixesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"Q\n" +
+	"\x10NodeTypeResponse\x12=\n" +
+	"\tnode_type\x18\x01 \x01(\v2 .vibecms.coreapi.NodeTypeMessageR\bnodeType\"W\n" +
+	"\x14NodeTypeListResponse\x12?\n" +
+	"\n" +
+	"node_types\x18\x01 \x03(\v2 .vibecms.coreapi.NodeTypeMessageR\tnodeTypes\"(\n" +
+	"\x12GetNodeTypeRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"h\n" +
+	"\x15UpdateNodeTypeRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12;\n" +
+	"\x05input\x18\x02 \x01(\v2%.vibecms.coreapi.NodeTypeInputMessageR\x05input\"+\n" +
+	"\x15DeleteNodeTypeRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug2\x83\x12\n" +
 	"\vVibeCMSHost\x12I\n" +
 	"\aGetNode\x12\x1f.vibecms.coreapi.GetNodeRequest\x1a\x1d.vibecms.coreapi.NodeResponse\x12U\n" +
 	"\n" +
@@ -2767,161 +3306,193 @@ const file_proto_coreapi_vibecms_coreapi_proto_rawDesc = "" +
 	"\bDataExec\x12 .vibecms.coreapi.DataExecRequest\x1a!.vibecms.coreapi.DataExecResponse\x12R\n" +
 	"\tStoreFile\x12!.vibecms.coreapi.StoreFileRequest\x1a\".vibecms.coreapi.StoreFileResponse\x12H\n" +
 	"\n" +
-	"DeleteFile\x12\".vibecms.coreapi.DeleteFileRequest\x1a\x16.vibecms.coreapi.EmptyB\x1eZ\x1cvibecms/pkg/plugin/coreapipbb\x06proto3"
+	"DeleteFile\x12\".vibecms.coreapi.DeleteFileRequest\x1a\x16.vibecms.coreapi.Empty\x12\\\n" +
+	"\x10RegisterNodeType\x12%.vibecms.coreapi.NodeTypeInputMessage\x1a!.vibecms.coreapi.NodeTypeResponse\x12U\n" +
+	"\vGetNodeType\x12#.vibecms.coreapi.GetNodeTypeRequest\x1a!.vibecms.coreapi.NodeTypeResponse\x12N\n" +
+	"\rListNodeTypes\x12\x16.vibecms.coreapi.Empty\x1a%.vibecms.coreapi.NodeTypeListResponse\x12[\n" +
+	"\x0eUpdateNodeType\x12&.vibecms.coreapi.UpdateNodeTypeRequest\x1a!.vibecms.coreapi.NodeTypeResponse\x12P\n" +
+	"\x0eDeleteNodeType\x12&.vibecms.coreapi.DeleteNodeTypeRequest\x1a\x16.vibecms.coreapi.EmptyB\x1eZ\x1cvibecms/pkg/plugin/coreapipbb\x06proto3"
 
 var (
-	file_proto_coreapi_vibecms_coreapi_proto_rawDescOnce sync.Once
-	file_proto_coreapi_vibecms_coreapi_proto_rawDescData []byte
+	file_vibecms_coreapi_proto_rawDescOnce sync.Once
+	file_vibecms_coreapi_proto_rawDescData []byte
 )
 
-func file_proto_coreapi_vibecms_coreapi_proto_rawDescGZIP() []byte {
-	file_proto_coreapi_vibecms_coreapi_proto_rawDescOnce.Do(func() {
-		file_proto_coreapi_vibecms_coreapi_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_coreapi_vibecms_coreapi_proto_rawDesc), len(file_proto_coreapi_vibecms_coreapi_proto_rawDesc)))
+func file_vibecms_coreapi_proto_rawDescGZIP() []byte {
+	file_vibecms_coreapi_proto_rawDescOnce.Do(func() {
+		file_vibecms_coreapi_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_vibecms_coreapi_proto_rawDesc), len(file_vibecms_coreapi_proto_rawDesc)))
 	})
-	return file_proto_coreapi_vibecms_coreapi_proto_rawDescData
+	return file_vibecms_coreapi_proto_rawDescData
 }
 
-var file_proto_coreapi_vibecms_coreapi_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
-var file_proto_coreapi_vibecms_coreapi_proto_goTypes = []any{
-	(*Empty)(nil),              // 0: vibecms.coreapi.Empty
-	(*GetNodeRequest)(nil),     // 1: vibecms.coreapi.GetNodeRequest
-	(*QueryNodesRequest)(nil),  // 2: vibecms.coreapi.QueryNodesRequest
-	(*CreateNodeRequest)(nil),  // 3: vibecms.coreapi.CreateNodeRequest
-	(*UpdateNodeRequest)(nil),  // 4: vibecms.coreapi.UpdateNodeRequest
-	(*DeleteNodeRequest)(nil),  // 5: vibecms.coreapi.DeleteNodeRequest
-	(*NodeInput)(nil),          // 6: vibecms.coreapi.NodeInput
-	(*NodeResponse)(nil),       // 7: vibecms.coreapi.NodeResponse
-	(*QueryNodesResponse)(nil), // 8: vibecms.coreapi.QueryNodesResponse
-	(*NodeMessage)(nil),        // 9: vibecms.coreapi.NodeMessage
-	(*GetSettingRequest)(nil),  // 10: vibecms.coreapi.GetSettingRequest
-	(*SettingResponse)(nil),    // 11: vibecms.coreapi.SettingResponse
-	(*SetSettingRequest)(nil),  // 12: vibecms.coreapi.SetSettingRequest
-	(*GetSettingsRequest)(nil), // 13: vibecms.coreapi.GetSettingsRequest
-	(*SettingsResponse)(nil),   // 14: vibecms.coreapi.SettingsResponse
-	(*EmitEventRequest)(nil),   // 15: vibecms.coreapi.EmitEventRequest
-	(*SendEmailRequest)(nil),   // 16: vibecms.coreapi.SendEmailRequest
-	(*GetMenuRequest)(nil),     // 17: vibecms.coreapi.GetMenuRequest
-	(*MenuResponse)(nil),       // 18: vibecms.coreapi.MenuResponse
-	(*MenuListResponse)(nil),   // 19: vibecms.coreapi.MenuListResponse
-	(*MenuMessage)(nil),        // 20: vibecms.coreapi.MenuMessage
-	(*MenuItemMessage)(nil),    // 21: vibecms.coreapi.MenuItemMessage
-	(*GetUserRequest)(nil),     // 22: vibecms.coreapi.GetUserRequest
-	(*QueryUsersRequest)(nil),  // 23: vibecms.coreapi.QueryUsersRequest
-	(*UserResponse)(nil),       // 24: vibecms.coreapi.UserResponse
-	(*UserListResponse)(nil),   // 25: vibecms.coreapi.UserListResponse
-	(*UserMessage)(nil),        // 26: vibecms.coreapi.UserMessage
-	(*FetchRequest)(nil),       // 27: vibecms.coreapi.FetchRequest
-	(*FetchResponse)(nil),      // 28: vibecms.coreapi.FetchResponse
-	(*LogRequest)(nil),         // 29: vibecms.coreapi.LogRequest
-	(*DataGetRequest)(nil),     // 30: vibecms.coreapi.DataGetRequest
-	(*DataRowResponse)(nil),    // 31: vibecms.coreapi.DataRowResponse
-	(*DataQueryRequest)(nil),   // 32: vibecms.coreapi.DataQueryRequest
-	(*DataQueryResponse)(nil),  // 33: vibecms.coreapi.DataQueryResponse
-	(*DataCreateRequest)(nil),  // 34: vibecms.coreapi.DataCreateRequest
-	(*DataUpdateRequest)(nil),  // 35: vibecms.coreapi.DataUpdateRequest
-	(*DataDeleteRequest)(nil),  // 36: vibecms.coreapi.DataDeleteRequest
-	(*DataExecRequest)(nil),    // 37: vibecms.coreapi.DataExecRequest
-	(*DataExecResponse)(nil),   // 38: vibecms.coreapi.DataExecResponse
-	(*StoreFileRequest)(nil),   // 39: vibecms.coreapi.StoreFileRequest
-	(*StoreFileResponse)(nil),  // 40: vibecms.coreapi.StoreFileResponse
-	(*DeleteFileRequest)(nil),  // 41: vibecms.coreapi.DeleteFileRequest
-	nil,                        // 42: vibecms.coreapi.NodeInput.SeoSettingsEntry
-	nil,                        // 43: vibecms.coreapi.NodeMessage.SeoSettingsEntry
-	nil,                        // 44: vibecms.coreapi.SettingsResponse.SettingsEntry
-	nil,                        // 45: vibecms.coreapi.FetchRequest.HeadersEntry
-	nil,                        // 46: vibecms.coreapi.FetchResponse.HeadersEntry
+var file_vibecms_coreapi_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
+var file_vibecms_coreapi_proto_goTypes = []any{
+	(*Empty)(nil),                 // 0: vibecms.coreapi.Empty
+	(*GetNodeRequest)(nil),        // 1: vibecms.coreapi.GetNodeRequest
+	(*QueryNodesRequest)(nil),     // 2: vibecms.coreapi.QueryNodesRequest
+	(*CreateNodeRequest)(nil),     // 3: vibecms.coreapi.CreateNodeRequest
+	(*UpdateNodeRequest)(nil),     // 4: vibecms.coreapi.UpdateNodeRequest
+	(*DeleteNodeRequest)(nil),     // 5: vibecms.coreapi.DeleteNodeRequest
+	(*NodeInput)(nil),             // 6: vibecms.coreapi.NodeInput
+	(*NodeResponse)(nil),          // 7: vibecms.coreapi.NodeResponse
+	(*QueryNodesResponse)(nil),    // 8: vibecms.coreapi.QueryNodesResponse
+	(*NodeMessage)(nil),           // 9: vibecms.coreapi.NodeMessage
+	(*GetSettingRequest)(nil),     // 10: vibecms.coreapi.GetSettingRequest
+	(*SettingResponse)(nil),       // 11: vibecms.coreapi.SettingResponse
+	(*SetSettingRequest)(nil),     // 12: vibecms.coreapi.SetSettingRequest
+	(*GetSettingsRequest)(nil),    // 13: vibecms.coreapi.GetSettingsRequest
+	(*SettingsResponse)(nil),      // 14: vibecms.coreapi.SettingsResponse
+	(*EmitEventRequest)(nil),      // 15: vibecms.coreapi.EmitEventRequest
+	(*SendEmailRequest)(nil),      // 16: vibecms.coreapi.SendEmailRequest
+	(*GetMenuRequest)(nil),        // 17: vibecms.coreapi.GetMenuRequest
+	(*MenuResponse)(nil),          // 18: vibecms.coreapi.MenuResponse
+	(*MenuListResponse)(nil),      // 19: vibecms.coreapi.MenuListResponse
+	(*MenuMessage)(nil),           // 20: vibecms.coreapi.MenuMessage
+	(*MenuItemMessage)(nil),       // 21: vibecms.coreapi.MenuItemMessage
+	(*GetUserRequest)(nil),        // 22: vibecms.coreapi.GetUserRequest
+	(*QueryUsersRequest)(nil),     // 23: vibecms.coreapi.QueryUsersRequest
+	(*UserResponse)(nil),          // 24: vibecms.coreapi.UserResponse
+	(*UserListResponse)(nil),      // 25: vibecms.coreapi.UserListResponse
+	(*UserMessage)(nil),           // 26: vibecms.coreapi.UserMessage
+	(*FetchRequest)(nil),          // 27: vibecms.coreapi.FetchRequest
+	(*FetchResponse)(nil),         // 28: vibecms.coreapi.FetchResponse
+	(*LogRequest)(nil),            // 29: vibecms.coreapi.LogRequest
+	(*DataGetRequest)(nil),        // 30: vibecms.coreapi.DataGetRequest
+	(*DataRowResponse)(nil),       // 31: vibecms.coreapi.DataRowResponse
+	(*DataQueryRequest)(nil),      // 32: vibecms.coreapi.DataQueryRequest
+	(*DataQueryResponse)(nil),     // 33: vibecms.coreapi.DataQueryResponse
+	(*DataCreateRequest)(nil),     // 34: vibecms.coreapi.DataCreateRequest
+	(*DataUpdateRequest)(nil),     // 35: vibecms.coreapi.DataUpdateRequest
+	(*DataDeleteRequest)(nil),     // 36: vibecms.coreapi.DataDeleteRequest
+	(*DataExecRequest)(nil),       // 37: vibecms.coreapi.DataExecRequest
+	(*DataExecResponse)(nil),      // 38: vibecms.coreapi.DataExecResponse
+	(*StoreFileRequest)(nil),      // 39: vibecms.coreapi.StoreFileRequest
+	(*StoreFileResponse)(nil),     // 40: vibecms.coreapi.StoreFileResponse
+	(*DeleteFileRequest)(nil),     // 41: vibecms.coreapi.DeleteFileRequest
+	(*NodeTypeFieldMessage)(nil),  // 42: vibecms.coreapi.NodeTypeFieldMessage
+	(*NodeTypeInputMessage)(nil),  // 43: vibecms.coreapi.NodeTypeInputMessage
+	(*NodeTypeMessage)(nil),       // 44: vibecms.coreapi.NodeTypeMessage
+	(*NodeTypeResponse)(nil),      // 45: vibecms.coreapi.NodeTypeResponse
+	(*NodeTypeListResponse)(nil),  // 46: vibecms.coreapi.NodeTypeListResponse
+	(*GetNodeTypeRequest)(nil),    // 47: vibecms.coreapi.GetNodeTypeRequest
+	(*UpdateNodeTypeRequest)(nil), // 48: vibecms.coreapi.UpdateNodeTypeRequest
+	(*DeleteNodeTypeRequest)(nil), // 49: vibecms.coreapi.DeleteNodeTypeRequest
+	nil,                           // 50: vibecms.coreapi.NodeInput.SeoSettingsEntry
+	nil,                           // 51: vibecms.coreapi.NodeMessage.SeoSettingsEntry
+	nil,                           // 52: vibecms.coreapi.SettingsResponse.SettingsEntry
+	nil,                           // 53: vibecms.coreapi.FetchRequest.HeadersEntry
+	nil,                           // 54: vibecms.coreapi.FetchResponse.HeadersEntry
+	nil,                           // 55: vibecms.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
+	nil,                           // 56: vibecms.coreapi.NodeTypeMessage.UrlPrefixesEntry
 }
-var file_proto_coreapi_vibecms_coreapi_proto_depIdxs = []int32{
+var file_vibecms_coreapi_proto_depIdxs = []int32{
 	6,  // 0: vibecms.coreapi.CreateNodeRequest.input:type_name -> vibecms.coreapi.NodeInput
 	6,  // 1: vibecms.coreapi.UpdateNodeRequest.input:type_name -> vibecms.coreapi.NodeInput
-	42, // 2: vibecms.coreapi.NodeInput.seo_settings:type_name -> vibecms.coreapi.NodeInput.SeoSettingsEntry
+	50, // 2: vibecms.coreapi.NodeInput.seo_settings:type_name -> vibecms.coreapi.NodeInput.SeoSettingsEntry
 	9,  // 3: vibecms.coreapi.NodeResponse.node:type_name -> vibecms.coreapi.NodeMessage
 	9,  // 4: vibecms.coreapi.QueryNodesResponse.nodes:type_name -> vibecms.coreapi.NodeMessage
-	43, // 5: vibecms.coreapi.NodeMessage.seo_settings:type_name -> vibecms.coreapi.NodeMessage.SeoSettingsEntry
-	44, // 6: vibecms.coreapi.SettingsResponse.settings:type_name -> vibecms.coreapi.SettingsResponse.SettingsEntry
+	51, // 5: vibecms.coreapi.NodeMessage.seo_settings:type_name -> vibecms.coreapi.NodeMessage.SeoSettingsEntry
+	52, // 6: vibecms.coreapi.SettingsResponse.settings:type_name -> vibecms.coreapi.SettingsResponse.SettingsEntry
 	20, // 7: vibecms.coreapi.MenuResponse.menu:type_name -> vibecms.coreapi.MenuMessage
 	20, // 8: vibecms.coreapi.MenuListResponse.menus:type_name -> vibecms.coreapi.MenuMessage
 	21, // 9: vibecms.coreapi.MenuMessage.items:type_name -> vibecms.coreapi.MenuItemMessage
 	21, // 10: vibecms.coreapi.MenuItemMessage.children:type_name -> vibecms.coreapi.MenuItemMessage
 	26, // 11: vibecms.coreapi.UserResponse.user:type_name -> vibecms.coreapi.UserMessage
 	26, // 12: vibecms.coreapi.UserListResponse.users:type_name -> vibecms.coreapi.UserMessage
-	45, // 13: vibecms.coreapi.FetchRequest.headers:type_name -> vibecms.coreapi.FetchRequest.HeadersEntry
-	46, // 14: vibecms.coreapi.FetchResponse.headers:type_name -> vibecms.coreapi.FetchResponse.HeadersEntry
-	1,  // 15: vibecms.coreapi.VibeCMSHost.GetNode:input_type -> vibecms.coreapi.GetNodeRequest
-	2,  // 16: vibecms.coreapi.VibeCMSHost.QueryNodes:input_type -> vibecms.coreapi.QueryNodesRequest
-	3,  // 17: vibecms.coreapi.VibeCMSHost.CreateNode:input_type -> vibecms.coreapi.CreateNodeRequest
-	4,  // 18: vibecms.coreapi.VibeCMSHost.UpdateNode:input_type -> vibecms.coreapi.UpdateNodeRequest
-	5,  // 19: vibecms.coreapi.VibeCMSHost.DeleteNode:input_type -> vibecms.coreapi.DeleteNodeRequest
-	10, // 20: vibecms.coreapi.VibeCMSHost.GetSetting:input_type -> vibecms.coreapi.GetSettingRequest
-	12, // 21: vibecms.coreapi.VibeCMSHost.SetSetting:input_type -> vibecms.coreapi.SetSettingRequest
-	13, // 22: vibecms.coreapi.VibeCMSHost.GetSettings:input_type -> vibecms.coreapi.GetSettingsRequest
-	15, // 23: vibecms.coreapi.VibeCMSHost.EmitEvent:input_type -> vibecms.coreapi.EmitEventRequest
-	16, // 24: vibecms.coreapi.VibeCMSHost.SendEmail:input_type -> vibecms.coreapi.SendEmailRequest
-	17, // 25: vibecms.coreapi.VibeCMSHost.GetMenu:input_type -> vibecms.coreapi.GetMenuRequest
-	0,  // 26: vibecms.coreapi.VibeCMSHost.GetMenus:input_type -> vibecms.coreapi.Empty
-	22, // 27: vibecms.coreapi.VibeCMSHost.GetUser:input_type -> vibecms.coreapi.GetUserRequest
-	23, // 28: vibecms.coreapi.VibeCMSHost.QueryUsers:input_type -> vibecms.coreapi.QueryUsersRequest
-	27, // 29: vibecms.coreapi.VibeCMSHost.Fetch:input_type -> vibecms.coreapi.FetchRequest
-	29, // 30: vibecms.coreapi.VibeCMSHost.Log:input_type -> vibecms.coreapi.LogRequest
-	30, // 31: vibecms.coreapi.VibeCMSHost.DataGet:input_type -> vibecms.coreapi.DataGetRequest
-	32, // 32: vibecms.coreapi.VibeCMSHost.DataQuery:input_type -> vibecms.coreapi.DataQueryRequest
-	34, // 33: vibecms.coreapi.VibeCMSHost.DataCreate:input_type -> vibecms.coreapi.DataCreateRequest
-	35, // 34: vibecms.coreapi.VibeCMSHost.DataUpdate:input_type -> vibecms.coreapi.DataUpdateRequest
-	36, // 35: vibecms.coreapi.VibeCMSHost.DataDelete:input_type -> vibecms.coreapi.DataDeleteRequest
-	37, // 36: vibecms.coreapi.VibeCMSHost.DataExec:input_type -> vibecms.coreapi.DataExecRequest
-	39, // 37: vibecms.coreapi.VibeCMSHost.StoreFile:input_type -> vibecms.coreapi.StoreFileRequest
-	41, // 38: vibecms.coreapi.VibeCMSHost.DeleteFile:input_type -> vibecms.coreapi.DeleteFileRequest
-	7,  // 39: vibecms.coreapi.VibeCMSHost.GetNode:output_type -> vibecms.coreapi.NodeResponse
-	8,  // 40: vibecms.coreapi.VibeCMSHost.QueryNodes:output_type -> vibecms.coreapi.QueryNodesResponse
-	7,  // 41: vibecms.coreapi.VibeCMSHost.CreateNode:output_type -> vibecms.coreapi.NodeResponse
-	7,  // 42: vibecms.coreapi.VibeCMSHost.UpdateNode:output_type -> vibecms.coreapi.NodeResponse
-	0,  // 43: vibecms.coreapi.VibeCMSHost.DeleteNode:output_type -> vibecms.coreapi.Empty
-	11, // 44: vibecms.coreapi.VibeCMSHost.GetSetting:output_type -> vibecms.coreapi.SettingResponse
-	0,  // 45: vibecms.coreapi.VibeCMSHost.SetSetting:output_type -> vibecms.coreapi.Empty
-	14, // 46: vibecms.coreapi.VibeCMSHost.GetSettings:output_type -> vibecms.coreapi.SettingsResponse
-	0,  // 47: vibecms.coreapi.VibeCMSHost.EmitEvent:output_type -> vibecms.coreapi.Empty
-	0,  // 48: vibecms.coreapi.VibeCMSHost.SendEmail:output_type -> vibecms.coreapi.Empty
-	18, // 49: vibecms.coreapi.VibeCMSHost.GetMenu:output_type -> vibecms.coreapi.MenuResponse
-	19, // 50: vibecms.coreapi.VibeCMSHost.GetMenus:output_type -> vibecms.coreapi.MenuListResponse
-	24, // 51: vibecms.coreapi.VibeCMSHost.GetUser:output_type -> vibecms.coreapi.UserResponse
-	25, // 52: vibecms.coreapi.VibeCMSHost.QueryUsers:output_type -> vibecms.coreapi.UserListResponse
-	28, // 53: vibecms.coreapi.VibeCMSHost.Fetch:output_type -> vibecms.coreapi.FetchResponse
-	0,  // 54: vibecms.coreapi.VibeCMSHost.Log:output_type -> vibecms.coreapi.Empty
-	31, // 55: vibecms.coreapi.VibeCMSHost.DataGet:output_type -> vibecms.coreapi.DataRowResponse
-	33, // 56: vibecms.coreapi.VibeCMSHost.DataQuery:output_type -> vibecms.coreapi.DataQueryResponse
-	31, // 57: vibecms.coreapi.VibeCMSHost.DataCreate:output_type -> vibecms.coreapi.DataRowResponse
-	0,  // 58: vibecms.coreapi.VibeCMSHost.DataUpdate:output_type -> vibecms.coreapi.Empty
-	0,  // 59: vibecms.coreapi.VibeCMSHost.DataDelete:output_type -> vibecms.coreapi.Empty
-	38, // 60: vibecms.coreapi.VibeCMSHost.DataExec:output_type -> vibecms.coreapi.DataExecResponse
-	40, // 61: vibecms.coreapi.VibeCMSHost.StoreFile:output_type -> vibecms.coreapi.StoreFileResponse
-	0,  // 62: vibecms.coreapi.VibeCMSHost.DeleteFile:output_type -> vibecms.coreapi.Empty
-	39, // [39:63] is the sub-list for method output_type
-	15, // [15:39] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	53, // 13: vibecms.coreapi.FetchRequest.headers:type_name -> vibecms.coreapi.FetchRequest.HeadersEntry
+	54, // 14: vibecms.coreapi.FetchResponse.headers:type_name -> vibecms.coreapi.FetchResponse.HeadersEntry
+	42, // 15: vibecms.coreapi.NodeTypeInputMessage.field_schema:type_name -> vibecms.coreapi.NodeTypeFieldMessage
+	55, // 16: vibecms.coreapi.NodeTypeInputMessage.url_prefixes:type_name -> vibecms.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
+	42, // 17: vibecms.coreapi.NodeTypeMessage.field_schema:type_name -> vibecms.coreapi.NodeTypeFieldMessage
+	56, // 18: vibecms.coreapi.NodeTypeMessage.url_prefixes:type_name -> vibecms.coreapi.NodeTypeMessage.UrlPrefixesEntry
+	44, // 19: vibecms.coreapi.NodeTypeResponse.node_type:type_name -> vibecms.coreapi.NodeTypeMessage
+	44, // 20: vibecms.coreapi.NodeTypeListResponse.node_types:type_name -> vibecms.coreapi.NodeTypeMessage
+	43, // 21: vibecms.coreapi.UpdateNodeTypeRequest.input:type_name -> vibecms.coreapi.NodeTypeInputMessage
+	1,  // 22: vibecms.coreapi.VibeCMSHost.GetNode:input_type -> vibecms.coreapi.GetNodeRequest
+	2,  // 23: vibecms.coreapi.VibeCMSHost.QueryNodes:input_type -> vibecms.coreapi.QueryNodesRequest
+	3,  // 24: vibecms.coreapi.VibeCMSHost.CreateNode:input_type -> vibecms.coreapi.CreateNodeRequest
+	4,  // 25: vibecms.coreapi.VibeCMSHost.UpdateNode:input_type -> vibecms.coreapi.UpdateNodeRequest
+	5,  // 26: vibecms.coreapi.VibeCMSHost.DeleteNode:input_type -> vibecms.coreapi.DeleteNodeRequest
+	10, // 27: vibecms.coreapi.VibeCMSHost.GetSetting:input_type -> vibecms.coreapi.GetSettingRequest
+	12, // 28: vibecms.coreapi.VibeCMSHost.SetSetting:input_type -> vibecms.coreapi.SetSettingRequest
+	13, // 29: vibecms.coreapi.VibeCMSHost.GetSettings:input_type -> vibecms.coreapi.GetSettingsRequest
+	15, // 30: vibecms.coreapi.VibeCMSHost.EmitEvent:input_type -> vibecms.coreapi.EmitEventRequest
+	16, // 31: vibecms.coreapi.VibeCMSHost.SendEmail:input_type -> vibecms.coreapi.SendEmailRequest
+	17, // 32: vibecms.coreapi.VibeCMSHost.GetMenu:input_type -> vibecms.coreapi.GetMenuRequest
+	0,  // 33: vibecms.coreapi.VibeCMSHost.GetMenus:input_type -> vibecms.coreapi.Empty
+	22, // 34: vibecms.coreapi.VibeCMSHost.GetUser:input_type -> vibecms.coreapi.GetUserRequest
+	23, // 35: vibecms.coreapi.VibeCMSHost.QueryUsers:input_type -> vibecms.coreapi.QueryUsersRequest
+	27, // 36: vibecms.coreapi.VibeCMSHost.Fetch:input_type -> vibecms.coreapi.FetchRequest
+	29, // 37: vibecms.coreapi.VibeCMSHost.Log:input_type -> vibecms.coreapi.LogRequest
+	30, // 38: vibecms.coreapi.VibeCMSHost.DataGet:input_type -> vibecms.coreapi.DataGetRequest
+	32, // 39: vibecms.coreapi.VibeCMSHost.DataQuery:input_type -> vibecms.coreapi.DataQueryRequest
+	34, // 40: vibecms.coreapi.VibeCMSHost.DataCreate:input_type -> vibecms.coreapi.DataCreateRequest
+	35, // 41: vibecms.coreapi.VibeCMSHost.DataUpdate:input_type -> vibecms.coreapi.DataUpdateRequest
+	36, // 42: vibecms.coreapi.VibeCMSHost.DataDelete:input_type -> vibecms.coreapi.DataDeleteRequest
+	37, // 43: vibecms.coreapi.VibeCMSHost.DataExec:input_type -> vibecms.coreapi.DataExecRequest
+	39, // 44: vibecms.coreapi.VibeCMSHost.StoreFile:input_type -> vibecms.coreapi.StoreFileRequest
+	41, // 45: vibecms.coreapi.VibeCMSHost.DeleteFile:input_type -> vibecms.coreapi.DeleteFileRequest
+	43, // 46: vibecms.coreapi.VibeCMSHost.RegisterNodeType:input_type -> vibecms.coreapi.NodeTypeInputMessage
+	47, // 47: vibecms.coreapi.VibeCMSHost.GetNodeType:input_type -> vibecms.coreapi.GetNodeTypeRequest
+	0,  // 48: vibecms.coreapi.VibeCMSHost.ListNodeTypes:input_type -> vibecms.coreapi.Empty
+	48, // 49: vibecms.coreapi.VibeCMSHost.UpdateNodeType:input_type -> vibecms.coreapi.UpdateNodeTypeRequest
+	49, // 50: vibecms.coreapi.VibeCMSHost.DeleteNodeType:input_type -> vibecms.coreapi.DeleteNodeTypeRequest
+	7,  // 51: vibecms.coreapi.VibeCMSHost.GetNode:output_type -> vibecms.coreapi.NodeResponse
+	8,  // 52: vibecms.coreapi.VibeCMSHost.QueryNodes:output_type -> vibecms.coreapi.QueryNodesResponse
+	7,  // 53: vibecms.coreapi.VibeCMSHost.CreateNode:output_type -> vibecms.coreapi.NodeResponse
+	7,  // 54: vibecms.coreapi.VibeCMSHost.UpdateNode:output_type -> vibecms.coreapi.NodeResponse
+	0,  // 55: vibecms.coreapi.VibeCMSHost.DeleteNode:output_type -> vibecms.coreapi.Empty
+	11, // 56: vibecms.coreapi.VibeCMSHost.GetSetting:output_type -> vibecms.coreapi.SettingResponse
+	0,  // 57: vibecms.coreapi.VibeCMSHost.SetSetting:output_type -> vibecms.coreapi.Empty
+	14, // 58: vibecms.coreapi.VibeCMSHost.GetSettings:output_type -> vibecms.coreapi.SettingsResponse
+	0,  // 59: vibecms.coreapi.VibeCMSHost.EmitEvent:output_type -> vibecms.coreapi.Empty
+	0,  // 60: vibecms.coreapi.VibeCMSHost.SendEmail:output_type -> vibecms.coreapi.Empty
+	18, // 61: vibecms.coreapi.VibeCMSHost.GetMenu:output_type -> vibecms.coreapi.MenuResponse
+	19, // 62: vibecms.coreapi.VibeCMSHost.GetMenus:output_type -> vibecms.coreapi.MenuListResponse
+	24, // 63: vibecms.coreapi.VibeCMSHost.GetUser:output_type -> vibecms.coreapi.UserResponse
+	25, // 64: vibecms.coreapi.VibeCMSHost.QueryUsers:output_type -> vibecms.coreapi.UserListResponse
+	28, // 65: vibecms.coreapi.VibeCMSHost.Fetch:output_type -> vibecms.coreapi.FetchResponse
+	0,  // 66: vibecms.coreapi.VibeCMSHost.Log:output_type -> vibecms.coreapi.Empty
+	31, // 67: vibecms.coreapi.VibeCMSHost.DataGet:output_type -> vibecms.coreapi.DataRowResponse
+	33, // 68: vibecms.coreapi.VibeCMSHost.DataQuery:output_type -> vibecms.coreapi.DataQueryResponse
+	31, // 69: vibecms.coreapi.VibeCMSHost.DataCreate:output_type -> vibecms.coreapi.DataRowResponse
+	0,  // 70: vibecms.coreapi.VibeCMSHost.DataUpdate:output_type -> vibecms.coreapi.Empty
+	0,  // 71: vibecms.coreapi.VibeCMSHost.DataDelete:output_type -> vibecms.coreapi.Empty
+	38, // 72: vibecms.coreapi.VibeCMSHost.DataExec:output_type -> vibecms.coreapi.DataExecResponse
+	40, // 73: vibecms.coreapi.VibeCMSHost.StoreFile:output_type -> vibecms.coreapi.StoreFileResponse
+	0,  // 74: vibecms.coreapi.VibeCMSHost.DeleteFile:output_type -> vibecms.coreapi.Empty
+	45, // 75: vibecms.coreapi.VibeCMSHost.RegisterNodeType:output_type -> vibecms.coreapi.NodeTypeResponse
+	45, // 76: vibecms.coreapi.VibeCMSHost.GetNodeType:output_type -> vibecms.coreapi.NodeTypeResponse
+	46, // 77: vibecms.coreapi.VibeCMSHost.ListNodeTypes:output_type -> vibecms.coreapi.NodeTypeListResponse
+	45, // 78: vibecms.coreapi.VibeCMSHost.UpdateNodeType:output_type -> vibecms.coreapi.NodeTypeResponse
+	0,  // 79: vibecms.coreapi.VibeCMSHost.DeleteNodeType:output_type -> vibecms.coreapi.Empty
+	51, // [51:80] is the sub-list for method output_type
+	22, // [22:51] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
-func init() { file_proto_coreapi_vibecms_coreapi_proto_init() }
-func file_proto_coreapi_vibecms_coreapi_proto_init() {
-	if File_proto_coreapi_vibecms_coreapi_proto != nil {
+func init() { file_vibecms_coreapi_proto_init() }
+func file_vibecms_coreapi_proto_init() {
+	if File_vibecms_coreapi_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_coreapi_vibecms_coreapi_proto_rawDesc), len(file_proto_coreapi_vibecms_coreapi_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_vibecms_coreapi_proto_rawDesc), len(file_vibecms_coreapi_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   47,
+			NumMessages:   57,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_coreapi_vibecms_coreapi_proto_goTypes,
-		DependencyIndexes: file_proto_coreapi_vibecms_coreapi_proto_depIdxs,
-		MessageInfos:      file_proto_coreapi_vibecms_coreapi_proto_msgTypes,
+		GoTypes:           file_vibecms_coreapi_proto_goTypes,
+		DependencyIndexes: file_vibecms_coreapi_proto_depIdxs,
+		MessageInfos:      file_vibecms_coreapi_proto_msgTypes,
 	}.Build()
-	File_proto_coreapi_vibecms_coreapi_proto = out.File
-	file_proto_coreapi_vibecms_coreapi_proto_goTypes = nil
-	file_proto_coreapi_vibecms_coreapi_proto_depIdxs = nil
+	File_vibecms_coreapi_proto = out.File
+	file_vibecms_coreapi_proto_goTypes = nil
+	file_vibecms_coreapi_proto_depIdxs = nil
 }

@@ -50,6 +50,7 @@ func BuildTengoModules(api CoreAPI, caller CallerInfo, renderCtx interface{}, sc
 	modules.AddBuiltinModule("core/filters", filtersModule(cb))
 	modules.AddBuiltinModule("core/http", httpFetchModule(api, ctx))
 	modules.AddBuiltinModule("core/log", logModule(api, ctx))
+	modules.AddBuiltinModule("core/nodetypes", nodeTypesModule(api, ctx))
 	modules.AddBuiltinModule("core/helpers", helpersModule())
 
 	if renderCtx != nil {
@@ -384,6 +385,202 @@ func menusModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 			return &tengo.ImmutableArray{Value: items}, nil
 		}},
 	}
+}
+
+// ---------------------------------------------------------------------------
+// core/nodetypes
+// ---------------------------------------------------------------------------
+
+func nodeTypesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
+	return map[string]tengo.Object{
+		"register": &tengo.UserFunction{Name: "register", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return wrapError(fmt.Errorf("nodetypes.register: requires input argument")), nil
+			}
+			m := getTengoMap(args[0])
+			if m == nil {
+				return wrapError(fmt.Errorf("nodetypes.register: argument must be a map")), nil
+			}
+			input := nodeTypeInputFromTengoMap(m)
+			nt, err := api.RegisterNodeType(ctx, input)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			return nodeTypeToTengoObj(nt), nil
+		}},
+		"get": &tengo.UserFunction{Name: "get", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return tengo.UndefinedValue, nil
+			}
+			slug := tengoToString(args[0])
+			if slug == "" {
+				return tengo.UndefinedValue, nil
+			}
+			nt, err := api.GetNodeType(ctx, slug)
+			if err != nil {
+				return tengo.UndefinedValue, nil
+			}
+			return nodeTypeToTengoObj(nt), nil
+		}},
+		"list": &tengo.UserFunction{Name: "list", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			list, err := api.ListNodeTypes(ctx)
+			if err != nil {
+				return &tengo.ImmutableArray{Value: []tengo.Object{}}, nil
+			}
+			items := make([]tengo.Object, len(list))
+			for i, nt := range list {
+				items[i] = nodeTypeToTengoObj(nt)
+			}
+			return &tengo.ImmutableArray{Value: items}, nil
+		}},
+		"update": &tengo.UserFunction{Name: "update", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 2 {
+				return wrapError(fmt.Errorf("nodetypes.update: requires slug and input arguments")), nil
+			}
+			slug := tengoToString(args[0])
+			if slug == "" {
+				return wrapError(fmt.Errorf("nodetypes.update: slug cannot be empty")), nil
+			}
+			m := getTengoMap(args[1])
+			if m == nil {
+				return wrapError(fmt.Errorf("nodetypes.update: input must be a map")), nil
+			}
+			input := nodeTypeInputFromTengoMap(m)
+			nt, err := api.UpdateNodeType(ctx, slug, input)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			return nodeTypeToTengoObj(nt), nil
+		}},
+		"delete": &tengo.UserFunction{Name: "delete", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return wrapError(fmt.Errorf("nodetypes.delete: requires slug argument")), nil
+			}
+			slug := tengoToString(args[0])
+			if slug == "" {
+				return wrapError(fmt.Errorf("nodetypes.delete: slug cannot be empty")), nil
+			}
+			if err := api.DeleteNodeType(ctx, slug); err != nil {
+				return tengo.FalseValue, nil
+			}
+			return tengo.TrueValue, nil
+		}},
+	}
+}
+
+func nodeTypeInputFromTengoMap(m map[string]tengo.Object) NodeTypeInput {
+	input := NodeTypeInput{}
+	if v, ok := m["slug"]; ok {
+		input.Slug = tengoToString(v)
+	}
+	if v, ok := m["label"]; ok {
+		input.Label = tengoToString(v)
+	}
+	if v, ok := m["icon"]; ok {
+		input.Icon = tengoToString(v)
+	}
+	if v, ok := m["description"]; ok {
+		input.Description = tengoToString(v)
+	}
+	if v, ok := m["url_prefixes"]; ok {
+		if pm := getTengoMap(v); pm != nil {
+			input.URLPrefixes = make(map[string]string, len(pm))
+			for k, pv := range pm {
+				input.URLPrefixes[k] = tengoToString(pv)
+			}
+		}
+	}
+	if v, ok := m["field_schema"]; ok {
+		if arr, ok := v.(*tengo.Array); ok {
+			for _, item := range arr.Value {
+				if fm := getTengoMap(item); fm != nil {
+					field := NodeTypeField{}
+					if fv, ok := fm["name"]; ok {
+						field.Name = tengoToString(fv)
+					}
+					if fv, ok := fm["label"]; ok {
+						field.Label = tengoToString(fv)
+					}
+					if fv, ok := fm["type"]; ok {
+						field.Type = tengoToString(fv)
+					}
+					if fv, ok := fm["required"]; ok {
+						if b, ok := fv.(*tengo.Bool); ok {
+							if !b.IsFalsy() {
+								field.Required = true
+							}
+						}
+					}
+					input.FieldSchema = append(input.FieldSchema, field)
+				}
+			}
+		}
+		if arr, ok := v.(*tengo.ImmutableArray); ok {
+			for _, item := range arr.Value {
+				if fm := getTengoMap(item); fm != nil {
+					field := NodeTypeField{}
+					if fv, ok := fm["name"]; ok {
+						field.Name = tengoToString(fv)
+					}
+					if fv, ok := fm["label"]; ok {
+						field.Label = tengoToString(fv)
+					}
+					if fv, ok := fm["type"]; ok {
+						field.Type = tengoToString(fv)
+					}
+					if fv, ok := fm["required"]; ok {
+						if b, ok := fv.(*tengo.Bool); ok {
+							if !b.IsFalsy() {
+								field.Required = true
+							}
+						}
+					}
+					input.FieldSchema = append(input.FieldSchema, field)
+				}
+			}
+		}
+	}
+	return input
+}
+
+func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
+	if nt == nil {
+		return tengo.UndefinedValue
+	}
+	fields := make([]tengo.Object, len(nt.FieldSchema))
+	for i, f := range nt.FieldSchema {
+		opts := make([]tengo.Object, len(f.Options))
+		for j, o := range f.Options {
+			opts[j] = &tengo.String{Value: o}
+		}
+		fields[i] = &tengo.ImmutableMap{Value: map[string]tengo.Object{
+			"name":     &tengo.String{Value: f.Name},
+			"label":    &tengo.String{Value: f.Label},
+			"type":     &tengo.String{Value: f.Type},
+			"required": boolToTengo(f.Required),
+			"options":  &tengo.ImmutableArray{Value: opts},
+		}}
+	}
+	prefixes := make(map[string]tengo.Object, len(nt.URLPrefixes))
+	for k, v := range nt.URLPrefixes {
+		prefixes[k] = &tengo.String{Value: v}
+	}
+	return &tengo.ImmutableMap{Value: map[string]tengo.Object{
+		"id":           &tengo.Int{Value: int64(nt.ID)},
+		"slug":         &tengo.String{Value: nt.Slug},
+		"label":        &tengo.String{Value: nt.Label},
+		"icon":         &tengo.String{Value: nt.Icon},
+		"description":  &tengo.String{Value: nt.Description},
+		"field_schema": &tengo.ImmutableArray{Value: fields},
+		"url_prefixes": &tengo.ImmutableMap{Value: prefixes},
+	}}
+}
+
+func boolToTengo(b bool) tengo.Object {
+	if b {
+		return tengo.TrueValue
+	}
+	return tengo.FalseValue
 }
 
 // ---------------------------------------------------------------------------

@@ -399,6 +399,55 @@ func (c *GRPCHostClient) DataExec(ctx context.Context, sqlStr string, args ...an
 	return resp.RowsAffected, nil
 }
 
+// --- Node Types ---
+
+func (c *GRPCHostClient) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*NodeType, error) {
+	resp, err := c.client.RegisterNodeType(ctx, nodeTypeInputToProto(input))
+	if err != nil {
+		return nil, fromGRPCError(err)
+	}
+	return nodeTypeFromProto(resp.NodeType), nil
+}
+
+func (c *GRPCHostClient) GetNodeType(ctx context.Context, slug string) (*NodeType, error) {
+	resp, err := c.client.GetNodeType(ctx, &pb.GetNodeTypeRequest{Slug: slug})
+	if err != nil {
+		return nil, fromGRPCError(err)
+	}
+	return nodeTypeFromProto(resp.NodeType), nil
+}
+
+func (c *GRPCHostClient) ListNodeTypes(ctx context.Context) ([]*NodeType, error) {
+	resp, err := c.client.ListNodeTypes(ctx, &pb.Empty{})
+	if err != nil {
+		return nil, fromGRPCError(err)
+	}
+	out := make([]*NodeType, len(resp.NodeTypes))
+	for i, nt := range resp.NodeTypes {
+		out[i] = nodeTypeFromProto(nt)
+	}
+	return out, nil
+}
+
+func (c *GRPCHostClient) UpdateNodeType(ctx context.Context, slug string, input NodeTypeInput) (*NodeType, error) {
+	resp, err := c.client.UpdateNodeType(ctx, &pb.UpdateNodeTypeRequest{
+		Slug:  slug,
+		Input: nodeTypeInputToProto(input),
+	})
+	if err != nil {
+		return nil, fromGRPCError(err)
+	}
+	return nodeTypeFromProto(resp.NodeType), nil
+}
+
+func (c *GRPCHostClient) DeleteNodeType(ctx context.Context, slug string) error {
+	_, err := c.client.DeleteNodeType(ctx, &pb.DeleteNodeTypeRequest{Slug: slug})
+	if err != nil {
+		return fromGRPCError(err)
+	}
+	return nil
+}
+
 // --- File Storage ---
 
 func (c *GRPCHostClient) StoreFile(ctx context.Context, path string, data []byte) (string, error) {
@@ -567,6 +616,64 @@ func userFromProto(msg *pb.UserMessage) *User {
 		u.LanguageID = &lid
 	}
 	return u
+}
+
+func nodeTypeFromProto(msg *pb.NodeTypeMessage) *NodeType {
+	if msg == nil {
+		return nil
+	}
+	nt := &NodeType{
+		ID:          int(msg.Id),
+		Slug:        msg.Slug,
+		Label:       msg.Label,
+		Icon:        msg.Icon,
+		Description: msg.Description,
+		URLPrefixes: msg.UrlPrefixes,
+	}
+	if msg.CreatedAt != "" {
+		if t, err := time.Parse(time.RFC3339, msg.CreatedAt); err == nil {
+			nt.CreatedAt = t
+		}
+	}
+	if msg.UpdatedAt != "" {
+		if t, err := time.Parse(time.RFC3339, msg.UpdatedAt); err == nil {
+			nt.UpdatedAt = t
+		}
+	}
+	nt.FieldSchema = make([]NodeTypeField, len(msg.FieldSchema))
+	for i, f := range msg.FieldSchema {
+		nt.FieldSchema[i] = NodeTypeField{
+			Name:     f.Name,
+			Label:    f.Label,
+			Type:     f.Type,
+			Required: f.Required,
+			Options:  f.Options,
+		}
+	}
+	if nt.URLPrefixes == nil {
+		nt.URLPrefixes = map[string]string{}
+	}
+	return nt
+}
+
+func nodeTypeInputToProto(input NodeTypeInput) *pb.NodeTypeInputMessage {
+	msg := &pb.NodeTypeInputMessage{
+		Slug:        input.Slug,
+		Label:       input.Label,
+		Icon:        input.Icon,
+		Description: input.Description,
+		UrlPrefixes: input.URLPrefixes,
+	}
+	for _, f := range input.FieldSchema {
+		msg.FieldSchema = append(msg.FieldSchema, &pb.NodeTypeFieldMessage{
+			Name:     f.Name,
+			Label:    f.Label,
+			Type:     f.Type,
+			Required: f.Required,
+			Options:  f.Options,
+		})
+	}
+	return msg
 }
 
 func fromGRPCError(err error) error {

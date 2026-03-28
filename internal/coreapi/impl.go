@@ -12,14 +12,15 @@ import (
 // coreImpl implements the CoreAPI interface, delegating to existing services.
 // Remaining methods are provided in other impl_*.go files.
 type coreImpl struct {
-	db         *gorm.DB
-	eventBus   *events.EventBus
-	contentSvc *cms.ContentService
-	menuSvc    *cms.MenuService
-	mediaSvc   *cms.MediaService
-	emailDisp  *email.Dispatcher
-	app        *fiber.App
-	filters    map[string][]filterEntry
+	db          *gorm.DB
+	eventBus    *events.EventBus
+	contentSvc  *cms.ContentService
+	menuSvc     *cms.MenuService
+	mediaSvc    *cms.MediaService
+	nodeTypeSvc *cms.NodeTypeService
+	emailDisp   *email.Dispatcher
+	app         *fiber.App
+	filters     map[string][]filterEntry
 }
 
 type filterEntry struct {
@@ -34,18 +35,20 @@ func NewCoreImpl(
 	contentSvc *cms.ContentService,
 	menuSvc *cms.MenuService,
 	mediaSvc *cms.MediaService,
+	nodeTypeSvc *cms.NodeTypeService,
 	emailDisp *email.Dispatcher,
 	app *fiber.App,
 ) CoreAPI {
 	return &coreImpl{
-		db:         db,
-		eventBus:   eventBus,
-		contentSvc: contentSvc,
-		menuSvc:    menuSvc,
-		mediaSvc:   mediaSvc,
-		emailDisp:  emailDisp,
-		app:        app,
-		filters:    make(map[string][]filterEntry),
+		db:          db,
+		eventBus:    eventBus,
+		contentSvc:  contentSvc,
+		menuSvc:     menuSvc,
+		mediaSvc:    mediaSvc,
+		nodeTypeSvc: nodeTypeSvc,
+		emailDisp:   emailDisp,
+		app:         app,
+		filters:     make(map[string][]filterEntry),
 	}
 }
 

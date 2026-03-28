@@ -65,6 +65,13 @@ type CoreAPI interface {
 	DataDelete(ctx context.Context, table string, id uint) error
 	DataExec(ctx context.Context, sql string, args ...any) (int64, error)
 
+	// Node Types
+	RegisterNodeType(ctx context.Context, input NodeTypeInput) (*NodeType, error)
+	GetNodeType(ctx context.Context, slug string) (*NodeType, error)
+	ListNodeTypes(ctx context.Context) ([]*NodeType, error)
+	UpdateNodeType(ctx context.Context, slug string, input NodeTypeInput) (*NodeType, error)
+	DeleteNodeType(ctx context.Context, slug string) error
+
 	// File Storage
 	StoreFile(ctx context.Context, path string, data []byte) (string, error)
 	DeleteFile(ctx context.Context, path string) error
@@ -222,4 +229,33 @@ type DataStoreQuery struct {
 type DataStoreResult struct {
 	Rows  []map[string]any `json:"rows"`
 	Total int64            `json:"total"`
+}
+
+type NodeType struct {
+	ID          int               `json:"id"`
+	Slug        string            `json:"slug"`
+	Label       string            `json:"label"`
+	Icon        string            `json:"icon"`
+	Description string            `json:"description"`
+	FieldSchema []NodeTypeField   `json:"field_schema"`
+	URLPrefixes map[string]string `json:"url_prefixes"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+type NodeTypeField struct {
+	Name     string   `json:"name"`
+	Label    string   `json:"label"`
+	Type     string   `json:"type"`
+	Required bool     `json:"required"`
+	Options  []string `json:"options,omitempty"`
+}
+
+type NodeTypeInput struct {
+	Slug        string            `json:"slug,omitempty"`
+	Label       string            `json:"label,omitempty"`
+	Icon        string            `json:"icon,omitempty"`
+	Description string            `json:"description,omitempty"`
+	FieldSchema []NodeTypeField   `json:"field_schema,omitempty"`
+	URLPrefixes map[string]string `json:"url_prefixes,omitempty"`
 }

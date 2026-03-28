@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.21.12
-// source: proto/coreapi/vibecms_coreapi.proto
+// source: vibecms_coreapi.proto
 
 package coreapipb
 
@@ -19,30 +19,35 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	VibeCMSHost_GetNode_FullMethodName     = "/vibecms.coreapi.VibeCMSHost/GetNode"
-	VibeCMSHost_QueryNodes_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/QueryNodes"
-	VibeCMSHost_CreateNode_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/CreateNode"
-	VibeCMSHost_UpdateNode_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/UpdateNode"
-	VibeCMSHost_DeleteNode_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/DeleteNode"
-	VibeCMSHost_GetSetting_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/GetSetting"
-	VibeCMSHost_SetSetting_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/SetSetting"
-	VibeCMSHost_GetSettings_FullMethodName = "/vibecms.coreapi.VibeCMSHost/GetSettings"
-	VibeCMSHost_EmitEvent_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/EmitEvent"
-	VibeCMSHost_SendEmail_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/SendEmail"
-	VibeCMSHost_GetMenu_FullMethodName     = "/vibecms.coreapi.VibeCMSHost/GetMenu"
-	VibeCMSHost_GetMenus_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/GetMenus"
-	VibeCMSHost_GetUser_FullMethodName     = "/vibecms.coreapi.VibeCMSHost/GetUser"
-	VibeCMSHost_QueryUsers_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/QueryUsers"
-	VibeCMSHost_Fetch_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/Fetch"
-	VibeCMSHost_Log_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/Log"
-	VibeCMSHost_DataGet_FullMethodName     = "/vibecms.coreapi.VibeCMSHost/DataGet"
-	VibeCMSHost_DataQuery_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/DataQuery"
-	VibeCMSHost_DataCreate_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/DataCreate"
-	VibeCMSHost_DataUpdate_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/DataUpdate"
-	VibeCMSHost_DataDelete_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/DataDelete"
-	VibeCMSHost_DataExec_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/DataExec"
-	VibeCMSHost_StoreFile_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/StoreFile"
-	VibeCMSHost_DeleteFile_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/DeleteFile"
+	VibeCMSHost_GetNode_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/GetNode"
+	VibeCMSHost_QueryNodes_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/QueryNodes"
+	VibeCMSHost_CreateNode_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/CreateNode"
+	VibeCMSHost_UpdateNode_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/UpdateNode"
+	VibeCMSHost_DeleteNode_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DeleteNode"
+	VibeCMSHost_GetSetting_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/GetSetting"
+	VibeCMSHost_SetSetting_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/SetSetting"
+	VibeCMSHost_GetSettings_FullMethodName      = "/vibecms.coreapi.VibeCMSHost/GetSettings"
+	VibeCMSHost_EmitEvent_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/EmitEvent"
+	VibeCMSHost_SendEmail_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/SendEmail"
+	VibeCMSHost_GetMenu_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/GetMenu"
+	VibeCMSHost_GetMenus_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/GetMenus"
+	VibeCMSHost_GetUser_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/GetUser"
+	VibeCMSHost_QueryUsers_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/QueryUsers"
+	VibeCMSHost_Fetch_FullMethodName            = "/vibecms.coreapi.VibeCMSHost/Fetch"
+	VibeCMSHost_Log_FullMethodName              = "/vibecms.coreapi.VibeCMSHost/Log"
+	VibeCMSHost_DataGet_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/DataGet"
+	VibeCMSHost_DataQuery_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DataQuery"
+	VibeCMSHost_DataCreate_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DataCreate"
+	VibeCMSHost_DataUpdate_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DataUpdate"
+	VibeCMSHost_DataDelete_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DataDelete"
+	VibeCMSHost_DataExec_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/DataExec"
+	VibeCMSHost_StoreFile_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/StoreFile"
+	VibeCMSHost_DeleteFile_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DeleteFile"
+	VibeCMSHost_RegisterNodeType_FullMethodName = "/vibecms.coreapi.VibeCMSHost/RegisterNodeType"
+	VibeCMSHost_GetNodeType_FullMethodName      = "/vibecms.coreapi.VibeCMSHost/GetNodeType"
+	VibeCMSHost_ListNodeTypes_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/ListNodeTypes"
+	VibeCMSHost_UpdateNodeType_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/UpdateNodeType"
+	VibeCMSHost_DeleteNodeType_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/DeleteNodeType"
 )
 
 // VibeCMSHostClient is the client API for VibeCMSHost service.
@@ -73,6 +78,11 @@ type VibeCMSHostClient interface {
 	DataExec(ctx context.Context, in *DataExecRequest, opts ...grpc.CallOption) (*DataExecResponse, error)
 	StoreFile(ctx context.Context, in *StoreFileRequest, opts ...grpc.CallOption) (*StoreFileResponse, error)
 	DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*Empty, error)
+	RegisterNodeType(ctx context.Context, in *NodeTypeInputMessage, opts ...grpc.CallOption) (*NodeTypeResponse, error)
+	GetNodeType(ctx context.Context, in *GetNodeTypeRequest, opts ...grpc.CallOption) (*NodeTypeResponse, error)
+	ListNodeTypes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*NodeTypeListResponse, error)
+	UpdateNodeType(ctx context.Context, in *UpdateNodeTypeRequest, opts ...grpc.CallOption) (*NodeTypeResponse, error)
+	DeleteNodeType(ctx context.Context, in *DeleteNodeTypeRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type vibeCMSHostClient struct {
@@ -323,6 +333,56 @@ func (c *vibeCMSHostClient) DeleteFile(ctx context.Context, in *DeleteFileReques
 	return out, nil
 }
 
+func (c *vibeCMSHostClient) RegisterNodeType(ctx context.Context, in *NodeTypeInputMessage, opts ...grpc.CallOption) (*NodeTypeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NodeTypeResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_RegisterNodeType_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) GetNodeType(ctx context.Context, in *GetNodeTypeRequest, opts ...grpc.CallOption) (*NodeTypeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NodeTypeResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_GetNodeType_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) ListNodeTypes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*NodeTypeListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NodeTypeListResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_ListNodeTypes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) UpdateNodeType(ctx context.Context, in *UpdateNodeTypeRequest, opts ...grpc.CallOption) (*NodeTypeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NodeTypeResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_UpdateNodeType_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) DeleteNodeType(ctx context.Context, in *DeleteNodeTypeRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, VibeCMSHost_DeleteNodeType_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VibeCMSHostServer is the server API for VibeCMSHost service.
 // All implementations must embed UnimplementedVibeCMSHostServer
 // for forward compatibility.
@@ -351,6 +411,11 @@ type VibeCMSHostServer interface {
 	DataExec(context.Context, *DataExecRequest) (*DataExecResponse, error)
 	StoreFile(context.Context, *StoreFileRequest) (*StoreFileResponse, error)
 	DeleteFile(context.Context, *DeleteFileRequest) (*Empty, error)
+	RegisterNodeType(context.Context, *NodeTypeInputMessage) (*NodeTypeResponse, error)
+	GetNodeType(context.Context, *GetNodeTypeRequest) (*NodeTypeResponse, error)
+	ListNodeTypes(context.Context, *Empty) (*NodeTypeListResponse, error)
+	UpdateNodeType(context.Context, *UpdateNodeTypeRequest) (*NodeTypeResponse, error)
+	DeleteNodeType(context.Context, *DeleteNodeTypeRequest) (*Empty, error)
 	mustEmbedUnimplementedVibeCMSHostServer()
 }
 
@@ -432,6 +497,21 @@ func (UnimplementedVibeCMSHostServer) StoreFile(context.Context, *StoreFileReque
 }
 func (UnimplementedVibeCMSHostServer) DeleteFile(context.Context, *DeleteFileRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteFile not implemented")
+}
+func (UnimplementedVibeCMSHostServer) RegisterNodeType(context.Context, *NodeTypeInputMessage) (*NodeTypeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterNodeType not implemented")
+}
+func (UnimplementedVibeCMSHostServer) GetNodeType(context.Context, *GetNodeTypeRequest) (*NodeTypeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetNodeType not implemented")
+}
+func (UnimplementedVibeCMSHostServer) ListNodeTypes(context.Context, *Empty) (*NodeTypeListResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListNodeTypes not implemented")
+}
+func (UnimplementedVibeCMSHostServer) UpdateNodeType(context.Context, *UpdateNodeTypeRequest) (*NodeTypeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateNodeType not implemented")
+}
+func (UnimplementedVibeCMSHostServer) DeleteNodeType(context.Context, *DeleteNodeTypeRequest) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteNodeType not implemented")
 }
 func (UnimplementedVibeCMSHostServer) mustEmbedUnimplementedVibeCMSHostServer() {}
 func (UnimplementedVibeCMSHostServer) testEmbeddedByValue()                     {}
@@ -886,6 +966,96 @@ func _VibeCMSHost_DeleteFile_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VibeCMSHost_RegisterNodeType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeTypeInputMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).RegisterNodeType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_RegisterNodeType_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).RegisterNodeType(ctx, req.(*NodeTypeInputMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_GetNodeType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodeTypeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).GetNodeType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_GetNodeType_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).GetNodeType(ctx, req.(*GetNodeTypeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_ListNodeTypes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).ListNodeTypes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_ListNodeTypes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).ListNodeTypes(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_UpdateNodeType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateNodeTypeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).UpdateNodeType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_UpdateNodeType_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).UpdateNodeType(ctx, req.(*UpdateNodeTypeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_DeleteNodeType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteNodeTypeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).DeleteNodeType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_DeleteNodeType_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).DeleteNodeType(ctx, req.(*DeleteNodeTypeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VibeCMSHost_ServiceDesc is the grpc.ServiceDesc for VibeCMSHost service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -989,7 +1159,27 @@ var VibeCMSHost_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteFile",
 			Handler:    _VibeCMSHost_DeleteFile_Handler,
 		},
+		{
+			MethodName: "RegisterNodeType",
+			Handler:    _VibeCMSHost_RegisterNodeType_Handler,
+		},
+		{
+			MethodName: "GetNodeType",
+			Handler:    _VibeCMSHost_GetNodeType_Handler,
+		},
+		{
+			MethodName: "ListNodeTypes",
+			Handler:    _VibeCMSHost_ListNodeTypes_Handler,
+		},
+		{
+			MethodName: "UpdateNodeType",
+			Handler:    _VibeCMSHost_UpdateNodeType_Handler,
+		},
+		{
+			MethodName: "DeleteNodeType",
+			Handler:    _VibeCMSHost_DeleteNodeType_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/coreapi/vibecms_coreapi.proto",
+	Metadata: "vibecms_coreapi.proto",
 }

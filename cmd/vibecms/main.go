@@ -87,7 +87,6 @@ func main() {
 	layoutSvc := cms.NewLayoutService(database, eventBus, themeAssets)
 	layoutBlockSvc := cms.NewLayoutBlockService(database, eventBus, themeAssets)
 	menuSvc := cms.NewMenuService(database, eventBus)
-	mediaSvc := cms.NewMediaService(database, "storage/media")
 	isDev := cfg.AppEnv == "development"
 	renderer := rendering.NewTemplateRenderer("ui/templates", isDev)
 
@@ -108,7 +107,6 @@ func main() {
 	layoutHandler := cms.NewLayoutHandler(layoutSvc)
 	layoutBlockHandler := cms.NewLayoutBlockHandler(layoutBlockSvc)
 	menuHandler := cms.NewMenuHandler(menuSvc)
-	mediaHandler := cms.NewMediaHandler(database)
 	healthHandler := api.NewHealthHandler(database)
 	roleHandler := rbac.NewRoleHandler(database)
 	emailHandler := email.NewEmailHandler(database) // Admin API for extensions/email-manager
@@ -127,7 +125,7 @@ func main() {
 	themeHandler := cms.NewThemeHandler(database, themeMgmtSvc)
 
 	// CoreAPI — unified API facade for extensions.
-	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, mediaSvc, emailDispatcher, app)
+	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, nil, nodeTypeSvc, emailDispatcher, app)
 
 	// Theme scripting engine.
 	scriptEngine := scripting.NewScriptEngine(eventBus, coreAPI)
@@ -174,7 +172,6 @@ func main() {
 	layoutHandler.RegisterRoutes(adminAPI)
 	layoutBlockHandler.RegisterRoutes(adminAPI)
 	menuHandler.RegisterRoutes(adminAPI)
-	mediaHandler.RegisterRoutes(adminAPI)
 	roleHandler.RegisterRoutes(adminAPI)
 	emailHandler.RegisterRoutes(adminAPI) // Managed by extensions/email-manager
 	themeHandler.RegisterRoutes(adminAPI)

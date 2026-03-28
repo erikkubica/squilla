@@ -27,6 +27,11 @@ service VibeCMSHost {
   rpc DataExec(DataExecRequest) returns (DataExecResponse);
   rpc StoreFile(StoreFileRequest) returns (StoreFileResponse);
   rpc DeleteFile(DeleteFileRequest) returns (Empty);
+  rpc RegisterNodeType(NodeTypeInputMessage) returns (NodeTypeResponse);
+  rpc GetNodeType(GetNodeTypeRequest) returns (NodeTypeResponse);
+  rpc ListNodeTypes(Empty) returns (NodeTypeListResponse);
+  rpc UpdateNodeType(UpdateNodeTypeRequest) returns (NodeTypeResponse);
+  rpc DeleteNodeType(DeleteNodeTypeRequest) returns (Empty);
 }
 
 message Empty {}
@@ -297,4 +302,56 @@ message StoreFileResponse {
 
 message DeleteFileRequest {
   string path = 1;
+}
+
+// --- Node Type messages ---
+
+message NodeTypeFieldMessage {
+  string name = 1;
+  string label = 2;
+  string type = 3;
+  bool required = 4;
+  repeated string options = 5;
+}
+
+message NodeTypeInputMessage {
+  string slug = 1;
+  string label = 2;
+  string icon = 3;
+  string description = 4;
+  repeated NodeTypeFieldMessage field_schema = 5;
+  map<string, string> url_prefixes = 6;
+}
+
+message NodeTypeMessage {
+  int32 id = 1;
+  string slug = 2;
+  string label = 3;
+  string icon = 4;
+  string description = 5;
+  repeated NodeTypeFieldMessage field_schema = 6;
+  map<string, string> url_prefixes = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message NodeTypeResponse {
+  NodeTypeMessage node_type = 1;
+}
+
+message NodeTypeListResponse {
+  repeated NodeTypeMessage node_types = 1;
+}
+
+message GetNodeTypeRequest {
+  string slug = 1;
+}
+
+message UpdateNodeTypeRequest {
+  string slug = 1;
+  NodeTypeInputMessage input = 2;
+}
+
+message DeleteNodeTypeRequest {
+  string slug = 1;
 }

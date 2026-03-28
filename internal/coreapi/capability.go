@@ -287,6 +287,43 @@ func (g *capabilityGuard) DataExec(ctx context.Context, sql string, args ...any)
 	return g.inner.DataExec(ctx, sql, args...)
 }
 
+// --- Node Types ---
+
+func (g *capabilityGuard) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*NodeType, error) {
+	if err := checkCapability(ctx, "nodetypes:write"); err != nil {
+		return nil, err
+	}
+	return g.inner.RegisterNodeType(ctx, input)
+}
+
+func (g *capabilityGuard) GetNodeType(ctx context.Context, slug string) (*NodeType, error) {
+	if err := checkCapability(ctx, "nodetypes:read"); err != nil {
+		return nil, err
+	}
+	return g.inner.GetNodeType(ctx, slug)
+}
+
+func (g *capabilityGuard) ListNodeTypes(ctx context.Context) ([]*NodeType, error) {
+	if err := checkCapability(ctx, "nodetypes:read"); err != nil {
+		return nil, err
+	}
+	return g.inner.ListNodeTypes(ctx)
+}
+
+func (g *capabilityGuard) UpdateNodeType(ctx context.Context, slug string, input NodeTypeInput) (*NodeType, error) {
+	if err := checkCapability(ctx, "nodetypes:write"); err != nil {
+		return nil, err
+	}
+	return g.inner.UpdateNodeType(ctx, slug, input)
+}
+
+func (g *capabilityGuard) DeleteNodeType(ctx context.Context, slug string) error {
+	if err := checkCapability(ctx, "nodetypes:write"); err != nil {
+		return err
+	}
+	return g.inner.DeleteNodeType(ctx, slug)
+}
+
 // --- File Storage ---
 
 func (g *capabilityGuard) StoreFile(ctx context.Context, path string, data []byte) (string, error) {
