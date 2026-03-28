@@ -706,17 +706,17 @@ export interface EmailTemplate {
 }
 
 export async function getEmailTemplates(): Promise<EmailTemplate[]> {
-  const res = await api<ApiResponse<EmailTemplate[]>>("/admin/api/email-templates");
+  const res = await api<ApiResponse<EmailTemplate[]>>("/admin/api/ext/email-manager/templates");
   return res.data;
 }
 
 export async function getEmailTemplate(id: number): Promise<EmailTemplate> {
-  const res = await api<ApiResponse<EmailTemplate>>(`/admin/api/email-templates/${id}`);
+  const res = await api<ApiResponse<EmailTemplate>>(`/admin/api/ext/email-manager/templates/${id}`);
   return res.data;
 }
 
 export async function createEmailTemplate(data: Partial<EmailTemplate>): Promise<EmailTemplate> {
-  const res = await api<ApiResponse<EmailTemplate>>("/admin/api/email-templates", {
+  const res = await api<ApiResponse<EmailTemplate>>("/admin/api/ext/email-manager/templates", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -724,7 +724,7 @@ export async function createEmailTemplate(data: Partial<EmailTemplate>): Promise
 }
 
 export async function updateEmailTemplate(id: number, data: Partial<EmailTemplate>): Promise<EmailTemplate> {
-  const res = await api<ApiResponse<EmailTemplate>>(`/admin/api/email-templates/${id}`, {
+  const res = await api<ApiResponse<EmailTemplate>>(`/admin/api/ext/email-manager/templates/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -732,7 +732,7 @@ export async function updateEmailTemplate(id: number, data: Partial<EmailTemplat
 }
 
 export async function deleteEmailTemplate(id: number): Promise<void> {
-  await api<void>(`/admin/api/email-templates/${id}`, { method: "DELETE" });
+  await api<void>(`/admin/api/ext/email-manager/templates/${id}`, { method: "DELETE" });
 }
 
 // --- Email Rules ---
