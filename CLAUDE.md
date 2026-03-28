@@ -1,41 +1,109 @@
 # VibeCMS
 
-A high-performance, AI-native Go-based CMS optimized for sub-50ms TTFB, featuring a block-based JSON editor, zero-rebuild extension architecture (via Tengo), and automated SEO for agency-managed independent site deployments.
+A high-performance, AI-native Go-based CMS with a kernel + extension architecture. The core is a minimal kernel providing content nodes, rendering, auth, and a powerful CoreAPI. All features (media, email, SEO, etc.) are extensions — gRPC plugins with their own data, logic, and admin UI.
 
 ## Tech Stack
-- **Languages:** Go 1.22+
+- **Languages:** Go 1.24+
 - **Frameworks:** Fiber (routing, middleware), GORM (PostgreSQL ORM)
 - **Database:** PostgreSQL 16+ (leveraging JSONB and GIN indexes)
-- **Frontend/Admin:** React + TypeScript SPA (admin), Tailwind CSS
-- **Templating:** Go `html/template` (layouts, partials, content blocks — all use the same engine)
-- **Scripting:** Tengo (embedded sandboxed VM for hooks)
-- **Storage:** AWS S3/Cloudflare R2 (S3-compatible) & Local Disk
-- **Integrations:** Resend (email), OpenAI/Anthropic (AI), Ahrefs/Semrush (SEO)
-- **Security:** Ed25519 (license verification)
+- **Frontend/Admin:** React + TypeScript SPA shell (Vite, Tailwind CSS, shadcn/ui)
+- **Templating:** Go `html/template` (layouts, partials, content blocks)
+- **Scripting:** Tengo (embedded sandboxed VM for hooks via `core/*` modules)
+- **Plugins:** HashiCorp go-plugin (gRPC, bidirectional via GRPCBroker)
+- **Storage:** Local Disk (S3 planned)
+- **Security:** Ed25519 (license verification), capability-based extension permissions
 
-## Architecture Overview
-VibeCMS utilizes a "single-binary, single-site" deployment model. The "Vibe Loop" renders content by fetching JSONB blocks from Postgres, passing them through Tengo scripts for logic-injection, and rendering HTML via Go's `html/template` engine. Layouts define full page structure (`<head>` to `</footer>`), layout blocks are reusable partials (headers, footers, navs), and content blocks render individual page sections — all using the same Go template engine with a shared context (`.app` for global data, `.node` for current page). Themes register layouts, partials, blocks, and assets via `theme.json` manifests. Admin UI is a React + TypeScript SPA. Internal health monitoring APIs allow agency-level aggregation via static bearer tokens.
+## Architecture: Kernel + Extensions
+
+**Core = Linux Kernel.** Provides infrastructure only:
+- Content nodes (GORM models, CRUD, rendering)
+- Authentication, sessions, RBAC
+- CoreAPI (35+ methods across 15 domains)
+- Extension system (loader, proxy, migrations)
+- Theme engine + public site rendering
+- Event bus
+
+**Extensions = Debian Packages.** Own their full stack:
+- **gRPC plugin** (Go binary) — business logic, handles HTTP requests via `HandleHTTPRequest`
+- **Tengo scripts** — event hooks, HTTP routes, filters
+- **React micro-frontend** — isolated Vite build loaded via import maps
+- **SQL migrations** — own database tables, run on activation
+- **Manifest** — declares capabilities, plugins, admin UI routes/menus
+
+**Admin SPA = Pure Shell.** Just auth, sidebar, dashboard, and extension loader. Every feature page is an extension-owned micro-frontend.
+
+### CoreAPI (`internal/coreapi/`)
+
+Single Go interface providing all CMS capabilities to extensions:
+- **Nodes:** CRUD + query
+- **Node Types:** register, get, list, update, delete (extensions define custom post types)
+- **Settings:** get, set, get-all
+- **Events:** emit, subscribe
+- **Email:** send (via event bus → provider plugin)
+- **Menus:** CRUD
+- **Routes:** register, remove (Tengo HTTP endpoints)
+- **Filters:** register, apply
+- **Media:** upload, get, query, delete
+- **Users:** get, query (read-only)
+- **HTTP:** outbound fetch
+- **Log:** leveled logging with caller prefix
+- **Data Store:** DataGet, DataQuery, DataCreate, DataUpdate, DataDelete, DataExec (raw SQL)
+- **File Storage:** StoreFile, DeleteFile
+
+Three adapters:
+1. **Tengo** (`core/*` modules) — for `.tgo` scripts
+2. **gRPC** (VibeCMSHost service via GRPCBroker) — for compiled plugins
+3. **Internal** (direct Go calls) — for core code
+
+### Capability System
+
+Extensions declare required capabilities in `extension.json`:
+```json
+{ "capabilities": ["nodes:read", "data:write", "files:write", "email:send"] }
+```
+CoreAPI enforces at every call. Internal callers bypass checks.
+
+### Extension HTTP Proxy
+
+Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plugin receives method, path, headers, body, query/path params, user ID. Returns status, headers, body.
 
 ## Folder Structure
-- `cmd/vibecms/`: Application entry point.
-- `internal/`: Private core logic:
-    - `cms/`: The core rendering loop and node management.
-    - `scripting/`: Tengo VM runtime and hook management.
-    - `models/`: GORM models, specifically `content_node` with JSONB.
-    - `db/`: Migrations and connection pooling.
-- `themes/`: Theme repository containing layouts, partials, blocks, assets, and `.tgo` extension scripts.
-- `admin-ui/`: React + TypeScript admin SPA (Vite, Tailwind CSS, shadcn/ui).
-- `pkg/`: Shared utility libraries (JSON-schema helpers).
-- `storage/`: Local asset storage and backup cache.
+- `cmd/vibecms/`: Application entry point
+- `internal/`: Core kernel:
+    - `coreapi/`: CoreAPI interface, implementations, adapters (Tengo, gRPC, capability guard)
+    - `cms/`: Content service, plugin manager, extension loader/proxy/migrations
+    - `scripting/`: Tengo VM runtime, script callbacks, handler mounting
+    - `models/`: GORM models (content_node, menu, user, role, etc.)
+    - `email/`: Email dispatcher (core infrastructure, not admin management)
+    - `events/`: Event bus (publish/subscribe)
+    - `auth/`: Session auth, RBAC middleware
+    - `db/`: Core migrations and connection pooling
+    - `api/`: Response helpers
+- `extensions/`: All feature extensions:
+    - `media-manager/`: Media library (gRPC plugin + React micro-frontend)
+    - `email-manager/`: Email templates, rules, logs (gRPC plugin + React micro-frontend)
+    - `sitemap-generator/`: Yoast-style sitemaps (gRPC plugin + Tengo scripts)
+    - `smtp-provider/`: SMTP delivery (gRPC plugin)
+    - `resend-provider/`: Resend delivery (Tengo script)
+    - `hello-extension/`: Demo extension
+- `themes/`: Theme repository (layouts, partials, blocks, assets, `.tgo` scripts)
+- `admin-ui/`: React SPA shell (Vite, Tailwind CSS, shadcn/ui)
+    - `public/shims/`: Import map shims for extension micro-frontends
+    - `src/lib/extension-loader.ts`: Dynamic extension module loading
+- `proto/`: Protocol Buffer definitions (plugin + coreapi)
+- `pkg/plugin/`: Shared plugin interface, generated proto code
+- `storage/`: Local file storage (media uploads)
 
 ## Key Conventions
-- **Zero-Rebuild Hooks:** Use `.tgo` scripts in `themes/{theme}/scripts/` for custom logic.
-- **Node-Based Content:** All pages, posts, and entities are treated as `content_nodes` with `blocks_data` storage.
-- **Admin UI:** React SPA served at `/admin/*`. API endpoints at `/admin/api/*` with session-based auth.
-- **Hard-Fail vs. Soft-Fail:** 
-    - Database connectivity failures should trigger a fatal server halt.
-    - Missing themes or Tengo script errors should log warnings but continue execution.
-    - Invalid licenses should disable AI and Tengo features but keep the public site active.
-- **Security:** Ensure scripts are executed within a sandboxed `tengo.VM` with restricted I/O.
-- **Naming:** Follow `snake_case` for Go files, `.html` for templates (layouts, partials, blocks), `.tgo` for scripting hooks. Template variables use `snake_case` (`.app.head_styles`, `.node.blocks_html`).
-- **Performance:** Always prefer atomic operations for hot-swapped configuration maps and cache management.
+- **Extensions First:** New features should be extensions, not core code. Built-in extensions are the reference implementation for third-party developers.
+- **Node-Based Content:** All pages, posts, and entities are `content_nodes` with `blocks_data` JSONB storage.
+- **Admin SPA is a Shell:** Only auth, sidebar, dashboard, and extension loader live in the core SPA. Feature pages are extension micro-frontends.
+- **Extension Micro-Frontends:** Isolated Vite builds outputting ES modules. Import shared deps (`react`, `@vibecms/ui`, `@vibecms/api`, `@vibecms/icons`) via import map shims from `window.__VIBECMS_SHARED__`.
+- **Tengo Modules:** Use `core/*` namespace (core/nodes, core/settings, core/events, etc.). ScriptCallbacks wire events.on, routes.register, filters.add to the engine.
+- **Hard-Fail vs. Soft-Fail:**
+    - Database connectivity failures → fatal server halt
+    - Missing themes or script errors → log warning, continue
+    - Extension plugin crashes → isolated, other extensions unaffected
+- **Naming:** `snake_case` for Go files, `.html` for templates, `.tgo` for Tengo scripts. Template variables use `snake_case`.
+- **Performance:** Atomic operations for hot-swapped config maps and cache. Sub-50ms TTFB for public pages.
+- **Docker:** Multi-stage build: Node (admin SPA + extension UIs) → Go (binary + plugin binaries) → Alpine runtime.
