@@ -83,7 +83,12 @@ export default function EmailTemplateEditor() {
         setFormLanguageId(tpl.language_id ? String(tpl.language_id) : "__universal__");
         setFormSubject(tpl.subject_template);
         setFormBody(tpl.body_template);
-        setFormTestData(JSON.stringify(tpl.test_data || {}, null, 2));
+        // test_data may come back as a JSON string or an object
+        let td = tpl.test_data;
+        if (typeof td === "string") {
+          try { td = JSON.parse(td); } catch { td = {}; }
+        }
+        setFormTestData(JSON.stringify(td || {}, null, 2));
       })
       .catch(() => {
         toast.error("Failed to load email template");
