@@ -8,9 +8,13 @@
         "heading": "FlowBoard Pro",
         "subheading": "The project management platform that adapts to how your team actually works. Not the other way around.",
         "background_image": "https://picsum.photos/seed/product-hero/1600/800",
-        "button_text": "Start Free Trial",
-        "button_url": "/signup?plan=pro-trial",
-        "alignment": "left"
+        "alignment": "left",
+        "button": {
+          "text": "Start Free Trial",
+          "url": "/signup?plan=pro-trial",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -147,10 +151,14 @@
       "fields": {
         "heading": "Try FlowBoard Pro Free for 14 Days",
         "description": "No credit card required. Full access to all features. Cancel anytime.",
-        "button_text": "Start Free Trial",
-        "button_url": "/signup?plan=pro-trial",
         "background_image": "https://picsum.photos/seed/product-cta/1600/500",
-        "style": "accent"
+        "style": "accent",
+        "button": {
+          "text": "Start Free Trial",
+          "url": "/signup?plan=pro-trial",
+          "alt": "",
+          "target": ""
+        }
       }
     }
   ]

@@ -12,8 +12,8 @@
         <div class="vb-features-list__content-col">
           <h3 class="vb-features-list__title">{{.title}}</h3>
           <div class="vb-features-list__description">{{.description}}</div>
-          {{if and .button_text .button_url}}
-          <a href="{{.button_url}}" class="vb-features-list__button">{{.button_text}} &rarr;</a>
+          {{if and .button.text .button.url}}
+          <a href="{{.button.url}}" class="vb-features-list__button">{{.button.text}} &rarr;</a>
           {{end}}
         </div>
       </div>

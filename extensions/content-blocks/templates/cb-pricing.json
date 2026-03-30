@@ -23,30 +23,69 @@
             "monthly_price": "0",
             "yearly_price": "0",
             "description": "Perfect for individuals and small side projects",
-            "features": ["Up to 3 projects", "5 team members", "Basic integrations", "1 GB storage", "Community support", "API access"],
-            "button_text": "Get Started Free",
-            "button_url": "/signup?plan=starter",
-            "is_featured": false
+            "features": [
+              "Up to 3 projects",
+              "5 team members",
+              "Basic integrations",
+              "1 GB storage",
+              "Community support",
+              "API access"
+            ],
+            "is_featured": false,
+            "button": {
+              "text": "Get Started Free",
+              "url": "/signup?plan=starter",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "name": "Pro",
             "monthly_price": "29",
             "yearly_price": "24",
             "description": "For growing teams that need power and flexibility",
-            "features": ["Unlimited projects", "50 team members", "All integrations", "100 GB storage", "Priority email support", "AI automation", "Custom workflows", "Advanced analytics"],
-            "button_text": "Start Free Trial",
-            "button_url": "/signup?plan=pro",
-            "is_featured": true
+            "features": [
+              "Unlimited projects",
+              "50 team members",
+              "All integrations",
+              "100 GB storage",
+              "Priority email support",
+              "AI automation",
+              "Custom workflows",
+              "Advanced analytics"
+            ],
+            "is_featured": true,
+            "button": {
+              "text": "Start Free Trial",
+              "url": "/signup?plan=pro",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "name": "Enterprise",
             "monthly_price": "99",
             "yearly_price": "79",
             "description": "For organizations with advanced security and scale needs",
-            "features": ["Unlimited everything", "Unlimited team members", "All integrations + custom", "Unlimited storage", "24/7 phone & chat support", "AI automation + custom models", "SSO / SAML / SCIM", "Dedicated account manager", "Custom SLA (99.99%)", "On-premise deployment option"],
-            "button_text": "Contact Sales",
-            "button_url": "/contact?plan=enterprise",
-            "is_featured": false
+            "features": [
+              "Unlimited everything",
+              "Unlimited team members",
+              "All integrations + custom",
+              "Unlimited storage",
+              "24/7 phone & chat support",
+              "AI automation + custom models",
+              "SSO / SAML / SCIM",
+              "Dedicated account manager",
+              "Custom SLA (99.99%)",
+              "On-premise deployment option"
+            ],
+            "is_featured": false,
+            "button": {
+              "text": "Contact Sales",
+              "url": "/contact?plan=enterprise",
+              "alt": "",
+              "target": ""
+            }
           }
         ],
         "yearly_discount_label": "Save 20%"
@@ -57,21 +96,87 @@
       "fields": {
         "heading": "Detailed Plan Comparison",
         "columns": [
-          { "name": "Starter" },
-          { "name": "Pro" },
-          { "name": "Enterprise" }
+          {
+            "name": "Starter"
+          },
+          {
+            "name": "Pro"
+          },
+          {
+            "name": "Enterprise"
+          }
         ],
         "rows": [
-          { "feature": "Projects", "col1": "3", "col2": "Unlimited", "col3": "Unlimited", "col4": "" },
-          { "feature": "Team Members", "col1": "5", "col2": "50", "col3": "Unlimited", "col4": "" },
-          { "feature": "Storage", "col1": "1 GB", "col2": "100 GB", "col3": "Unlimited", "col4": "" },
-          { "feature": "AI Automation", "col1": "—", "col2": "Yes", "col3": "Yes + Custom", "col4": "" },
-          { "feature": "Custom Workflows", "col1": "—", "col2": "Yes", "col3": "Yes", "col4": "" },
-          { "feature": "SSO / SAML", "col1": "—", "col2": "—", "col3": "Yes", "col4": "" },
-          { "feature": "API Rate Limit", "col1": "1K/hr", "col2": "10K/hr", "col3": "Unlimited", "col4": "" },
-          { "feature": "Uptime SLA", "col1": "—", "col2": "99.9%", "col3": "99.99%", "col4": "" },
-          { "feature": "Support", "col1": "Community", "col2": "Priority Email", "col3": "24/7 Phone & Chat", "col4": "" },
-          { "feature": "Audit Logs", "col1": "30 days", "col2": "1 year", "col3": "2 years", "col4": "" }
+          {
+            "feature": "Projects",
+            "col1": "3",
+            "col2": "Unlimited",
+            "col3": "Unlimited",
+            "col4": ""
+          },
+          {
+            "feature": "Team Members",
+            "col1": "5",
+            "col2": "50",
+            "col3": "Unlimited",
+            "col4": ""
+          },
+          {
+            "feature": "Storage",
+            "col1": "1 GB",
+            "col2": "100 GB",
+            "col3": "Unlimited",
+            "col4": ""
+          },
+          {
+            "feature": "AI Automation",
+            "col1": "\u2014",
+            "col2": "Yes",
+            "col3": "Yes + Custom",
+            "col4": ""
+          },
+          {
+            "feature": "Custom Workflows",
+            "col1": "\u2014",
+            "col2": "Yes",
+            "col3": "Yes",
+            "col4": ""
+          },
+          {
+            "feature": "SSO / SAML",
+            "col1": "\u2014",
+            "col2": "\u2014",
+            "col3": "Yes",
+            "col4": ""
+          },
+          {
+            "feature": "API Rate Limit",
+            "col1": "1K/hr",
+            "col2": "10K/hr",
+            "col3": "Unlimited",
+            "col4": ""
+          },
+          {
+            "feature": "Uptime SLA",
+            "col1": "\u2014",
+            "col2": "99.9%",
+            "col3": "99.99%",
+            "col4": ""
+          },
+          {
+            "feature": "Support",
+            "col1": "Community",
+            "col2": "Priority Email",
+            "col3": "24/7 Phone & Chat",
+            "col4": ""
+          },
+          {
+            "feature": "Audit Logs",
+            "col1": "30 days",
+            "col2": "1 year",
+            "col3": "2 years",
+            "col4": ""
+          }
         ]
       }
     },
@@ -135,10 +240,14 @@
       "fields": {
         "heading": "Still Have Questions?",
         "description": "Our team is here to help you find the right plan. Schedule a call and we'll walk you through the options.",
-        "button_text": "Talk to Sales",
-        "button_url": "/contact?subject=pricing",
         "background_image": "",
-        "style": "accent"
+        "style": "accent",
+        "button": {
+          "text": "Talk to Sales",
+          "url": "/contact?subject=pricing",
+          "alt": "",
+          "target": ""
+        }
       }
     }
   ]

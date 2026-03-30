@@ -10,8 +10,8 @@
           {{if $slide.description}}
             <p class="vb-cb-slider__description">{{$slide.description}}</p>
           {{end}}
-          {{if and $slide.button_text $slide.button_url}}
-            <a href="{{$slide.button_url}}" class="vb-cb-slider__button">{{$slide.button_text}}</a>
+          {{if and $slide.button.text $slide.button.url}}
+            <a href="{{$slide.button.url}}" class="vb-cb-slider__button">{{$slide.button.text}}</a>
           {{end}}
         </div>
       </div>

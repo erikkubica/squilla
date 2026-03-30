@@ -39,12 +39,6 @@
       "key": "show_subject"
     },
     {
-      "label": "Button Text",
-      "type": "text",
-      "default": "Send Message",
-      "key": "button_text"
-    },
-    {
       "label": "Style",
       "type": "select",
       "options": [
@@ -54,6 +48,11 @@
       ],
       "default": "simple",
       "key": "style"
+    },
+    {
+      "key": "button",
+      "label": "Button",
+      "type": "link"
     }
   ],
   "test_data": {
@@ -63,7 +62,12 @@
     "success_message": "Thank you! We'll be in touch.",
     "show_phone": false,
     "show_subject": true,
-    "button_text": "Send Message",
-    "style": "card"
+    "style": "card",
+    "button": {
+      "text": "Send Message",
+      "url": "",
+      "alt": "",
+      "target": ""
+    }
   }
 }

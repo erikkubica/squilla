@@ -53,18 +53,6 @@
           "key": "features"
         },
         {
-          "label": "Button Text",
-          "type": "text",
-          "required": true,
-          "key": "button_text"
-        },
-        {
-          "label": "Button URL",
-          "type": "text",
-          "required": true,
-          "key": "button_url"
-        },
-        {
           "label": "Featured",
           "type": "select",
           "options": [
@@ -73,6 +61,11 @@
           ],
           "default": "false",
           "key": "is_featured"
+        },
+        {
+          "key": "button",
+          "label": "Button",
+          "type": "link"
         }
       ],
       "key": "plans"
@@ -89,9 +82,13 @@
         "yearly_price": "$7",
         "description": "Perfect for individuals and small projects",
         "features": "5 projects\n10GB storage\nEmail support\nBasic analytics\nAPI access",
-        "button_text": "Start Free Trial",
-        "button_url": "/signup?plan=starter",
-        "is_featured": "false"
+        "is_featured": "false",
+        "button": {
+          "text": "Start Free Trial",
+          "url": "/signup?plan=starter",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "name": "Professional",
@@ -99,9 +96,13 @@
         "yearly_price": "$23",
         "description": "For growing teams and businesses",
         "features": "Unlimited projects\n100GB storage\nPriority support\nAdvanced analytics\nAPI access\nCustom domains\nTeam collaboration",
-        "button_text": "Start Free Trial",
-        "button_url": "/signup?plan=pro",
-        "is_featured": "true"
+        "is_featured": "true",
+        "button": {
+          "text": "Start Free Trial",
+          "url": "/signup?plan=pro",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "name": "Enterprise",
@@ -109,9 +110,13 @@
         "yearly_price": "$79",
         "description": "For large organizations with custom needs",
         "features": "Unlimited everything\n1TB storage\nDedicated support\nCustom analytics\nAdvanced API\nSSO & SAML\nSLA guarantee\nCustom integrations",
-        "button_text": "Contact Sales",
-        "button_url": "/contact?plan=enterprise",
-        "is_featured": "false"
+        "is_featured": "false",
+        "button": {
+          "text": "Contact Sales",
+          "url": "/contact?plan=enterprise",
+          "alt": "",
+          "target": ""
+        }
       }
     ]
   }

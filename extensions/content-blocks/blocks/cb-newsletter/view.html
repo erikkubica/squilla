@@ -8,7 +8,7 @@
       <form class="vb-newsletter__form" action="{{.form_action}}" method="POST">
         <div class="vb-newsletter__input-group">
           <input type="email" name="email" placeholder="Enter your email" required class="vb-newsletter__input" />
-          <button type="submit" class="vb-newsletter__button">{{if .button_text}}{{.button_text}}{{else}}Subscribe{{end}}</button>
+          <button type="submit" class="vb-newsletter__button">{{if .button.text}}{{.button.text}}{{else}}Subscribe{{end}}</button>
         </div>
       </form>
       {{if .privacy_note}}

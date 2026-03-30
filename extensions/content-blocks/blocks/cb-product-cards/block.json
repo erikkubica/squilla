@@ -56,16 +56,9 @@
           "key": "original_price"
         },
         {
-          "label": "Button Text",
-          "type": "text",
-          "default": "Buy Now",
-          "key": "button_text"
-        },
-        {
-          "label": "Button URL",
-          "type": "text",
-          "required": true,
-          "key": "button_url"
+          "key": "button",
+          "label": "Button",
+          "type": "link"
         }
       ],
       "key": "products"
@@ -81,8 +74,12 @@
         "category": "Electronics",
         "price": "$79.99",
         "original_price": "$129.99",
-        "button_text": "Buy Now",
-        "button_url": "/products/headphones"
+        "button": {
+          "text": "Buy Now",
+          "url": "/products/headphones",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "image": "https://picsum.photos/seed/product2/600/400",
@@ -90,8 +87,12 @@
         "category": "Accessories",
         "price": "$149.00",
         "original_price": "",
-        "button_text": "Buy Now",
-        "button_url": "/products/bag"
+        "button": {
+          "text": "Buy Now",
+          "url": "/products/bag",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "image": "https://picsum.photos/seed/product3/600/400",
@@ -99,8 +100,12 @@
         "category": "Electronics",
         "price": "$199.99",
         "original_price": "$249.99",
-        "button_text": "Buy Now",
-        "button_url": "/products/watch"
+        "button": {
+          "text": "Buy Now",
+          "url": "/products/watch",
+          "alt": "",
+          "target": ""
+        }
       }
     ]
   }

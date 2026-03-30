@@ -8,9 +8,13 @@
         "heading": "Our Work",
         "subheading": "A selection of projects that showcase our craft \u2014 from early-stage startups to Fortune 500 enterprises.",
         "background_image": "https://picsum.photos/seed/portfolio-hero/1600/800",
-        "button_text": "Start a Project",
-        "button_url": "/contact",
-        "alignment": "center"
+        "alignment": "center",
+        "button": {
+          "text": "Start a Project",
+          "url": "/contact",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -194,10 +198,14 @@
       "fields": {
         "heading": "Have a Project in Mind?",
         "description": "We'd love to hear about it. Tell us what you're building and we'll schedule a free 30-minute discovery call to explore how we can help.",
-        "button_text": "Get in Touch",
-        "button_url": "/contact",
         "image": "https://picsum.photos/seed/portfolio-cta/800/600",
-        "image_position": "right"
+        "image_position": "right",
+        "button": {
+          "text": "Get in Touch",
+          "url": "/contact",
+          "alt": "",
+          "target": ""
+        }
       }
     }
   ]

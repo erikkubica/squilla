@@ -27,16 +27,9 @@
           "key": "description"
         },
         {
-          "label": "Button Text",
-          "type": "text",
-          "required": false,
-          "key": "button_text"
-        },
-        {
-          "label": "Button URL",
-          "type": "text",
-          "required": false,
-          "key": "button_url"
+          "key": "button",
+          "label": "Button",
+          "type": "link"
         }
       ],
       "key": "slides"
@@ -59,22 +52,34 @@
         "image": "https://picsum.photos/seed/slide-one/1400/600",
         "heading": "Welcome to Our Platform",
         "description": "Discover powerful tools designed to help you build, grow, and scale your business with confidence.",
-        "button_text": "Get Started",
-        "button_url": "/get-started"
+        "button": {
+          "text": "Get Started",
+          "url": "/get-started",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "image": "https://picsum.photos/seed/slide-two/1400/600",
         "heading": "Built for Performance",
         "description": "Lightning-fast page loads and optimized delivery ensure your visitors get the best experience.",
-        "button_text": "Learn More",
-        "button_url": "/features"
+        "button": {
+          "text": "Learn More",
+          "url": "/features",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "image": "https://picsum.photos/seed/slide-three/1400/600",
         "heading": "Join Our Community",
         "description": "Connect with thousands of creators, developers, and businesses using our platform every day.",
-        "button_text": "Join Now",
-        "button_url": "/community"
+        "button": {
+          "text": "Join Now",
+          "url": "/community",
+          "alt": "",
+          "target": ""
+        }
       }
     ]
   }

@@ -95,8 +95,12 @@
         "heading": "Digital Strategy That Delivers",
         "body": "<p>Our strategists work alongside your leadership team to identify growth opportunities, map customer journeys, and build technology roadmaps that deliver ROI within the first quarter.</p><ul><li>Competitive landscape analysis</li><li>Customer journey mapping</li><li>Technology stack evaluation</li><li>12-month execution roadmap</li></ul>",
         "image_position": "left",
-        "button_text": "Book a Strategy Session",
-        "button_url": "/contact?service=strategy"
+        "button": {
+          "text": "Book a Strategy Session",
+          "url": "/contact?service=strategy",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -106,8 +110,12 @@
         "heading": "Engineering That Scales",
         "body": "<p>From MVPs to enterprise platforms, our engineering teams build software that grows with your business. We follow agile methodologies with two-week sprints, continuous integration, and comprehensive test coverage.</p><ul><li>React, Go, Python, and Node.js expertise</li><li>Microservices and event-driven architecture</li><li>99.99% uptime SLA available</li><li>Dedicated technical lead per project</li></ul>",
         "image_position": "right",
-        "button_text": "Start a Project",
-        "button_url": "/contact?service=development"
+        "button": {
+          "text": "Start a Project",
+          "url": "/contact?service=development",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -117,8 +125,12 @@
         "heading": "Design Users Love",
         "body": "<p>Great design is invisible. Our UX team conducts user research, builds interactive prototypes, and validates every decision with real users before a single line of code is written.</p><ul><li>User interviews and persona development</li><li>Wireframing and interactive prototyping</li><li>Usability testing with real users</li><li>Design system creation and governance</li></ul>",
         "image_position": "left",
-        "button_text": "See Our Portfolio",
-        "button_url": "/portfolio"
+        "button": {
+          "text": "See Our Portfolio",
+          "url": "/portfolio",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -192,10 +204,14 @@
       "fields": {
         "heading": "Ready to Transform Your Business?",
         "description": "Schedule a free 30-minute consultation with one of our senior strategists. No commitment, no sales pitch \u2014 just honest advice.",
-        "button_text": "Get Started",
-        "button_url": "/contact",
         "background_image": "https://picsum.photos/seed/cta-services/1600/600",
-        "style": "dark"
+        "style": "dark",
+        "button": {
+          "text": "Get Started",
+          "url": "/contact",
+          "alt": "",
+          "target": ""
+        }
       }
     }
   ]

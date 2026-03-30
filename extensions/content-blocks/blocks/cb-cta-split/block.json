@@ -17,18 +17,6 @@
       "key": "description"
     },
     {
-      "label": "Button Text",
-      "type": "text",
-      "required": true,
-      "key": "button_text"
-    },
-    {
-      "label": "Button URL",
-      "type": "text",
-      "required": true,
-      "key": "button_url"
-    },
-    {
       "label": "Image",
       "type": "image",
       "required": true,
@@ -43,14 +31,23 @@
       ],
       "default": "left",
       "key": "image_position"
+    },
+    {
+      "key": "button",
+      "label": "Button",
+      "type": "link"
     }
   ],
   "test_data": {
     "heading": "Take Your Workflow to the Next Level",
     "description": "Our platform helps you build, manage, and scale your content with ease. Get started in minutes and see the difference.",
-    "button_text": "Get Started Now",
-    "button_url": "/signup",
     "image": "https://picsum.photos/seed/ctasplit/600/400",
-    "image_position": "left"
+    "image_position": "left",
+    "button": {
+      "text": "Get Started Now",
+      "url": "/signup",
+      "alt": "",
+      "target": ""
+    }
   }
 }

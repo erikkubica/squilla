@@ -31,29 +31,45 @@
             "icon": "rocket",
             "title": "Getting Started",
             "description": "Set up your account, create your first project, and invite your team in under 10 minutes.",
-            "button_text": "Read Guide",
-            "button_url": "/docs/getting-started"
+            "button": {
+              "text": "Read Guide",
+              "url": "/docs/getting-started",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "icon": "code",
             "title": "API Reference",
             "description": "Complete REST and GraphQL API documentation with examples in cURL, Python, and JavaScript.",
-            "button_text": "View API Docs",
-            "button_url": "/docs/api"
+            "button": {
+              "text": "View API Docs",
+              "url": "/docs/api",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "icon": "plug",
             "title": "Integrations",
             "description": "Connect FlowBoard with your existing tools: Slack, GitHub, Jira, Figma, and 200+ more.",
-            "button_text": "Browse Integrations",
-            "button_url": "/docs/integrations"
+            "button": {
+              "text": "Browse Integrations",
+              "url": "/docs/integrations",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "icon": "shield",
             "title": "Security & SSO",
             "description": "Configure SAML SSO, SCIM provisioning, IP allowlists, and audit log exports.",
-            "button_text": "Security Docs",
-            "button_url": "/docs/security"
+            "button": {
+              "text": "Security Docs",
+              "url": "/docs/security",
+              "alt": "",
+              "target": ""
+            }
           }
         ]
       }

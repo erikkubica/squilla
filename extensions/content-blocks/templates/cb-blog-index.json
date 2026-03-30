@@ -41,10 +41,15 @@
       "fields": {
         "heading": "Stay in the Loop",
         "description": "Get our best articles delivered to your inbox every Thursday. No spam, no fluff \u2014 just actionable insights from our engineering and product teams.",
-        "button_text": "Subscribe",
         "form_action": "/api/newsletter/subscribe",
         "privacy_note": "We respect your privacy. Unsubscribe at any time.",
-        "style": "dark"
+        "style": "dark",
+        "button": {
+          "text": "Subscribe",
+          "url": "",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {

@@ -33,16 +33,9 @@
           "key": "description"
         },
         {
-          "label": "Button Text",
-          "type": "text",
-          "required": false,
-          "key": "button_text"
-        },
-        {
-          "label": "Button URL",
-          "type": "text",
-          "required": false,
-          "key": "button_url"
+          "key": "button",
+          "label": "Button",
+          "type": "link"
         }
       ],
       "key": "features"
@@ -55,22 +48,34 @@
         "image": "https://picsum.photos/seed/feature1/600/400",
         "title": "Design Your Content",
         "description": "Use our intuitive block editor to craft beautiful pages. Drag, drop, and customize every element to match your vision.",
-        "button_text": "See the Editor",
-        "button_url": "/editor"
+        "button": {
+          "text": "See the Editor",
+          "url": "/editor",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "image": "https://picsum.photos/seed/feature2/600/400",
         "title": "Extend with Plugins",
         "description": "Browse hundreds of extensions to add any feature you need. From SEO to email marketing, there's a plugin for everything.",
-        "button_text": "Browse Extensions",
-        "button_url": "/extensions"
+        "button": {
+          "text": "Browse Extensions",
+          "url": "/extensions",
+          "alt": "",
+          "target": ""
+        }
       },
       {
         "image": "https://picsum.photos/seed/feature3/600/400",
         "title": "Launch and Grow",
         "description": "Deploy with one click and watch your site grow. Built-in analytics and performance monitoring keep you informed.",
-        "button_text": "Get Started",
-        "button_url": "/signup"
+        "button": {
+          "text": "Get Started",
+          "url": "/signup",
+          "alt": "",
+          "target": ""
+        }
       }
     ]
   }

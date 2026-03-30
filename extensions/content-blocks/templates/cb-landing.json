@@ -10,22 +10,34 @@
             "image": "https://picsum.photos/seed/slide-1/1600/700",
             "heading": "Ship Better Products, Faster",
             "description": "The all-in-one platform for product teams who refuse to compromise on quality or speed.",
-            "button_text": "Start Free Trial",
-            "button_url": "/signup"
+            "button": {
+              "text": "Start Free Trial",
+              "url": "/signup",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "image": "https://picsum.photos/seed/slide-2/1600/700",
             "heading": "AI-Powered Workflows",
             "description": "Automate repetitive tasks, predict bottlenecks, and keep your team focused on work that matters.",
-            "button_text": "See How It Works",
-            "button_url": "/features/ai"
+            "button": {
+              "text": "See How It Works",
+              "url": "/features/ai",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "image": "https://picsum.photos/seed/slide-3/1600/700",
             "heading": "Trusted by 10,000+ Teams",
             "description": "From two-person startups to Fortune 500 enterprises, teams rely on FlowBoard every day.",
-            "button_text": "Read Case Studies",
-            "button_url": "/case-studies"
+            "button": {
+              "text": "Read Case Studies",
+              "url": "/case-studies",
+              "alt": "",
+              "target": ""
+            }
           }
         ],
         "autoplay": true
@@ -78,10 +90,14 @@
       "fields": {
         "heading": "See FlowBoard in Action",
         "description": "Watch a 3-minute demo that shows how FlowBoard streamlines your entire product development workflow \u2014 from backlog to deployment.",
-        "button_text": "Watch Demo",
-        "button_url": "/demo",
         "image": "https://picsum.photos/seed/demo-screenshot/800/600",
-        "image_position": "right"
+        "image_position": "right",
+        "button": {
+          "text": "Watch Demo",
+          "url": "/demo",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -132,8 +148,12 @@
             "category": "For individuals",
             "price": "Free",
             "original_price": "",
-            "button_text": "Get Started",
-            "button_url": "/signup?plan=starter"
+            "button": {
+              "text": "Get Started",
+              "url": "/signup?plan=starter",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "image": "https://picsum.photos/seed/plan-pro/400/300",
@@ -141,8 +161,12 @@
             "category": "For growing teams",
             "price": "$29/mo",
             "original_price": "",
-            "button_text": "Start Trial",
-            "button_url": "/signup?plan=pro"
+            "button": {
+              "text": "Start Trial",
+              "url": "/signup?plan=pro",
+              "alt": "",
+              "target": ""
+            }
           },
           {
             "image": "https://picsum.photos/seed/plan-enterprise/400/300",
@@ -150,8 +174,12 @@
             "category": "For large orgs",
             "price": "Custom",
             "original_price": "",
-            "button_text": "Contact Sales",
-            "button_url": "/contact?plan=enterprise"
+            "button": {
+              "text": "Contact Sales",
+              "url": "/contact?plan=enterprise",
+              "alt": "",
+              "target": ""
+            }
           }
         ],
         "columns": "3"
@@ -230,10 +258,15 @@
       "fields": {
         "heading": "Get Product Management Tips Weekly",
         "description": "Join 15,000+ product leaders who read our weekly newsletter for practical advice on shipping better products.",
-        "button_text": "Subscribe Free",
         "form_action": "/api/newsletter/subscribe",
         "privacy_note": "No spam. Unsubscribe anytime.",
-        "style": "dark"
+        "style": "dark",
+        "button": {
+          "text": "Subscribe Free",
+          "url": "",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -241,10 +274,14 @@
       "fields": {
         "heading": "Ready to Transform How Your Team Ships?",
         "description": "Start your 14-day free trial today. No credit card required. Full access to all Pro features.",
-        "button_text": "Start Free Trial",
-        "button_url": "/signup",
         "background_image": "https://picsum.photos/seed/landing-final-cta/1600/500",
-        "style": "accent"
+        "style": "accent",
+        "button": {
+          "text": "Start Free Trial",
+          "url": "/signup",
+          "alt": "",
+          "target": ""
+        }
       }
     }
   ]

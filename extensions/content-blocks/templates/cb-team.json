@@ -8,9 +8,13 @@
         "heading": "Meet Our Team",
         "subheading": "A diverse group of makers, thinkers, and problem-solvers united by a shared mission to build great products.",
         "background_image": "https://picsum.photos/seed/team-hero/1600/800",
-        "button_text": "We're Hiring",
-        "button_url": "/careers",
-        "alignment": "center"
+        "alignment": "center",
+        "button": {
+          "text": "We're Hiring",
+          "url": "/careers",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -185,10 +189,14 @@
       "fields": {
         "heading": "Want to Join the Team?",
         "description": "We're growing fast and always looking for talented people. Competitive pay, generous equity, and a culture that values your wellbeing.",
-        "button_text": "View Open Positions",
-        "button_url": "/careers",
         "background_image": "https://picsum.photos/seed/hiring-cta/1600/500",
-        "style": "dark"
+        "style": "dark",
+        "button": {
+          "text": "View Open Positions",
+          "url": "/careers",
+          "alt": "",
+          "target": ""
+        }
       }
     }
   ]

@@ -17,13 +17,6 @@
       "key": "description"
     },
     {
-      "label": "Button Text",
-      "type": "text",
-      "required": false,
-      "default": "Subscribe",
-      "key": "button_text"
-    },
-    {
       "label": "Form Action URL",
       "type": "text",
       "required": false,
@@ -45,14 +38,24 @@
       ],
       "default": "light",
       "key": "style"
+    },
+    {
+      "key": "button",
+      "label": "Button",
+      "type": "link"
     }
   ],
   "test_data": {
     "heading": "Stay Updated",
     "description": "Get the latest news, tips, and product updates delivered straight to your inbox. No spam, ever.",
-    "button_text": "Subscribe",
     "form_action": "/api/newsletter",
     "privacy_note": "We respect your privacy. Unsubscribe at any time.",
-    "style": "light"
+    "style": "light",
+    "button": {
+      "text": "Subscribe",
+      "url": "",
+      "alt": "",
+      "target": ""
+    }
   }
 }

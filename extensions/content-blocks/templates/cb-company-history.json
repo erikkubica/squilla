@@ -8,9 +8,13 @@
         "heading": "Our Story",
         "subheading": "From a two-person garage startup to a global team of 200+, we've spent fifteen years solving problems that matter.",
         "background_image": "https://picsum.photos/seed/company-hero/1600/800",
-        "button_text": "Meet the Team",
-        "button_url": "#team",
-        "alignment": "center"
+        "alignment": "center",
+        "button": {
+          "text": "Meet the Team",
+          "url": "#team",
+          "alt": "",
+          "target": ""
+        }
       }
     },
     {
@@ -167,10 +171,14 @@
       "fields": {
         "heading": "Join Us on the Journey",
         "description": "We're always looking for curious, driven people who want to build products that matter. Check out our open positions and find your next adventure.",
-        "button_text": "View Open Roles",
-        "button_url": "/careers",
         "image": "https://picsum.photos/seed/careers-cta/800/600",
-        "image_position": "right"
+        "image_position": "right",
+        "button": {
+          "text": "View Open Roles",
+          "url": "/careers",
+          "alt": "",
+          "target": ""
+        }
       }
     }
   ]

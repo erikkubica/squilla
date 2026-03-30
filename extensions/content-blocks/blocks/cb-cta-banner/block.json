@@ -17,18 +17,6 @@
       "key": "description"
     },
     {
-      "label": "Button Text",
-      "type": "text",
-      "required": true,
-      "key": "button_text"
-    },
-    {
-      "label": "Button URL",
-      "type": "text",
-      "required": true,
-      "key": "button_url"
-    },
-    {
       "label": "Background Image",
       "type": "image",
       "required": false,
@@ -44,14 +32,23 @@
       ],
       "default": "accent",
       "key": "style"
+    },
+    {
+      "key": "button",
+      "label": "Button",
+      "type": "link"
     }
   ],
   "test_data": {
     "heading": "Ready to Get Started?",
     "description": "Join thousands of creators who trust VibeCMS to power their websites. Start building something amazing today.",
-    "button_text": "Start Free Trial",
-    "button_url": "/signup",
     "background_image": "",
-    "style": "accent"
+    "style": "accent",
+    "button": {
+      "text": "Start Free Trial",
+      "url": "/signup",
+      "alt": "",
+      "target": ""
+    }
   }
 }
