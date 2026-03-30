@@ -488,7 +488,7 @@ func (s *ContentService) CreateTranslation(sourceID int, targetLangCode string) 
 		NodeType:           source.NodeType,
 		BlocksData:         source.BlocksData,
 		FieldsData:         source.FieldsData,
-		SeoSettings:        source.SeoSettings,
+		SeoSettings:        models.JSONB("{}"),
 		Status:             "draft",
 		LanguageCode:       targetLangCode,
 		ParentID:           source.ParentID,

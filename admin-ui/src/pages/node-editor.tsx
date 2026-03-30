@@ -35,6 +35,7 @@ import {
   Star,
   Heart,
   ExternalLink,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -179,6 +180,11 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
 
+  // SEO
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [seoOpen, setSeoOpen] = useState(false);
+
   // Homepage
   const [homepageId, setHomepageId] = useState<number | null>(null);
 
@@ -231,6 +237,10 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
         setLanguageCode(node.language_code || "en");
         setLayoutId(node.layout_id ? String(node.layout_id) : "");
         setParentId(node.parent_id ? String(node.parent_id) : "");
+        // SEO
+        const seo = (node.seo_settings || {}) as Record<string, string>;
+        setSeoTitle(seo.meta_title || "");
+        setSeoDescription(seo.meta_description || "");
         // Parse blocks_data into typed blocks
         const rawBlocks = (node.blocks_data ?? []) as unknown as BlockData[];
         const parsedBlocks: BlockData[] = rawBlocks.map((b) => ({
@@ -488,6 +498,10 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
       layout_id: layoutId ? Number(layoutId) : null,
       blocks_data: blocks as unknown as Record<string, unknown>[],
       fields_data: fieldsData,
+      seo_settings: {
+        meta_title: seoTitle,
+        meta_description: seoDescription,
+      },
     };
 
     setSaving(true);
@@ -974,6 +988,72 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                 </>
               )}
             </CardContent>
+          </Card>
+
+          {/* SEO Settings */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between p-4 text-left"
+              onClick={() => setSeoOpen(!seoOpen)}
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-semibold text-slate-900">SEO</span>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-slate-400 transition-transform ${
+                  seoOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {seoOpen && (
+              <CardContent className="space-y-3 px-4 pb-4 pt-0">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-slate-500">
+                    Meta Title
+                  </Label>
+                  <Input
+                    placeholder={title || "Page title"}
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    className="h-9 rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    {seoTitle.length || 0}/60 — Leave empty to use page title
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-slate-500">
+                    Meta Description
+                  </Label>
+                  <Textarea
+                    placeholder="Brief description for search engines..."
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    rows={3}
+                    className="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    {seoDescription.length || 0}/160 recommended
+                  </p>
+                </div>
+                {/* Preview */}
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[11px] text-slate-400 mb-1">Search preview</p>
+                  <p className="text-sm font-medium text-indigo-700 truncate">
+                    {seoTitle || title || "Page Title"}
+                  </p>
+                  <p className="text-xs text-emerald-700 truncate">
+                    {typeof window !== "undefined" ? window.location.origin : ""}
+                    {originalNode?.full_url || "/"}
+                  </p>
+                  <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">
+                    {seoDescription || "No description set. Search engines will use page content."}
+                  </p>
+                </div>
+              </CardContent>
+            )}
           </Card>
 
           {/* Translations (edit mode) */}

@@ -513,13 +513,13 @@ export default function MediaLibrary() {
               className="pl-9 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
             />
           </div>
-          <div className="flex items-center border border-slate-200 rounded-lg p-0.5 shrink-0">
+          <div className="flex items-center gap-1 border border-slate-200 rounded-lg p-1 shrink-0 bg-slate-50">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-md transition-colors ${
+              className={`p-2 rounded-md transition-colors ${
                 viewMode === "grid"
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "text-slate-400 hover:text-slate-600"
+                  ? "bg-white text-indigo-700 shadow-sm border border-slate-200"
+                  : "text-slate-400 hover:text-slate-600 border border-transparent"
               }`}
               title="Grid view"
             >
@@ -527,10 +527,10 @@ export default function MediaLibrary() {
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`p-1.5 rounded-md transition-colors ${
+              className={`p-2 rounded-md transition-colors ${
                 viewMode === "table"
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "text-slate-400 hover:text-slate-600"
+                  ? "bg-white text-indigo-700 shadow-sm border border-slate-200"
+                  : "text-slate-400 hover:text-slate-600 border border-transparent"
               }`}
               title="Table view"
             >
