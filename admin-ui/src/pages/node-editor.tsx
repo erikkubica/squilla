@@ -677,9 +677,12 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                     className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden"
                   >
                     {/* Block header */}
-                    <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 border-b border-slate-200">
+                    <div
+                      className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 border-b border-slate-200 cursor-pointer select-none"
+                      onClick={() => toggleBlockCollapse(index)}
+                    >
                       {/* Move buttons */}
-                      <div className="flex flex-col gap-0">
+                      <div className="flex flex-col gap-0" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => moveBlock(index, "up")}
@@ -699,11 +702,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                       </div>
 
                       {/* Collapse toggle + label */}
-                      <button
-                        type="button"
-                        onClick={() => toggleBlockCollapse(index)}
-                        className="flex flex-1 items-center gap-2 text-left"
-                      >
+                      <div className="flex flex-1 items-center gap-2">
                         <ChevronRight
                           className={`h-4 w-4 text-slate-400 transition-transform ${
                             !isCollapsed ? "rotate-90" : ""
@@ -714,7 +713,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                           {getBlockLabel(block.type)}
                         </span>
                         <span className="text-xs text-slate-400 font-mono">{block.type}</span>
-                      </button>
+                      </div>
 
                       {/* Delete block */}
                       <Button
@@ -722,7 +721,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-red-400 hover:text-red-600"
-                        onClick={() => removeBlock(index)}
+                        onClick={(e) => { e.stopPropagation(); removeBlock(index); }}
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>
