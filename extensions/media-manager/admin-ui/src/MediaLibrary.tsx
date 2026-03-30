@@ -502,62 +502,68 @@ export default function MediaLibrary() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="Search media files..."
-            value={search}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-            className="pl-9 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-          />
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              placeholder="Search media files..."
+              value={search}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              className="pl-9 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+            />
+          </div>
+          <div className="flex items-center border border-slate-200 rounded-lg p-0.5 shrink-0">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === "grid"
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+              title="Grid view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === "table"
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+              title="Table view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <Select value={mimeFilter} onValueChange={setMimeFilter}>
-          <SelectTrigger className="w-full rounded-lg border-slate-300 sm:w-36">
-            <SelectValue placeholder="File type" />
-          </SelectTrigger>
-          <SelectContent>
-            {MIME_FILTERS.map((f) => (
-              <SelectItem key={f.value} value={f.value}>
-                {f.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full rounded-lg border-slate-300 sm:w-40">
-            <ArrowUpDown className="mr-2 h-3.5 w-3.5 text-slate-400" />
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-1 border border-slate-200 rounded-lg p-0.5">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-1.5 rounded-md transition-colors ${
-              viewMode === "grid"
-                ? "bg-indigo-100 text-indigo-700"
-                : "text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setViewMode("table")}
-            className={`p-1.5 rounded-md transition-colors ${
-              viewMode === "table"
-                ? "bg-indigo-100 text-indigo-700"
-                : "text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            <List className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-2">
+          <Select value={mimeFilter} onValueChange={setMimeFilter}>
+            <SelectTrigger className="w-32 rounded-lg border-slate-300 text-xs h-8">
+              <SelectValue placeholder="File type" />
+            </SelectTrigger>
+            <SelectContent>
+              {MIME_FILTERS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-36 rounded-lg border-slate-300 text-xs h-8">
+              <ArrowUpDown className="mr-1.5 h-3 w-3 text-slate-400" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -705,6 +711,43 @@ export default function MediaLibrary() {
                               <Check className="h-3 w-3 text-white" />
                             </div>
                           )}
+                          {/* Hover actions */}
+                          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 pt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              className="flex h-6 w-6 items-center justify-center rounded bg-white/90 text-slate-700 hover:bg-white shadow-sm"
+                              title="Copy URL"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const fullUrl = window.location.origin + file.url;
+                                navigator.clipboard.writeText(fullUrl).then(() => {
+                                  toast.success("URL copied");
+                                });
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                            <a
+                              href={file.url}
+                              download={file.original_name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex h-6 w-6 items-center justify-center rounded bg-white/90 text-slate-700 hover:bg-white shadow-sm"
+                              title="Download"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Download className="h-3 w-3" />
+                            </a>
+                            <button
+                              className="flex h-6 w-6 items-center justify-center rounded bg-white/90 text-red-500 hover:bg-red-50 shadow-sm"
+                              title="Delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget(file);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Info */}
@@ -954,8 +997,10 @@ export default function MediaLibrary() {
           )}
         </div>
 
-        {/* Detail panel */}
+        {/* Detail panel — sidebar on lg, dialog on smaller */}
         {selected && (
+          <>
+          {/* Desktop sidebar */}
           <div className="hidden w-80 shrink-0 lg:block">
             <Card className="rounded-xl border border-slate-200 shadow-sm sticky top-0">
               <CardContent className="p-4 space-y-4">
@@ -1115,6 +1160,66 @@ export default function MediaLibrary() {
               </CardContent>
             </Card>
           </div>
+          {/* Mobile/tablet dialog */}
+          <Dialog open={true} onOpenChange={(open: boolean) => { if (!open) setSelected(null); }}>
+            <DialogContent className="lg:hidden max-w-md max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-sm">File Details</DialogTitle>
+              </DialogHeader>
+              {/* Preview */}
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                {isImage(selected.mime_type) ? (
+                  <img src={selected.url} alt={selected.alt || selected.original_name} className="w-full object-contain max-h-48" />
+                ) : isVideo(selected.mime_type) ? (
+                  <video src={selected.url} controls className="w-full max-h-48" />
+                ) : isAudio(selected.mime_type) ? (
+                  <div className="p-4"><audio src={selected.url} controls className="w-full" /></div>
+                ) : (
+                  <div className="flex h-24 flex-col items-center justify-center gap-2">
+                    <FileIcon mime={selected.mime_type} className="h-10 w-10 text-slate-400" />
+                    <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-500">{getFileExtension(selected.original_name)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <div><span className="text-slate-500">Type</span><p className="font-medium text-slate-800">{mimeLabel(selected.mime_type)}</p></div>
+                  <div><span className="text-slate-500">Size</span><p className="font-medium text-slate-800">{humanFileSize(selected.size)}</p></div>
+                </div>
+                {selected.width && selected.height && (
+                  <div><span className="text-slate-500">Dimensions</span><p className="font-medium text-slate-800">{selected.width} × {selected.height}</p></div>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500">File Name</Label>
+                <Input value={editName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)} className="rounded-lg border-slate-300 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500">Alt Text</Label>
+                <Input placeholder="Describe this file..." value={editAlt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAlt(e.target.value)} className="rounded-lg border-slate-300 text-sm" />
+              </div>
+              {hasDetailChanges && (
+                <Button size="sm" onClick={handleSaveDetail} disabled={savingDetail} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+                  {savingDetail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Pencil className="mr-2 h-4 w-4" />}
+                  {savingDetail ? "Saving..." : "Save Changes"}
+                </Button>
+              )}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1 rounded-lg text-xs" onClick={handleCopyUrl}>
+                  {copied ? <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-500" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+                  {copied ? "Copied" : "Copy URL"}
+                </Button>
+                <a href={selected.url} download={selected.original_name} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                  <Download className="mr-1.5 h-3.5 w-3.5" />Download
+                </a>
+              </div>
+              <Button variant="outline" size="sm" className="w-full rounded-lg text-xs text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200" onClick={() => setDeleteTarget(selected)}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete File
+              </Button>
+            </DialogContent>
+          </Dialog>
+          </>
         )}
       </div>
 
