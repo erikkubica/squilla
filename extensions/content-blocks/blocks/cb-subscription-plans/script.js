@@ -7,6 +7,8 @@
     var periods = block.querySelectorAll(".vb-cb-subscription-plans__period");
     var isYearly = false;
 
+    if (!toggle || !monthlyLabel || !yearlyLabel) return;
+
     function updatePrices() {
       var key = isYearly ? "yearly" : "monthly";
 
@@ -29,11 +31,9 @@
       }
     }
 
-    if (toggle) {
-      toggle.addEventListener("click", function () {
-        isYearly = !isYearly;
-        updatePrices();
-      });
-    }
+    toggle.addEventListener("click", function () {
+      isYearly = !isYearly;
+      updatePrices();
+    });
   });
 })();

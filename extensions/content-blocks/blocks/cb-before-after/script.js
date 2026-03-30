@@ -5,6 +5,8 @@
 
     var beforeLayer = wrapper.querySelector(".vb-cb-before-after__before");
     var handle = wrapper.querySelector(".vb-cb-before-after__handle");
+    if (!beforeLayer || !handle) return;
+
     var dragging = false;
 
     function getPosition(e) {

@@ -1,12 +1,16 @@
 (function () {
   document.querySelectorAll('[data-block="cb-contact-form"]').forEach(function (block) {
     var form = block.querySelector(".vb-cb-contact-form__form");
+    if (!form) return;
+
     var actionUrl = block.getAttribute("data-action");
     var successMsg = block.getAttribute("data-success") || "Thank you!";
     var submitBtn = form.querySelector(".vb-cb-contact-form__button");
     var btnText = form.querySelector(".vb-cb-contact-form__button-text");
     var btnSpinner = form.querySelector(".vb-cb-contact-form__button-spinner");
     var feedback = form.querySelector(".vb-cb-contact-form__feedback");
+
+    if (!submitBtn || !btnText || !btnSpinner || !feedback) return;
 
     function validateEmail(email) {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

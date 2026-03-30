@@ -7,11 +7,7 @@
     var spinner = block.querySelector(".vb-cb-search__spinner");
     var debounceTimer = null;
 
-    function escapeHtml(str) {
-      var div = document.createElement("div");
-      div.appendChild(document.createTextNode(str));
-      return div.innerHTML;
-    }
+    if (!input || !results || !spinner) return;
 
     function renderResults(nodes, query) {
       while (results.firstChild) results.removeChild(results.firstChild);
@@ -48,6 +44,15 @@
       results.style.display = "block";
     }
 
+    function showMessage(msg) {
+      while (results.firstChild) results.removeChild(results.firstChild);
+      var el = document.createElement("div");
+      el.className = "vb-cb-search__no-results";
+      el.textContent = msg;
+      results.appendChild(el);
+      results.style.display = "block";
+    }
+
     input.addEventListener("input", function () {
       clearTimeout(debounceTimer);
       var query = input.value.trim();
@@ -63,7 +68,7 @@
 
       debounceTimer = setTimeout(function () {
         fetch(
-          "/api/v1/nodes?type=" +
+          "/admin/api/nodes?type=" +
             encodeURIComponent(nodeType) +
             "&search=" +
             encodeURIComponent(query) +
@@ -71,20 +76,26 @@
             limit
         )
           .then(function (res) {
+            if (res.status === 401 || res.status === 403) {
+              spinner.style.display = "none";
+              showMessage("Sign in to preview dynamic content.");
+              return null;
+            }
+            if (!res.ok) {
+              spinner.style.display = "none";
+              showMessage("Search unavailable. Please try again.");
+              return null;
+            }
             return res.json();
           })
           .then(function (json) {
+            if (!json) return;
             spinner.style.display = "none";
             renderResults(json.data || [], query);
           })
           .catch(function () {
             spinner.style.display = "none";
-            while (results.firstChild) results.removeChild(results.firstChild);
-            var err = document.createElement("div");
-            err.className = "vb-cb-search__no-results";
-            err.textContent = "Search unavailable. Please try again.";
-            results.appendChild(err);
-            results.style.display = "block";
+            showMessage("Search unavailable. Please try again.");
           });
       }, 300);
     });

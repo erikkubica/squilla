@@ -5,6 +5,8 @@
     var showImage = block.getAttribute("data-show-image") === "true";
     var track = block.querySelector(".vb-cb-related-content__track");
 
+    if (!track) return;
+
     /* Drag-to-scroll for mouse users */
     var isDragging = false;
     var startX = 0;
@@ -76,25 +78,39 @@
       return a;
     }
 
+    function showMessage(msg) {
+      while (track.firstChild) track.removeChild(track.firstChild);
+      var p = document.createElement("p");
+      p.style.color = "var(--color-text-muted)";
+      p.textContent = msg;
+      track.appendChild(p);
+    }
+
     fetch(
-      "/api/v1/nodes?type=" +
+      "/admin/api/nodes?type=" +
         encodeURIComponent(nodeType) +
         "&limit=" +
         count +
         "&status=published&sort=-published_at"
     )
       .then(function (res) {
+        if (res.status === 401 || res.status === 403) {
+          showMessage("Sign in to preview dynamic content.");
+          return null;
+        }
+        if (!res.ok) {
+          showMessage("Unable to load related content.");
+          return null;
+        }
         return res.json();
       })
       .then(function (json) {
+        if (!json) return;
         var nodes = json.data || [];
         while (track.firstChild) track.removeChild(track.firstChild);
 
         if (nodes.length === 0) {
-          var empty = document.createElement("p");
-          empty.style.color = "var(--color-text-muted)";
-          empty.textContent = "No related content found.";
-          track.appendChild(empty);
+          showMessage("No related content found.");
           return;
         }
 
@@ -103,11 +119,7 @@
         });
       })
       .catch(function () {
-        while (track.firstChild) track.removeChild(track.firstChild);
-        var err = document.createElement("p");
-        err.style.color = "var(--color-text-muted)";
-        err.textContent = "Unable to load related content.";
-        track.appendChild(err);
+        showMessage("Unable to load related content.");
       });
   });
 })();

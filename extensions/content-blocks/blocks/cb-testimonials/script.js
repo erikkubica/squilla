@@ -22,12 +22,14 @@
     });
 
     // Build dots
-    for (var i = 0; i < total; i++) {
-      var dot = document.createElement('button');
-      dot.className = 'vb-testimonials__dot' + (i === 0 ? ' vb-testimonials__dot--active' : '');
-      dot.setAttribute('aria-label', 'Go to testimonial ' + (i + 1));
-      dot.setAttribute('data-index', String(i));
-      dotsContainer.appendChild(dot);
+    if (dotsContainer) {
+      for (var i = 0; i < total; i++) {
+        var dot = document.createElement('button');
+        dot.className = 'vb-testimonials__dot' + (i === 0 ? ' vb-testimonials__dot--active' : '');
+        dot.setAttribute('aria-label', 'Go to testimonial ' + (i + 1));
+        dot.setAttribute('data-index', String(i));
+        dotsContainer.appendChild(dot);
+      }
     }
 
     function goTo(index) {
@@ -39,17 +41,25 @@
         slides[i].style.transform = 'translateX(' + (-current * 100) + '%)';
       }
 
-      var dots = dotsContainer.querySelectorAll('.vb-testimonials__dot');
-      for (var i = 0; i < dots.length; i++) {
-        dots[i].classList.toggle('vb-testimonials__dot--active', i === current);
+      if (dotsContainer) {
+        var dots = dotsContainer.querySelectorAll('.vb-testimonials__dot');
+        for (var i = 0; i < dots.length; i++) {
+          dots[i].classList.toggle('vb-testimonials__dot--active', i === current);
+        }
       }
     }
 
-    prevBtn.addEventListener('click', function () { goTo(current - 1); });
-    nextBtn.addEventListener('click', function () { goTo(current + 1); });
-    dotsContainer.addEventListener('click', function (e) {
-      var idx = e.target.getAttribute('data-index');
-      if (idx !== null) goTo(parseInt(idx, 10));
-    });
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function () { goTo(current - 1); });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function () { goTo(current + 1); });
+    }
+    if (dotsContainer) {
+      dotsContainer.addEventListener('click', function (e) {
+        var idx = e.target.getAttribute('data-index');
+        if (idx !== null) goTo(parseInt(idx, 10));
+      });
+    }
   });
 })();

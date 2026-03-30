@@ -16,6 +16,7 @@
     }
 
     function goTo(index) {
+      if (!slides[current] || !dots[current]) return;
       slides[current].classList.remove("vb-cb-slider__slide--active");
       dots[current].classList.remove("vb-cb-slider__dot--active");
       current = (index + total) % total;
@@ -44,17 +45,21 @@
       }
     }
 
-    nextBtn.addEventListener("click", function () {
-      stopAutoplay();
-      next();
-      startAutoplay();
-    });
+    if (nextBtn) {
+      nextBtn.addEventListener("click", function () {
+        stopAutoplay();
+        next();
+        startAutoplay();
+      });
+    }
 
-    prevBtn.addEventListener("click", function () {
-      stopAutoplay();
-      prev();
-      startAutoplay();
-    });
+    if (prevBtn) {
+      prevBtn.addEventListener("click", function () {
+        stopAutoplay();
+        prev();
+        startAutoplay();
+      });
+    }
 
     dots.forEach(function (dot) {
       dot.addEventListener("click", function () {

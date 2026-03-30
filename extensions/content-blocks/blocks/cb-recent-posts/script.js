@@ -8,6 +8,8 @@
     var linkText = block.getAttribute("data-link-text") || "Read More";
     var container = block.querySelector(".vb-cb-recent-posts__container");
 
+    if (!container) return;
+
     function formatDate(dateStr) {
       if (!dateStr) return "";
       var d = new Date(dateStr);
@@ -65,26 +67,40 @@
       return card;
     }
 
+    function showMessage(msg) {
+      while (container.firstChild) container.removeChild(container.firstChild);
+      var p = document.createElement("p");
+      p.style.textAlign = "center";
+      p.style.color = "var(--color-text-muted)";
+      p.textContent = msg;
+      container.appendChild(p);
+    }
+
     fetch(
-      "/api/v1/nodes?type=" +
+      "/admin/api/nodes?type=" +
         encodeURIComponent(nodeType) +
         "&limit=" +
         count +
         "&status=published&sort=-published_at"
     )
       .then(function (res) {
+        if (res.status === 401 || res.status === 403) {
+          showMessage("Sign in to preview dynamic content.");
+          return null;
+        }
+        if (!res.ok) {
+          showMessage("Unable to load posts. Please refresh the page.");
+          return null;
+        }
         return res.json();
       })
       .then(function (json) {
+        if (!json) return;
         var nodes = json.data || [];
         while (container.firstChild) container.removeChild(container.firstChild);
 
         if (nodes.length === 0) {
-          var empty = document.createElement("p");
-          empty.style.textAlign = "center";
-          empty.style.color = "var(--color-text-muted)";
-          empty.textContent = "No posts found.";
-          container.appendChild(empty);
+          showMessage("No posts found.");
           return;
         }
 
@@ -93,12 +109,7 @@
         });
       })
       .catch(function () {
-        while (container.firstChild) container.removeChild(container.firstChild);
-        var err = document.createElement("p");
-        err.style.textAlign = "center";
-        err.style.color = "var(--color-text-muted)";
-        err.textContent = "Unable to load posts. Please refresh the page.";
-        container.appendChild(err);
+        showMessage("Unable to load posts. Please refresh the page.");
       });
   });
 })();
