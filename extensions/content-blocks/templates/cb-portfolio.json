@@ -6,7 +6,7 @@
       "type": "hero",
       "fields": {
         "heading": "Our Work",
-        "subheading": "A selection of projects that showcase our craft \u2014 from early-stage startups to Fortune 500 enterprises.",
+        "subheading": "A selection of projects that showcase our craft — from early-stage startups to Fortune 500 enterprises.",
         "background_image": "https://picsum.photos/seed/portfolio-hero/1600/800",
         "alignment": "center",
         "button": {
@@ -25,47 +25,47 @@
         "images": [
           {
             "image": "https://picsum.photos/seed/project-fintech/600/450",
-            "caption": "Meridian \u2014 Fintech Dashboard Redesign",
+            "caption": "Meridian — Fintech Dashboard Redesign",
             "link": "/portfolio/meridian"
           },
           {
             "image": "https://picsum.photos/seed/project-health/600/450",
-            "caption": "VitaTrack \u2014 Healthcare Patient Portal",
+            "caption": "VitaTrack — Healthcare Patient Portal",
             "link": "/portfolio/vitatrack"
           },
           {
             "image": "https://picsum.photos/seed/project-ecommerce/600/450",
-            "caption": "Threadline \u2014 E-Commerce Platform",
+            "caption": "Threadline — E-Commerce Platform",
             "link": "/portfolio/threadline"
           },
           {
             "image": "https://picsum.photos/seed/project-logistics/600/450",
-            "caption": "TerraLogistics \u2014 Fleet Management System",
+            "caption": "TerraLogistics — Fleet Management System",
             "link": "/portfolio/terralogistics"
           },
           {
             "image": "https://picsum.photos/seed/project-education/600/450",
-            "caption": "LearnPath \u2014 EdTech Learning Platform",
+            "caption": "LearnPath — EdTech Learning Platform",
             "link": "/portfolio/learnpath"
           },
           {
             "image": "https://picsum.photos/seed/project-saas/600/450",
-            "caption": "CloudPulse \u2014 SaaS Monitoring Dashboard",
+            "caption": "CloudPulse — SaaS Monitoring Dashboard",
             "link": "/portfolio/cloudpulse"
           },
           {
             "image": "https://picsum.photos/seed/project-realestate/600/450",
-            "caption": "HomeScope \u2014 Real Estate Search App",
+            "caption": "HomeScope — Real Estate Search App",
             "link": "/portfolio/homescope"
           },
           {
             "image": "https://picsum.photos/seed/project-media/600/450",
-            "caption": "StreamCast \u2014 Media Streaming Platform",
+            "caption": "StreamCast — Media Streaming Platform",
             "link": "/portfolio/streamcast"
           },
           {
             "image": "https://picsum.photos/seed/project-nonprofit/600/450",
-            "caption": "GreenBridge \u2014 Nonprofit Donation Platform",
+            "caption": "GreenBridge — Nonprofit Donation Platform",
             "link": "/portfolio/greenbridge"
           }
         ]
@@ -77,14 +77,14 @@
         "heading": "Project Impact",
         "stats": [
           {
-            "icon": "trending-up",
+            "icon": "📈",
             "number": 340,
             "label": "Projects Shipped",
             "prefix": "",
             "suffix": "+"
           },
           {
-            "icon": "award",
+            "icon": "🏆",
             "number": 12,
             "label": "Design Awards",
             "prefix": "",

@@ -36,7 +36,7 @@
             "link_url": "/services/digital-strategy"
           },
           {
-            "icon": "code",
+            "icon": "💻",
             "title": "Custom Development",
             "description": "Scalable web and mobile applications built with modern frameworks and cloud-native architecture.",
             "category": "Engineering",
@@ -44,7 +44,7 @@
             "link_url": "/services/development"
           },
           {
-            "icon": "palette",
+            "icon": "🎨",
             "title": "UX & Design",
             "description": "User-centered design that balances aesthetics with usability, backed by research and testing.",
             "category": "Design",
@@ -52,7 +52,7 @@
             "link_url": "/services/design"
           },
           {
-            "icon": "cloud",
+            "icon": "☁️",
             "title": "Cloud Infrastructure",
             "description": "Reliable, secure cloud environments with automated deployments, monitoring, and cost optimization.",
             "category": "Engineering",
@@ -68,7 +68,7 @@
             "link_url": "/services/analytics"
           },
           {
-            "icon": "shield",
+            "icon": "🛡️",
             "title": "Security & Compliance",
             "description": "Protect your digital assets with penetration testing, audit preparation, and ongoing vulnerability management.",
             "category": "Security",
@@ -139,28 +139,28 @@
         "heading": "By the Numbers",
         "stats": [
           {
-            "icon": "briefcase",
+            "icon": "💼",
             "number": 340,
             "label": "Projects Delivered",
             "prefix": "",
             "suffix": "+"
           },
           {
-            "icon": "users",
+            "icon": "👥",
             "number": 98,
             "label": "Client Retention",
             "prefix": "",
             "suffix": "%"
           },
           {
-            "icon": "clock",
+            "icon": "🕐",
             "number": 12,
             "label": "Years in Business",
             "prefix": "",
             "suffix": ""
           },
           {
-            "icon": "globe",
+            "icon": "🌍",
             "number": 28,
             "label": "Countries Served",
             "prefix": "",
@@ -176,7 +176,7 @@
         "heading": "What Our Clients Say",
         "testimonials": [
           {
-            "quote": "They didn't just build our platform \u2014 they fundamentally changed how we think about technology as a competitive advantage.",
+            "quote": "They didn't just build our platform — they fundamentally changed how we think about technology as a competitive advantage.",
             "author_name": "Sarah Chen",
             "author_role": "CTO, Meridian Health",
             "avatar": "https://picsum.photos/seed/avatar-sarah/200/200",
@@ -203,7 +203,7 @@
       "type": "cb-cta-banner",
       "fields": {
         "heading": "Ready to Transform Your Business?",
-        "description": "Schedule a free 30-minute consultation with one of our senior strategists. No commitment, no sales pitch \u2014 just honest advice.",
+        "description": "Schedule a free 30-minute consultation with one of our senior strategists. No commitment, no sales pitch — just honest advice.",
         "background_image": "https://picsum.photos/seed/cta-services/1600/600",
         "style": "dark",
         "button": {

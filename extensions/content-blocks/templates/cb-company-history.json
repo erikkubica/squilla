@@ -21,7 +21,7 @@
       "type": "cb-paragraph",
       "fields": {
         "heading": "What Drives Us",
-        "body": "<p>Founded in 2010 by two engineers who believed technology should empower people \u2014 not complicate their lives \u2014 Apex Digital has grown into one of the most trusted names in enterprise software. We remain privately held, fiercely independent, and obsessively focused on building products our customers actually enjoy using.</p>",
+        "body": "<p>Founded in 2010 by two engineers who believed technology should empower people — not complicate their lives — Apex Digital has grown into one of the most trusted names in enterprise software. We remain privately held, fiercely independent, and obsessively focused on building products our customers actually enjoy using.</p>",
         "max_width": "narrow"
       }
     },
@@ -88,14 +88,14 @@
         "heading": "Apex Digital Today",
         "stats": [
           {
-            "icon": "users",
+            "icon": "👥",
             "number": 200,
             "label": "Team Members",
             "prefix": "",
             "suffix": "+"
           },
           {
-            "icon": "globe",
+            "icon": "🌍",
             "number": 28,
             "label": "Countries",
             "prefix": "",
@@ -109,7 +109,7 @@
             "suffix": ""
           },
           {
-            "icon": "heart",
+            "icon": "❤️",
             "number": 100,
             "label": "Thousands of Users",
             "prefix": "",
