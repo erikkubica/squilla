@@ -443,6 +443,31 @@ export default function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Clear cache */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              onClick={handleClearCache}
+              disabled={clearingCache}
+            >
+              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${clearingCache ? "animate-spin" : ""}`} />
+              {clearingCache ? "Clearing..." : "Clear Cache"}
+            </Button>
+
+            {/* Visit site */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              asChild
+            >
+              <a href="/" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                Visit Site
+              </a>
+            </Button>
+
             {/* Language picker */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -474,29 +499,6 @@ export default function AdminLayout() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Clear cache */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-slate-400 hover:text-slate-600"
-              onClick={handleClearCache}
-              disabled={clearingCache}
-              title="Clear cache"
-            >
-              <RefreshCw className={`h-4 w-4 ${clearingCache ? "animate-spin" : ""}`} />
-            </Button>
-
-            {/* Visit site */}
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:text-slate-600 hover:bg-accent transition-colors"
-              title="Visit site"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
