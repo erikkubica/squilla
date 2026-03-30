@@ -9,18 +9,20 @@ import (
 
 	"vibecms/internal/api"
 	"vibecms/internal/auth"
+	"vibecms/internal/events"
 	"vibecms/internal/models"
 )
 
 // NodeHandler provides HTTP handlers for content node CRUD operations.
 type NodeHandler struct {
-	svc *ContentService
-	db  *gorm.DB
+	svc      *ContentService
+	db       *gorm.DB
+	eventBus *events.EventBus
 }
 
 // NewNodeHandler creates a new NodeHandler with the given ContentService.
-func NewNodeHandler(svc *ContentService, db *gorm.DB) *NodeHandler {
-	return &NodeHandler{svc: svc, db: db}
+func NewNodeHandler(svc *ContentService, db *gorm.DB, eventBus *events.EventBus) *NodeHandler {
+	return &NodeHandler{svc: svc, db: db, eventBus: eventBus}
 }
 
 // RegisterRoutes registers all content node routes on the provided router group.
@@ -98,6 +100,12 @@ func (h *NodeHandler) SetHomepage(c *fiber.Ctx) error {
 	)
 	if result.Error != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to set homepage")
+	}
+	if h.eventBus != nil {
+		go h.eventBus.Publish("setting.updated", events.Payload{
+			"key":   "homepage_node_id",
+			"value": id,
+		})
 	}
 	return api.Success(c, fiber.Map{"message": "Homepage set", "node_id": id})
 }

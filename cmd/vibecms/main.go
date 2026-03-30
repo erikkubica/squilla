@@ -99,7 +99,7 @@ func main() {
 	// Handlers.
 	authHandler := auth.NewAuthHandler(database, sessionSvc)
 	userHandler := auth.NewUserHandler(database, eventBus)
-	nodeHandler := cms.NewNodeHandler(contentSvc, database)
+	nodeHandler := cms.NewNodeHandler(contentSvc, database, eventBus)
 	nodeTypeHandler := cms.NewNodeTypeHandler(nodeTypeSvc)
 	langHandler := cms.NewLanguageHandler(langSvc)
 	blockTypeHandler := cms.NewBlockTypeHandler(blockTypeSvc)
