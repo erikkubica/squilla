@@ -105,6 +105,11 @@ export default function EmailTemplateEditor() {
       return;
     }
 
+    if (!formSubject.trim()) {
+      toast.error("Subject template is required");
+      return;
+    }
+
     let testData: Record<string, any> = {};
     try {
       testData = JSON.parse(formTestData);

@@ -31,6 +31,10 @@ import {
   Star,
   Heart,
   Puzzle,
+  Mail,
+  ScrollText,
+  Gavel,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,11 +47,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
+import { getNodeAccess } from "@/api/client";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
 import { useExtensions } from "@/hooks/use-extensions";
 import { getNodeTypes, type NodeType } from "@/api/client";
 
-const iconMap: Record<string, LucideIcon> = {
+const iconMapRaw: Record<string, LucideIcon> = {
   "file-text": FileText,
   "newspaper": Newspaper,
   "shopping-bag": ShoppingBag,
@@ -60,7 +65,21 @@ const iconMap: Record<string, LucideIcon> = {
   "heart": Heart,
   "boxes": Boxes,
   "image": Image,
+  "mail": Mail,
+  "layout-template": LayoutTemplate,
+  "gavel": Gavel,
+  "scroll-text": ScrollText,
+  "settings": Settings,
+  "send": Send,
+  "puzzle": Puzzle,
 };
+
+// Case-insensitive lookup: extensions can use "Mail", "mail", or "mail" and it works.
+const iconMap = new Proxy(iconMapRaw, {
+  get(target, prop: string) {
+    return target[prop] || target[prop.toLowerCase()] || target[prop.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()];
+  },
+});
 
 interface NavItem {
   to: string;
@@ -81,10 +100,14 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
   return "children" in entry;
 }
 
-const staticNavTop: NavItem[] = [
+const staticNavTopBase: NavItem[] = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/pages", label: "Pages", icon: FileText },
-  { to: "/admin/posts", label: "Posts", icon: Newspaper },
+];
+
+// Pages/Posts entries with their node type slugs for access filtering.
+const nodeTypeNavItems: (NavItem & { nodeType: string })[] = [
+  { to: "/admin/pages", label: "Pages", icon: FileText, nodeType: "page" },
+  { to: "/admin/posts", label: "Posts", icon: Newspaper, nodeType: "post" },
 ];
 
 const staticNavBottom: NavEntry[] = [
@@ -171,11 +194,19 @@ export default function AdminLayout() {
     }
   }, [location.pathname]);
 
-  const customNavItems: NavItem[] = customTypes.map((t) => ({
-    to: `/admin/content/${t.slug}`,
-    label: t.label,
-    icon: iconMap[t.icon] || FileText,
-  }));
+  // Filter node type nav items by access.
+  const visibleNodeTypeItems = nodeTypeNavItems.filter(
+    (item) => getNodeAccess(user, item.nodeType).access !== "none"
+  );
+  const staticNavTop: NavItem[] = [...staticNavTopBase, ...visibleNodeTypeItems];
+
+  const customNavItems: NavItem[] = customTypes
+    .filter((t) => getNodeAccess(user, t.slug).access !== "none")
+    .map((t) => ({
+      to: `/admin/content/${t.slug}`,
+      label: t.label,
+      icon: iconMap[t.icon] || FileText,
+    }));
 
   const { menus: extensionMenus } = useExtensions();
 
@@ -189,7 +220,7 @@ export default function AdminLayout() {
         children: menu.children.map((child) => ({
           to: child.route.startsWith("/admin") ? child.route : `/admin/ext/${menu.slug}${child.route}`,
           label: child.label,
-          icon: iconMap[menu.icon] || Puzzle,
+          icon: child.icon ? (iconMap[child.icon] || iconMap[menu.icon] || Puzzle) : (iconMap[menu.icon] || Puzzle),
         })),
       } as NavEntry;
     }

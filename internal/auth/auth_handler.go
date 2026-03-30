@@ -125,6 +125,8 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 		"email":         user.Email,
 		"full_name":     user.FullName,
 		"role":          user.Role.Slug,
+		"role_id":       user.RoleID,
+		"capabilities":  ParseCapabilities(user.Role.Capabilities),
 		"last_login_at": user.LastLoginAt,
 	})
 }

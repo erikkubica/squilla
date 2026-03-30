@@ -1,12 +1,11 @@
 import { Suspense } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useExtensions } from "@/hooks/use-extensions";
 import { ExtensionErrorBoundary } from "@/components/extension-error-boundary";
 
 export function ExtensionPageLoader() {
   const { slug } = useParams<{ slug: string }>();
-  const location = useLocation();
   const { loaded, loading } = useExtensions();
 
   if (loading || !slug) {
@@ -30,38 +29,33 @@ export function ExtensionPageLoader() {
   const adminUI = ext.entry.manifest.admin_ui;
   if (!adminUI?.routes) return null;
 
-  // Extract the path after /admin/ext/:slug
-  const basePath = `/admin/ext/${slug}`;
-  let subPath = location.pathname.startsWith(basePath)
-    ? location.pathname.slice(basePath.length)
-    : "";
-  // Ensure subPath starts with /
-  if (!subPath.startsWith("/")) {
-    subPath = "/" + subPath;
-  }
-  // Normalize: remove trailing slash (except for root /)
-  if (subPath.length > 1 && subPath.endsWith("/")) {
-    subPath = subPath.slice(0, -1);
-  }
-
-  // Find the matching route
-  const matchedRoute = adminUI.routes.find((r) => {
-    const routePath = r.path.replace(/^\/+/, "/"); // normalize
-    // Convert :param patterns to regex
-    const pattern = routePath.replace(/:\w+/g, "[^/]+");
-    return new RegExp(`^${pattern}$`).test(subPath);
-  });
-
-  // Default to first route if no match
-  const componentName = matchedRoute?.component || adminUI.routes[0]?.component;
-  const Component = componentName ? ext.module[componentName] : null;
-  if (!Component) return null;
-
+  // Build nested React Router routes from the extension manifest so that
+  // useParams() inside extension components can access :id and other params.
   return (
     <ExtensionErrorBoundary extensionName={ext.entry.name}>
-      <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>}>
-        <Component />
-      </Suspense>
+      <Routes>
+        {adminUI.routes.map((route) => {
+          const Component = ext.module[route.component];
+          if (!Component) return null;
+          // Normalize path: ensure it starts with /
+          const routePath = route.path.startsWith("/") ? route.path.slice(1) : route.path;
+          return (
+            <Route
+              key={route.path}
+              path={routePath}
+              element={
+                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>}>
+                  <Component />
+                </Suspense>
+              }
+            />
+          );
+        })}
+        {/* Fallback: redirect to the first route */}
+        {adminUI.routes[0] && (
+          <Route path="*" element={<Navigate to={adminUI.routes[0].path.startsWith("/") ? adminUI.routes[0].path.slice(1) : adminUI.routes[0].path} replace />} />
+        )}
+      </Routes>
     </ExtensionErrorBoundary>
   );
 }

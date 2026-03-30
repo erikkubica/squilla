@@ -72,6 +72,7 @@ import {
   updateNode,
   deleteNode,
   setHomepage,
+  getHomepageId,
   getNodeTypes,
   getLanguages,
   getBlockTypes,
@@ -178,6 +179,9 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
 
+  // Homepage
+  const [homepageId, setHomepageId] = useState<number | null>(null);
+
   // Translations
   const [translations, setTranslations] = useState<ContentNode[]>([]);
   const [showCreateTranslation, setShowCreateTranslation] = useState(false);
@@ -192,6 +196,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
     getLanguages(true).then(setLanguages).catch(() => {});
     getBlockTypes().then(setBlockTypes).catch(() => {});
     getTemplates().then(setTemplates).catch(() => {});
+    getHomepageId().then(setHomepageId).catch(() => {});
   }, []);
 
   // Fetch layouts (all — filtering by language happens at render time via cascade)
@@ -524,6 +529,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
     if (!id) return;
     try {
       await setHomepage(id);
+      setHomepageId(Number(id));
       toast.success("Homepage updated successfully");
     } catch {
       toast.error("Failed to set homepage");
@@ -906,15 +912,27 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                   <Separator />
                   <div className="flex gap-2">
                     {nodeType === "page" && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 rounded-lg font-medium h-8 text-xs"
-                        onClick={handleSetHomepage}
-                      >
-                        <Home className="mr-1.5 h-3.5 w-3.5" />
-                        Homepage
-                      </Button>
+                      homepageId === Number(id) ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 bg-emerald-100 text-emerald-800 border-emerald-300 rounded-lg font-medium h-8 text-xs cursor-default"
+                          disabled
+                        >
+                          <Home className="mr-1.5 h-3.5 w-3.5" />
+                          Current Homepage
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 rounded-lg font-medium h-8 text-xs"
+                          onClick={handleSetHomepage}
+                        >
+                          <Home className="mr-1.5 h-3.5 w-3.5" />
+                          Set as Homepage
+                        </Button>
+                      )
                     )}
                     <Button
                       type="button"

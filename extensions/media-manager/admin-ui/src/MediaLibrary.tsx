@@ -12,6 +12,15 @@ import {
   Copy,
   X,
   Check,
+  LayoutGrid,
+  List,
+  Download,
+  Pencil,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ArrowUpDown,
 } from "@vibecms/icons";
 import {
   Button,
@@ -30,6 +39,13 @@ import {
   DialogHeader,
   DialogTitle,
   Label,
+  Badge,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@vibecms/ui";
 import { toast } from "sonner";
 
@@ -54,6 +70,7 @@ interface PaginationMeta {
   total: number;
   page: number;
   per_page: number;
+  total_pages: number;
 }
 
 // ---------- API helpers ----------
@@ -63,20 +80,29 @@ async function fetchMedia(params: {
   per_page: number;
   mime_type?: string;
   search?: string;
-}): Promise<{ data: MediaFile[]; total: number; page: number; per_page: number }> {
+  sort_by?: string;
+}): Promise<{ data: MediaFile[]; meta: PaginationMeta }> {
   const qs = new URLSearchParams();
   qs.set("page", String(params.page));
   qs.set("per_page", String(params.per_page));
   if (params.mime_type) qs.set("mime_type", params.mime_type);
   if (params.search) qs.set("search", params.search);
+  if (params.sort_by) qs.set("sort_by", params.sort_by);
 
   const res = await fetch(`/admin/api/ext/media-manager/?${qs.toString()}`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch media");
   const body = await res.json();
-  // Plugin returns { data, meta: { total, page, per_page } }
-  return { data: body.data, total: body.meta.total, page: body.meta.page, per_page: body.meta.per_page };
+  return {
+    data: body.data,
+    meta: {
+      total: body.meta.total,
+      page: body.meta.page,
+      per_page: body.meta.per_page,
+      total_pages: body.meta.total_pages,
+    },
+  };
 }
 
 async function uploadMediaFile(
@@ -115,12 +141,15 @@ async function uploadMediaFile(
   });
 }
 
-async function updateMediaAlt(id: number, alt: string): Promise<MediaFile> {
+async function updateMedia(
+  id: number,
+  data: { alt?: string; original_name?: string }
+): Promise<MediaFile> {
   const res = await fetch(`/admin/api/ext/media-manager/${id}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ alt }),
+    body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to update");
   const body = await res.json();
@@ -170,13 +199,30 @@ function FileIcon({ mime, className }: { mime: string; className?: string }) {
   return <File className={className} />;
 }
 
-const MIME_FILTERS: { value: string; label: string }[] = [
+function mimeLabel(mime: string): string {
+  const sub = mime.split("/")[1];
+  if (!sub) return mime;
+  return sub.replace(/^x-/, "").toUpperCase();
+}
+
+const MIME_FILTERS = [
   { value: "all", label: "All files" },
   { value: "image", label: "Images" },
   { value: "application", label: "Documents" },
   { value: "video", label: "Videos" },
   { value: "audio", label: "Audio" },
 ];
+
+const SORT_OPTIONS = [
+  { value: "date_desc", label: "Newest first" },
+  { value: "date_asc", label: "Oldest first" },
+  { value: "name_asc", label: "Name A–Z" },
+  { value: "name_desc", label: "Name Z–A" },
+  { value: "size_desc", label: "Largest first" },
+  { value: "size_asc", label: "Smallest first" },
+];
+
+const PER_PAGE_OPTIONS = [24, 48, 96];
 
 // ---------- Component ----------
 
@@ -185,27 +231,34 @@ export default function MediaLibrary() {
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(24);
   const [search, setSearch] = useState("");
   const [searchDebounce, setSearchDebounce] = useState("");
   const [mimeFilter, setMimeFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date_desc");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [selected, setSelected] = useState<MediaFile | null>(null);
+
+  // Bulk selection
+  const [bulkSelected, setBulkSelected] = useState<Set<number>>(new Set());
 
   // Upload
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadQueue, setUploadQueue] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Detail panel
   const [editAlt, setEditAlt] = useState("");
-  const [savingAlt, setSavingAlt] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [savingDetail, setSavingDetail] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<MediaFile | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const perPage = 24;
 
   // Debounce search
   useEffect(() => {
@@ -221,74 +274,100 @@ export default function MediaLibrary() {
         per_page: perPage,
         mime_type: mimeFilter === "all" ? undefined : mimeFilter,
         search: searchDebounce || undefined,
+        sort_by: sortBy,
       });
       setFiles(res.data || []);
-      setMeta({ total: res.total, page: res.page, per_page: res.per_page });
+      setMeta(res.meta);
     } catch {
       toast.error("Failed to load media files");
     } finally {
       setLoading(false);
     }
-  }, [page, mimeFilter, searchDebounce]);
+  }, [page, perPage, mimeFilter, searchDebounce, sortBy]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchDebounce, mimeFilter]);
+    setBulkSelected(new Set());
+  }, [searchDebounce, mimeFilter, sortBy, perPage]);
 
   useEffect(() => {
     fetchFiles();
   }, [fetchFiles]);
 
-  // When selected changes, update alt field
+  // When selected changes, populate edit fields
   useEffect(() => {
     if (selected) {
       setEditAlt(selected.alt || "");
+      setEditName(selected.original_name || "");
       setCopied(false);
     }
   }, [selected]);
 
-  // Upload handler
-  async function handleUpload(file: globalThis.File) {
+  // Upload handler — supports multiple files
+  async function handleUploadFiles(fileList: FileList | globalThis.File[]) {
+    const arr = Array.from(fileList);
+    if (arr.length === 0) return;
     setUploading(true);
-    setUploadProgress(0);
-    try {
-      await uploadMediaFile(file, setUploadProgress);
-      toast.success("File uploaded successfully");
-      fetchFiles();
-    } catch {
-      toast.error("Failed to upload file");
-    } finally {
-      setUploading(false);
+    setUploadQueue(arr.length);
+    let completed = 0;
+
+    for (const file of arr) {
       setUploadProgress(0);
+      try {
+        await uploadMediaFile(file, setUploadProgress);
+        completed++;
+      } catch {
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+
+    setUploading(false);
+    setUploadProgress(0);
+    setUploadQueue(0);
+    if (completed > 0) {
+      toast.success(
+        completed === 1
+          ? "File uploaded successfully"
+          : `${completed} files uploaded successfully`
+      );
+      await fetchFiles();
     }
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) handleUpload(file);
+    const fileList = e.target.files;
+    if (fileList && fileList.length > 0) handleUploadFiles(fileList);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleUpload(file);
+    const fileList = e.dataTransfer.files;
+    if (fileList && fileList.length > 0) handleUploadFiles(fileList);
   }
 
-  // Save alt text
-  async function handleSaveAlt() {
+  // Save detail edits (alt + rename)
+  async function handleSaveDetail() {
     if (!selected) return;
-    setSavingAlt(true);
+    setSavingDetail(true);
     try {
-      const updated = await updateMediaAlt(selected.id, editAlt);
+      const updates: { alt?: string; original_name?: string } = {};
+      if (editAlt !== (selected.alt || "")) updates.alt = editAlt;
+      if (editName !== selected.original_name && editName.trim() !== "")
+        updates.original_name = editName;
+      if (Object.keys(updates).length === 0) {
+        setSavingDetail(false);
+        return;
+      }
+      const updated = await updateMedia(selected.id, updates);
       setSelected(updated);
       setFiles((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
-      toast.success("Alt text updated");
+      toast.success("File updated");
     } catch {
-      toast.error("Failed to update alt text");
+      toast.error("Failed to update file");
     } finally {
-      setSavingAlt(false);
+      setSavingDetail(false);
     }
   }
 
@@ -303,7 +382,7 @@ export default function MediaLibrary() {
     });
   }
 
-  // Delete
+  // Single delete
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -311,8 +390,13 @@ export default function MediaLibrary() {
       await deleteMedia(deleteTarget.id);
       toast.success("File deleted");
       if (selected?.id === deleteTarget.id) setSelected(null);
+      setBulkSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteTarget.id);
+        return next;
+      });
       setDeleteTarget(null);
-      fetchFiles();
+      await fetchFiles();
     } catch {
       toast.error("Failed to delete file");
     } finally {
@@ -320,18 +404,81 @@ export default function MediaLibrary() {
     }
   }
 
+  // Bulk delete
+  async function handleBulkDelete() {
+    setDeleting(true);
+    let deleted = 0;
+    for (const id of bulkSelected) {
+      try {
+        await deleteMedia(id);
+        deleted++;
+      } catch {
+        // continue
+      }
+    }
+    setDeleting(false);
+    setBulkDeleteOpen(false);
+    if (selected && bulkSelected.has(selected.id)) setSelected(null);
+    setBulkSelected(new Set());
+    toast.success(`${deleted} file${deleted !== 1 ? "s" : ""} deleted`);
+    await fetchFiles();
+  }
+
+  // Bulk selection helpers
+  function toggleBulkSelect(id: number) {
+    setBulkSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (bulkSelected.size === files.length) {
+      setBulkSelected(new Set());
+    } else {
+      setBulkSelected(new Set(files.map((f) => f.id)));
+    }
+  }
+
   const totalPages = meta ? Math.ceil(meta.total / meta.per_page) : 0;
+  const hasDetailChanges =
+    selected &&
+    (editAlt !== (selected.alt || "") ||
+      (editName !== selected.original_name && editName.trim() !== ""));
+
+  // Pagination page numbers
+  function getPageNumbers(): (number | "...")[] {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | "...")[] = [1];
+    if (page > 3) pages.push("...");
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+      pages.push(i);
+    }
+    if (page < totalPages - 2) pages.push("...");
+    if (totalPages > 1) pages.push(totalPages);
+    return pages;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Media Library</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Media Library</h1>
+          {meta && (
+            <p className="text-sm text-slate-500 mt-0.5">
+              {meta.total} file{meta.total !== 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
             className="hidden"
+            multiple
             onChange={handleFileInput}
           />
           <Button
@@ -342,7 +489,7 @@ export default function MediaLibrary() {
             {uploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading {uploadProgress}%
+                Uploading{uploadQueue > 1 ? ` (${uploadQueue})` : ""} {uploadProgress}%
               </>
             ) : (
               <>
@@ -354,8 +501,8 @@ export default function MediaLibrary() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
@@ -366,7 +513,7 @@ export default function MediaLibrary() {
           />
         </div>
         <Select value={mimeFilter} onValueChange={setMimeFilter}>
-          <SelectTrigger className="w-full rounded-lg border-slate-300 sm:w-44">
+          <SelectTrigger className="w-full rounded-lg border-slate-300 sm:w-36">
             <SelectValue placeholder="File type" />
           </SelectTrigger>
           <SelectContent>
@@ -377,9 +524,68 @@ export default function MediaLibrary() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-full rounded-lg border-slate-300 sm:w-40">
+            <ArrowUpDown className="mr-2 h-3.5 w-3.5 text-slate-400" />
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1 border border-slate-200 rounded-lg p-0.5">
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === "grid"
+                ? "bg-indigo-100 text-indigo-700"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("table")}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === "table"
+                ? "bg-indigo-100 text-indigo-700"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Upload progress bar */}
+      {/* Bulk actions bar */}
+      {bulkSelected.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2">
+          <span className="text-sm font-medium text-indigo-700">
+            {bulkSelected.size} selected
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-red-600 border-red-200 hover:bg-red-50 rounded-lg text-xs"
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            Delete Selected
+          </Button>
+          <button
+            className="ml-auto text-xs text-indigo-600 hover:underline"
+            onClick={() => setBulkSelected(new Set())}
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
+      {/* Upload progress */}
       {uploading && (
         <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
           <div className="flex items-center gap-3">
@@ -397,15 +603,13 @@ export default function MediaLibrary() {
         </div>
       )}
 
-      {/* Main area: grid + detail panel */}
+      {/* Main area */}
       <div className="flex gap-6">
-        {/* Grid */}
+        {/* Content area */}
         <div className="flex-1 min-w-0">
           <Card
-            className={`rounded-xl border shadow-sm overflow-hidden py-0 gap-0 transition-colors ${
-              dragOver
-                ? "border-indigo-400 bg-indigo-50/50"
-                : "border-slate-200"
+            className={`relative rounded-xl border shadow-sm overflow-hidden py-0 gap-0 transition-colors ${
+              dragOver ? "border-indigo-400 bg-indigo-50/50" : "border-slate-200"
             }`}
             onDragOver={(e: React.DragEvent) => {
               e.preventDefault();
@@ -414,7 +618,7 @@ export default function MediaLibrary() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-0">
               {loading ? (
                 <div className="flex h-64 items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -438,64 +642,214 @@ export default function MediaLibrary() {
                     </Button>
                   )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-                  {files.map((file) => (
-                    <button
-                      key={file.id}
-                      onClick={() =>
-                        setSelected(selected?.id === file.id ? null : file)
-                      }
-                      className={`group relative flex flex-col overflow-hidden rounded-lg border-2 bg-white text-left transition-all hover:shadow-md ${
-                        selected?.id === file.id
-                          ? "border-indigo-500 ring-2 ring-indigo-500/20"
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative aspect-square bg-slate-100 flex items-center justify-center overflow-hidden">
-                        {isImage(file.mime_type) ? (
-                          <img
-                            src={file.url}
-                            alt={file.alt || file.original_name}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center gap-1.5">
-                            <FileIcon
-                              mime={file.mime_type}
-                              className="h-8 w-8 text-slate-400"
+              ) : viewMode === "grid" ? (
+                /* ---- GRID VIEW ---- */
+                <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4 lg:grid-cols-6">
+                  {files.map((file) => {
+                    const isBulk = bulkSelected.has(file.id);
+                    return (
+                      <button
+                        key={file.id}
+                        onClick={(e) => {
+                          if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                            toggleBulkSelect(file.id);
+                          } else {
+                            setSelected(selected?.id === file.id ? null : file);
+                          }
+                        }}
+                        className={`group relative flex flex-col overflow-hidden rounded-lg border-2 bg-white text-left transition-all hover:shadow-md ${
+                          selected?.id === file.id
+                            ? "border-indigo-500 ring-2 ring-indigo-500/20"
+                            : isBulk
+                            ? "border-indigo-300 bg-indigo-50"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        {/* Bulk checkbox */}
+                        <div
+                          className={`absolute top-1.5 left-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border transition-all cursor-pointer ${
+                            isBulk
+                              ? "bg-indigo-500 border-indigo-500"
+                              : "bg-white/80 border-slate-300 opacity-0 group-hover:opacity-100"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleBulkSelect(file.id);
+                          }}
+                        >
+                          {isBulk && <Check className="h-3 w-3 text-white" />}
+                        </div>
+
+                        {/* Thumbnail */}
+                        <div className="relative aspect-square bg-slate-100 flex items-center justify-center overflow-hidden">
+                          {isImage(file.mime_type) ? (
+                            <img
+                              src={file.url}
+                              alt={file.alt || file.original_name}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
                             />
-                            <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
-                              {getFileExtension(file.original_name)}
+                          ) : (
+                            <div className="flex flex-col items-center gap-1.5">
+                              <FileIcon
+                                mime={file.mime_type}
+                                className="h-8 w-8 text-slate-400"
+                              />
+                              <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                                {getFileExtension(file.original_name)}
+                              </span>
+                            </div>
+                          )}
+                          {selected?.id === file.id && (
+                            <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="p-2">
+                          <p className="truncate text-xs font-medium text-slate-700">
+                            {file.original_name}
+                          </p>
+                          <div className="mt-0.5 flex items-center justify-between">
+                            <span className="text-[10px] text-slate-400">
+                              {humanFileSize(file.size)}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(file.created_at).toLocaleDateString()}
                             </span>
                           </div>
-                        )}
-                        {selected?.id === file.id && (
-                          <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500">
-                            <Check className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="p-2">
-                        <p className="truncate text-xs font-medium text-slate-700">
-                          {file.original_name}
-                        </p>
-                        <div className="mt-0.5 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400">
-                            {humanFileSize(file.size)}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            {new Date(file.created_at).toLocaleDateString()}
-                          </span>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
+              ) : (
+                /* ---- TABLE VIEW ---- */
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50 hover:bg-slate-50">
+                      <TableHead className="w-10 pl-4">
+                        <input
+                          type="checkbox"
+                          checked={bulkSelected.size === files.length && files.length > 0}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </TableHead>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Name
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Type
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Size
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Dimensions
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Date
+                      </TableHead>
+                      <TableHead className="w-20"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {files.map((file) => {
+                      const isBulk = bulkSelected.has(file.id);
+                      return (
+                        <TableRow
+                          key={file.id}
+                          className={`cursor-pointer transition-colors ${
+                            selected?.id === file.id
+                              ? "bg-indigo-50"
+                              : isBulk
+                              ? "bg-indigo-50/50"
+                              : "hover:bg-slate-50"
+                          }`}
+                          onClick={() =>
+                            setSelected(selected?.id === file.id ? null : file)
+                          }
+                        >
+                          <TableCell className="pl-4">
+                            <input
+                              type="checkbox"
+                              checked={isBulk}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleBulkSelect(file.id);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="h-10 w-10 rounded-md bg-slate-100 overflow-hidden flex items-center justify-center">
+                              {isImage(file.mime_type) ? (
+                                <img
+                                  src={file.url}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <FileIcon
+                                  mime={file.mime_type}
+                                  className="h-5 w-5 text-slate-400"
+                                />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm font-medium text-slate-800 truncate max-w-[200px]">
+                              {file.original_name}
+                            </p>
+                            {file.alt && (
+                              <p className="text-xs text-slate-400 truncate max-w-[200px]">
+                                {file.alt}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className="text-[10px] font-medium border-0"
+                              variant="secondary"
+                            >
+                              {mimeLabel(file.mime_type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-600">
+                            {humanFileSize(file.size)}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-600">
+                            {file.width && file.height
+                              ? `${file.width}×${file.height}`
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-500">
+                            {new Date(file.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                setDeleteTarget(file);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               )}
 
               {/* Drag overlay */}
@@ -504,7 +858,7 @@ export default function MediaLibrary() {
                   <div className="text-center">
                     <Upload className="mx-auto h-10 w-10 text-indigo-500" />
                     <p className="mt-2 text-sm font-medium text-indigo-700">
-                      Drop file to upload
+                      Drop files to upload
                     </p>
                   </div>
                 </div>
@@ -515,28 +869,85 @@ export default function MediaLibrary() {
           {/* Pagination */}
           {meta && totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-slate-500">
-                Showing {(meta.page - 1) * meta.per_page + 1} to{" "}
-                {Math.min(meta.page * meta.per_page, meta.total)} of {meta.total}
-              </p>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-slate-500">
+                  {(meta.page - 1) * meta.per_page + 1}–
+                  {Math.min(meta.page * meta.per_page, meta.total)} of {meta.total}
+                </p>
+                <Select
+                  value={String(perPage)}
+                  onValueChange={(v: string) => setPerPage(Number(v))}
+                >
+                  <SelectTrigger className="w-20 h-8 rounded-lg border-slate-300 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PER_PAGE_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-slate-400">per page</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage(1)}
+                  className="h-8 w-8 p-0 rounded-lg border-slate-300"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="rounded-lg border-slate-300"
+                  className="h-8 w-8 p-0 rounded-lg border-slate-300"
                 >
-                  Previous
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
+                {getPageNumbers().map((p, i) =>
+                  p === "..." ? (
+                    <span key={`dots-${i}`} className="px-1 text-slate-400 text-sm">
+                      ...
+                    </span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant={page === p ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(p as number)}
+                      className={`h-8 w-8 p-0 rounded-lg text-xs ${
+                        page === p
+                          ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                          : "border-slate-300"
+                      }`}
+                    >
+                      {p}
+                    </Button>
+                  )
+                )}
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border-slate-300"
+                  className="h-8 w-8 p-0 rounded-lg border-slate-300"
                 >
-                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(totalPages)}
+                  className="h-8 w-8 p-0 rounded-lg border-slate-300"
+                >
+                  <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -548,11 +959,9 @@ export default function MediaLibrary() {
           <div className="hidden w-80 shrink-0 lg:block">
             <Card className="rounded-xl border border-slate-200 shadow-sm sticky top-0">
               <CardContent className="p-4 space-y-4">
-                {/* Close button */}
+                {/* Close */}
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    File Details
-                  </h3>
+                  <h3 className="text-sm font-semibold text-slate-900">File Details</h3>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -571,6 +980,16 @@ export default function MediaLibrary() {
                       alt={selected.alt || selected.original_name}
                       className="w-full object-contain max-h-48"
                     />
+                  ) : isVideo(selected.mime_type) ? (
+                    <video
+                      src={selected.url}
+                      controls
+                      className="w-full max-h-48"
+                    />
+                  ) : isAudio(selected.mime_type) ? (
+                    <div className="p-4">
+                      <audio src={selected.url} controls className="w-full" />
+                    </div>
                   ) : (
                     <div className="flex h-32 flex-col items-center justify-center gap-2">
                       <FileIcon
@@ -586,17 +1005,11 @@ export default function MediaLibrary() {
 
                 {/* File info */}
                 <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-slate-500">Name</span>
-                    <p className="font-medium text-slate-800 break-all">
-                      {selected.original_name}
-                    </p>
-                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <span className="text-slate-500">Type</span>
                       <p className="font-medium text-slate-800">
-                        {selected.mime_type.split("/")[1]?.toUpperCase() || selected.mime_type}
+                        {mimeLabel(selected.mime_type)}
                       </p>
                     </div>
                     <div>
@@ -610,7 +1023,7 @@ export default function MediaLibrary() {
                     <div>
                       <span className="text-slate-500">Dimensions</span>
                       <p className="font-medium text-slate-800">
-                        {selected.width} x {selected.height}
+                        {selected.width} × {selected.height}
                       </p>
                     </div>
                   )}
@@ -622,33 +1035,47 @@ export default function MediaLibrary() {
                   </div>
                 </div>
 
-                {/* Alt text */}
-                <div className="space-y-2">
-                  <Label htmlFor="alt-text" className="text-sm text-slate-500">
-                    Alt Text
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="alt-text"
-                      placeholder="Describe this file..."
-                      value={editAlt}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAlt(e.target.value)}
-                      className="rounded-lg border-slate-300 text-sm"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleSaveAlt}
-                      disabled={savingAlt || editAlt === (selected.alt || "")}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shrink-0"
-                    >
-                      {savingAlt ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Save"
-                      )}
-                    </Button>
-                  </div>
+                {/* Rename */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">File Name</Label>
+                  <Input
+                    value={editName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEditName(e.target.value)
+                    }
+                    className="rounded-lg border-slate-300 text-sm"
+                  />
                 </div>
+
+                {/* Alt text */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Alt Text</Label>
+                  <Input
+                    placeholder="Describe this file for accessibility..."
+                    value={editAlt}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setEditAlt(e.target.value)
+                    }
+                    className="rounded-lg border-slate-300 text-sm"
+                  />
+                </div>
+
+                {/* Save button */}
+                {hasDetailChanges && (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveDetail}
+                    disabled={savingDetail}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+                  >
+                    {savingDetail ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Pencil className="mr-2 h-4 w-4" />
+                    )}
+                    {savingDetail ? "Saving..." : "Save Changes"}
+                  </Button>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-2 border-t border-slate-100">
@@ -665,23 +1092,33 @@ export default function MediaLibrary() {
                     )}
                     {copied ? "Copied" : "Copy URL"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-lg text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
-                    onClick={() => setDeleteTarget(selected)}
+                  <a
+                    href={selected.url}
+                    download={selected.original_name}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                   >
-                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                    Delete
-                  </Button>
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    Download
+                  </a>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full rounded-lg text-xs text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+                  onClick={() => setDeleteTarget(selected)}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  Delete File
+                </Button>
               </CardContent>
             </Card>
           </div>
         )}
       </div>
 
-      {/* Delete dialog */}
+      {/* Delete single dialog */}
       <Dialog
         open={!!deleteTarget}
         onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}
@@ -708,6 +1145,38 @@ export default function MediaLibrary() {
               disabled={deleting}
             >
               {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk delete dialog */}
+      <Dialog
+        open={bulkDeleteOpen}
+        onOpenChange={(open: boolean) => !open && setBulkDeleteOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {bulkSelected.size} Files</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {bulkSelected.size} selected file
+              {bulkSelected.size !== 1 ? "s" : ""}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : `Delete ${bulkSelected.size} Files`}
             </Button>
           </DialogFooter>
         </DialogContent>

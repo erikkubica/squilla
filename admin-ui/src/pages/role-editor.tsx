@@ -49,7 +49,7 @@ const CAPABILITY_KEYS = [
   { key: "manage_email", label: "Manage Email" },
 ] as const;
 
-type AccessLevel = "none" | "read" | "write";
+type AccessLevel = "default" | "none" | "read" | "write";
 type AccessScope = "all" | "own";
 
 interface NodeAccessEntry {
@@ -175,9 +175,9 @@ export default function RoleEditorPage() {
     // Node access
     const nodes: Record<string, NodeAccessEntry> = {};
     for (const [slug, entry] of Object.entries(formNodeAccess)) {
-      if (entry.access !== "none") {
-        nodes[slug] = { access: entry.access, scope: entry.scope };
-      }
+      // Skip "default" — inherits from default_node_access.
+      if (entry.access === "default") continue;
+      nodes[slug] = { access: entry.access, scope: entry.scope };
     }
     if (Object.keys(nodes).length > 0) {
       capabilities.nodes = nodes;
@@ -502,7 +502,7 @@ export default function RoleEditorPage() {
                   </TableRow>
                   {/* Per-node-type rows */}
                   {nodeTypes.map((nt) => {
-                    const entry = formNodeAccess[nt.slug] || { access: "none", scope: "all" };
+                    const entry = formNodeAccess[nt.slug] || { access: "default" as AccessLevel, scope: "all" as AccessScope };
                     return (
                       <TableRow key={nt.slug} className="border-slate-100">
                         <TableCell className="font-medium text-slate-700 text-sm">
@@ -517,6 +517,7 @@ export default function RoleEditorPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="default">Default</SelectItem>
                               <SelectItem value="none">None</SelectItem>
                               <SelectItem value="read">Read</SelectItem>
                               <SelectItem value="write">Write</SelectItem>
@@ -527,7 +528,7 @@ export default function RoleEditorPage() {
                           <Select
                             value={entry.scope}
                             onValueChange={(val) => setNodeScope(nt.slug, val as AccessScope)}
-                            disabled={entry.access === "none"}
+                            disabled={entry.access === "none" || entry.access === "default"}
                           >
                             <SelectTrigger className="w-24 h-8 text-xs rounded-md border-slate-300">
                               <SelectValue />

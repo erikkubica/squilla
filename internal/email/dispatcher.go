@@ -86,8 +86,13 @@ func (d *Dispatcher) HandleEvent(action string, payload events.Payload) {
 			}
 		}
 	}
-	providerSettings["from_email"] = settings["from_email"]
-	providerSettings["from_name"] = settings["from_name"]
+	// Top-level from_email/from_name override extension defaults if set.
+	if v := settings["from_email"]; v != "" {
+		providerSettings["from_email"] = v
+	}
+	if v := settings["from_name"]; v != "" {
+		providerSettings["from_name"] = v
+	}
 
 	// Build site data for template rendering.
 	siteData := map[string]string{

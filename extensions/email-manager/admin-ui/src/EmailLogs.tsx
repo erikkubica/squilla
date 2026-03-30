@@ -219,12 +219,15 @@ export default function EmailLogs() {
                 className="w-40 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
-            <Button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg"
-              onClick={handleFilter}
-            >
-              Filter
-            </Button>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-transparent select-none">&nbsp;</Label>
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg"
+                onClick={handleFilter}
+              >
+                Filter
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

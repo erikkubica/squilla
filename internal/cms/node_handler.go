@@ -33,7 +33,7 @@ func (h *NodeHandler) RegisterRoutes(router fiber.Router) {
 	router.Delete("/nodes/:id", h.Delete)
 	router.Get("/nodes/:id/translations", h.GetTranslations)
 	router.Post("/nodes/:id/translations", h.CreateTranslation)
-	router.Post("/nodes/:id/homepage", h.SetHomepage)
+	router.Post("/nodes/:id/homepage", auth.CapabilityRequired("manage_settings"), h.SetHomepage)
 	router.Get("/homepage", h.GetHomepage)
 }
 
@@ -92,10 +92,13 @@ func (h *NodeHandler) CreateTranslation(c *fiber.Ctx) error {
 // SetHomepage sets a node as the site homepage.
 func (h *NodeHandler) SetHomepage(c *fiber.Ctx) error {
 	id := c.Params("id")
-	h.db.Exec(
+	result := h.db.Exec(
 		`INSERT INTO site_settings (key, value, updated_at) VALUES ('homepage_node_id', ?, NOW())
 		 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`, id,
 	)
+	if result.Error != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to set homepage")
+	}
 	return api.Success(c, fiber.Map{"message": "Homepage set", "node_id": id})
 }
 
@@ -181,12 +184,39 @@ func (h *NodeHandler) List(c *fiber.Ctx) error {
 	langCode := c.Query("language_code")
 	search := c.Query("search")
 
+	user := auth.GetCurrentUser(c)
+
+	// If filtering by specific node type, check access upfront.
+	if nodeType != "" {
+		access := auth.GetNodeAccess(user, nodeType)
+		if !access.CanRead() {
+			return api.Paginated(c, []models.ContentNode{}, 0, page, perPage)
+		}
+	}
+
 	nodes, total, err := h.svc.List(page, perPage, status, nodeType, langCode, search)
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list content nodes")
 	}
 
-	return api.Paginated(c, nodes, total, page, perPage)
+	// Filter results by access when listing mixed node types.
+	userID := 0
+	if user != nil {
+		userID = user.ID
+	}
+	filtered := make([]models.ContentNode, 0, len(nodes))
+	for _, n := range nodes {
+		access := auth.GetNodeAccess(user, n.NodeType)
+		if !access.CanRead() {
+			continue
+		}
+		if !access.CanAccessNode(userID, n.AuthorID) {
+			continue
+		}
+		filtered = append(filtered, n)
+	}
+
+	return api.Paginated(c, filtered, total, page, perPage)
 }
 
 // Get handles GET /nodes/:id to retrieve a single content node.
@@ -204,6 +234,20 @@ func (h *NodeHandler) Get(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch content node")
 	}
 
+	// Check read access.
+	user := auth.GetCurrentUser(c)
+	access := auth.GetNodeAccess(user, node.NodeType)
+	if !access.CanRead() {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You do not have access to this content type")
+	}
+	userID := 0
+	if user != nil {
+		userID = user.ID
+	}
+	if !access.CanAccessNode(userID, node.AuthorID) {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You can only view your own content")
+	}
+
 	return api.Success(c, node)
 }
 
@@ -212,6 +256,7 @@ type createNodeRequest struct {
 	Title        string          `json:"title"`
 	NodeType     string          `json:"node_type"`
 	LanguageCode string          `json:"language_code"`
+	Status       string          `json:"status"`
 	ParentID     *int            `json:"parent_id"`
 	Slug         string          `json:"slug"`
 	BlocksData   json.RawMessage `json:"blocks_data"`
@@ -235,6 +280,7 @@ func (h *NodeHandler) Create(c *fiber.Ctx) error {
 		Title:        req.Title,
 		NodeType:     req.NodeType,
 		LanguageCode: req.LanguageCode,
+		Status:       req.Status,
 		ParentID:     req.ParentID,
 		Slug:         req.Slug,
 		BlocksData:   models.JSONB(req.BlocksData),
@@ -247,11 +293,20 @@ func (h *NodeHandler) Create(c *fiber.Ctx) error {
 	if node.LanguageCode == "" {
 		node.LanguageCode = "en"
 	}
+	if node.Status == "" {
+		node.Status = "draft"
+	}
 
 	user := auth.GetCurrentUser(c)
 	userID := 0
 	if user != nil {
 		userID = user.ID
+	}
+
+	// Check node type access.
+	access := auth.GetNodeAccess(user, node.NodeType)
+	if !access.CanWrite() {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You do not have write access to this content type")
 	}
 
 	if err := h.svc.Create(&node, userID); err != nil {
@@ -299,6 +354,23 @@ func (h *NodeHandler) Update(c *fiber.Ctx) error {
 		userID = user.ID
 	}
 
+	// Fetch node to check access.
+	existing, err := h.svc.GetByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Content node not found")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch content node")
+	}
+
+	access := auth.GetNodeAccess(user, existing.NodeType)
+	if !access.CanWrite() {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You do not have write access to this content type")
+	}
+	if !access.CanAccessNode(userID, existing.AuthorID) {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You can only edit your own content")
+	}
+
 	updated, err := h.svc.Update(id, body, userID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -323,6 +395,27 @@ func (h *NodeHandler) Delete(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Node ID must be a valid integer")
+	}
+
+	// Fetch node to check access.
+	user := auth.GetCurrentUser(c)
+	userID := 0
+	if user != nil {
+		userID = user.ID
+	}
+	existing, err := h.svc.GetByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Content node not found")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch content node")
+	}
+	access := auth.GetNodeAccess(user, existing.NodeType)
+	if !access.CanWrite() {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You do not have write access to this content type")
+	}
+	if !access.CanAccessNode(userID, existing.AuthorID) {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You can only delete your own content")
 	}
 
 	if err := h.svc.Delete(id); err != nil {

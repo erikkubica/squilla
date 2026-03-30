@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Plus, Pencil, Trash2, Loader2, Globe } from "@vibecms/icons";
+import { Mail, Plus, Pencil, Trash2, Loader2 } from "@vibecms/icons";
 import {
   Button,
   Table,

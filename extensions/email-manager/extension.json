@@ -36,10 +36,10 @@
             "icon": "Mail",
             "position": "6",
             "children": [
-                {"label": "Templates", "route": "/admin/ext/email-manager/templates"},
-                {"label": "Rules", "route": "/admin/ext/email-manager/rules"},
-                {"label": "Logs", "route": "/admin/ext/email-manager/logs"},
-                {"label": "Settings", "route": "/admin/ext/email-manager/settings"}
+                {"label": "Templates", "route": "/admin/ext/email-manager/templates", "icon": "LayoutTemplate"},
+                {"label": "Rules", "route": "/admin/ext/email-manager/rules", "icon": "Gavel"},
+                {"label": "Logs", "route": "/admin/ext/email-manager/logs", "icon": "ScrollText"},
+                {"label": "Settings", "route": "/admin/ext/email-manager/settings", "icon": "Settings"}
             ]
         }
     }

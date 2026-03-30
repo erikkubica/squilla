@@ -147,6 +147,10 @@ func (h *ExtensionHandler) UpdateSettings(c *fiber.Ctx) error {
 
 	prefix := "ext." + slug + "."
 	for key, value := range body {
+		// Validate setting key to prevent namespace collisions.
+		if !isValidSettingsKey(key) {
+			return api.Error(c, fiber.StatusBadRequest, "INVALID_KEY", fmt.Sprintf("Invalid settings key: %s", key))
+		}
 		v := value
 		setting := models.SiteSetting{
 			Key:   prefix + key,
@@ -208,7 +212,7 @@ func (h *ExtensionHandler) BrowseFiles(c *fiber.Ctx) error {
 
 // Activate handles POST /extensions/:slug/activate.
 func (h *ExtensionHandler) Activate(c *fiber.Ctx) error {
-	slug := c.Params("slug")
+	slug := strings.Clone(c.Params("slug"))
 	if err := h.loader.Activate(slug); err != nil {
 		if err.Error() == "extension not found: "+slug {
 			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
@@ -242,7 +246,7 @@ func (h *ExtensionHandler) Activate(c *fiber.Ctx) error {
 
 // Deactivate handles POST /extensions/:slug/deactivate.
 func (h *ExtensionHandler) Deactivate(c *fiber.Ctx) error {
-	slug := c.Params("slug")
+	slug := strings.Clone(c.Params("slug"))
 
 	// Get extension path before deactivating (for script unloading)
 	ext, _ := h.loader.GetBySlug(slug)
@@ -285,9 +289,14 @@ func (h *ExtensionHandler) Upload(c *fiber.Ctx) error {
 	}
 	defer f.Close()
 
+	// Limit upload size to 50 MB to prevent memory exhaustion.
+	const maxUploadSize = 50 * 1024 * 1024
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, f); err != nil {
+	if _, err := io.Copy(&buf, io.LimitReader(f, maxUploadSize+1)); err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "READ_FAILED", "Failed to read uploaded file")
+	}
+	if buf.Len() > maxUploadSize {
+		return api.Error(c, fiber.StatusBadRequest, "FILE_TOO_LARGE", "Upload exceeds maximum size of 50 MB")
 	}
 
 	// Open as ZIP
@@ -333,6 +342,11 @@ func (h *ExtensionHandler) Upload(c *fiber.Ctx) error {
 
 	if !foundManifest || manifest.Slug == "" {
 		return api.Error(c, fiber.StatusBadRequest, "NO_MANIFEST", "ZIP must contain extension.json with a slug field")
+	}
+
+	// Validate slug to prevent path traversal via crafted manifest.
+	if !isValidSettingsKey(manifest.Slug) {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_SLUG", "Extension slug contains invalid characters")
 	}
 
 	// Extract to extensions/{slug}/
@@ -412,4 +426,17 @@ func (h *ExtensionHandler) Delete(c *fiber.Ctx) error {
 	h.db.Where("slug = ?", slug).Delete(&models.Extension{})
 
 	return api.Success(c, fiber.Map{"message": "Extension deleted"})
+}
+
+// isValidSettingsKey checks that a settings key contains only safe characters.
+func isValidSettingsKey(key string) bool {
+	if key == "" || len(key) > 128 {
+		return false
+	}
+	for _, ch := range key {
+		if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-') {
+			return false
+		}
+	}
+	return true
 }

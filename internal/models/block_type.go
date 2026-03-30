@@ -17,6 +17,7 @@ type BlockType struct {
 	ViewFile     string    `gorm:"column:view_file;type:varchar(255)" json:"view_file"`
 	BlockCSS     string    `gorm:"column:block_css;type:text" json:"block_css"`
 	BlockJS      string    `gorm:"column:block_js;type:text" json:"block_js"`
+	CacheOutput  bool      `gorm:"column:cache_output;not null;default:true" json:"cache_output"`
 	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
 }

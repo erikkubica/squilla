@@ -1,35 +1,62 @@
-const UI = window.__VIBECMS_SHARED__.ui;
-export const Button = UI.Button;
-export const Card = UI.Card;
-export const CardContent = UI.CardContent;
-export const CardHeader = UI.CardHeader;
-export const CardTitle = UI.CardTitle;
-export const CardDescription = UI.CardDescription;
-export const CardFooter = UI.CardFooter;
-export const CardAction = UI.CardAction;
-export const Input = UI.Input;
-export const Label = UI.Label;
-export const Badge = UI.Badge;
-export const Dialog = UI.Dialog;
-export const DialogContent = UI.DialogContent;
-export const DialogHeader = UI.DialogHeader;
-export const DialogTitle = UI.DialogTitle;
-export const DialogDescription = UI.DialogDescription;
-export const DialogFooter = UI.DialogFooter;
-export const Select = UI.Select;
-export const SelectContent = UI.SelectContent;
-export const SelectItem = UI.SelectItem;
-export const SelectTrigger = UI.SelectTrigger;
-export const SelectValue = UI.SelectValue;
-export const Tabs = UI.Tabs;
-export const TabsList = UI.TabsList;
-export const TabsTrigger = UI.TabsTrigger;
-export const TabsContent = UI.TabsContent;
-export const Textarea = UI.Textarea;
-export const Table = UI.Table;
-export const TableBody = UI.TableBody;
-export const TableCell = UI.TableCell;
-export const TableHead = UI.TableHead;
-export const TableHeader = UI.TableHeader;
-export const TableRow = UI.TableRow;
-export default UI;
+// UI component shim for extension micro-frontends.
+// Each export is a thin wrapper that forwards to __VIBECMS_SHARED__.ui at call time.
+// This avoids timing issues where the shim module evaluates before the SPA initializes.
+
+function getUI(name) {
+  const c = window.__VIBECMS_SHARED__?.ui?.[name];
+  if (!c) {
+    console.warn(`@vibecms/ui: component "${name}" not found in shared UI`);
+    return (props) => null;
+  }
+  return c;
+}
+
+// React components need to be stable references for hooks to work.
+// We create wrapper components that forward all props.
+function wrap(name) {
+  const Component = function(props) {
+    const Real = getUI(name);
+    const React = window.__VIBECMS_SHARED__?.React;
+    return React ? React.createElement(Real, props) : null;
+  };
+  Component.displayName = name;
+  return Component;
+}
+
+export const Button = wrap("Button");
+export const Card = wrap("Card");
+export const CardContent = wrap("CardContent");
+export const CardHeader = wrap("CardHeader");
+export const CardTitle = wrap("CardTitle");
+export const CardDescription = wrap("CardDescription");
+export const CardFooter = wrap("CardFooter");
+export const CardAction = wrap("CardAction");
+export const Input = wrap("Input");
+export const Label = wrap("Label");
+export const Badge = wrap("Badge");
+export const Dialog = wrap("Dialog");
+export const DialogContent = wrap("DialogContent");
+export const DialogHeader = wrap("DialogHeader");
+export const DialogTitle = wrap("DialogTitle");
+export const DialogDescription = wrap("DialogDescription");
+export const DialogFooter = wrap("DialogFooter");
+export const Select = wrap("Select");
+export const SelectContent = wrap("SelectContent");
+export const SelectItem = wrap("SelectItem");
+export const SelectTrigger = wrap("SelectTrigger");
+export const SelectValue = wrap("SelectValue");
+export const Tabs = wrap("Tabs");
+export const TabsList = wrap("TabsList");
+export const TabsTrigger = wrap("TabsTrigger");
+export const TabsContent = wrap("TabsContent");
+export const Textarea = wrap("Textarea");
+export const Table = wrap("Table");
+export const TableBody = wrap("TableBody");
+export const TableCell = wrap("TableCell");
+export const TableHead = wrap("TableHead");
+export const TableHeader = wrap("TableHeader");
+export const TableRow = wrap("TableRow");
+export const TableFooter = wrap("TableFooter");
+export const TableCaption = wrap("TableCaption");
+export const Separator = wrap("Separator");
+export const Checkbox = wrap("Checkbox");

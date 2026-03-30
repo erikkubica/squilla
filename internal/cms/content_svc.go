@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -85,6 +86,12 @@ func (s *ContentService) Create(node *models.ContentNode, userID int) error {
 	}
 
 	node.FullURL = buildFullURL(node, s.db)
+
+	// Set published_at if creating as published.
+	if node.Status == "published" && node.PublishedAt == nil {
+		now := time.Now()
+		node.PublishedAt = &now
+	}
 
 	// Check full_url uniqueness
 	var count int64

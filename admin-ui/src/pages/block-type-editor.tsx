@@ -207,6 +207,7 @@ export default function BlockTypeEditorPage() {
   const [newFieldPrepend, setNewFieldPrepend] = useState("");
   const [newFieldAppend, setNewFieldAppend] = useState("");
   const [newFieldAllowedTypes, setNewFieldAllowedTypes] = useState("");
+  const [cacheOutput, setCacheOutput] = useState(true);
   const [autoFieldKey, setAutoFieldKey] = useState(true);
 
   useEffect(() => {
@@ -225,6 +226,7 @@ export default function BlockTypeEditorPage() {
         setHtmlTemplate(bt.html_template || "");
         setTestData(bt.test_data || {});
         setSource(bt.source || "custom");
+        setCacheOutput(bt.cache_output !== false);
         setAutoSlug(false);
       })
       .catch(() => {
@@ -382,6 +384,7 @@ export default function BlockTypeEditorPage() {
       html_template: htmlTemplate,
       test_data: testData,
       source,
+      cache_output: cacheOutput,
     };
 
     setSaving(true);
@@ -1231,6 +1234,43 @@ export default function BlockTypeEditorPage() {
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? "Saving..." : isEdit ? "Update Block Type" : "Create Block Type"}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Output Caching */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">Performance</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 p-6 pt-0">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Cache rendered output</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Disable for blocks showing real-time data
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={cacheOutput}
+                  onClick={() => setCacheOutput(!cacheOutput)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    cacheOutput ? "bg-indigo-600" : "bg-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      cacheOutput ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+              {!cacheOutput && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                  This block will be re-rendered on every page load. Use for dynamic content like latest posts, live counters, or user-specific data.
+                </p>
+              )}
             </CardContent>
           </Card>
 

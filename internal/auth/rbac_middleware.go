@@ -115,3 +115,67 @@ func CapabilityRequired(capability string) fiber.Handler {
 func IsAdmin(user *models.User) bool {
 	return user != nil && user.Role.Slug == "admin"
 }
+
+// NodeAccess represents the access level and scope for a node type.
+type NodeAccess struct {
+	Access string // "none", "read", "write"
+	Scope  string // "all", "own"
+}
+
+// GetNodeAccess returns the effective access for a given node type.
+// It checks per-type overrides first, then falls back to default_node_access.
+func GetNodeAccess(user *models.User, nodeType string) NodeAccess {
+	if user == nil {
+		return NodeAccess{Access: "none", Scope: "all"}
+	}
+
+	caps := ParseCapabilities(user.Role.Capabilities)
+
+	// Check per-type override in "nodes" map.
+	if nodes, ok := caps["nodes"].(map[string]interface{}); ok {
+		if override, ok := nodes[nodeType].(map[string]interface{}); ok {
+			return nodeAccessFromMap(override)
+		}
+	}
+
+	// Fall back to default_node_access.
+	if def, ok := caps["default_node_access"].(map[string]interface{}); ok {
+		return nodeAccessFromMap(def)
+	}
+
+	return NodeAccess{Access: "none", Scope: "all"}
+}
+
+func nodeAccessFromMap(m map[string]interface{}) NodeAccess {
+	na := NodeAccess{Access: "none", Scope: "all"}
+	if a, ok := m["access"].(string); ok {
+		na.Access = a
+	}
+	if s, ok := m["scope"].(string); ok {
+		na.Scope = s
+	}
+	return na
+}
+
+// CanRead returns true if the access level allows reading.
+func (na NodeAccess) CanRead() bool {
+	return na.Access == "read" || na.Access == "write"
+}
+
+// CanWrite returns true if the access level allows writing.
+func (na NodeAccess) CanWrite() bool {
+	return na.Access == "write"
+}
+
+// CanAccessNode checks if the user can access a specific node given the scope.
+// authorID is the node's AuthorID (may be nil for unowned nodes).
+func (na NodeAccess) CanAccessNode(userID int, authorID *int) bool {
+	if na.Scope == "all" {
+		return true
+	}
+	// scope == "own": user must be the author.
+	if authorID != nil && *authorID == userID {
+		return true
+	}
+	return false
+}

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { getNodeAccess } from "@/api/client";
 import AdminLayout from "@/components/layout/admin-layout";
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
@@ -31,14 +32,42 @@ import { ExtensionsProvider } from "@/hooks/use-extensions";
 import { ExtensionPageLoader } from "@/components/extension-page-loader";
 import { Loader2 } from "lucide-react";
 
+function NodeAccessGuard({ nodeType, children }: { nodeType: string; children: React.ReactNode }) {
+  const { user } = useAuth();
+  const access = getNodeAccess(user, nodeType);
+  if (access.access === "none") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
+function NodeWriteGuard({ nodeType, children }: { nodeType: string; children: React.ReactNode }) {
+  const { user } = useAuth();
+  const access = getNodeAccess(user, nodeType);
+  if (access.access !== "write") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
 function DynamicNodeList() {
   const { nodeType } = useParams<{ nodeType: string }>();
-  return <NodesListPage nodeType={nodeType || "page"} />;
+  const type = nodeType || "page";
+  return (
+    <NodeAccessGuard nodeType={type}>
+      <NodesListPage nodeType={type} />
+    </NodeAccessGuard>
+  );
 }
 
 function DynamicNodeEditor() {
   const { nodeType } = useParams<{ nodeType: string }>();
-  return <NodeEditorPage nodeType={nodeType || "page"} />;
+  const type = nodeType || "page";
+  return (
+    <NodeWriteGuard nodeType={type}>
+      <NodeEditorPage nodeType={type} />
+    </NodeWriteGuard>
+  );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -79,27 +108,27 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route
           path="pages"
-          element={<NodesListPage nodeType="page" />}
+          element={<NodeAccessGuard nodeType="page"><NodesListPage nodeType="page" /></NodeAccessGuard>}
         />
         <Route
           path="pages/new"
-          element={<NodeEditorPage nodeType="page" />}
+          element={<NodeWriteGuard nodeType="page"><NodeEditorPage nodeType="page" /></NodeWriteGuard>}
         />
         <Route
           path="pages/:id/edit"
-          element={<NodeEditorPage nodeType="page" />}
+          element={<NodeWriteGuard nodeType="page"><NodeEditorPage nodeType="page" /></NodeWriteGuard>}
         />
         <Route
           path="posts"
-          element={<NodesListPage nodeType="post" />}
+          element={<NodeAccessGuard nodeType="post"><NodesListPage nodeType="post" /></NodeAccessGuard>}
         />
         <Route
           path="posts/new"
-          element={<NodeEditorPage nodeType="post" />}
+          element={<NodeWriteGuard nodeType="post"><NodeEditorPage nodeType="post" /></NodeWriteGuard>}
         />
         <Route
           path="posts/:id/edit"
-          element={<NodeEditorPage nodeType="post" />}
+          element={<NodeWriteGuard nodeType="post"><NodeEditorPage nodeType="post" /></NodeWriteGuard>}
         />
         <Route path="content-types" element={<NodeTypesListPage />} />
         <Route path="content-types/new" element={<NodeTypeEditorPage />} />

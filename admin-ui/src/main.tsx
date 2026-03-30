@@ -27,6 +27,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 // API client
 import * as apiClient from "@/api/client";
 
+// Host components for extension slot rendering
+import { ExtensionSlot } from "@/components/extension-slot";
+import { useExtensions } from "@/hooks/use-extensions";
+
 declare global {
   interface Window {
     __VIBECMS_SHARED__: Record<string, unknown>;
@@ -52,6 +56,8 @@ window.__VIBECMS_SHARED__ = {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter, TableCaption,
   },
   api: apiClient,
+  ExtensionSlot,
+  useExtensions,
 };
 
 createRoot(document.getElementById("root")!).render(

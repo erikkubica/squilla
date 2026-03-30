@@ -30,6 +30,12 @@ func (c *coreImpl) DataQuery(ctx context.Context, table string, query DataStoreQ
 	var args []any
 
 	if query.Raw != "" {
+		// Validate Raw SQL to prevent injection: only allow simple column conditions with placeholders.
+		// Count placeholders to ensure they match args.
+		placeholderCount := strings.Count(query.Raw, "?")
+		if placeholderCount != len(query.Args) {
+			return nil, NewValidation("raw query placeholder count does not match args count")
+		}
 		whereClauses = append(whereClauses, "("+query.Raw+")")
 		args = append(args, query.Args...)
 	}
@@ -59,6 +65,10 @@ func (c *coreImpl) DataQuery(ctx context.Context, table string, query DataStoreQ
 	// Fetch rows
 	selectSQL := fmt.Sprintf("SELECT * FROM %s t%s", quoteIdent(table), whereSQL)
 	if query.OrderBy != "" {
+		// Validate OrderBy to prevent SQL injection: only allow safe column references.
+		if !isValidOrderBy(query.OrderBy) {
+			return nil, NewValidation("invalid order_by clause")
+		}
 		selectSQL += " ORDER BY " + query.OrderBy
 	}
 	if query.Limit > 0 {
@@ -163,6 +173,11 @@ func (c *coreImpl) DataDelete(ctx context.Context, table string, id uint) error 
 }
 
 func (c *coreImpl) DataExec(ctx context.Context, sqlStr string, args ...any) (int64, error) {
+	// DataExec is restricted to internal callers only — it allows arbitrary SQL.
+	caller := CallerFromContext(ctx)
+	if caller.Type != "internal" {
+		return 0, NewCapabilityDenied("data:exec (internal only)")
+	}
 	result := c.db.WithContext(ctx).Exec(sqlStr, args...)
 	if result.Error != nil {
 		return 0, NewInternal("data exec: " + result.Error.Error())
@@ -173,6 +188,33 @@ func (c *coreImpl) DataExec(ctx context.Context, sqlStr string, args ...any) (in
 // quoteIdent quotes a SQL identifier to prevent injection.
 func quoteIdent(name string) string {
 	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+}
+
+// isValidOrderBy validates an ORDER BY clause to prevent SQL injection.
+// Allows patterns like: "column_name ASC", "column DESC", "col1 ASC, col2 DESC".
+func isValidOrderBy(orderBy string) bool {
+	parts := strings.Split(orderBy, ",")
+	for _, part := range parts {
+		fields := strings.Fields(strings.TrimSpace(part))
+		if len(fields) == 0 || len(fields) > 2 {
+			return false
+		}
+		// Column name: must be alphanumeric/underscores (optionally quoted).
+		col := strings.Trim(fields[0], `"`)
+		for _, ch := range col {
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_') {
+				return false
+			}
+		}
+		// Direction: must be ASC or DESC if present.
+		if len(fields) == 2 {
+			dir := strings.ToUpper(fields[1])
+			if dir != "ASC" && dir != "DESC" {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // scanRows scans sql.Rows into a slice of maps.

@@ -4,8 +4,23 @@ export interface User {
   full_name: string;
   role_id: number;
   role: { id: number; slug: string; name: string; is_system: boolean } | string;
+  capabilities?: Record<string, any>;
   last_login_at: string;
   created_at: string;
+}
+
+export interface NodeAccess {
+  access: "none" | "read" | "write";
+  scope: "all" | "own";
+}
+
+export function getNodeAccess(user: User | null, nodeType: string): NodeAccess {
+  if (!user?.capabilities) return { access: "none", scope: "all" };
+  const caps = user.capabilities;
+  const nodes = caps.nodes as Record<string, NodeAccess> | undefined;
+  if (nodes?.[nodeType]) return nodes[nodeType];
+  if (caps.default_node_access) return caps.default_node_access as NodeAccess;
+  return { access: "none", scope: "all" };
 }
 
 export interface ContentNode {
@@ -191,6 +206,11 @@ export async function createNodeTranslation(id: number | string, languageCode: s
   return res.data;
 }
 
+export async function getHomepageId(): Promise<number> {
+  const res = await api<ApiResponse<{ homepage_node_id: number }>>("/admin/api/nodes/homepage");
+  return res.data.homepage_node_id;
+}
+
 export async function setHomepage(nodeId: number | string): Promise<void> {
   await api<void>(`/admin/api/nodes/${nodeId}/homepage`, { method: "POST" });
 }
@@ -340,6 +360,7 @@ export interface BlockType {
   html_template: string;
   test_data: Record<string, unknown>;
   source: string;
+  cache_output: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -400,6 +421,18 @@ export async function reattachBlockType(id: number | string): Promise<BlockType>
   const res = await api<ApiResponse<BlockType>>(`/admin/api/block-types/${id}/reattach`, {
     method: "POST",
   });
+  return res.data;
+}
+
+export async function clearCache(): Promise<{ message: string }> {
+  const res = await api<ApiResponse<{ message: string }>>("/admin/api/cache/clear", {
+    method: "POST",
+  });
+  return res.data;
+}
+
+export async function getCacheStats(): Promise<Record<string, unknown>> {
+  const res = await api<ApiResponse<Record<string, unknown>>>("/admin/api/cache/stats");
   return res.data;
 }
 

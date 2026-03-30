@@ -1,23 +1,45 @@
-const API = window.__VIBECMS_SHARED__.api;
-export default API;
-export const getExtensionSettings = API.getExtensionSettings;
-export const updateExtensionSettings = API.updateExtensionSettings;
-export const getEmailSettings = API.getEmailSettings;
-export const saveEmailSettings = API.saveEmailSettings;
-export const sendTestEmail = API.sendTestEmail;
-export const getEmailTemplates = API.getEmailTemplates;
-export const getEmailTemplate = API.getEmailTemplate;
-export const createEmailTemplate = API.createEmailTemplate;
-export const updateEmailTemplate = API.updateEmailTemplate;
-export const deleteEmailTemplate = API.deleteEmailTemplate;
-export const getEmailRules = API.getEmailRules;
-export const getEmailRule = API.getEmailRule;
-export const createEmailRule = API.createEmailRule;
-export const updateEmailRule = API.updateEmailRule;
-export const deleteEmailRule = API.deleteEmailRule;
-export const getEmailLogs = API.getEmailLogs;
-export const resendEmail = API.resendEmail;
-export const getSystemActions = API.getSystemActions;
-export const getNodeTypes = API.getNodeTypes;
-export const getRoles = API.getRoles;
-export const getLanguages = API.getLanguages;
+// API shim for extension micro-frontends.
+// Uses lazy accessors to avoid timing issues where the shim evaluates before main.tsx.
+
+function getAPI(name) {
+  const api = window.__VIBECMS_SHARED__?.api;
+  if (!api || !api[name]) {
+    console.warn(`@vibecms/api: function "${name}" not found in shared API`);
+    return () => Promise.reject(new Error(`API function ${name} not available`));
+  }
+  return api[name];
+}
+
+function lazy(name) {
+  return function(...args) {
+    return getAPI(name)(...args);
+  };
+}
+
+export default new Proxy({}, {
+  get(_, prop) {
+    return lazy(prop);
+  },
+});
+
+export const getExtensionSettings = lazy("getExtensionSettings");
+export const updateExtensionSettings = lazy("updateExtensionSettings");
+export const getEmailSettings = lazy("getEmailSettings");
+export const saveEmailSettings = lazy("saveEmailSettings");
+export const sendTestEmail = lazy("sendTestEmail");
+export const getEmailTemplates = lazy("getEmailTemplates");
+export const getEmailTemplate = lazy("getEmailTemplate");
+export const createEmailTemplate = lazy("createEmailTemplate");
+export const updateEmailTemplate = lazy("updateEmailTemplate");
+export const deleteEmailTemplate = lazy("deleteEmailTemplate");
+export const getEmailRules = lazy("getEmailRules");
+export const getEmailRule = lazy("getEmailRule");
+export const createEmailRule = lazy("createEmailRule");
+export const updateEmailRule = lazy("updateEmailRule");
+export const deleteEmailRule = lazy("deleteEmailRule");
+export const getEmailLogs = lazy("getEmailLogs");
+export const resendEmail = lazy("resendEmail");
+export const getSystemActions = lazy("getSystemActions");
+export const getNodeTypes = lazy("getNodeTypes");
+export const getRoles = lazy("getRoles");
+export const getLanguages = lazy("getLanguages");

@@ -71,7 +71,7 @@ func main() {
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     corsOrigins(cfg.AppEnv),
-		AllowMethods:     "GET,POST,PATCH,DELETE,OPTIONS",
+		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
 		AllowCredentials: true,
 	}))
@@ -172,6 +172,8 @@ func main() {
 	layoutBlockHandler.RegisterRoutes(adminAPI)
 	menuHandler.RegisterRoutes(adminAPI)
 	roleHandler.RegisterRoutes(adminAPI)
+	cacheHandler := cms.NewCacheHandler(publicHandler)
+	cacheHandler.RegisterRoutes(adminAPI)
 	themeHandler.RegisterRoutes(adminAPI)
 
 	// Plugin manager for gRPC extension plugins.
@@ -194,6 +196,36 @@ func main() {
 			log.Printf("WARN: extension %s plugin start failed: %v", ext.Slug, err)
 		}
 	}
+
+	// Wire email dispatcher's send function to call the provider plugin directly.
+	// This bypasses the event bus for synchronous error propagation.
+	emailDispatcher.SetSendFunc(func(req email.SendRequest) error {
+		providerSlug := req.Settings["provider"]
+		if providerSlug == "" {
+			return fmt.Errorf("no email provider configured")
+		}
+		client := pluginManager.GetClient(providerSlug)
+		if client == nil {
+			return fmt.Errorf("email provider %s is not running", providerSlug)
+		}
+		payload, err := json.Marshal(map[string]interface{}{
+			"to":       req.To,
+			"subject":  req.Subject,
+			"html":     req.HTML,
+			"settings": req.Settings,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to marshal email payload: %w", err)
+		}
+		resp, err := client.HandleEvent("email.send", payload)
+		if err != nil {
+			return fmt.Errorf("provider plugin error: %w", err)
+		}
+		if resp.Error != "" {
+			return fmt.Errorf("%s", resp.Error)
+		}
+		return nil
+	})
 
 	// Extension HTTP proxy (forwards /admin/api/ext/:slug/* to gRPC plugins).
 	extensionProxy := cms.NewExtensionProxy(pluginManager)
@@ -252,5 +284,8 @@ func corsOrigins(env string) string {
 	if env == "development" {
 		return "http://localhost:3000,http://localhost:8080"
 	}
-	return ""
+	if origins := os.Getenv("CORS_ORIGINS"); origins != "" {
+		return origins
+	}
+	return "http://localhost:8099"
 }

@@ -2,6 +2,8 @@ package cms
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -43,11 +45,12 @@ type PublicHandler struct {
 	renderCtx      *RenderContext
 	eventBus       *events.EventBus
 
-	cacheMu         sync.RWMutex
-	siteSettings    map[string]string
-	blockTypes      map[string]models.BlockType
-	themeBlockCache map[string]string
-	activeLanguages []models.Language
+	cacheMu          sync.RWMutex
+	siteSettings     map[string]string
+	blockTypes       map[string]models.BlockType
+	themeBlockCache  map[string]string
+	activeLanguages  []models.Language
+	blockOutputCache map[string]string
 }
 
 // NewPublicHandler creates a new PublicHandler.
@@ -94,6 +97,25 @@ func (h *PublicHandler) ClearCache() {
 	h.blockTypes = nil
 	h.activeLanguages = nil
 	h.themeBlockCache = make(map[string]string)
+	h.blockOutputCache = make(map[string]string)
+}
+
+// CacheStats returns statistics about the current cache state.
+func (h *PublicHandler) CacheStats() map[string]interface{} {
+	h.cacheMu.RLock()
+	defer h.cacheMu.RUnlock()
+
+	settingsCached := h.siteSettings != nil
+	blockTypesCached := h.blockTypes != nil
+	langsCached := h.activeLanguages != nil
+
+	return map[string]interface{}{
+		"site_settings":     settingsCached,
+		"block_types":       blockTypesCached,
+		"active_languages":  langsCached,
+		"theme_block_files": len(h.themeBlockCache),
+		"block_output":      len(h.blockOutputCache),
+	}
 }
 
 // RegisterRoutes registers public page routes on the Fiber app.
@@ -642,6 +664,18 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}) []str
 		// Apply batch-hydrated nodes
 		applyHydratedNodes(fields, nodeMap)
 
+		// Check block output cache (only for blocks with cache_output enabled)
+		if bt.CacheOutput {
+			outputKey := blockOutputKey(blockType, fields)
+			h.cacheMu.RLock()
+			cached, hit := h.blockOutputCache[outputKey]
+			h.cacheMu.RUnlock()
+			if hit {
+				rendered = append(rendered, cached)
+				continue
+			}
+		}
+
 		tmplContent := bt.HTMLTemplate
 		themeFile := fmt.Sprintf("themes/default/blocks/%s.html", blockType)
 		h.cacheMu.RLock()
@@ -663,10 +697,10 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}) []str
 		}
 
 		markRichTextFields(fields, bt.FieldSchema)
-		
-		cacheKey := "block:" + blockType + ":" + tmplContent
+
+		tmplCacheKey := "block:" + blockType + ":" + tmplContent
 		var buf bytes.Buffer
-		err := h.renderer.RenderParsed(&buf, cacheKey, tmplContent, fields, template.FuncMap{
+		err := h.renderer.RenderParsed(&buf, tmplCacheKey, tmplContent, fields, template.FuncMap{
 			"safeHTML": func(s interface{}) template.HTML {
 				return template.HTML(fmt.Sprintf("%v", s))
 			},
@@ -675,7 +709,18 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}) []str
 			log.Printf("WARN: block template render error [%s]: %v", blockType, err)
 			continue
 		}
-		rendered = append(rendered, buf.String())
+
+		output := buf.String()
+
+		// Store in block output cache if enabled
+		if bt.CacheOutput {
+			outputKey := blockOutputKey(blockType, fields)
+			h.cacheMu.Lock()
+			h.blockOutputCache[outputKey] = output
+			h.cacheMu.Unlock()
+		}
+
+		rendered = append(rendered, output)
 	}
 	return rendered
 }
@@ -898,6 +943,13 @@ func applyHydratedNodes(fields map[string]interface{}, nodeMap map[int]map[strin
 			}
 		}
 	}
+}
+
+// blockOutputKey generates a cache key for a rendered block based on its type and field content.
+func blockOutputKey(blockType string, fields map[string]interface{}) string {
+	b, _ := json.Marshal(fields)
+	h := sha256.Sum256(b)
+	return blockType + ":" + hex.EncodeToString(h[:16])
 }
 
 // findNodeByURL does a direct full_url lookup.

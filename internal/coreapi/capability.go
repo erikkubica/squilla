@@ -274,8 +274,11 @@ func (g *capabilityGuard) DataUpdate(ctx context.Context, table string, id uint,
 }
 
 func (g *capabilityGuard) DataDelete(ctx context.Context, table string, id uint) error {
-	if err := checkCapability(ctx, "data:write"); err != nil {
-		return err
+	if err := checkCapability(ctx, "data:delete"); err != nil {
+		// Fall back to data:write for backwards compatibility.
+		if err2 := checkCapability(ctx, "data:write"); err2 != nil {
+			return err
+		}
 	}
 	return g.inner.DataDelete(ctx, table, id)
 }

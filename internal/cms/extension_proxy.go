@@ -2,6 +2,7 @@ package cms
 
 import (
 	"log"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -39,10 +40,15 @@ func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "extension not found or not running"})
 	}
 
-	// Build headers map.
+	// Build headers map, stripping sensitive headers to prevent token leakage to plugins.
 	headers := make(map[string]string)
 	c.Request().Header.VisitAll(func(key, value []byte) {
-		headers[string(key)] = string(value)
+		k := string(key)
+		kLower := strings.ToLower(k)
+		if kLower == "cookie" || kLower == "authorization" {
+			return
+		}
+		headers[k] = string(value)
 	})
 
 	// Build query params map.
@@ -60,10 +66,14 @@ func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
 		pathParams["path"] = wildcard
 	}
 
-	// Get authenticated user ID.
+	// Get authenticated user info.
 	var userID uint64
 	if user := auth.GetCurrentUser(c); user != nil {
 		userID = uint64(user.ID)
+		headers["X-User-Email"] = user.Email
+		if user.FullName != nil {
+			headers["X-User-Name"] = *user.FullName
+		}
 	}
 
 	// Relative path: the wildcard portion after /ext/:slug/

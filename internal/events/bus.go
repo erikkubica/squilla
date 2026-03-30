@@ -58,6 +58,41 @@ func (b *EventBus) Publish(action string, payload Payload) {
 	}
 }
 
+// HasHandlers returns true if there are any registered handlers for the given action.
+func (b *EventBus) HasHandlers(action string) bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return len(b.handlers[action]) > 0 || len(b.allHandlers) > 0
+}
+
+// PublishSync fires an event and waits for all handlers to complete.
+// Use for cases where the caller needs to know delivery succeeded (e.g. SendEmail).
+func (b *EventBus) PublishSync(action string, payload Payload) {
+	b.mu.RLock()
+	specific := make([]Handler, len(b.handlers[action]))
+	copy(specific, b.handlers[action])
+	all := make([]Handler, len(b.allHandlers))
+	copy(all, b.allHandlers)
+	b.mu.RUnlock()
+
+	var wg sync.WaitGroup
+	for _, h := range specific {
+		wg.Add(1)
+		go func(fn Handler) {
+			defer wg.Done()
+			safeCall(fn, action, payload)
+		}(h)
+	}
+	for _, h := range all {
+		wg.Add(1)
+		go func(fn Handler) {
+			defer wg.Done()
+			safeCall(fn, action, payload)
+		}(h)
+	}
+	wg.Wait()
+}
+
 func safeCall(h Handler, action string, payload Payload) {
 	defer func() {
 		if r := recover(); r != nil {

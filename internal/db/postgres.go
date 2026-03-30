@@ -46,8 +46,24 @@ func Connect(dsn string) (*gorm.DB, error) {
 }
 
 // RunMigrations reads and executes SQL migration files from the embedded
-// migrations directory in lexicographic order.
+// migrations directory in lexicographic order, skipping already-applied migrations.
 func RunMigrations(db *gorm.DB) error {
+	// Ensure the schema_migrations tracking table exists.
+	if err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+		filename VARCHAR(255) PRIMARY KEY,
+		applied_at TIMESTAMP NOT NULL DEFAULT NOW()
+	)`).Error; err != nil {
+		return fmt.Errorf("failed to create schema_migrations table: %w", err)
+	}
+
+	// Load already-applied migrations.
+	var applied []struct{ Filename string }
+	db.Raw("SELECT filename FROM schema_migrations").Scan(&applied)
+	appliedSet := make(map[string]bool, len(applied))
+	for _, a := range applied {
+		appliedSet[a.Filename] = true
+	}
+
 	entries, err := migrationsFS.ReadDir("migrations")
 	if err != nil {
 		return fmt.Errorf("failed to read migrations directory: %w", err)
@@ -63,15 +79,26 @@ func RunMigrations(db *gorm.DB) error {
 			continue
 		}
 
+		if appliedSet[entry.Name()] {
+			continue
+		}
+
 		content, err := migrationsFS.ReadFile("migrations/" + entry.Name())
 		if err != nil {
 			return fmt.Errorf("failed to read migration %s: %w", entry.Name(), err)
 		}
 
-		if err := db.Exec(string(content)).Error; err != nil {
-			return fmt.Errorf("failed to execute migration %s: %w", entry.Name(), err)
+		if txErr := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Exec(string(content)).Error; err != nil {
+				return err
+			}
+			if err := tx.Exec("INSERT INTO schema_migrations (filename) VALUES (?)", entry.Name()).Error; err != nil {
+				return err
+			}
+			return nil
+		}); txErr != nil {
+			return fmt.Errorf("failed to execute migration %s: %w", entry.Name(), txErr)
 		}
-
 		log.Printf("migration applied: %s", entry.Name())
 	}
 

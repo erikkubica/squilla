@@ -11,6 +11,7 @@ export interface AdminUIRoute {
 export interface AdminUIMenuItem {
   label: string;
   route: string;
+  icon?: string;
 }
 
 export interface AdminUIMenu {
@@ -57,7 +58,14 @@ export async function loadExtensionModule(
   slug: string,
   entry: string,
 ): Promise<Record<string, React.ComponentType<unknown>>> {
-  const url = `/admin/api/extensions/${slug}/assets/${entry.replace(/^admin-ui\/dist\//, "")}`;
+  const cleanEntry = entry.replace(/^admin-ui\/dist\//, "");
+  const url = `/admin/api/extensions/${encodeURIComponent(slug)}/assets/${cleanEntry}`;
+
+  // Validate the URL is a safe relative path (no protocol, no double dots).
+  if (url.includes("..") || /^[a-z]+:/i.test(url)) {
+    throw new Error(`Invalid extension entry path for ${slug}`);
+  }
+
   try {
     const mod = await import(/* @vite-ignore */ url);
     return mod;

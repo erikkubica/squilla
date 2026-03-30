@@ -788,6 +788,16 @@ func routingModule(api CoreAPI, ctx context.Context, renderCtx interface{}) map[
 	}
 
 	return map[string]tengo.Object{
+		"is_404": &tengo.UserFunction{Name: "is_404", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if nodeCtx == nil {
+				return tengo.FalseValue, nil
+			}
+			slug, _ := nodeCtx["slug"].(string)
+			if slug == "404" {
+				return tengo.TrueValue, nil
+			}
+			return tengo.FalseValue, nil
+		}},
 		"is_homepage": &tengo.UserFunction{Name: "is_homepage", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			if nodeCtx == nil {
 				return tengo.FalseValue, nil
@@ -830,6 +840,9 @@ func routingModule(api CoreAPI, ctx context.Context, renderCtx interface{}) map[
 
 func routingModulePlaceholder() map[string]tengo.Object {
 	return map[string]tengo.Object{
+		"is_404": &tengo.UserFunction{Name: "is_404", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			return tengo.FalseValue, nil
+		}},
 		"is_homepage": &tengo.UserFunction{Name: "is_homepage", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			return tengo.FalseValue, nil
 		}},
