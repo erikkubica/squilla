@@ -32,18 +32,9 @@
       "label": "Size",
       "type": "select",
       "options": [
-        {
-          "label": "Small",
-          "value": "small"
-        },
-        {
-          "label": "Medium",
-          "value": "medium"
-        },
-        {
-          "label": "Full",
-          "value": "full"
-        }
+        "small",
+        "medium",
+        "full"
       ],
       "default": "medium",
       "key": "size"
@@ -52,22 +43,10 @@
       "label": "Rounded",
       "type": "select",
       "options": [
-        {
-          "label": "None",
-          "value": "none"
-        },
-        {
-          "label": "Medium",
-          "value": "md"
-        },
-        {
-          "label": "Large",
-          "value": "lg"
-        },
-        {
-          "label": "Full",
-          "value": "full"
-        }
+        "none",
+        "md",
+        "lg",
+        "full"
       ],
       "default": "md",
       "key": "rounded"

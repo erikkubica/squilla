@@ -45,14 +45,8 @@
       "label": "Autoplay",
       "type": "select",
       "options": [
-        {
-          "label": "Yes",
-          "value": "true"
-        },
-        {
-          "label": "No",
-          "value": "false"
-        }
+        "true",
+        "false"
       ],
       "default": "true",
       "key": "autoplay"

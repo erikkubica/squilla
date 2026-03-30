@@ -14,18 +14,9 @@
       "label": "List Style",
       "type": "select",
       "options": [
-        {
-          "label": "Bullet",
-          "value": "bullet"
-        },
-        {
-          "label": "Numbered",
-          "value": "numbered"
-        },
-        {
-          "label": "Checklist",
-          "value": "check"
-        }
+        "bullet",
+        "numbered",
+        "check"
       ],
       "default": "bullet",
       "key": "style"

@@ -66,14 +66,8 @@
           "label": "Featured",
           "type": "select",
           "options": [
-            {
-              "label": "No",
-              "value": "false"
-            },
-            {
-              "label": "Yes",
-              "value": "true"
-            }
+            "false",
+            "true"
           ],
           "default": "false",
           "key": "is_featured"

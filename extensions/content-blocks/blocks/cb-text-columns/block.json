@@ -33,18 +33,9 @@
       "label": "Number of Columns",
       "type": "select",
       "options": [
-        {
-          "label": "2 Columns",
-          "value": "2"
-        },
-        {
-          "label": "3 Columns",
-          "value": "3"
-        },
-        {
-          "label": "4 Columns",
-          "value": "4"
-        }
+        "2",
+        "3",
+        "4"
       ],
       "default": "3",
       "key": "column_count"

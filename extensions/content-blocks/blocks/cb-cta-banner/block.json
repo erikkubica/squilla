@@ -38,18 +38,9 @@
       "label": "Style",
       "type": "select",
       "options": [
-        {
-          "label": "Accent",
-          "value": "accent"
-        },
-        {
-          "label": "Dark",
-          "value": "dark"
-        },
-        {
-          "label": "Light",
-          "value": "light"
-        }
+        "accent",
+        "dark",
+        "light"
       ],
       "default": "accent",
       "key": "style"

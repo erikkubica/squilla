@@ -14,18 +14,9 @@
       "label": "Logo Style",
       "type": "select",
       "options": [
-        {
-          "label": "Grayscale",
-          "value": "grayscale"
-        },
-        {
-          "label": "Color",
-          "value": "color"
-        },
-        {
-          "label": "Monochrome",
-          "value": "monochrome"
-        }
+        "grayscale",
+        "color",
+        "monochrome"
       ],
       "default": "grayscale",
       "key": "style"

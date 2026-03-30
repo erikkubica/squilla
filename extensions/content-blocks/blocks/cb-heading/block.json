@@ -20,30 +20,12 @@
       "label": "Heading Level",
       "type": "select",
       "options": [
-        {
-          "label": "H1",
-          "value": "h1"
-        },
-        {
-          "label": "H2",
-          "value": "h2"
-        },
-        {
-          "label": "H3",
-          "value": "h3"
-        },
-        {
-          "label": "H4",
-          "value": "h4"
-        },
-        {
-          "label": "H5",
-          "value": "h5"
-        },
-        {
-          "label": "H6",
-          "value": "h6"
-        }
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6"
       ],
       "default": "h2",
       "key": "level"
@@ -52,18 +34,9 @@
       "label": "Alignment",
       "type": "select",
       "options": [
-        {
-          "label": "Left",
-          "value": "left"
-        },
-        {
-          "label": "Center",
-          "value": "center"
-        },
-        {
-          "label": "Right",
-          "value": "right"
-        }
+        "left",
+        "center",
+        "right"
       ],
       "default": "center",
       "key": "alignment"
@@ -72,18 +45,9 @@
       "label": "Divider Style",
       "type": "select",
       "options": [
-        {
-          "label": "Line",
-          "value": "line"
-        },
-        {
-          "label": "Dots",
-          "value": "dots"
-        },
-        {
-          "label": "None",
-          "value": "none"
-        }
+        "line",
+        "dots",
+        "none"
       ],
       "default": "line",
       "key": "divider"

@@ -32,18 +32,9 @@
       "label": "Style",
       "type": "select",
       "options": [
-        {
-          "label": "Bordered",
-          "value": "bordered"
-        },
-        {
-          "label": "Quote Marks",
-          "value": "marks"
-        },
-        {
-          "label": "Minimal",
-          "value": "minimal"
-        }
+        "bordered",
+        "marks",
+        "minimal"
       ],
       "default": "bordered",
       "key": "style"

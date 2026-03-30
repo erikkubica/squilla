@@ -20,18 +20,9 @@
       "label": "Max Width",
       "type": "select",
       "options": [
-        {
-          "label": "Narrow",
-          "value": "narrow"
-        },
-        {
-          "label": "Medium",
-          "value": "medium"
-        },
-        {
-          "label": "Wide",
-          "value": "wide"
-        }
+        "narrow",
+        "medium",
+        "wide"
       ],
       "default": "medium",
       "key": "max_width"
