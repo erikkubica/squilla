@@ -107,3 +107,9 @@ Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plu
 - **Naming:** `snake_case` for Go files, `.html` for templates, `.tgo` for Tengo scripts. Template variables use `snake_case`.
 - **Performance:** Atomic operations for hot-swapped config maps and cache. Sub-50ms TTFB for public pages.
 - **Docker:** Multi-stage build: Node (admin SPA + extension UIs) → Go (binary + plugin binaries) → Alpine runtime.
+
+## Documentation
+
+- **[Extension API](docs/extension_api.md)**: Comprehensive handoff guide for building extensions (gRPC and Tengo).
+- **[Scripting API](docs/scripting_api.md)**: Detailed reference for the embedded Tengo scripting engine.
+- **[Design Spec](DESIGN_SPEC.md)**: Technical architecture and design decisions.

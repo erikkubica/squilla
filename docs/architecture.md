@@ -4,153 +4,122 @@
 
 **Purpose:** Component diagram and data flow defining how the system is structured. The authoritative reference for system boundaries and communication patterns.
 
-**How AI tools should use this:** Reference this document before designing new components; ensure new code fits within existing component boundaries.
+**Consistency requirements:** The architecture described here aligns with the active codebase: a minimal Go Kernel augmented by gRPC/Tengo Extensions and a React Micro-frontend Admin UI.
 
-**Consistency requirements:** Components must use only technologies from tech-stack.md; data stores must match tables in database-schema.md; service boundaries must align with endpoints in api-spec.md.
+VibeCMS is architected on a "Kernel + Extensions" model. The core system (the "Kernel") is deliberately minimal, providing only essential infrastructure like routing, authentication, content nodes, and an event bus. All other features (such as Media Management, Email, or SEO) are implemented as independent Extensions.
 
-VibeCMS is architected as a high-performance, single-binary application designed to be deployed once per website. This decentralized deployment model eliminates cross-tenant "noisy neighbor" effects and simplifies scaling for agencies. The system balances the raw speed of compiled Go with the flexibility of interpreted Tengo scripting for business logic. By utilizing a "Zero-Allocation" approach in the rendering pipeline and an in-memory routing trie, the architecture ensures that most requests are served within the target sub-50ms TTFB window.
+This decentralized architecture prevents monolith bloat, ensures high performance (sub-50ms TTFB), and provides a secure, capability-based sandboxing environment for third-party business logic.
 
 ---
 
-### Component Diagram
-
-The following diagram illustrates the internal structure of the VibeCMS binary and its interactions with external persistence layers and third-party APIs.
+## Component Diagram
 
 ```mermaid
 graph TB
-    subgraph "Public Internet"
-        User((End User))
-        AgencyLB((Agency Dashboard))
+    subgraph "Public Interface"
+        Visitor((End User))
+        Admin((Administrator))
     end
 
-    subgraph "VibeCMS Standalone Binary"
-        direction TB
+    subgraph "Admin SPA (React + Vite)"
+        AdminShell[CMS Core Shell]
+        MFE[Extension Micro-Frontends]
+    end
+
+    subgraph "VibeCMS Kernel (Go)"
+        Router[Fiber Router]
+        AuthSvc[Auth & RBAC]
+        ContentSvc[Content Nodes & Rendering]
         
-        subgraph "Routing & Middleware Layer"
-            Router[Fiber Router / Radix Tree]
-            Auth[Auth Middleware: RBAC & License]
-            CacheMgr[In-Memory Route Cache]
+        subgraph "Internal Infrastructure"
+            EventBus[Async Event Bus]
+            PluginMgr[Extension Loader & Proxy]
         end
-
-        subgraph "Internal Business Services"
-            ContentSvc[Content Node Service]
-            RenderingEngine[Jet / Templ Rendering Pipeline]
-            ScriptEx[Tengo VM Runner]
-            AISvc[AI Provider Bridge]
-            MediaPipe[Media Optimization Pipeline]
-            MailSvc[Communications Engine]
-        end
-
-        subgraph "Support Systems"
-            Cron[Internal Task Scheduler]
-            HealthSvc[Health & Monitoring API]
-        end
+        
+        CoreAPI[CoreAPI Interface]
     end
 
-    subgraph "Persistence Layer"
-        Postgres[(PostgreSQL 16: JSONB)]
-        Storage[Local Disk / S3 Storage]
+    subgraph "Extensions Layer"
+        NativeExt[Tengo Scripting Extensions]
+        ExternalExt[gRPC Plugins (Go Binaries)]
     end
 
-    subgraph "External Providers"
-        AIPros[OpenAI / Anthropic]
-        MailPros[Resend / SMTP]
-        SEOPros[Ahrefs / Semrush]
+    subgraph "Persistence"
+        PostgreSQL[(PostgreSQL JSONB)]
+        Storage[Local / S3 Storage]
     end
 
-    %% Communications
-    User -->|HTTPS| Router
-    AgencyLB -->|Auth: Bearer| HealthSvc
-    Router --> Auth
-    Auth --> CacheMgr
-    CacheMgr --> ContentSvc
+    %% Routing
+    Visitor --> Router
+    Admin --> AdminShell
+    AdminShell --> MFE
     
-    ContentSvc <--> Postgres
-    ContentSvc --> ScriptEx
-    ScriptEx --> RenderingEngine
-    RenderingEngine --> Router
+    AdminShell -->|/admin/api| Router
+    MFE -->|/admin/api/ext/*| Router
+
+    %% Internal
+    Router --> AuthSvc
+    Router --> ContentSvc
+    Router --> PluginMgr
+
+    %% Core Proxying to Extensions
+    PluginMgr -->|Proxy HTTP RPC| ExternalExt
+    PluginMgr -->|Mount Hooks| NativeExt
     
-    MediaPipe <--> Storage
-    MailSvc --> MailPros
-    AISvc --> AIPros
-    ContentSvc --> SEOPros
-    Cron --> ContentSvc
-    Cron --> MediaPipe
+    %% Extensions talking back to Core
+    ExternalExt -->|Invoke gRPC| CoreAPI
+    NativeExt -->|VM Callbacks| CoreAPI
+    
+    CoreAPI --> ContentSvc
+    CoreAPI --> EventBus
+
+    ContentSvc <--> PostgreSQL
+    ExternalExt <--> Storage
 ```
 
 ---
 
-### Data Flow
+## The Kernel vs. Extensions Paradigm
 
-#### 1. Public Content Delivery (The "Vibe Loop")
-This is the mission-critical path representing the core product value: sub-50ms TTFB.
-1.  **Request Entry:** User requests a URL (e.g., `/en/about-us`).
-2.  **Route Resolution:** The Router queries the **In-Memory CacheMgr** (Zero DB hit for 404 detection).
-3.  **Data Fetch:** **ContentSvc** retrieves the `blocks_data` JSONB and `node_metadata` from **Postgres** using a single indexed query.
-4.  **Extension Hook:** If a `before_render.tgo` script exists, **ScriptEx** (Tengo) runs within a 10ms timeout.
-5.  **Rendering:** The **Jet Engine** iterates through the JSON blocks, pulling pre-compiled `.jet` fragments from RAM and assembling the final HTML.
-6.  **Response:** The HTML stream is flushed to the user via Fiber.
+### 1. The Kernel (Core)
+The VibeCMS core provides infrastructure that cannot be reasonably outsourced.
+- **Content Nodes:** Unified storage (`content_nodes` table) using PostgreSQL JSONB for schema-less block data.
+- **CoreAPI:** A strict interface (35+ methods) that forms the only bridge between the Core and Extensions.
+- **Capability Guard:** RBAC for Extensions. Plguins must declare permissions (`nodes:read`, `email:send`) in `extension.json` which CoreAPI enforces.
+- **Plugin Manager:** Handles the lifecycle (boot, crash handling, shutdown) of gRPC binaries.
 
-#### 2. AI-Native Content Generation
-1.  **Trigger:** Admin selects "Suggest SEO" in the UI (HTMX request).
-2.  **Context Assembly:** **ContentSvc** extracts raw text from the `blocks_data` JSONB.
-3.  **LLM Bridge:** **AISvc** sends the structured data + current JSON schema to **OpenAI/Anthropic**.
-4.  **Transformation:** The AI returns structured JSON matching the Vibe-Field schema.
-5.  **Persistence:** The Admin reviews and "Saves," updating the `seo_meta` column in **Postgres**.
+### 2. Extensions
+Extensions implement the actual CMS features. There are two execution environments:
+- **gRPC Plugins:** Standalone Go binaries communicating via HashiCorp's `go-plugin`. They handle heavy lifting, custom database migrations, and complex business logic.
+- **Tengo Scripts:** An embedded, sandboxed scripting VM (`.tgo` files) used for lightweight hooks (e.g., injecting variables on `node.created`), bypassing the need for compiled binaries.
 
-#### 3. Media Upload & Optimization
-1.  **Upload:** Admin posts an image via the Media Manager (Multipart).
-2.  **Storage:** The original file is written to the **Storage** provider (e.g., S3).
-3.  **Async Task:** **Cron** triggers a background Go routine in the **MediaPipe**.
-4.  **Optimization:** The image is converted to WebP and multiple breakpoints are generated using `libvips`.
-5.  **DB Update:** The `media_assets` table is updated with the new WebP paths and dimensions.
+### 3. The React Micro-Frontend (Admin UI)
+The administration panel abandons traditional monolithic React apps.
+- **The Shell:** Contains only the login screen, sidebar, and dashboard. Exposes core libraries (`react`, `react-dom`, `@radix-ui`) on `window.__VIBECMS_SHARED__`.
+- **The Fragments:** Extensions provide their own pre-compiled Vite ES Module bundles. The CMS dynamically imports these modules when an administrator navigates to `/admin/extensions/:slug`.
 
 ---
 
-### Communication Patterns
+## Data Flow Examples
 
-| Pattern | Source/Target | Protocol | Reason |
-| :--- | :--- | :--- | :--- |
-| **Sync (REST)** | Frontend Browser -> Fiber | HTTPS | Real-time Admin UI interactions (HTMX). |
-| **Sync (In-Proc)** | Fiber -> Tengo VM | Function Call | Script execution must block the render pipeline to inject data. |
-| **Async (Internal)** | ContentSvc -> MailSvc | Go Channels | Sending emails must not delay the 50ms HTTP response. |
-| **Async (Polled)** | Agency Dashboard -> HealthSvc | HTTPS | Centralized monitoring of hundreds of independent instances. |
-| **Sync (TCP)** | Fiber -> PostgreSQL | SQL (Binary) | Standard relational persistence via GORM. |
+### 1. Extension Mounting & Admin Routing
+1. **Boot:** The Kernel scans `extensions/`, reads `extension.json`, and boots the gRPC binary.
+2. **Registration:** The extension calls `CoreAPI.RegisterRoute` or declares UI routes in its manifest.
+3. **UI Request:** Admin clicks the extension icon. The React Shell dynamically loads the JS module from `/admin/api/ext/:slug/assets/main.js`.
+4. **Proxy Request:** The React component makes a fetch to `/admin/api/ext/:slug/my-data`.
+5. **Delegation:** The Kernel proxy intercepts this, validates auth, and issues a `HandleHTTPRequest` gRPC call to the Extension binary.
 
----
-
-### Scalability and Reliability Considerations
-
-*   **Decoupled Instances:** By choosing a 1-site-per-binary model, a failure in one customer's environment (e.g., an infinite Tengo loop) cannot affect other sites managed by the agency.
-*   **Zero-Downtime Migration:** VibeCMS uses a state-version check on boot. If the binary is updated, it runs idempotent migrations inside a single SQL transaction. If the transaction fails, the app halts before serving corrupted data.
-*   **In-Memory Hot-Swapping:** Large datasets like Content Route Maps and Sitemaps are kept in memory and swapped atomically (using `atomic.Value`), ensuring reading requests never block writing updates.
-*   **Circuit Breakers on External APIs:** The **AISvc** and **MailSvc** implement exponential backoff and timeouts to ensure that a service outage at Resend or OpenAI does not hang VibeCMS worker pools.
+### 2. Asynchronous Events (e.g. Email Dispatch)
+1. **Trigger:** A Custom Form extension receives a submission.
+2. **Action:** The extension calls `CoreAPI.Emit("form.submitted", {data})`.
+3. **Bus Routing:** The Kernel's in-memory Event Bus receives the payload.
+4. **Subscription:** The Email Provider extension (listening to `form.submitted`) picks up the payload and dispatches an email via SMTP.
+*Note: This strictly decouples the Form processor from knowing anything about Email providers.*
 
 ---
 
-### Error Handling
+## Scalability and Reliability
 
-| Component | Failure Scenario | Detection | Recovery / Outcome |
-| :--- | :--- | :--- | :--- |
-| **Tengo VM** | Script runtime error or infinite loop. | Execution Timeout (10ms context). | **Soft-Fail:** Script is killed, error logged to `system_logs`, render continues without script data. |
-| **Jet Engine** | Request for missing block template. | Filesystem/Cache miss. | **Non-fatal:** Renders an HTML comment `<!-- Missing Template -->`, keeps the rest of the page intact. |
-| **Postgres** | Connection loss / Pool exhaustion. | DB Health Check / GORM error. | **Fatal Handle:** Redirects to a static `503.html` if fallback cache is missing; reports `down` status to Monitoring API. |
-| **License Layer** | Ed25519 signature mismatch. | Background Cron Verification. | **Non-blocking:** Logs warning to Agency Dashboard; disables Tengo and AI features; site remains live. |
-
----
-
-### Security Boundaries
-
-#### 1. Network Perimeter
-*   **Public Access:** Only the Fiber HTTP port (Default 8080/443) is exposed.
-*   **Admin UI:** Protected by session-based RBAC and CSRF tokens.
-*   **Monitoring API:** Publicly visible but requires a **Unique Static Bearer Token** per instance and enforces strict Rate Limiting.
-
-#### 2. Scripting Sandbox (Tengo)
-*   **Isolation:** Tengo scripts have **no access** to the host filesystem (`os` and `io` libraries are stripped).
-*   **Scope:** Scripts only see a provided "Context Map" containing JSON data and authorized helper methods (e.g., `mail.send`).
-
-#### 3. Data Protection
-*   **Encryption in Transit:** All communication with external APIs (OpenAI, Resend, S3) occurs over TLS 1.3.
-*   **Encryption at Rest:** Sensitive credentials (SMTP passwords, S3 Secrets) should be managed via Environment Variables; Database backups are AES-256 encrypted before upload to S3.
-*   **License Security:** Ed25519 signatures prevent domain-spoofing; the CMS validates its local license key against the active `Host` header.
+*   **Plugin Crash Isolation:** Because gRPC extensions run in separate OS processes, a fatal panic inside a poorly written Extension will NOT take down the main CMS Kernel. The Plugin Mgr securely logs the failure and can attempt a restart.
+*   **Zero-Allocation Paths:** Critical public-facing content reads are highly optimized. Routes and layout blocks utilize in-memory caching to avoid database roundtrips on heavy traffic spikes.
+*   **Transaction Safety:** Complex core mutations use PostgreSQL transactions to ensure atomic commits, avoiding partial data states during errors.
