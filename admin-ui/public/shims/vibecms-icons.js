@@ -79,3 +79,5 @@ export const ChevronsLeft = lazyIcon("ChevronsLeft");
 export const ChevronsRight = lazyIcon("ChevronsRight");
 export const RotateCcw = lazyIcon("RotateCcw");
 export const Layout = lazyIcon("Layout");
+export const ChevronUp = lazyIcon("ChevronUp");
+export const ImagePlus = lazyIcon("ImagePlus");

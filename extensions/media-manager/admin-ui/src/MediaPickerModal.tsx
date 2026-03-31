@@ -18,6 +18,7 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   Select,
@@ -183,7 +184,7 @@ export default function MediaPickerModal({
       setSelected((prev) => {
         const next = new Map(prev);
         if (next.has(file.id)) next.delete(file.id);
-        else next.add(file.id, file);
+        else next.set(file.id, file);
         return next;
       });
     } else {
@@ -220,6 +221,7 @@ export default function MediaPickerModal({
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Select Media</DialogTitle>
+          <DialogDescription>Browse or upload files to select</DialogDescription>
         </DialogHeader>
 
         {/* Toolbar */}
