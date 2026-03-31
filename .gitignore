@@ -2,6 +2,7 @@ bin/
 .env
 storage/media/*
 storage/backups/*
+storage/cache/*
 !storage/media/.gitkeep
 !storage/backups/.gitkeep
 *.exe
