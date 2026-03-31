@@ -155,19 +155,27 @@ export default function EmailBaseLayout() {
       .catch(() => {});
   }, []);
 
-  function openEditor(layout?: EmailLayout) {
+  async function openEditor(layout?: EmailLayout) {
     if (layout) {
       setEditId(layout.id);
       setFormName(layout.name || "");
       setFormLanguageId(layout.language_id ? String(layout.language_id) : "__universal__");
-      setFormBody(layout.body_template || "");
+      setEditing(true);
+      // Fetch full layout with body_template (stripped from list response).
+      try {
+        const full = await fetchLayout(layout.id);
+        setFormBody(full.body_template || "");
+      } catch {
+        setFormBody("");
+        toast.error("Failed to load layout body");
+      }
     } else {
       setEditId(null);
       setFormName("");
       setFormLanguageId("__universal__");
       setFormBody(DEFAULT_LAYOUT);
+      setEditing(true);
     }
-    setEditing(true);
   }
 
   function closeEditor() {
