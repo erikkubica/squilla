@@ -81,3 +81,4 @@ export const RotateCcw = lazyIcon("RotateCcw");
 export const Layout = lazyIcon("Layout");
 export const ChevronUp = lazyIcon("ChevronUp");
 export const ImagePlus = lazyIcon("ImagePlus");
+export const GripVertical = lazyIcon("GripVertical");

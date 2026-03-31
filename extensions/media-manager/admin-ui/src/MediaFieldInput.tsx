@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Image as ImageIcon,
   FileText,
@@ -8,8 +8,8 @@ import {
   X,
   Plus,
   ImagePlus,
-  ChevronUp,
-  ChevronDown,
+  Pencil,
+  GripVertical,
 } from "@vibecms/icons";
 import { Button, Input } from "@vibecms/ui";
 import MediaPickerModal, { type MediaFile } from "./MediaPickerModal";
@@ -174,25 +174,65 @@ function SingleMediaPreview({
   );
 }
 
-// ---------- Gallery item ----------
+// ---------- Gallery item with edit popup ----------
 
 function GalleryItem({
   media,
   index,
-  total,
   onRemove,
-  onMove,
+  onUpdate,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragTarget,
 }: {
   media: MediaValue;
   index: number;
-  total: number;
   onRemove: () => void;
-  onMove: (dir: "up" | "down") => void;
+  onUpdate: (updated: MediaValue) => void;
+  onDragStart: (e: React.DragEvent, index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDrop: (e: React.DragEvent, index: number) => void;
+  onDragEnd: () => void;
+  isDragTarget: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editAlt, setEditAlt] = useState(media.alt || "");
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  function handleSaveEdit() {
+    onUpdate({ ...media, alt: editAlt });
+    setEditing(false);
+  }
+
+  function handleOpenEdit(e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditAlt(media.alt || "");
+    setEditing(true);
+  }
+
   return (
-    <div className="group relative aspect-square rounded-lg border border-slate-200 overflow-hidden bg-white">
+    <div
+      className={`group relative aspect-square rounded-lg border-2 overflow-hidden bg-white cursor-grab active:cursor-grabbing transition-all ${
+        isDragTarget
+          ? "border-indigo-400 scale-[1.02] shadow-md"
+          : "border-slate-200 hover:border-slate-300"
+      }`}
+      draggable
+      onDragStart={(e) => onDragStart(e, index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDrop={(e) => onDrop(e, index)}
+      onDragEnd={onDragEnd}
+    >
       {isImage(media.mime_type) ? (
-        <img src={media.url} alt={media.alt || ""} className="h-full w-full object-cover" loading="lazy" />
+        <img
+          src={media.url}
+          alt={media.alt || ""}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          draggable={false}
+        />
       ) : (
         <div className="h-full w-full flex flex-col items-center justify-center p-2">
           <FileIcon mime={media.mime_type} className="h-8 w-8 text-slate-400" />
@@ -201,22 +241,94 @@ function GalleryItem({
           </span>
         </div>
       )}
-      {/* Hover overlay */}
-      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-        {index > 0 && (
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20" onClick={() => onMove("up")}>
-            <ChevronUp className="h-4 w-4" />
-          </Button>
-        )}
-        {index < total - 1 && (
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/20" onClick={() => onMove("down")}>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        )}
-        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-red-500/80" onClick={onRemove}>
-          <X className="h-4 w-4" />
-        </Button>
+
+      {/* Drag handle indicator */}
+      <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="bg-black/50 rounded p-0.5">
+          <GripVertical className="h-3 w-3 text-white" />
+        </div>
       </div>
+
+      {/* Action buttons overlay */}
+      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          className="bg-black/60 hover:bg-indigo-600 text-white rounded-full p-1 transition-colors"
+          onClick={handleOpenEdit}
+          title="Edit details"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+        <button
+          type="button"
+          className="bg-black/60 hover:bg-red-600 text-white rounded-full p-1 transition-colors"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          title="Remove"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+
+      {/* Alt text indicator */}
+      {media.alt && (
+        <div className="absolute bottom-0 inset-x-0 bg-black/50 px-1.5 py-0.5">
+          <p className="text-[9px] text-white truncate">{media.alt}</p>
+        </div>
+      )}
+
+      {/* Edit popup */}
+      {editing && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setEditing(false)} />
+          <div
+            ref={popupRef}
+            className="absolute z-50 top-full left-0 mt-1 w-56 bg-white rounded-lg border border-slate-200 shadow-xl p-3 space-y-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-semibold text-slate-700">Image Settings</p>
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-slate-500">Alt Text</label>
+              <Input
+                placeholder="Describe this image..."
+                value={editAlt}
+                onChange={(e) => setEditAlt(e.target.value)}
+                className="h-7 text-xs rounded-md border-slate-300"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); }}
+              />
+            </div>
+            {media.filename && (
+              <p className="text-[10px] text-slate-400 truncate">
+                {media.filename}
+              </p>
+            )}
+            {media.width && media.height && (
+              <p className="text-[10px] text-slate-400">
+                {media.width} × {media.height}px
+              </p>
+            )}
+            <div className="flex gap-1.5 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1 h-6 text-[11px] rounded-md"
+                onClick={() => setEditing(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="flex-1 h-6 text-[11px] rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={handleSaveEdit}
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -227,6 +339,44 @@ export default function MediaFieldInput({ field, value, onChange }: MediaFieldIn
   const [pickerOpen, setPickerOpen] = useState(false);
   const multi = isMultiMode(field);
   const mimeFilter = getMimeFilter(field);
+
+  // Drag state for gallery reordering
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((_e: React.DragEvent, index: number) => {
+    dragIndexRef.current = index;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragTargetIndex(index);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, dropIndex: number) => {
+      e.preventDefault();
+      const dragIndex = dragIndexRef.current;
+      if (dragIndex === null || dragIndex === dropIndex) {
+        setDragTargetIndex(null);
+        return;
+      }
+      const items = normalizeToMediaValues(value);
+      const next = [...items];
+      const [dragged] = next.splice(dragIndex, 1);
+      next.splice(dropIndex, 0, dragged);
+      onChange(next);
+      setDragTargetIndex(null);
+      dragIndexRef.current = null;
+    },
+    [value, onChange],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDragTargetIndex(null);
+    dragIndexRef.current = null;
+  }, []);
 
   if (multi) {
     // Gallery / multi-file mode
@@ -241,26 +391,28 @@ export default function MediaFieldInput({ field, value, onChange }: MediaFieldIn
       onChange(items.filter((_, i) => i !== index));
     }
 
-    function handleMove(index: number, dir: "up" | "down") {
-      const target = dir === "up" ? index - 1 : index + 1;
-      if (target < 0 || target >= items.length) return;
+    function handleUpdateItem(index: number, updated: MediaValue) {
       const next = [...items];
-      [next[index], next[target]] = [next[target], next[index]];
+      next[index] = updated;
       onChange(next);
     }
 
     return (
       <div className="space-y-3">
         {items.length > 0 && (
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
             {items.map((item, i) => (
               <GalleryItem
                 key={item.id || item.url}
                 media={item}
                 index={i}
-                total={items.length}
                 onRemove={() => handleRemove(i)}
-                onMove={(dir) => handleMove(i, dir)}
+                onUpdate={(updated) => handleUpdateItem(i, updated)}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
+                isDragTarget={dragTargetIndex === i}
               />
             ))}
           </div>
@@ -319,19 +471,6 @@ export default function MediaFieldInput({ field, value, onChange }: MediaFieldIn
             Click to select {field.type === "file" ? "a file" : "an image"}
           </span>
         </button>
-      )}
-
-      {current && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="rounded-lg text-sm"
-          onClick={() => setPickerOpen(true)}
-        >
-          <ImagePlus className="mr-2 h-4 w-4" />
-          Replace
-        </Button>
       )}
 
       <MediaPickerModal

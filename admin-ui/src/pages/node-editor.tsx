@@ -146,7 +146,6 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   // SEO
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
-  const [seoOpen, setSeoOpen] = useState(true);
 
   // Homepage
   const [homepageId, setHomepageId] = useState<number | null>(null);
@@ -632,9 +631,9 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
           </div>
 
           {/* Visual Block Editor */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-slate-900">Blocks</CardTitle>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-slate-900">Blocks</h2>
               <Button
                 type="button"
                 variant="outline"
@@ -645,8 +644,8 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                 <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
                 Load from Template
               </Button>
-            </CardHeader>
-            <CardContent className="space-y-3 p-6 pt-0">
+            </div>
+            <div className="space-y-3">
               {blocks.length === 0 && (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-12 text-slate-400">
                   <Square className="h-10 w-10" />
@@ -808,8 +807,8 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Custom Fields */}
           {customFields.length > 0 && (
@@ -837,7 +836,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1 scrollbar-thin">
           <Card className="rounded-xl border border-slate-200 shadow-sm">
             <CardContent className="space-y-4 p-5">
               {/* Status + Language row */}
@@ -1048,23 +1047,11 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
 
           {/* SEO Settings */}
           <Card className="rounded-xl border border-slate-200 shadow-sm">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between p-4 text-left"
-              onClick={() => setSeoOpen(!seoOpen)}
-            >
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-slate-400" />
-                <span className="text-sm font-semibold text-slate-900">SEO</span>
-              </div>
-              <ChevronDown
-                className={`h-4 w-4 text-slate-400 transition-transform ${
-                  seoOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-            {seoOpen && (
-              <CardContent className="space-y-3 px-4 pb-4 pt-0">
+            <div className="flex items-center gap-2 p-4 pb-0">
+              <Search className="h-4 w-4 text-slate-400" />
+              <span className="text-sm font-semibold text-slate-900">SEO</span>
+            </div>
+            <CardContent className="space-y-3 px-4 pb-4 pt-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-slate-500">
                     Meta Title
@@ -1109,25 +1096,27 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                   </p>
                 </div>
               </CardContent>
-            )}
           </Card>
 
           {/* Translations (edit mode) */}
           {isEdit && (
             <Card className="rounded-xl border border-slate-200 shadow-sm">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <Label className="text-xs font-medium text-slate-500">Translations</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs text-indigo-600 hover:text-indigo-700 px-2"
-                    onClick={() => setShowCreateTranslation(true)}
-                  >
-                    + Add
-                  </Button>
+              <div className="flex items-center justify-between p-4 pb-0">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-slate-400" />
+                  <span className="text-sm font-semibold text-slate-900">Translations</span>
                 </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-indigo-600 hover:text-indigo-700 px-2"
+                  onClick={() => setShowCreateTranslation(true)}
+                >
+                  + Add
+                </Button>
+              </div>
+              <CardContent className="px-4 pb-4 pt-3">
                 {/* Current language */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 rounded-md bg-indigo-50 border border-indigo-100 px-3 py-2">
