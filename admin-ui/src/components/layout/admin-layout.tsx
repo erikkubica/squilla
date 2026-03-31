@@ -221,7 +221,7 @@ export default function AdminLayout() {
       icon: iconMap[t.icon] || FileText,
     }));
 
-  const { menus: extensionMenus } = useExtensions();
+  const { menus: extensionMenus, settingsMenuItems } = useExtensions();
 
   // Build extension nav groups
   const extensionNavEntries: NavEntry[] = extensionMenus.map((menu) => {
@@ -245,11 +245,29 @@ export default function AdminLayout() {
     } as NavEntry;
   });
 
+  // Inject extension settings menu items into the Settings group
+  const bottomWithSettings = staticNavBottom.map((entry) => {
+    if ("label" in entry && entry.label === "Settings" && "children" in entry && settingsMenuItems.length > 0) {
+      return {
+        ...entry,
+        children: [
+          ...entry.children,
+          ...settingsMenuItems.map((item) => ({
+            to: item.route,
+            label: item.label,
+            icon: iconMap[item.icon || ""] || Settings,
+          })),
+        ],
+      };
+    }
+    return entry;
+  });
+
   // Insert extension menus before the "Appearance" group
-  const appearanceIdx = staticNavBottom.findIndex(
+  const appearanceIdx = bottomWithSettings.findIndex(
     (e) => "label" in e && e.label === "Appearance"
   );
-  const bottomWithExtensions = [...staticNavBottom];
+  const bottomWithExtensions = [...bottomWithSettings];
   if (appearanceIdx >= 0) {
     bottomWithExtensions.splice(appearanceIdx, 0, ...extensionNavEntries);
   } else {

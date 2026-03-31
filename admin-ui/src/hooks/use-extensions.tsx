@@ -12,6 +12,7 @@ import {
   type LoadedExtension,
   type AdminUIRoute,
   type AdminUIMenu,
+  type AdminUIMenuItem,
 } from "@/lib/extension-loader";
 
 export interface ResolvedFieldType {
@@ -36,6 +37,7 @@ interface ExtensionsContextValue {
   getFieldComponent: (fieldType: string) => { Component: React.ComponentType<unknown>; extensionSlug: string } | null;
   routes: Array<AdminUIRoute & { slug: string }>;
   menus: Array<AdminUIMenu & { slug: string }>;
+  settingsMenuItems: Array<AdminUIMenuItem & { slug: string }>;
 }
 
 const ExtensionsContext = createContext<ExtensionsContextValue>({
@@ -47,6 +49,7 @@ const ExtensionsContext = createContext<ExtensionsContextValue>({
   getFieldComponent: () => null,
   routes: [],
   menus: [],
+  settingsMenuItems: [],
 });
 
 export function ExtensionsProvider({ children }: { children: ReactNode }) {
@@ -149,6 +152,7 @@ export function ExtensionsProvider({ children }: { children: ReactNode }) {
 
   const routes: Array<AdminUIRoute & { slug: string }> = [];
   const menus: Array<AdminUIMenu & { slug: string }> = [];
+  const settingsMenuItems: Array<AdminUIMenuItem & { slug: string }> = [];
 
   for (const [slug, ext] of loaded) {
     const adminUI = ext.entry.manifest.admin_ui;
@@ -163,11 +167,17 @@ export function ExtensionsProvider({ children }: { children: ReactNode }) {
     if (adminUI.menu) {
       menus.push({ ...adminUI.menu, slug });
     }
+
+    if (adminUI.settings_menu) {
+      for (const item of adminUI.settings_menu) {
+        settingsMenuItems.push({ ...item, slug });
+      }
+    }
   }
 
   return (
     <ExtensionsContext.Provider
-      value={{ manifests, loaded, loading, getSlotExtensions, getFieldTypes, getFieldComponent, routes, menus }}
+      value={{ manifests, loaded, loading, getSlotExtensions, getFieldTypes, getFieldComponent, routes, menus, settingsMenuItems }}
     >
       {children}
     </ExtensionsContext.Provider>

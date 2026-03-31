@@ -36,6 +36,7 @@ export interface AdminUIManifest {
   slots: Record<string, AdminUISlot>;
   routes: AdminUIRoute[];
   menu: AdminUIMenu | null;
+  settings_menu?: AdminUIMenuItem[];
   field_types?: AdminUIFieldType[];
 }
 

@@ -35,6 +35,9 @@
             "icon": "Image",
             "position": "3"
         },
+        "settings_menu": [
+            {"label": "Image Optimizer", "route": "/admin/ext/media-manager/optimizer", "icon": "ImageDown"}
+        ],
         "field_types": [
             {
                 "type": "media",
