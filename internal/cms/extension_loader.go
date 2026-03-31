@@ -74,6 +74,8 @@ type ExtensionManifest struct {
 	SettingsSchema map[string]SettingsField `json:"settings_schema"`
 	Blocks         []ThemeBlockDef         `json:"blocks"`
 	Templates      []ThemeTemplateDef      `json:"templates"`
+	Layouts        []ThemeLayoutDef        `json:"layouts"`
+	Partials       []ThemePartialDef       `json:"partials"`
 }
 
 // CapabilityMap returns the Capabilities slice as a map for quick lookup.
@@ -251,8 +253,8 @@ func (l *ExtensionLoader) LoadBlocksForExtension(slug string, registry *ThemeAss
 	}
 }
 
-// UnloadExtensionBlocks removes all block types and templates owned by an extension
-// and clears their assets from the registry.
+// UnloadExtensionBlocks removes all block types, templates, layouts, and partials
+// owned by an extension and clears their assets from the registry.
 func (l *ExtensionLoader) UnloadExtensionBlocks(slug string, registry *ThemeAssetRegistry) {
 	// Find all block slugs for this extension before deleting.
 	var blockTypes []models.BlockType
@@ -270,6 +272,18 @@ func (l *ExtensionLoader) UnloadExtensionBlocks(slug string, registry *ThemeAsse
 		log.Printf("[extensions] removed %d templates from extension %s", tResult.RowsAffected, slug)
 	}
 
+	// Delete layouts from DB.
+	lResult := l.db.Where("source = ? AND theme_name = ?", "extension", slug).Delete(&models.Layout{})
+	if lResult.RowsAffected > 0 {
+		log.Printf("[extensions] removed %d layouts from extension %s", lResult.RowsAffected, slug)
+	}
+
+	// Delete partials from DB.
+	pResult := l.db.Where("source = ? AND theme_name = ?", "extension", slug).Delete(&models.LayoutBlock{})
+	if pResult.RowsAffected > 0 {
+		log.Printf("[extensions] removed %d partials from extension %s", pResult.RowsAffected, slug)
+	}
+
 	// Remove from asset registry.
 	registry.mu.Lock()
 	for _, bt := range blockTypes {
@@ -278,7 +292,8 @@ func (l *ExtensionLoader) UnloadExtensionBlocks(slug string, registry *ThemeAsse
 	registry.mu.Unlock()
 }
 
-// loadExtensionBlocks loads blocks and templates for a single extension. Returns count loaded.
+// loadExtensionBlocks loads blocks, templates, layouts, and partials for a single extension.
+// Returns count of blocks loaded.
 func (l *ExtensionLoader) loadExtensionBlocks(ext models.Extension, registry *ThemeAssetRegistry) int {
 	var manifest ExtensionManifest
 	if err := json.Unmarshal(ext.Manifest, &manifest); err != nil {
@@ -303,6 +318,32 @@ func (l *ExtensionLoader) loadExtensionBlocks(ext models.Extension, registry *Th
 		if err := RegisterTemplateFromFile(l.db, filePath, def.Slug, "extension", ext.Slug); err != nil {
 			log.Printf("[extensions] template %s from %s: %v", def.Slug, ext.Slug, err)
 			continue
+		}
+	}
+
+	// Load layouts.
+	for _, def := range manifest.Layouts {
+		filePath := filepath.Join(ext.Path, "layouts", def.File)
+		code, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Printf("[extensions] layout %s from %s: %v", def.Slug, ext.Slug, err)
+			continue
+		}
+		if err := RegisterLayoutFromFile(l.db, def, string(code), "extension", ext.Slug); err != nil {
+			log.Printf("[extensions] layout %s from %s: %v", def.Slug, ext.Slug, err)
+		}
+	}
+
+	// Load partials.
+	for _, def := range manifest.Partials {
+		filePath := filepath.Join(ext.Path, "partials", def.File)
+		code, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Printf("[extensions] partial %s from %s: %v", def.Slug, ext.Slug, err)
+			continue
+		}
+		if err := RegisterPartialFromFile(l.db, def, string(code), "extension", ext.Slug); err != nil {
+			log.Printf("[extensions] partial %s from %s: %v", def.Slug, ext.Slug, err)
 		}
 	}
 

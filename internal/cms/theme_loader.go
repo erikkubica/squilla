@@ -443,30 +443,48 @@ func (tl *ThemeLoader) registerAssets(manifest ThemeManifest) {
 }
 
 // upsertLayout creates or updates a layout from a theme definition.
-// Theme layouts are created as universal (language_id = NULL).
 func (tl *ThemeLoader) upsertLayout(themeName string, def ThemeLayoutDef, code string) {
+	if err := RegisterLayoutFromFile(tl.db, def, code, "theme", themeName); err != nil {
+		log.Printf("WARN: %v", err)
+	}
+}
+
+// upsertPartial creates or updates a layout block from a theme partial definition.
+func (tl *ThemeLoader) upsertPartial(themeName string, def ThemePartialDef, code string) {
+	if err := RegisterPartialFromFile(tl.db, def, code, "theme", themeName); err != nil {
+		log.Printf("WARN: %v", err)
+	}
+}
+
+// RegisterLayoutFromFile upserts a layout with hash-based change detection.
+func RegisterLayoutFromFile(db *gorm.DB, def ThemeLayoutDef, code string, source string, sourceName string) error {
 	h := sha256.New()
 	h.Write([]byte(code))
 	contentHash := hex.EncodeToString(h.Sum(nil))
 
+	var sourceNamePtr *string
+	if sourceName != "" {
+		sourceNamePtr = &sourceName
+	}
+
 	var existing models.Layout
-	result := tl.db.Where("slug = ? AND language_id IS NULL", def.Slug).First(&existing)
+	result := db.Where("slug = ? AND language_id IS NULL", def.Slug).First(&existing)
 
 	if result.Error == nil {
 		if existing.Source == "custom" {
-			return
+			return nil
 		}
-		if existing.ContentHash == contentHash {
-			return
+		if existing.ContentHash == contentHash && existing.Source == source {
+			return nil
 		}
 		existing.Name = def.Name
 		existing.TemplateCode = code
-		existing.Source = "theme"
-		existing.ThemeName = &themeName
+		existing.Source = source
+		existing.ThemeName = sourceNamePtr
 		existing.IsDefault = def.IsDefault
 		existing.ContentHash = contentHash
-		if err := tl.db.Save(&existing).Error; err != nil {
-			log.Printf("WARN: failed to update theme layout %s: %v", def.Slug, err)
+		if err := db.Save(&existing).Error; err != nil {
+			return fmt.Errorf("failed to update layout %s: %w", def.Slug, err)
 		}
 	} else {
 		layout := models.Layout{
@@ -474,41 +492,46 @@ func (tl *ThemeLoader) upsertLayout(themeName string, def ThemeLayoutDef, code s
 			Name:         def.Name,
 			LanguageID:   nil,
 			TemplateCode: code,
-			Source:       "theme",
-			ThemeName:    &themeName,
+			Source:       source,
+			ThemeName:    sourceNamePtr,
 			IsDefault:    def.IsDefault,
 			ContentHash:  contentHash,
 		}
-		if err := tl.db.Create(&layout).Error; err != nil {
-			log.Printf("WARN: failed to create theme layout %s: %v", def.Slug, err)
+		if err := db.Create(&layout).Error; err != nil {
+			return fmt.Errorf("failed to create layout %s: %w", def.Slug, err)
 		}
 	}
+	return nil
 }
 
-// upsertPartial creates or updates a layout block from a theme partial definition.
-// Theme partials map to layout_blocks (used by renderLayoutBlock in templates).
-func (tl *ThemeLoader) upsertPartial(themeName string, def ThemePartialDef, code string) {
+// RegisterPartialFromFile upserts a layout block (partial) with hash-based change detection.
+func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, source string, sourceName string) error {
 	h := sha256.New()
 	h.Write([]byte(code))
 	contentHash := hex.EncodeToString(h.Sum(nil))
 
+	var sourceNamePtr *string
+	if sourceName != "" {
+		sourceNamePtr = &sourceName
+	}
+
 	var existing models.LayoutBlock
-	result := tl.db.Where("slug = ? AND language_id IS NULL", def.Slug).First(&existing)
+	result := db.Where("slug = ? AND language_id IS NULL", def.Slug).First(&existing)
 
 	if result.Error == nil {
 		if existing.Source == "custom" {
-			return
+			return nil
 		}
-		if existing.ContentHash == contentHash {
-			return
+		if existing.ContentHash == contentHash && existing.Source == source {
+			return nil
 		}
 		existing.Name = def.Name
 		existing.TemplateCode = code
-		existing.Source = "theme"
-		existing.ThemeName = &themeName
+		existing.Source = source
+		existing.ThemeName = sourceNamePtr
 		existing.ContentHash = contentHash
-		if err := tl.db.Save(&existing).Error; err != nil {
-			log.Printf("WARN: failed to update theme partial %s: %v", def.Slug, err)
+		if err := db.Save(&existing).Error; err != nil {
+			return fmt.Errorf("failed to update partial %s: %w", def.Slug, err)
 		}
 	} else {
 		lb := models.LayoutBlock{
@@ -516,14 +539,15 @@ func (tl *ThemeLoader) upsertPartial(themeName string, def ThemePartialDef, code
 			Name:         def.Name,
 			LanguageID:   nil,
 			TemplateCode: code,
-			Source:       "theme",
-			ThemeName:    &themeName,
+			Source:       source,
+			ThemeName:    sourceNamePtr,
 			ContentHash:  contentHash,
 		}
-		if err := tl.db.Create(&lb).Error; err != nil {
-			log.Printf("WARN: failed to create theme partial %s: %v", def.Slug, err)
+		if err := db.Create(&lb).Error; err != nil {
+			return fmt.Errorf("failed to create partial %s: %w", def.Slug, err)
 		}
 	}
+	return nil
 }
 
 // blockManifest is the structure of a block's block.json file.
