@@ -25,7 +25,8 @@
         }
     ],
     "public_routes": [
-        {"method": "GET", "path": "/media/cache/*"}
+        {"method": "GET", "path": "/media/cache/*"},
+        {"method": "GET", "path": "/media/*"}
     ],
     "admin_ui": {
         "entry": "admin-ui/dist/index.js",

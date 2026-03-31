@@ -252,7 +252,8 @@ func main() {
 	publicProxy := cms.NewPublicExtensionProxy(pluginManager)
 	publicProxy.RegisterPublicRoutes(app, activeExts)
 
-	// --- Media files ---
+	// Media files served by media-manager extension via public_routes proxy.
+	// Fallback static handler for when extension is not active.
 	app.Static("/media", "./storage/media")
 
 	// --- Theme static assets ---

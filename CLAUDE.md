@@ -19,9 +19,17 @@ A high-performance, AI-native Go-based CMS with a kernel + extension architectur
 - Content nodes (GORM models, CRUD, rendering)
 - Authentication, sessions, RBAC
 - CoreAPI (35+ methods across 15 domains)
-- Extension system (loader, proxy, migrations)
+- Extension system (loader, proxy, migrations, public route proxy)
 - Theme engine + public site rendering
-- Event bus
+- Event bus + filter chain
+
+**HARD RULE: If disabling/removing an extension would leave dead code in core, that code belongs in the extension, not core.** Core must never contain feature-specific logic — only generic infrastructure that multiple extensions could use. For example:
+- Image optimization, WebP conversion, cache routing → media extension (NOT core)
+- Email template management → email extension (NOT core)
+- Public route proxy mechanism → core (generic, any extension can use it)
+- Filter/event system → core (generic plumbing)
+
+When building new features, always ask: "Does core need this to function as a skeleton CMS, or is this a feature that an extension provides?" If the latter, it goes in the extension — even if it means more work to wire up via gRPC/events/filters.
 
 **Extensions = Debian Packages.** Own their full stack:
 - **gRPC plugin** (Go binary) — business logic, handles HTTP requests via `HandleHTTPRequest`
