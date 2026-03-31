@@ -212,8 +212,8 @@ function getItemAtPath(items: MenuItem[], path: number[]): MenuItem {
 // Ensure every item has a stable _uid for tracking UI state
 function ensureUids(items: MenuItem[]): MenuItem[] {
   for (const item of items) {
-    if (!(item as Record<string, unknown>)._uid) {
-      (item as Record<string, unknown>)._uid = generateTempId();
+    if (!item._uid) {
+      item._uid = generateTempId();
     }
     if (item.children && item.children.length > 0) {
       ensureUids(item.children);
@@ -223,7 +223,7 @@ function ensureUids(items: MenuItem[]): MenuItem[] {
 }
 
 function getItemUid(item: MenuItem): string {
-  return ((item as Record<string, unknown>)._uid as string) || "";
+  return item._uid || "";
 }
 
 export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps) {
@@ -232,7 +232,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
 
   // Ensure all items have stable UIDs
   useEffect(() => {
-    const hasAllUids = flattenItems(items).every((fi) => !!(fi.item as Record<string, unknown>)._uid);
+    const hasAllUids = flattenItems(items).every((fi) => !!fi.item._uid);
     if (!hasAllUids) {
       const next = cloneItems(items);
       ensureUids(next);

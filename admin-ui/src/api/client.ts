@@ -617,6 +617,7 @@ export async function reattachLayoutBlock(id: number | string): Promise<LayoutBl
 
 export interface MenuItem {
   id?: number;
+  _uid?: string;
   title: string;
   item_type: "node" | "custom";
   node_id?: number | null;

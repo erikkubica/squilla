@@ -33,15 +33,14 @@ function slugify(text: string): string {
 }
 
 function newMenuItem(type: MenuItem["item_type"]): MenuItem {
-  const uid = generateTempId();
   const base: MenuItem = {
+    _uid: generateTempId(),
     title: "",
     item_type: type,
     target: "_self",
     css_class: "",
     children: [],
   };
-  (base as Record<string, unknown>)._uid = uid;
   if (type === "custom") base.url = "";
   if (type === "node") base.node_id = null;
   return base;
@@ -108,7 +107,7 @@ export default function MenuEditorPage() {
 
   function addItem(type: MenuItem["item_type"]) {
     const item = newMenuItem(type);
-    const uid = (item as Record<string, unknown>)._uid as string;
+    const uid = item._uid!;
     setMenuItems((prev) => [...prev, item]);
     setLastAddedId(uid);
   }
@@ -116,7 +115,7 @@ export default function MenuEditorPage() {
   function stripUids(items: MenuItem[]): MenuItem[] {
     return items.map((item) => {
       const clean = { ...item };
-      delete (clean as Record<string, unknown>)._uid;
+      delete clean._uid;
       if (clean.children && clean.children.length > 0) {
         clean.children = stripUids(clean.children);
       }
