@@ -201,9 +201,14 @@ function FileIcon({ mime, className }: { mime: string; className?: string }) {
 }
 
 // Get a resized image URL for a given size name (thumbnail, medium, large).
-function imageSize(url: string, size: string): string {
+// Accepts optional updatedAt for cache-busting when image or size settings change.
+function imageSize(url: string, size: string, updatedAt?: string): string {
   if (!url.startsWith("/media/")) return url;
-  return "/media/cache/" + size + "/" + url.slice(7);
+  let result = "/media/cache/" + size + "/" + url.slice(7);
+  if (updatedAt) {
+    result += "?v=" + new Date(updatedAt).getTime();
+  }
+  return result;
 }
 
 function BrokenMediaFallback({ className }: { className?: string }) {
@@ -743,7 +748,7 @@ export default function MediaLibrary() {
                         <div className="relative w-full bg-slate-100 flex items-center justify-center overflow-hidden" style={{ aspectRatio: "1 / 1" }}>
                           {isImage(file.mime_type) ? (
                             <MediaImage
-                              src={imageSize(file.url, "medium")}
+                              src={imageSize(file.url, "medium", file.updated_at)}
                               alt={file.alt || file.original_name}
                               style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             />
@@ -882,7 +887,7 @@ export default function MediaLibrary() {
                             <div className="h-10 w-10 rounded-md bg-slate-100 overflow-hidden flex items-center justify-center">
                               {isImage(file.mime_type) ? (
                                 <MediaImage
-                                  src={imageSize(file.url, "thumbnail")}
+                                  src={imageSize(file.url, "thumbnail", file.updated_at)}
                                   alt={file.original_name}
                                   className="h-full w-full object-cover"
                                 />

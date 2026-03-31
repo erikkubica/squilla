@@ -120,9 +120,13 @@ function isImage(mime: string): boolean {
   return mime.startsWith("image/");
 }
 
-function imageSize(url: string, size: string): string {
+function imageSize(url: string, size: string, updatedAt?: string): string {
   if (!url.startsWith("/media/")) return url;
-  return "/media/cache/" + size + "/" + url.slice(7);
+  let result = "/media/cache/" + size + "/" + url.slice(7);
+  if (updatedAt) {
+    result += "?v=" + new Date(updatedAt).getTime();
+  }
+  return result;
 }
 
 function FileIcon({ mime, className }: { mime: string; className?: string }) {
@@ -293,7 +297,7 @@ export default function MediaPickerModal({
                   >
                     {isImage(file.mime_type) ? (
                       <img
-                        src={imageSize(file.url, "medium")}
+                        src={imageSize(file.url, "medium", file.updated_at)}
                         alt={file.alt || file.original_name}
                         className="h-full w-full object-cover"
                         loading="lazy"
