@@ -37,6 +37,16 @@ COPY --from=builder /app/ui/templates ./ui/templates
 COPY --from=builder /app/themes ./themes
 COPY --from=builder /app/extensions ./extensions
 COPY --from=frontend /app/admin-ui/dist ./admin-ui/dist
-COPY --from=frontend /app/extensions/ ./extensions/
+# Copy only the built admin-ui dist folders from frontend stage (not the whole extensions dir)
+RUN for dir in extensions/*/admin-ui; do \
+      [ -d "$dir" ] && rm -rf "$dir/dist" || true; \
+    done
+COPY --from=frontend /app/extensions/ /tmp/ext-frontend/
+RUN for dir in /tmp/ext-frontend/*/admin-ui/dist; do \
+      [ -d "$dir" ] || continue; \
+      slug=$(echo "$dir" | sed 's|/tmp/ext-frontend/||;s|/admin-ui/dist||'); \
+      mkdir -p "extensions/$slug/admin-ui"; \
+      cp -r "$dir" "extensions/$slug/admin-ui/dist"; \
+    done && rm -rf /tmp/ext-frontend
 EXPOSE 8099
 CMD ["./vibecms"]
