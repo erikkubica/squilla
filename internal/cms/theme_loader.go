@@ -1,6 +1,8 @@
 package cms
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -555,6 +557,14 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 		sourceNamePtr = &sourceName
 	}
 
+	// Compute content hash from all block files.
+	h := sha256.New()
+	h.Write(bjData)
+	h.Write(viewData)
+	h.Write([]byte(blockCSS))
+	h.Write([]byte(blockJS))
+	contentHash := hex.EncodeToString(h.Sum(nil))
+
 	// Upsert block type.
 	var existing models.BlockType
 	result := db.Where("slug = ?", slug).First(&existing)
@@ -562,6 +572,16 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 	viewFile := filepath.Join("blocks", filepath.Base(blockDir), "view.html")
 
 	if result.Error == nil {
+		// Skip update if block is detached (custom) — user owns it now.
+		if existing.Source == "custom" {
+			return nil
+		}
+
+		// Skip update if content hasn't changed.
+		if existing.ContentHash == contentHash && existing.Source == source {
+			return nil
+		}
+
 		existing.Label = label
 		existing.Icon = icon
 		existing.Description = bm.Description
@@ -573,6 +593,7 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 		existing.ViewFile = viewFile
 		existing.BlockCSS = blockCSS
 		existing.BlockJS = blockJS
+		existing.ContentHash = contentHash
 		if err := db.Save(&existing).Error; err != nil {
 			return fmt.Errorf("failed to update block_type %s: %w", slug, err)
 		}
@@ -590,6 +611,7 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 			ViewFile:     viewFile,
 			BlockCSS:     blockCSS,
 			BlockJS:      blockJS,
+			ContentHash:  contentHash,
 		}
 		if err := db.Create(&bt).Error; err != nil {
 			return fmt.Errorf("failed to create block_type %s: %w", slug, err)
