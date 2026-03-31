@@ -72,6 +72,12 @@ type SettingsField struct {
 }
 
 // ExtensionManifest represents the extension.json manifest file.
+// PublicRouteEntry declares a public route that should be proxied to an extension plugin.
+type PublicRouteEntry struct {
+	Method string `json:"method"`
+	Path   string `json:"path"`
+}
+
 type ExtensionManifest struct {
 	Name           string                  `json:"name"`
 	Slug           string                  `json:"slug"`
@@ -88,6 +94,7 @@ type ExtensionManifest struct {
 	Templates      []ThemeTemplateDef      `json:"templates"`
 	Layouts        []ThemeLayoutDef        `json:"layouts"`
 	Partials       []ThemePartialDef       `json:"partials"`
+	PublicRoutes   []PublicRouteEntry      `json:"public_routes"`
 }
 
 // CapabilityMap returns the Capabilities slice as a map for quick lookup.

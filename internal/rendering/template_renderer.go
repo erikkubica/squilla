@@ -12,34 +12,18 @@ import (
 	"sync"
 )
 
-// ImageSizeInfo holds the width/height for a registered image size.
-// Used by template functions to generate srcset width descriptors.
-type ImageSizeInfo struct {
-	Name   string
-	Width  int
-	Height int
-}
-
-// ImageSizeProvider is an interface for looking up registered image sizes.
-// This avoids a direct dependency on the media package.
-type ImageSizeProvider interface {
-	GetAll() []ImageSizeInfo
-	GetByName(name string) (ImageSizeInfo, bool)
-}
-
 // TemplateRenderer handles parsing and rendering of Go html/template files.
 // It supports caching in production and always re-parses in dev mode.
 type TemplateRenderer struct {
-	templateDir   string
-	cache         map[string]*template.Template
-	layoutCache   map[string]*template.Template
-	blockCache    map[string]*template.Template
-	mu            sync.RWMutex
-	isDev         bool
-	funcMap       template.FuncMap
-	eventRunner   func(string, interface{}, []interface{}) template.HTML
-	filterRunner  func(string, interface{}, interface{}) interface{}
-	sizeProvider  ImageSizeProvider
+	templateDir  string
+	cache        map[string]*template.Template
+	layoutCache  map[string]*template.Template
+	blockCache   map[string]*template.Template
+	mu           sync.RWMutex
+	isDev        bool
+	funcMap      template.FuncMap
+	eventRunner  func(string, interface{}, []interface{}) template.HTML
+	filterRunner func(string, interface{}, interface{}) interface{}
 }
 
 // ClearCache completely resets the template caches.
@@ -62,12 +46,6 @@ func (r *TemplateRenderer) SetEventRunner(fn func(string, interface{}, []interfa
 // This connects the template engine to the scripting filter system.
 func (r *TemplateRenderer) SetFilterRunner(fn func(string, interface{}, interface{}) interface{}) {
 	r.filterRunner = fn
-}
-
-// SetSizeRegistry injects an ImageSizeProvider (typically the media.SizeRegistry)
-// so that image_srcset can include width descriptors.
-func (r *TemplateRenderer) SetSizeRegistry(provider ImageSizeProvider) {
-	r.sizeProvider = provider
 }
 
 // NewTemplateRenderer creates a new TemplateRenderer.
@@ -152,15 +130,7 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 			parts := make([]string, 0, len(sizeNames))
 			for _, name := range sizeNames {
 				url := "/media/cache/" + name + "/" + path
-				// Try to get the width from the size registry for a proper width descriptor.
-				if r.sizeProvider != nil {
-					if info, ok := r.sizeProvider.GetByName(name); ok && info.Width > 0 {
-						parts = append(parts, fmt.Sprintf("%s %dw", url, info.Width))
-						continue
-					}
-				}
-				// Fallback: use size name as descriptor.
-				parts = append(parts, url+" "+name)
+				parts = append(parts, url)
 			}
 			return strings.Join(parts, ", ")
 		},
