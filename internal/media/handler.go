@@ -40,10 +40,19 @@ func NewCacheHandler(registry *SizeRegistry, cache *CacheManager, storageDir str
 			return c.SendStatus(fiber.StatusNotFound)
 		}
 
-		// Determine cache path (always original format — WebP encoding not available).
 		cachePath := cache.GetPath(sizeName, originalPath)
 
-		// Check cache — serve immediately if exists.
+		// Check if browser wants WebP and we have a cached WebP version.
+		acceptHeader := c.Get("Accept", "")
+		wantsWebP := strings.Contains(acceptHeader, "image/webp")
+		if wantsWebP {
+			webpPath := cache.GetWebPPath(sizeName, originalPath)
+			if cache.Exists(webpPath) {
+				return serveCachedFile(c, webpPath, true)
+			}
+		}
+
+		// Check cache for original format.
 		if cache.Exists(cachePath) {
 			return serveCachedFile(c, cachePath, false)
 		}
@@ -53,7 +62,13 @@ func NewCacheHandler(registry *SizeRegistry, cache *CacheManager, storageDir str
 		mu.Lock()
 		defer mu.Unlock()
 
-		// Double-check after acquiring lock (another goroutine may have generated it).
+		// Double-check after acquiring lock.
+		if wantsWebP {
+			webpPath := cache.GetWebPPath(sizeName, originalPath)
+			if cache.Exists(webpPath) {
+				return serveCachedFile(c, webpPath, true)
+			}
+		}
 		if cache.Exists(cachePath) {
 			return serveCachedFile(c, cachePath, false)
 		}
@@ -95,16 +110,36 @@ func NewCacheHandler(registry *SizeRegistry, cache *CacheManager, storageDir str
 		}
 
 		outputData := resized
+		outputMime := outMime
 
-		// Write to cache.
-		if err := cache.Write(cachePath, outputData); err != nil {
+		// WebP conversion: if browser accepts WebP and it's enabled in settings.
+		webpEnabled := settingsGet("media:optimizer:webp_enabled")
+		if webpEnabled != "false" && strings.Contains(acceptHeader, "image/webp") && outMime != "image/webp" {
+			webpQuality := 75
+			if q := settingsGet("media:optimizer:webp_quality"); q != "" {
+				fmt.Sscanf(q, "%d", &webpQuality)
+			}
+			webpData, webpErr := ConvertToWebP(bytes.NewReader(resized), webpQuality)
+			if webpErr == nil && len(webpData) < len(resized) {
+				outputData = webpData
+				outputMime = "image/webp"
+				// Cache WebP variant separately.
+				webpCachePath := cache.GetWebPPath(sizeName, originalPath)
+				if err := cache.Write(webpCachePath, outputData); err != nil {
+					log.Printf("WARN: cache write webp %s: %v", webpCachePath, err)
+				}
+			}
+		}
+
+		// Cache the original-format version too.
+		if err := cache.Write(cachePath, resized); err != nil {
 			log.Printf("WARN: cache write %s: %v", cachePath, err)
-			// Still serve the image even if caching fails.
 		}
 
 		// Serve the response.
-		c.Set("Content-Type", outMime)
+		c.Set("Content-Type", outputMime)
 		c.Set("Cache-Control", "public, max-age=31536000")
+		c.Set("Vary", "Accept")
 		return c.Send(outputData)
 	}
 }

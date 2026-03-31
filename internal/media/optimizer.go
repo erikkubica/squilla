@@ -13,6 +13,9 @@ import (
 
 	// Register WebP decoder so image.Decode can read WebP files (pure Go, no CGO).
 	_ "golang.org/x/image/webp"
+
+	// Pure Go WebP encoder via WebAssembly (no CGO required).
+	gowebp "github.com/gen2brain/webp"
 )
 
 // Normalize normalizes an uploaded image: downscale if exceeds maxDim (fit inside),
@@ -76,25 +79,25 @@ func Resize(src io.Reader, mimeType string, width, height int, mode string, qual
 		return nil, "", fmt.Errorf("unknown resize mode: %s", mode)
 	}
 
-	outMime := mimeType
-	if outMime == "image/webp" {
-		outMime = "image/jpeg" // WebP encoding unavailable; fall back to JPEG.
-	}
-
-	data, err := encodeImage(resized, outMime, quality)
+	data, err := encodeImage(resized, mimeType, quality)
 	if err != nil {
 		return nil, "", fmt.Errorf("encode: %w", err)
 	}
 
-	return data, outMime, nil
+	return data, mimeType, nil
 }
 
-// ConvertToWebP is a no-op stub. WebP encoding requires CGO (libwebp).
-// The decoder is registered via golang.org/x/image/webp so WebP uploads can be read,
-// but encoding to WebP is not available in pure-Go builds.
-// WebP input images are re-encoded as JPEG instead.
+// ConvertToWebP converts any image to WebP format using a pure Go encoder (via WebAssembly).
 func ConvertToWebP(src io.Reader, quality int) ([]byte, error) {
-	return nil, fmt.Errorf("WebP encoding is not available (requires CGO); use JPEG or PNG output instead")
+	img, _, err := image.Decode(src)
+	if err != nil {
+		return nil, fmt.Errorf("decode for webp conversion: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := gowebp.Encode(&buf, img, gowebp.Options{Quality: quality}); err != nil {
+		return nil, fmt.Errorf("webp encode: %w", err)
+	}
+	return buf.Bytes(), nil
 }
 
 // decodeImage decodes an image from the reader based on MIME type.
@@ -225,8 +228,7 @@ func encodeImage(img image.Image, mimeType string, quality int) ([]byte, error) 
 			return nil, err
 		}
 	case "image/webp":
-		// WebP encoding requires CGO; re-encode as JPEG instead.
-		if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: quality}); err != nil {
+		if err := gowebp.Encode(&buf, img, gowebp.Options{Quality: quality}); err != nil {
 			return nil, err
 		}
 	default:
