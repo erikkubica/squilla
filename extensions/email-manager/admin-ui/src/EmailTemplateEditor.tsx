@@ -80,7 +80,17 @@ export default function EmailTemplateEditor() {
         // Find universal layout (language_id is null) as default for preview.
         const layouts = json.data || [];
         const universal = layouts.find((l: any) => l.language_id === null);
-        if (universal) setBaseLayout(universal.body_template);
+        if (universal) {
+          // List endpoint strips body_template — fetch full layout.
+          if (universal.body_template) {
+            setBaseLayout(universal.body_template);
+          } else {
+            fetch(`/admin/api/ext/email-manager/layouts/${universal.id}`, { credentials: "include" })
+              .then((r) => r.json())
+              .then((j) => { if (!cancelled && j.data?.body_template) setBaseLayout(j.data.body_template); })
+              .catch(() => {});
+          }
+        }
       })
       .catch(() => {});
 
