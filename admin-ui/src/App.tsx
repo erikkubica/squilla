@@ -28,6 +28,10 @@ import ThemeFilesPage from "@/pages/theme-files";
 import ExtensionsPage from "@/pages/extensions";
 import ExtensionFilesPage from "@/pages/extension-files";
 import SiteSettingsPage from "@/pages/site-settings";
+import TaxonomyTermsPage from "@/pages/taxonomy-terms";
+import TaxonomiesListPage from "@/pages/taxonomies-list";
+import TaxonomyEditorPage from "@/pages/taxonomy-editor";
+import TermEditorPage from "@/pages/term-editor";
 import { AdminLanguageProvider } from "@/hooks/use-admin-language";
 import { ExtensionsProvider } from "@/hooks/use-extensions";
 import { ExtensionPageLoader } from "@/components/extension-page-loader";
@@ -45,7 +49,7 @@ function NodeAccessGuard({ nodeType, children }: { nodeType: string; children: R
 function NodeWriteGuard({ nodeType, children }: { nodeType: string; children: React.ReactNode }) {
   const { user } = useAuth();
   const access = getNodeAccess(user, nodeType);
-  if (access.access !== "write") {
+  if (access.access !== "write" && access.access !== "all") {
     return <Navigate to="/admin/dashboard" replace />;
   }
   return <>{children}</>;
@@ -66,7 +70,7 @@ function DynamicNodeEditor() {
   const type = nodeType || "page";
   return (
     <NodeWriteGuard nodeType={type}>
-      <NodeEditorPage nodeType={type} />
+      <NodeEditorPage nodeTypeProp={type} />
     </NodeWriteGuard>
   );
 }
@@ -113,11 +117,11 @@ function AppRoutes() {
         />
         <Route
           path="pages/new"
-          element={<NodeWriteGuard nodeType="page"><NodeEditorPage nodeType="page" /></NodeWriteGuard>}
+          element={<NodeWriteGuard nodeType="page"><NodeEditorPage nodeTypeProp="page" /></NodeWriteGuard>}
         />
         <Route
           path="pages/:id/edit"
-          element={<NodeWriteGuard nodeType="page"><NodeEditorPage nodeType="page" /></NodeWriteGuard>}
+          element={<NodeWriteGuard nodeType="page"><NodeEditorPage nodeTypeProp="page" /></NodeWriteGuard>}
         />
         <Route
           path="posts"
@@ -125,11 +129,11 @@ function AppRoutes() {
         />
         <Route
           path="posts/new"
-          element={<NodeWriteGuard nodeType="post"><NodeEditorPage nodeType="post" /></NodeWriteGuard>}
+          element={<NodeWriteGuard nodeType="post"><NodeEditorPage nodeTypeProp="post" /></NodeWriteGuard>}
         />
         <Route
           path="posts/:id/edit"
-          element={<NodeWriteGuard nodeType="post"><NodeEditorPage nodeType="post" /></NodeWriteGuard>}
+          element={<NodeWriteGuard nodeType="post"><NodeEditorPage nodeTypeProp="post" /></NodeWriteGuard>}
         />
         <Route path="content-types" element={<NodeTypesListPage />} />
         <Route path="content-types/new" element={<NodeTypeEditorPage />} />
@@ -173,6 +177,21 @@ function AppRoutes() {
           path="content/:nodeType/:id/edit"
           element={<DynamicNodeEditor />}
         />
+        <Route
+          path="content/:nodeType/taxonomies/:taxonomy"
+          element={<TaxonomyTermsPage />}
+        />
+        <Route
+          path="content/:nodeType/taxonomies/:taxonomy/new"
+          element={<TermEditorPage />}
+        />
+        <Route
+          path="content/:nodeType/taxonomies/:taxonomy/:id/edit"
+          element={<TermEditorPage />}
+        />
+        <Route path="taxonomies" element={<TaxonomiesListPage />} />
+        <Route path="taxonomies/new" element={<TaxonomyEditorPage />} />
+        <Route path="taxonomies/:slug/edit" element={<TaxonomyEditorPage />} />
         {/* Extension pages */}
         <Route path="ext/:slug/*" element={<ExtensionPageLoader />} />
       </Route>

@@ -276,6 +276,9 @@ func (tl *ThemeLoader) LoadTheme(themeDir string) error {
 
 	// Trigger cache invalidation across the system
 	if tl.eventBus != nil {
+		tl.eventBus.Publish("taxonomies:register", events.Payload{
+			"theme": manifest.Name,
+		})
 		tl.eventBus.Publish("theme.activated", events.Payload{
 			"name": manifest.Name,
 			"path": themeDir,

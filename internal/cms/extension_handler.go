@@ -250,6 +250,11 @@ func (h *ExtensionHandler) Activate(c *fiber.Ctx) error {
 
 	ext, err := h.loader.GetBySlug(slug)
 	if err == nil {
+		// Run pending SQL migrations for this extension.
+		if migErr := RunExtensionMigrations(h.db, ext.Path, slug); migErr != nil {
+			log.Printf("[extensions] warning: failed to run migrations for %s: %v", slug, migErr)
+		}
+
 		// Parse manifest to get capabilities
 		var manifest ExtensionManifest
 		_ = json.Unmarshal(ext.Manifest, &manifest)

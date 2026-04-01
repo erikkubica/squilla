@@ -62,6 +62,9 @@ type ContentNode struct {
 	Slug               string         `gorm:"column:slug;type:varchar(255);not null" json:"slug"`
 	FullURL            string         `gorm:"column:full_url;type:text;uniqueIndex;not null" json:"full_url"`
 	Title              string         `gorm:"column:title;type:varchar(255);not null" json:"title"`
+	FeaturedImage      JSONB          `gorm:"column:featured_image;type:jsonb;not null;default:'{}'" json:"featured_image"`
+	Excerpt            string         `gorm:"column:excerpt;type:text;not null;default:''" json:"excerpt"`
+	Taxonomies         JSONB          `gorm:"column:taxonomies;type:jsonb;not null;default:'{}'" json:"taxonomies"`
 	BlocksData         JSONB          `gorm:"column:blocks_data;type:jsonb;not null;default:'[]'" json:"blocks_data"`
 	SeoSettings        JSONB          `gorm:"column:seo_settings;type:jsonb;not null;default:'{}'" json:"seo_settings"`
 	FieldsData         JSONB          `gorm:"column:fields_data;type:jsonb;not null;default:'{}'" json:"fields_data"`

@@ -124,6 +124,20 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 			}
 			return string(b)
 		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("invalid dict call: must have even number of arguments")
+			}
+			dict := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict keys must be strings")
+				}
+				dict[key] = values[i+1]
+			}
+			return dict, nil
+		},
 		"image_url": func(originalURL string, sizeName string) string {
 			// Transform /media/2026/03/photo.jpg -> /media/cache/{size}/2026/03/photo.jpg
 			if !strings.HasPrefix(originalURL, "/media/") {

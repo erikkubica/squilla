@@ -5,9 +5,25 @@ option go_package = "vibecms/pkg/plugin/coreapipb";
 service VibeCMSHost {
   rpc GetNode(GetNodeRequest) returns (NodeResponse);
   rpc QueryNodes(QueryNodesRequest) returns (QueryNodesResponse);
+  rpc ListTaxonomyTerms(ListTaxonomyTermsRequest) returns (ListTaxonomyTermsResponse);
   rpc CreateNode(CreateNodeRequest) returns (NodeResponse);
   rpc UpdateNode(UpdateNodeRequest) returns (NodeResponse);
   rpc DeleteNode(DeleteNodeRequest) returns (Empty);
+
+  // Taxonomies
+  rpc ListTerms(ListTermsRequest) returns (ListTermsResponse);
+  rpc GetTerm(GetTermRequest) returns (TermResponse);
+  rpc CreateTerm(CreateTermRequest) returns (TermResponse);
+  rpc UpdateTerm(UpdateTermRequest) returns (TermResponse);
+  rpc DeleteTerm(DeleteTermRequest) returns (Empty);
+
+  // Taxonomy Definitions
+  rpc RegisterTaxonomy(TaxonomyInputMessage) returns (TaxonomyResponse);
+  rpc GetTaxonomy(GetTaxonomyRequest) returns (TaxonomyResponse);
+  rpc ListTaxonomies(Empty) returns (TaxonomyListResponse);
+  rpc UpdateTaxonomy(UpdateTaxonomyRequest) returns (TaxonomyResponse);
+  rpc DeleteTaxonomy(DeleteTaxonomyRequest) returns (Empty);
+
   rpc GetSetting(GetSettingRequest) returns (SettingResponse);
   rpc SetSetting(SetSettingRequest) returns (Empty);
   rpc GetSettings(GetSettingsRequest) returns (SettingsResponse);
@@ -53,6 +69,8 @@ message QueryNodesRequest {
   int32 limit = 8;
   int32 offset = 9;
   string order_by = 10;
+  string category = 11;
+  string tax_query_json = 12; // JSON-encoded map[string][]string for taxonomy filtering
 }
 
 message CreateNodeRequest {
@@ -68,6 +86,15 @@ message DeleteNodeRequest {
   uint32 id = 1;
 }
 
+message ListTaxonomyTermsRequest {
+  string node_type = 1;
+  string taxonomy = 2;
+}
+
+message ListTaxonomyTermsResponse {
+  repeated string terms = 1;
+}
+
 message NodeInput {
   uint32 parent_id = 1;
   bool has_parent_id = 2;
@@ -79,6 +106,9 @@ message NodeInput {
   string blocks_data_json = 8;   // JSON-encoded
   string fields_data_json = 9;   // JSON-encoded map[string]any
   map<string, string> seo_settings = 10;
+  string featured_image_json = 11;
+  string excerpt = 12;
+  string taxonomies_json = 13; // JSON-encoded map[string][]string
 }
 
 message NodeResponse {
@@ -107,6 +137,98 @@ message NodeMessage {
   string published_at = 14;      // RFC3339 or empty
   string created_at = 15;        // RFC3339
   string updated_at = 16;        // RFC3339
+  string featured_image_json = 17;
+  string excerpt = 18;
+  string taxonomies_json = 19; // JSON-encoded map[string][]string
+}
+
+// --- Taxonomy messages ---
+
+message ListTermsRequest {
+  string node_type = 1;
+  string taxonomy = 2;
+}
+
+message ListTermsResponse {
+  repeated TermMessage terms = 1;
+}
+
+message GetTermRequest {
+  uint32 id = 1;
+}
+
+message CreateTermRequest {
+  TermMessage term = 1;
+}
+
+message UpdateTermRequest {
+  uint32 id = 1;
+  string updates_json = 2; // JSON-encoded map[string]any
+}
+
+message DeleteTermRequest {
+  uint32 id = 1;
+}
+
+message TermResponse {
+  TermMessage term = 1;
+}
+
+message TermMessage {
+  uint32 id = 1;
+  string node_type = 2;
+  string taxonomy = 3;
+  string slug = 4;
+  string name = 5;
+  string description = 6;
+  uint32 parent_id = 7;
+  bool has_parent_id = 8;
+  int32 count = 9;
+  string created_at = 10;
+  string updated_at = 11;
+  string fields_data_json = 12; // JSON-encoded map[string]any
+}
+
+// --- Taxonomy Definition messages ---
+
+message TaxonomyInputMessage {
+  string slug = 1;
+  string label = 2;
+  string description = 3;
+  repeated string node_types = 4;
+  repeated NodeTypeFieldMessage field_schema = 5;
+}
+
+message TaxonomyMessage {
+  uint32 id = 1;
+  string slug = 2;
+  string label = 3;
+  string description = 4;
+  repeated string node_types = 5;
+  repeated NodeTypeFieldMessage field_schema = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message TaxonomyResponse {
+  TaxonomyMessage taxonomy = 1;
+}
+
+message TaxonomyListResponse {
+  repeated TaxonomyMessage taxonomies = 1;
+}
+
+message GetTaxonomyRequest {
+  string slug = 1;
+}
+
+message UpdateTaxonomyRequest {
+  string slug = 1;
+  TaxonomyInputMessage input = 2;
+}
+
+message DeleteTaxonomyRequest {
+  string slug = 1;
 }
 
 // --- Settings messages ---
@@ -321,6 +443,7 @@ message NodeTypeInputMessage {
   string description = 4;
   repeated NodeTypeFieldMessage field_schema = 5;
   map<string, string> url_prefixes = 6;
+  string taxonomies_json = 7; // JSON-encoded []TaxonomyDefinition
 }
 
 message NodeTypeMessage {
@@ -333,6 +456,7 @@ message NodeTypeMessage {
   map<string, string> url_prefixes = 7;
   string created_at = 8;
   string updated_at = 9;
+  string taxonomies_json = 10; // JSON-encoded []TaxonomyDefinition
 }
 
 message NodeTypeResponse {

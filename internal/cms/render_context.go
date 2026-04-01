@@ -31,6 +31,9 @@ type NodeData struct {
 	Title        string
 	Slug         string
 	FullURL      string
+	FeaturedImage interface{}
+	Excerpt      string
+	Taxonomies   map[string][]string
 	BlocksHTML   template.HTML
 	Fields       map[string]interface{}
 	SEO          map[string]interface{}
@@ -78,6 +81,9 @@ func (td TemplateData) ToMap() map[string]interface{} {
 			"title":         td.Node.Title,
 			"slug":          td.Node.Slug,
 			"full_url":      td.Node.FullURL,
+			"featured_image": td.Node.FeaturedImage,
+			"excerpt":       td.Node.Excerpt,
+			"taxonomies":    td.Node.Taxonomies,
 			"blocks_html":   td.Node.BlocksHTML,
 			"fields":        td.Node.Fields,
 			"seo":           td.Node.SEO,
@@ -182,12 +188,25 @@ func (rc *RenderContext) BuildNodeData(node *models.ContentNode, blocksHTML stri
 	// Load translations for language switcher
 	translations := rc.loadTranslations(node, languages)
 
+	var featuredImage interface{}
+	if len(node.FeaturedImage) > 0 {
+		json.Unmarshal(node.FeaturedImage, &featuredImage)
+	}
+
+	var taxonomies map[string][]string
+	if len(node.Taxonomies) > 0 {
+		json.Unmarshal(node.Taxonomies, &taxonomies)
+	}
+
 	return NodeData{
 		ID:           node.ID,
 		Status:       node.Status,
 		Title:        node.Title,
 		Slug:         node.Slug,
 		FullURL:      node.FullURL,
+		FeaturedImage: featuredImage,
+		Excerpt:      node.Excerpt,
+		Taxonomies:   taxonomies,
 		BlocksHTML:   template.HTML(blocksHTML),
 		Fields:       fields,
 		SEO:          seo,

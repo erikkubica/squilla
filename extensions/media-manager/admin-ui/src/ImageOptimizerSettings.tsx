@@ -7,6 +7,9 @@ import {
   Image as ImageIcon,
   RefreshCw,
   Loader2,
+  Zap,
+  RotateCcw,
+  Sparkles,
 } from "@vibecms/icons";
 import {
   Button,
@@ -58,6 +61,16 @@ interface ImageSize {
 interface CacheStats {
   total_size: number;
   total_files: number;
+}
+
+interface OptimizerStatsData {
+  total_images: number;
+  optimized_count: number;
+  unoptimized_count: number;
+  with_backup: number;
+  total_original_size: number;
+  total_current_size: number;
+  total_savings: number;
 }
 
 const BASE = "/admin/api/ext/media-manager/optimizer";
@@ -129,6 +142,52 @@ async function clearCacheForSize(name: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to clear cache for size");
 }
 
+async function fetchOptimizerStats(): Promise<OptimizerStatsData> {
+  const res = await fetch(`${BASE}/stats`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch optimizer stats");
+  const body = await res.json();
+  return body.data ?? body;
+}
+
+async function startReoptimizeAll(): Promise<void> {
+  const res = await fetch(`${BASE}/reoptimize-all`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok && res.status !== 409) throw new Error("Failed to start re-optimization");
+}
+
+async function startRestoreAll(): Promise<void> {
+  const res = await fetch(`${BASE}/restore-all`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok && res.status !== 409) throw new Error("Failed to start restore");
+}
+
+interface BulkProgress {
+  running: boolean;
+  total: number;
+  processed: number;
+  failed: number;
+  total_saved: number;
+  status: string;
+}
+
+async function fetchReoptimizeProgress(): Promise<BulkProgress> {
+  const res = await fetch(`${BASE}/reoptimize-progress`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch progress");
+  const body = await res.json();
+  return body.data ?? body;
+}
+
+async function fetchRestoreProgress(): Promise<BulkProgress> {
+  const res = await fetch(`${BASE}/restore-progress`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch progress");
+  const body = await res.json();
+  return body.data ?? body;
+}
+
 // ---------- Helpers ----------
 
 function formatBytes(bytes: number): string {
@@ -168,10 +227,17 @@ export default function ImageOptimizerSettings() {
   const [clearingAll, setClearingAll] = useState(false);
   const [clearingSizeName, setClearingSizeName] = useState<string | null>(null);
 
+  // Optimizer stats
+  const [optStats, setOptStats] = useState<OptimizerStatsData | null>(null);
+  const [reoptimizeJob, setReoptimizeJob] = useState<BulkProgress | null>(null);
+  const [restoreJob, setRestoreJob] = useState<BulkProgress | null>(null);
+
   // Dialogs
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deletingName, setDeletingName] = useState<string | null>(null);
   const [clearAllConfirm, setClearAllConfirm] = useState(false);
+  const [reoptimizeAllConfirm, setReoptimizeAllConfirm] = useState(false);
+  const [restoreAllConfirm, setRestoreAllConfirm] = useState(false);
 
   // ---------- Load data ----------
 
@@ -203,10 +269,20 @@ export default function ImageOptimizerSettings() {
     }
   }, []);
 
+  const loadOptStats = useCallback(async () => {
+    try {
+      const data = await fetchOptimizerStats();
+      setOptStats(data);
+    } catch {
+      // Non-critical — stats are supplementary.
+    }
+  }, []);
+
   useEffect(() => {
     loadSettings();
     loadSizes();
-  }, [loadSettings, loadSizes]);
+    loadOptStats();
+  }, [loadSettings, loadSizes, loadOptStats]);
 
   // ---------- Handlers ----------
 
@@ -287,6 +363,73 @@ export default function ImageOptimizerSettings() {
       toast.error("Failed to clear cache");
     } finally {
       setClearingAll(false);
+    }
+  };
+
+  // Poll for bulk job progress
+  useEffect(() => {
+    if (!reoptimizeJob?.running) return;
+    const interval = setInterval(async () => {
+      try {
+        const progress = await fetchReoptimizeProgress();
+        setReoptimizeJob(progress);
+        if (!progress.running) {
+          clearInterval(interval);
+          toast.success(
+            `Re-optimized ${progress.processed} image${progress.processed !== 1 ? "s" : ""}${
+              progress.total_saved > 0 ? ` — saved ${formatBytes(progress.total_saved)}` : ""
+            }${progress.failed > 0 ? ` (${progress.failed} failed)` : ""}`
+          );
+          loadOptStats();
+          loadSizes();
+        }
+      } catch {
+        clearInterval(interval);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [reoptimizeJob?.running, loadOptStats, loadSizes]);
+
+  useEffect(() => {
+    if (!restoreJob?.running) return;
+    const interval = setInterval(async () => {
+      try {
+        const progress = await fetchRestoreProgress();
+        setRestoreJob(progress);
+        if (!progress.running) {
+          clearInterval(interval);
+          toast.success(
+            `Restored ${progress.processed} image${progress.processed !== 1 ? "s" : ""}${
+              progress.failed > 0 ? ` (${progress.failed} failed)` : ""
+            }`
+          );
+          loadOptStats();
+          loadSizes();
+        }
+      } catch {
+        clearInterval(interval);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [restoreJob?.running, loadOptStats, loadSizes]);
+
+  const handleReoptimizeAll = async () => {
+    try {
+      await startReoptimizeAll();
+      setReoptimizeJob({ running: true, total: optStats?.total_images ?? 0, processed: 0, failed: 0, total_saved: 0, status: "running" });
+      setReoptimizeAllConfirm(false);
+    } catch {
+      toast.error("Failed to start re-optimization");
+    }
+  };
+
+  const handleRestoreAll = async () => {
+    try {
+      await startRestoreAll();
+      setRestoreJob({ running: true, total: optStats?.with_backup ?? 0, processed: 0, failed: 0, total_saved: 0, status: "running" });
+      setRestoreAllConfirm(false);
+    } catch {
+      toast.error("Failed to start restore");
     }
   };
 
@@ -612,6 +755,128 @@ export default function ImageOptimizerSettings() {
         </CardContent>
       </Card>
 
+      {/* ==================== Optimization Overview ==================== */}
+      {optStats && optStats.total_images > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Optimization Overview</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                onClick={() => setReoptimizeAllConfirm(true)}
+                disabled={reoptimizeJob?.running || restoreJob?.running}
+              >
+                {reoptimizeJob?.running ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> {reoptimizeJob.processed}/{reoptimizeJob.total}</>
+                ) : (
+                  <><Zap className="h-3.5 w-3.5 mr-1.5" /> Re-optimize All</>
+                )}
+              </Button>
+              {optStats.with_backup > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-amber-700 border-amber-200 hover:bg-amber-50"
+                  onClick={() => setRestoreAllConfirm(true)}
+                  disabled={reoptimizeJob?.running || restoreJob?.running}
+                >
+                  {restoreJob?.running ? (
+                    <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> {restoreJob.processed}/{restoreJob.total}</>
+                  ) : (
+                    <><RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Restore All</>
+                  )}
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total images */}
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-center">
+                <p className="text-2xl font-bold text-slate-800">{optStats.total_images}</p>
+                <p className="text-xs text-slate-500 mt-0.5">Total Images</p>
+              </div>
+              {/* Optimized */}
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-700">{optStats.optimized_count}</p>
+                <p className="text-xs text-emerald-600 mt-0.5">Optimized</p>
+              </div>
+              {/* Not optimized */}
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
+                <p className="text-2xl font-bold text-amber-700">{optStats.unoptimized_count}</p>
+                <p className="text-xs text-amber-600 mt-0.5">Not Optimized</p>
+              </div>
+              {/* Space saved */}
+              <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3 text-center">
+                <p className="text-2xl font-bold text-indigo-700">{formatBytes(optStats.total_savings)}</p>
+                <p className="text-xs text-indigo-600 mt-0.5">Total Saved</p>
+              </div>
+            </div>
+            {/* Bulk operation progress */}
+            {reoptimizeJob?.running && (
+              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                  <span className="text-sm font-medium text-emerald-800">
+                    Re-optimizing... {reoptimizeJob.processed + reoptimizeJob.failed} / {reoptimizeJob.total}
+                  </span>
+                  {reoptimizeJob.total_saved > 0 && (
+                    <span className="text-xs text-emerald-600 ml-auto">
+                      Saved {formatBytes(reoptimizeJob.total_saved)} so far
+                    </span>
+                  )}
+                </div>
+                <div className="h-2.5 rounded-full bg-emerald-200 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                    style={{ width: `${reoptimizeJob.total > 0 ? ((reoptimizeJob.processed + reoptimizeJob.failed) / reoptimizeJob.total) * 100 : 0}%` }}
+                  />
+                </div>
+                {reoptimizeJob.failed > 0 && (
+                  <p className="text-[10px] text-amber-600">{reoptimizeJob.failed} failed</p>
+                )}
+              </div>
+            )}
+            {restoreJob?.running && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                  <span className="text-sm font-medium text-amber-800">
+                    Restoring... {restoreJob.processed + restoreJob.failed} / {restoreJob.total}
+                  </span>
+                </div>
+                <div className="h-2.5 rounded-full bg-amber-200 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all duration-300"
+                    style={{ width: `${restoreJob.total > 0 ? ((restoreJob.processed + restoreJob.failed) / restoreJob.total) * 100 : 0}%` }}
+                  />
+                </div>
+                {restoreJob.failed > 0 && (
+                  <p className="text-[10px] text-red-600">{restoreJob.failed} failed</p>
+                )}
+              </div>
+            )}
+            {/* Optimization progress bar */}
+            {optStats.total_images > 0 && !reoptimizeJob?.running && !restoreJob?.running && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+                  <span>{Math.round((optStats.optimized_count / optStats.total_images) * 100)}% optimized</span>
+                  <span>{optStats.with_backup} with backup</span>
+                </div>
+                <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                    style={{ width: `${(optStats.optimized_count / optStats.total_images) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* ==================== Cache Management ==================== */}
       <Card>
         <CardHeader>
@@ -691,6 +956,59 @@ export default function ImageOptimizerSettings() {
             >
               {clearingAll && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Clear All Cache
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ==================== Re-optimize All Confirmation ==================== */}
+      <Dialog open={reoptimizeAllConfirm} onOpenChange={setReoptimizeAllConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Re-optimize All Images</DialogTitle>
+            <DialogDescription>
+              This will re-optimize {optStats?.total_images ?? 0} images using the current settings.
+              Original backups will be preserved for future restoration.
+              This may take a while for large libraries.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReoptimizeAllConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={reoptimizeJob?.running}
+              onClick={handleReoptimizeAll}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Re-optimize All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ==================== Restore All Confirmation ==================== */}
+      <Dialog open={restoreAllConfirm} onOpenChange={setRestoreAllConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Restore All Originals</DialogTitle>
+            <DialogDescription>
+              This will restore {optStats?.with_backup ?? 0} images to their original, unoptimized versions.
+              The optimization status will be reset but original backups will be kept for future re-optimization.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRestoreAllConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={restoreJob?.running}
+              onClick={handleRestoreAll}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restore All
             </Button>
           </DialogFooter>
         </DialogContent>

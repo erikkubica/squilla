@@ -2,7 +2,9 @@ package cms
 
 import (
 	"encoding/json"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -35,6 +37,189 @@ func (h *NodeHandler) RegisterRoutes(router fiber.Router) {
 	router.Delete("/nodes/:id", h.Delete)
 	router.Get("/nodes/:id/translations", h.GetTranslations)
 	router.Post("/nodes/:id/translations", h.CreateTranslation)
+}
+
+// ListTaxonomies handles GET /taxonomies.
+func (h *NodeHandler) ListTaxonomies(c *fiber.Ctx) error {
+	var list []models.Taxonomy
+	if err := h.db.Order("label ASC").Find(&list).Error; err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch taxonomies")
+	}
+	return api.Success(c, list)
+}
+
+// GetTaxonomy handles GET /taxonomies/:slug.
+func (h *NodeHandler) GetTaxonomy(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	var t models.Taxonomy
+	if err := h.db.Where("slug = ?", slug).First(&t).Error; err != nil {
+		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Taxonomy not found")
+	}
+	return api.Success(c, t)
+}
+
+// CreateTaxonomy handles POST /taxonomies.
+func (h *NodeHandler) CreateTaxonomy(c *fiber.Ctx) error {
+	var t models.Taxonomy
+	if err := c.BodyParser(&t); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+
+	if t.Slug == "" {
+		t.Slug = slugify(t.Label)
+	}
+
+	if err := h.db.Create(&t).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			return api.Error(c, fiber.StatusConflict, "SLUG_CONFLICT", "Taxonomy slug already exists")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "CREATE_FAILED", "Failed to create taxonomy")
+	}
+
+	return api.Created(c, t)
+}
+
+// UpdateTaxonomy handles PATCH /taxonomies/:slug.
+func (h *NodeHandler) UpdateTaxonomy(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	var updates map[string]interface{}
+	if err := c.BodyParser(&updates); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+
+	delete(updates, "id")
+	delete(updates, "slug")
+	delete(updates, "created_at")
+	delete(updates, "updated_at")
+
+	// Marshal JSONB fields if present
+	if fs, ok := updates["field_schema"]; ok && fs != nil {
+		b, _ := json.Marshal(fs)
+		updates["field_schema"] = models.JSONB(b)
+	}
+
+	if err := h.db.Model(&models.Taxonomy{}).Where("slug = ?", slug).Updates(updates).Error; err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to update taxonomy")
+	}
+
+	var t models.Taxonomy
+	h.db.Where("slug = ?", slug).First(&t)
+	return api.Success(c, t)
+}
+
+// DeleteTaxonomy handles DELETE /taxonomies/:slug.
+func (h *NodeHandler) DeleteTaxonomy(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	if err := h.db.Where("slug = ?", slug).Delete(&models.Taxonomy{}).Error; err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", "Failed to delete taxonomy")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// ListTerms handles GET /terms/:node_type/:taxonomy.
+func (h *NodeHandler) ListTerms(c *fiber.Ctx) error {
+	nodeType := c.Params("node_type")
+	taxonomy := c.Params("taxonomy")
+
+	var terms []models.TaxonomyTerm
+	err := h.db.Where("node_type = ? AND taxonomy = ?", nodeType, taxonomy).
+		Order("name ASC").Find(&terms).Error
+	if err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch terms")
+	}
+
+	return api.Success(c, terms)
+}
+
+// GetTerm handles GET /terms/:id.
+func (h *NodeHandler) GetTerm(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
+	var term models.TaxonomyTerm
+	if err := h.db.First(&term, id).Error; err != nil {
+		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Term not found")
+	}
+	return api.Success(c, term)
+}
+
+// CreateTerm handles POST /terms/:node_type/:taxonomy.
+func (h *NodeHandler) CreateTerm(c *fiber.Ctx) error {
+	nodeType := c.Params("node_type")
+	taxonomy := c.Params("taxonomy")
+
+	var term models.TaxonomyTerm
+	if err := c.BodyParser(&term); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+
+	term.NodeType = nodeType
+	term.Taxonomy = taxonomy
+	if term.Slug == "" {
+		term.Slug = slugify(term.Name)
+	}
+
+	if err := h.db.Create(&term).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			return api.Error(c, fiber.StatusConflict, "SLUG_CONFLICT", "Term slug already exists")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "CREATE_FAILED", "Failed to create term")
+	}
+
+	return api.Created(c, term)
+}
+
+// UpdateTerm handles PATCH /terms/:id.
+func (h *NodeHandler) UpdateTerm(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
+	var updates map[string]interface{}
+	if err := c.BodyParser(&updates); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+
+	delete(updates, "id")
+	delete(updates, "created_at")
+	delete(updates, "updated_at")
+
+	if err := h.db.Model(&models.TaxonomyTerm{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to update term")
+	}
+
+	var term models.TaxonomyTerm
+	h.db.First(&term, id)
+	return api.Success(c, term)
+}
+
+// DeleteTerm handles DELETE /terms/:id.
+func (h *NodeHandler) DeleteTerm(c *fiber.Ctx) error {
+	id, _ := strconv.Atoi(c.Params("id"))
+	if err := h.db.Delete(&models.TaxonomyTerm{}, id).Error; err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", "Failed to delete term")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// ListTaxonomyTerms handles GET /taxonomies/:node_type/:taxonomy/terms.
+func (h *NodeHandler) ListTaxonomyTerms(c *fiber.Ctx) error {
+	nodeType := c.Params("node_type")
+	taxonomy := c.Params("taxonomy")
+
+	if nodeType == "" || taxonomy == "" {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_PARAMS", "Node type and taxonomy are required")
+	}
+
+	terms := []string{}
+	err := h.db.Table("(?) as t",
+		h.db.Table("content_nodes").
+			Select("jsonb_array_elements_text(taxonomies->?) as term", taxonomy).
+			Where("node_type = ? AND deleted_at IS NULL", nodeType)).
+		Select("DISTINCT term").
+		Order("term ASC").
+		Scan(&terms).Error
+
+	if err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch taxonomy terms")
+	}
+
+	return api.Success(c, terms)
 }
 
 // RegisterPublicRoutes registers read-only public API routes (no auth required).
@@ -194,6 +379,12 @@ func (h *NodeHandler) List(c *fiber.Ctx) error {
 	nodeType := c.Query("node_type")
 	langCode := c.Query("language_code")
 	search := c.Query("search")
+	taxQueryJSON := c.Query("tax_query")
+
+	var taxQuery map[string][]string
+	if taxQueryJSON != "" {
+		json.Unmarshal([]byte(taxQueryJSON), &taxQuery)
+	}
 
 	user := auth.GetCurrentUser(c)
 
@@ -205,7 +396,7 @@ func (h *NodeHandler) List(c *fiber.Ctx) error {
 		}
 	}
 
-	nodes, total, err := h.svc.List(page, perPage, status, nodeType, langCode, search)
+	nodes, total, err := h.svc.List(page, perPage, status, nodeType, langCode, search, taxQuery)
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list content nodes")
 	}
@@ -264,14 +455,19 @@ func (h *NodeHandler) Get(c *fiber.Ctx) error {
 
 // createNodeRequest represents the JSON body for creating a content node.
 type createNodeRequest struct {
-	Title        string          `json:"title"`
-	NodeType     string          `json:"node_type"`
-	LanguageCode string          `json:"language_code"`
-	Status       string          `json:"status"`
-	ParentID     *int            `json:"parent_id"`
-	Slug         string          `json:"slug"`
-	BlocksData   json.RawMessage `json:"blocks_data"`
-	SeoSettings  json.RawMessage `json:"seo_settings"`
+	Title         string          `json:"title"`
+	NodeType      string          `json:"node_type"`
+	LanguageCode  string          `json:"language_code"`
+	Status        string          `json:"status"`
+	ParentID      *int            `json:"parent_id"`
+	LayoutID      *int            `json:"layout_id"`
+	Slug          string          `json:"slug"`
+	BlocksData    json.RawMessage `json:"blocks_data"`
+	FieldsData    json.RawMessage `json:"fields_data"`
+	SeoSettings   json.RawMessage `json:"seo_settings"`
+	FeaturedImage json.RawMessage `json:"featured_image"`
+	Excerpt       string          `json:"excerpt"`
+	Taxonomies    json.RawMessage `json:"taxonomies"`
 }
 
 // Create handles POST /nodes to create a new content node.
@@ -288,14 +484,19 @@ func (h *NodeHandler) Create(c *fiber.Ctx) error {
 	}
 
 	node := models.ContentNode{
-		Title:        req.Title,
-		NodeType:     req.NodeType,
-		LanguageCode: req.LanguageCode,
-		Status:       req.Status,
-		ParentID:     req.ParentID,
-		Slug:         req.Slug,
-		BlocksData:   models.JSONB(req.BlocksData),
-		SeoSettings:  models.JSONB(req.SeoSettings),
+		Title:         req.Title,
+		NodeType:      req.NodeType,
+		LanguageCode:  req.LanguageCode,
+		Status:        req.Status,
+		ParentID:      req.ParentID,
+		LayoutID:      req.LayoutID,
+		Slug:          req.Slug,
+		BlocksData:    models.JSONB(req.BlocksData),
+		FieldsData:    models.JSONB(req.FieldsData),
+		SeoSettings:   models.JSONB(req.SeoSettings),
+		FeaturedImage:  models.JSONB(req.FeaturedImage),
+		Excerpt:       req.Excerpt,
+		Taxonomies:    models.JSONB(req.Taxonomies),
 	}
 
 	if node.NodeType == "" {
@@ -462,6 +663,11 @@ func searchString(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func slugify(s string) string {
+	var re = regexp.MustCompile("[^a-z0-9]+")
+	return strings.Trim(re.ReplaceAllString(strings.ToLower(s), "-"), "-")
 }
 
 // PublicList handles GET /api/v1/nodes — public read-only endpoint for published nodes.

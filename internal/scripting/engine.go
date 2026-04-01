@@ -57,7 +57,9 @@ func NewScriptEngine(
 // registration methods (EventsOn, FiltersAdd, HTTPRegister).
 func (e *ScriptEngine) scriptCallbacks() *coreapi.ScriptCallbacks {
 	return &coreapi.ScriptCallbacks{
-		OnEvent:  e.EventsOn,
+		OnEvent: func(action, scriptPath string) {
+			e.EventsOn(action, scriptPath, 10)
+		},
 		OnFilter: e.FiltersAdd,
 		OnRoute:  e.HTTPRegister,
 	}
@@ -156,7 +158,7 @@ func (e *ScriptEngine) runScript(scriptPath string, vars map[string]interface{},
 
 	script := tengo.NewScript(src)
 	caller := coreapi.CallerInfo{Slug: e.activeSlug, Type: "tengo", Capabilities: nil}
-	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, renderCtx, scriptsDir))
+	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, renderCtx, scriptsDir, e.scriptCallbacks()))
 	script.SetMaxAllocs(50000)
 
 	// Inject context variables — convert to Tengo objects first to handle

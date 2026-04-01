@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -49,11 +49,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
-import { getNodeAccess, clearCache } from "@/api/client";
+import { 
+  getNodeAccess, 
+  clearCache, 
+  getNodeTypes, 
+  getTaxonomies,
+  type NodeType, 
+  type Taxonomy 
+} from "@/api/client";
 import { toast } from "sonner";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
 import { useExtensions } from "@/hooks/use-extensions";
-import { getNodeTypes, type NodeType } from "@/api/client";
 
 const iconMapRaw: Record<string, LucideIcon> = {
   "file-text": FileText,
@@ -77,7 +83,6 @@ const iconMapRaw: Record<string, LucideIcon> = {
   "puzzle": Puzzle,
 };
 
-// Case-insensitive lookup: extensions can use "Mail", "mail", or "mail" and it works.
 const iconMap = new Proxy(iconMapRaw, {
   get(target, prop: string) {
     return target[prop] || target[prop.toLowerCase()] || target[prop.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()];
@@ -103,55 +108,6 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
   return "children" in entry;
 }
 
-const staticNavTopBase: NavItem[] = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-];
-
-// Pages/Posts entries with their node type slugs for access filtering.
-const nodeTypeNavItems: (NavItem & { nodeType: string })[] = [
-  { to: "/admin/pages", label: "Pages", icon: FileText, nodeType: "page" },
-  { to: "/admin/posts", label: "Posts", icon: Newspaper, nodeType: "post" },
-];
-
-const staticNavBottom: NavEntry[] = [
-  {
-    label: "Appearance",
-    icon: Palette,
-    children: [
-      { to: "/admin/themes", label: "Themes", icon: Palette },
-      { to: "/admin/layouts", label: "Layouts", icon: PanelTop },
-      { to: "/admin/layout-blocks", label: "Layout Blocks", icon: Component },
-      { to: "/admin/menus", label: "Menus", icon: ListTree },
-    ],
-  },
-  {
-    label: "Content",
-    icon: Boxes,
-    children: [
-      { to: "/admin/content-types", label: "Content Types", icon: Boxes },
-      { to: "/admin/block-types", label: "Block Types", icon: Square },
-      { to: "/admin/templates", label: "Templates", icon: LayoutTemplate },
-    ],
-  },
-  { to: "/admin/extensions", label: "Extensions", icon: Puzzle },
-  {
-    label: "Users",
-    icon: UsersIcon,
-    children: [
-      { to: "/admin/users", label: "Users", icon: UsersIcon },
-      { to: "/admin/roles", label: "Roles", icon: Shield },
-    ],
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    children: [
-      { to: "/admin/settings/site", label: "Site", icon: Settings },
-      { to: "/admin/languages", label: "Languages", icon: Globe },
-    ],
-  },
-];
-
 function getBreadcrumb(pathname: string): string[] {
   const parts = pathname.replace("/admin/", "").split("/").filter(Boolean);
   return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1));
@@ -161,12 +117,157 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [customTypes, setCustomTypes] = useState<NodeType[]>([]);
+  const [taxonomies, setTaxonomies] = useState<Taxonomy[]>([]);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [clearingCache, setClearingCache] = useState(false);
   const { user, logout } = useAuth();
   const { languages: adminLangs, currentCode, currentLanguage, setCurrentCode } = useAdminLanguage();
+  const { menus: extensionMenus, settingsMenuItems } = useExtensions();
   const location = useLocation();
   const breadcrumbs = getBreadcrumb(location.pathname);
+
+  useEffect(() => {
+    getNodeTypes()
+      .then((typesData) => {
+        const types = Array.isArray(typesData) ? typesData : (typesData as any)?.data || [];
+        setCustomTypes(types);
+      })
+      .catch((err) => console.error("Node types load failed:", err));
+
+    getTaxonomies()
+      .then((taxesData) => {
+        const taxes = Array.isArray(taxesData) ? taxesData : (taxesData as any)?.data || [];
+        setTaxonomies(taxes);
+      })
+      .catch((err) => console.error("Taxonomies load failed:", err));
+  }, []);
+
+  const navEntries = useMemo(() => {
+    const topBase: NavItem[] = [
+      { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ];
+
+    const typeItems: NavEntry[] = customTypes
+      .filter((t) => getNodeAccess(user, t.slug).access !== "none")
+      .map((t) => {
+        const baseTo = t.slug === 'page' ? '/admin/pages' : t.slug === 'post' ? '/admin/posts' : `/admin/content/${t.slug}`;
+        const icon = t.slug === 'page' ? FileText : t.slug === 'post' ? Newspaper : (iconMap[t.icon] || Boxes);
+
+        // Find taxonomies assigned to this node type
+        const typeTaxes = taxonomies.filter(tax => 
+          Array.isArray(tax.node_types) && tax.node_types.includes(t.slug)
+        );
+
+        if (typeTaxes.length > 0) {
+          return {
+            label: t.label,
+            icon: icon,
+            children: [
+              { to: baseTo, label: `All ${t.label}`, icon: icon },
+              ...typeTaxes.map(tax => ({
+                to: `/admin/content/${t.slug}/taxonomies/${tax.slug}`,
+                label: tax.label,
+                icon: Tag
+              }))
+            ]
+          };
+        }
+
+        return {
+          to: baseTo,
+          label: t.label,
+          icon: icon,
+        };
+      });
+
+    const extensionEntries: NavEntry[] = extensionMenus.map((menu) => {
+      if (menu.children && menu.children.length > 0) {
+        return {
+          label: menu.label,
+          icon: iconMap[menu.icon] || Puzzle,
+          children: menu.children.map((child) => ({
+            to: child.route.startsWith("/admin") ? child.route : `/admin/ext/${menu.slug}${child.route}`,
+            label: child.label,
+            icon: child.icon ? (iconMap[child.icon] || iconMap[menu.icon] || Puzzle) : (iconMap[menu.icon] || Puzzle),
+          })),
+        } as NavEntry;
+      }
+      return {
+        to: `/admin/ext/${menu.slug}/`,
+        label: menu.label,
+        icon: iconMap[menu.icon] || Puzzle,
+      } as NavEntry;
+    });
+
+    const bottomBase: NavEntry[] = [
+      {
+        label: "Appearance",
+        icon: Palette,
+        children: [
+          { to: "/admin/themes", label: "Themes", icon: Palette },
+          { to: "/admin/layouts", label: "Layouts", icon: PanelTop },
+          { to: "/admin/layout-blocks", label: "Layout Blocks", icon: Component },
+          { to: "/admin/menus", label: "Menus", icon: ListTree },
+        ],
+      },
+      {
+        label: "Content",
+        icon: Boxes,
+        children: [
+          { to: "/admin/content-types", label: "Content Types", icon: Boxes },
+          { to: "/admin/taxonomies", label: "Taxonomies", icon: Tag },
+          { to: "/admin/block-types", label: "Block Types", icon: Square },
+          { to: "/admin/templates", label: "Templates", icon: LayoutTemplate },
+        ],
+      },
+      { to: "/admin/extensions", label: "Extensions", icon: Puzzle },
+      {
+        label: "Users",
+        icon: UsersIcon,
+        children: [
+          { to: "/admin/users", label: "Users", icon: UsersIcon },
+          { to: "/admin/roles", label: "Roles", icon: Shield },
+        ],
+      },
+      {
+        label: "Settings",
+        icon: Settings,
+        children: [
+          { to: "/admin/settings/site", label: "Site", icon: Settings },
+          { to: "/admin/languages", label: "Languages", icon: Globe },
+          ...settingsMenuItems.map((item) => ({
+            to: item.route,
+            label: item.label,
+            icon: iconMap[item.icon || ""] || Settings,
+          })),
+        ],
+      },
+    ];
+
+    const appearanceIdx = bottomBase.findIndex(e => "label" in e && e.label === "Appearance");
+    if (appearanceIdx >= 0) {
+      bottomBase.splice(appearanceIdx, 0, ...extensionEntries);
+    } else {
+      bottomBase.unshift(...extensionEntries);
+    }
+
+    return [...topBase, ...typeItems, ...bottomBase];
+  }, [customTypes, taxonomies, user, extensionMenus, settingsMenuItems]);
+
+  // Auto-expand groups whose children match current path
+  useEffect(() => {
+    const updates: Record<string, boolean> = {};
+    for (const entry of navEntries) {
+      if (isNavGroup(entry)) {
+        if (entry.children.some((child) => location.pathname.startsWith(child.to))) {
+          updates[entry.label] = true;
+        }
+      }
+    }
+    if (Object.keys(updates).length > 0) {
+      setOpenGroups((prev) => ({ ...prev, ...updates }));
+    }
+  }, [location.pathname, navEntries]);
 
   async function handleClearCache() {
     setClearingCache(true);
@@ -183,98 +284,6 @@ export default function AdminLayout() {
   const toggleGroup = (label: string) => {
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
   };
-
-  useEffect(() => {
-    getNodeTypes()
-      .then((types) => {
-        setCustomTypes(types.filter((t) => t.slug !== "page" && t.slug !== "post"));
-      })
-      .catch(() => {});
-  }, []);
-
-  // Auto-expand groups whose children match current path
-  useEffect(() => {
-    const updates: Record<string, boolean> = {};
-    for (const entry of staticNavBottom) {
-      if (isNavGroup(entry)) {
-        if (entry.children.some((child) => location.pathname.startsWith(child.to))) {
-          updates[entry.label] = true;
-        }
-      }
-    }
-    if (Object.keys(updates).length > 0) {
-      setOpenGroups((prev) => ({ ...prev, ...updates }));
-    }
-  }, [location.pathname]);
-
-  // Filter node type nav items by access.
-  const visibleNodeTypeItems = nodeTypeNavItems.filter(
-    (item) => getNodeAccess(user, item.nodeType).access !== "none"
-  );
-  const staticNavTop: NavItem[] = [...staticNavTopBase, ...visibleNodeTypeItems];
-
-  const customNavItems: NavItem[] = customTypes
-    .filter((t) => getNodeAccess(user, t.slug).access !== "none")
-    .map((t) => ({
-      to: `/admin/content/${t.slug}`,
-      label: t.label,
-      icon: iconMap[t.icon] || FileText,
-    }));
-
-  const { menus: extensionMenus, settingsMenuItems } = useExtensions();
-
-  // Build extension nav groups
-  const extensionNavEntries: NavEntry[] = extensionMenus.map((menu) => {
-    if (menu.children && menu.children.length > 0) {
-      // Group with children (e.g., Email → Templates, Rules, Logs, Settings)
-      return {
-        label: menu.label,
-        icon: iconMap[menu.icon] || Puzzle,
-        children: menu.children.map((child) => ({
-          to: child.route.startsWith("/admin") ? child.route : `/admin/ext/${menu.slug}${child.route}`,
-          label: child.label,
-          icon: child.icon ? (iconMap[child.icon] || iconMap[menu.icon] || Puzzle) : (iconMap[menu.icon] || Puzzle),
-        })),
-      } as NavEntry;
-    }
-    // Direct nav item (e.g., Media → /admin/ext/media-manager/)
-    return {
-      to: `/admin/ext/${menu.slug}/`,
-      label: menu.label,
-      icon: iconMap[menu.icon] || Puzzle,
-    } as NavEntry;
-  });
-
-  // Inject extension settings menu items into the Settings group
-  const bottomWithSettings = staticNavBottom.map((entry) => {
-    if ("label" in entry && entry.label === "Settings" && "children" in entry && settingsMenuItems.length > 0) {
-      return {
-        ...entry,
-        children: [
-          ...entry.children,
-          ...settingsMenuItems.map((item) => ({
-            to: item.route,
-            label: item.label,
-            icon: iconMap[item.icon || ""] || Settings,
-          })),
-        ],
-      };
-    }
-    return entry;
-  });
-
-  // Insert extension menus before the "Appearance" group
-  const appearanceIdx = bottomWithSettings.findIndex(
-    (e) => "label" in e && e.label === "Appearance"
-  );
-  const bottomWithExtensions = [...bottomWithSettings];
-  if (appearanceIdx >= 0) {
-    bottomWithExtensions.splice(appearanceIdx, 0, ...extensionNavEntries);
-  } else {
-    bottomWithExtensions.unshift(...extensionNavEntries);
-  }
-
-  const navEntries: NavEntry[] = [...staticNavTop, ...customNavItems, ...bottomWithExtensions];
 
   const sidebarWidth = collapsed ? "w-16" : "w-64";
 

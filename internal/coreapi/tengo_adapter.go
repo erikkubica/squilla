@@ -7,51 +7,47 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/d5/tengo/v2"
 	"github.com/d5/tengo/v2/stdlib"
 )
 
-// ScriptCallbacks allows the ScriptEngine to inject registration functions
-// into the Tengo modules. These are called when scripts use events.on(),
-// filters.add(), or routes.register().
+// ScriptCallbacks allows the ScriptEngine to communicate back to the CMS.
 type ScriptCallbacks struct {
-	OnEvent  func(name, scriptPath string, priority int) // events.on()
-	OnFilter func(name, scriptPath string, priority int) // filters.add()
-	OnRoute  func(method, path, scriptPath string)       // routes.register()
+	OnRoute  func(method, path, scriptPath string)
+	OnFilter func(name, scriptPath string, priority int)
+	OnEvent  func(action, scriptPath string)
 }
 
-// BuildTengoModules creates a ModuleMap with all core/* API modules, stdlib,
-// and source modules from the scripts directory. This replaces the old
-// cms/* modules with new CoreAPI-backed implementations.
-//
-// Parameters:
-//   - api: the CoreAPI implementation to delegate calls to
-//   - caller: identifies who is calling (theme, extension, etc.)
-//   - renderCtx: optional template render context (for core/routing); nil outside renders
-//   - scriptsDir: directory from which to load .tengo source modules
-//   - callbacks: optional ScriptCallbacks for registration functions (nil = no-op)
-func BuildTengoModules(api CoreAPI, caller CallerInfo, renderCtx interface{}, scriptsDir string, callbacks ...*ScriptCallbacks) *tengo.ModuleMap {
-	var cb *ScriptCallbacks
-	if len(callbacks) > 0 {
-		cb = callbacks[0]
-	}
+// BuildTengoModules creates a new ModuleMap and registers all VibeCMS modules.
+func BuildTengoModules(api CoreAPI, caller CallerInfo, renderCtx interface{}, scriptsDir string, cb *ScriptCallbacks) *tengo.ModuleMap {
 	modules := tengo.NewModuleMap()
+	RegisterModules(modules, api, caller, renderCtx, scriptsDir, cb)
+	return modules
+}
 
+// RegisterModules adds all VibeCMS core modules to the Tengo module map.
+func RegisterModules(modules *tengo.ModuleMap, api CoreAPI, caller CallerInfo, renderCtx interface{}, scriptsDir string, cb *ScriptCallbacks) {
+	// Use WithCaller to associate the script caller with the context
 	ctx := WithCaller(context.Background(), caller)
 
-	// Register core/* builtin modules
+	// Standard library
+	for name, mod := range stdlib.BuiltinModules {
+		modules.AddBuiltinModule(name, mod)
+	}
+
+	// VibeCMS Core modules
 	modules.AddBuiltinModule("core/nodes", nodesModule(api, ctx))
-	modules.AddBuiltinModule("core/settings", settingsModule(api, ctx))
-	modules.AddBuiltinModule("core/events", eventsModule(api, ctx, cb))
-	modules.AddBuiltinModule("core/email", emailModule(api, ctx))
 	modules.AddBuiltinModule("core/menus", menusModule(api, ctx))
 	modules.AddBuiltinModule("core/routes", routesModule(cb))
 	modules.AddBuiltinModule("core/filters", filtersModule(cb))
 	modules.AddBuiltinModule("core/http", httpFetchModule(api, ctx))
 	modules.AddBuiltinModule("core/log", logModule(api, ctx))
 	modules.AddBuiltinModule("core/nodetypes", nodeTypesModule(api, ctx))
+	modules.AddBuiltinModule("core/taxonomies", taxonomiesModule(api, ctx))
 	modules.AddBuiltinModule("core/helpers", helpersModule())
+	modules.AddBuiltinModule("core/events", eventsModule(api, ctx, cb))
 
 	if renderCtx != nil {
 		modules.AddBuiltinModule("core/routing", routingModule(api, ctx, renderCtx))
@@ -59,21 +55,8 @@ func BuildTengoModules(api CoreAPI, caller CallerInfo, renderCtx interface{}, sc
 		modules.AddBuiltinModule("core/routing", routingModulePlaceholder())
 	}
 
-	// Register standard Tengo stdlib modules (safe subset -- no OS/file access)
-	safeModules := []string{"fmt", "math", "text", "times", "rand", "json", "base64", "hex", "enum"}
-	for _, name := range safeModules {
-		if mod := stdlib.BuiltinModules[name]; mod != nil {
-			modules.AddBuiltinModule(name, mod)
-		}
-		if mod := stdlib.SourceModules[name]; mod != "" {
-			modules.AddSourceModule(name, []byte(mod))
-		}
-	}
-
-	// Load source modules from scripts directory
+	// Load any source modules from the scripts directory
 	loadSourceModules(modules, scriptsDir)
-
-	return modules
 }
 
 // ---------------------------------------------------------------------------
@@ -86,269 +69,71 @@ func nodesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 			if len(args) < 1 {
 				return wrapError(fmt.Errorf("nodes.get: requires id argument")), nil
 			}
-			id := tengoToInt(args[0])
-			if id <= 0 {
-				return tengo.UndefinedValue, nil
-			}
-			node, err := api.GetNode(ctx, uint(id))
-			if err != nil {
-				return tengo.UndefinedValue, nil
-			}
-			return nodeToTengoObj(node), nil
-		}},
-		"get_by_slug": &tengo.UserFunction{Name: "get_by_slug", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 1 {
-				return wrapError(fmt.Errorf("nodes.get_by_slug: requires slug argument")), nil
-			}
-			slug := tengoToString(args[0])
-			if slug == "" {
-				return tengo.UndefinedValue, nil
-			}
-			q := NodeQuery{Slug: slug, Limit: 1}
-			list, err := api.QueryNodes(ctx, q)
-			if err != nil || len(list.Nodes) == 0 {
-				return tengo.UndefinedValue, nil
-			}
-			return nodeToTengoObj(list.Nodes[0]), nil
-		}},
-		"list": &tengo.UserFunction{Name: "list", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			q := NodeQuery{Limit: 50}
-			if len(args) > 0 {
-				if m := getTengoMap(args[0]); m != nil {
-					applyNodeQueryFromMap(m, &q)
-				}
-			}
-			list, err := api.QueryNodes(ctx, q)
+			id := uint(tengoToInt(args[0]))
+			n, err := api.GetNode(ctx, id)
 			if err != nil {
 				return wrapError(err), nil
 			}
-			items := make([]tengo.Object, len(list.Nodes))
+			return nodeToTengoObj(n), nil
+		}},
+		"query": &tengo.UserFunction{Name: "query", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			q := &NodeQuery{}
+			if len(args) > 0 {
+				if m := getTengoMap(args[0]); m != nil {
+					applyNodeQueryFromMap(m, q)
+				}
+			}
+			list, err := api.QueryNodes(ctx, *q)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			nodes := make([]tengo.Object, len(list.Nodes))
 			for i, n := range list.Nodes {
-				items[i] = nodeToTengoObj(n)
+				nodes[i] = nodeToTengoObj(n)
 			}
 			return &tengo.ImmutableMap{Value: map[string]tengo.Object{
-				"items": &tengo.ImmutableArray{Value: items},
+				"nodes": &tengo.ImmutableArray{Value: nodes},
 				"total": &tengo.Int{Value: list.Total},
 			}}, nil
 		}},
-		"query": &tengo.UserFunction{Name: "query", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			q := NodeQuery{Limit: 50}
-			if len(args) > 0 {
-				if m := getTengoMap(args[0]); m != nil {
-					applyNodeQueryFromMap(m, &q)
-				}
-			}
-			list, err := api.QueryNodes(ctx, q)
-			if err != nil {
-				return wrapError(err), nil
-			}
-			items := make([]tengo.Object, len(list.Nodes))
-			for i, n := range list.Nodes {
-				items[i] = nodeToTengoObj(n)
-			}
-			return &tengo.ImmutableArray{Value: items}, nil
-		}},
 		"create": &tengo.UserFunction{Name: "create", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			if len(args) < 1 {
-				return wrapError(fmt.Errorf("nodes.create: requires data argument")), nil
+				return wrapError(fmt.Errorf("nodes.create: requires input argument")), nil
 			}
 			m := getTengoMap(args[0])
 			if m == nil {
-				return wrapError(fmt.Errorf("nodes.create: argument must be a map")), nil
+				return wrapError(fmt.Errorf("nodes.create: input must be a map")), nil
 			}
-			input := nodeInputFromMap(m)
-			node, err := api.CreateNode(ctx, input)
+			n, err := api.CreateNode(ctx, nodeInputFromMap(m))
 			if err != nil {
 				return wrapError(err), nil
 			}
-			return nodeToTengoObj(node), nil
+			return nodeToTengoObj(n), nil
 		}},
 		"update": &tengo.UserFunction{Name: "update", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			if len(args) < 2 {
-				return wrapError(fmt.Errorf("nodes.update: requires id and data arguments")), nil
+				return wrapError(fmt.Errorf("nodes.update: requires id and input arguments")), nil
 			}
-			id := tengoToInt(args[0])
-			if id <= 0 {
-				return wrapError(fmt.Errorf("nodes.update: invalid id")), nil
-			}
+			id := uint(tengoToInt(args[0]))
 			m := getTengoMap(args[1])
 			if m == nil {
-				return wrapError(fmt.Errorf("nodes.update: data must be a map")), nil
+				return wrapError(fmt.Errorf("nodes.update: input must be a map")), nil
 			}
-			input := nodeInputFromMap(m)
-			node, err := api.UpdateNode(ctx, uint(id), input)
+			n, err := api.UpdateNode(ctx, id, nodeInputFromMap(m))
 			if err != nil {
 				return wrapError(err), nil
 			}
-			return nodeToTengoObj(node), nil
+			return nodeToTengoObj(n), nil
 		}},
 		"delete": &tengo.UserFunction{Name: "delete", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			if len(args) < 1 {
 				return wrapError(fmt.Errorf("nodes.delete: requires id argument")), nil
 			}
-			id := tengoToInt(args[0])
-			if id <= 0 {
-				return wrapError(fmt.Errorf("nodes.delete: invalid id")), nil
-			}
-			if err := api.DeleteNode(ctx, uint(id)); err != nil {
-				return tengo.FalseValue, nil
-			}
-			return tengo.TrueValue, nil
-		}},
-	}
-}
-
-// ---------------------------------------------------------------------------
-// core/settings
-// ---------------------------------------------------------------------------
-
-func settingsModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
-	return map[string]tengo.Object{
-		"get": &tengo.UserFunction{Name: "get", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 1 {
-				return tengo.UndefinedValue, nil
-			}
-			key := tengoToString(args[0])
-			if key == "" {
-				return tengo.UndefinedValue, nil
-			}
-			val, err := api.GetSetting(ctx, key)
-			if err != nil {
-				return tengo.UndefinedValue, nil
-			}
-			return &tengo.String{Value: val}, nil
-		}},
-		"set": &tengo.UserFunction{Name: "set", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 2 {
-				return tengo.FalseValue, fmt.Errorf("settings.set: requires key and value")
-			}
-			key := tengoToString(args[0])
-			val := tengoToString(args[1])
-			if key == "" {
-				return tengo.FalseValue, nil
-			}
-			if err := api.SetSetting(ctx, key, val); err != nil {
-				return tengo.FalseValue, nil
-			}
-			return tengo.TrueValue, nil
-		}},
-		"all": &tengo.UserFunction{Name: "all", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			prefix := ""
-			if len(args) > 0 {
-				prefix = tengoToString(args[0])
-			}
-			settings, err := api.GetSettings(ctx, prefix)
-			if err != nil {
-				return &tengo.ImmutableMap{Value: map[string]tengo.Object{}}, nil
-			}
-			m := make(map[string]tengo.Object, len(settings))
-			for k, v := range settings {
-				m[k] = &tengo.String{Value: v}
-			}
-			return &tengo.ImmutableMap{Value: m}, nil
-		}},
-	}
-}
-
-// ---------------------------------------------------------------------------
-// core/events
-// ---------------------------------------------------------------------------
-
-func eventsModule(api CoreAPI, ctx context.Context, cb *ScriptCallbacks) map[string]tengo.Object {
-	return map[string]tengo.Object{
-		"emit": &tengo.UserFunction{Name: "emit", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 1 {
-				return tengo.UndefinedValue, fmt.Errorf("events.emit: requires action argument")
-			}
-			action := tengoToString(args[0])
-			if action == "" {
-				return tengo.UndefinedValue, fmt.Errorf("events.emit: action cannot be empty")
-			}
-			payload := make(map[string]any)
-			if len(args) > 1 {
-				if m := getTengoMap(args[1]); m != nil {
-					payload = tengoMapToGoMap(m)
-				}
-			}
-			if err := api.Emit(ctx, action, payload); err != nil {
+			id := uint(tengoToInt(args[0]))
+			if err := api.DeleteNode(ctx, id); err != nil {
 				return wrapError(err), nil
 			}
 			return tengo.UndefinedValue, nil
-		}},
-		"on": &tengo.UserFunction{Name: "on", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			// events.on(name, script_path[, priority])
-			if len(args) < 2 {
-				return tengo.UndefinedValue, fmt.Errorf("events.on: requires name and script_path")
-			}
-			name := tengoToString(args[0])
-			scriptPath := tengoToString(args[1])
-			priority := 10
-			if len(args) > 2 {
-				if p, ok := tengo.ToInt(args[2]); ok {
-					priority = p
-				}
-			}
-			if cb != nil && cb.OnEvent != nil {
-				cb.OnEvent(name, scriptPath, priority)
-			}
-			return tengo.UndefinedValue, nil
-		}},
-	}
-}
-
-// ---------------------------------------------------------------------------
-// core/email
-// ---------------------------------------------------------------------------
-
-func emailModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
-	return map[string]tengo.Object{
-		"send": &tengo.UserFunction{Name: "send", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 1 {
-				return tengo.FalseValue, fmt.Errorf("email.send: requires options argument")
-			}
-			m := getTengoMap(args[0])
-			if m == nil {
-				return tengo.FalseValue, fmt.Errorf("email.send: argument must be a map")
-			}
-
-			req := EmailRequest{}
-			if v, ok := m["to"]; ok {
-				to := tengoToString(v)
-				if to != "" {
-					req.To = []string{to}
-				}
-			}
-			if v, ok := m["subject"]; ok {
-				req.Subject = tengoToString(v)
-			}
-			if v, ok := m["html"]; ok {
-				req.HTML = tengoToString(v)
-			}
-
-			if err := api.SendEmail(ctx, req); err != nil {
-				return tengo.FalseValue, nil
-			}
-			return tengo.TrueValue, nil
-		}},
-		"trigger": &tengo.UserFunction{Name: "trigger", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 1 {
-				return tengo.FalseValue, fmt.Errorf("email.trigger: requires action argument")
-			}
-			action := tengoToString(args[0])
-			if action == "" {
-				return tengo.FalseValue, fmt.Errorf("email.trigger: action cannot be empty")
-			}
-			payload := make(map[string]any)
-			if len(args) > 1 {
-				if m := getTengoMap(args[1]); m != nil {
-					payload = tengoMapToGoMap(m)
-				}
-			}
-			payload["_source"] = "tengo_script"
-			if err := api.Emit(ctx, action, payload); err != nil {
-				return tengo.FalseValue, nil
-			}
-			return tengo.TrueValue, nil
 		}},
 	}
 }
@@ -361,28 +146,25 @@ func menusModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 	return map[string]tengo.Object{
 		"get": &tengo.UserFunction{Name: "get", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			if len(args) < 1 {
-				return tengo.UndefinedValue, fmt.Errorf("menus.get: requires slug argument")
+				return wrapError(fmt.Errorf("menus.get: requires slug argument")), nil
 			}
 			slug := tengoToString(args[0])
-			if slug == "" {
-				return tengo.UndefinedValue, nil
-			}
 			menu, err := api.GetMenu(ctx, slug)
 			if err != nil {
-				return tengo.UndefinedValue, nil
+				return wrapError(err), nil
 			}
 			return menuToTengoObj(menu), nil
 		}},
 		"list": &tengo.UserFunction{Name: "list", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			menus, err := api.GetMenus(ctx)
+			list, err := api.GetMenus(ctx)
 			if err != nil {
-				return &tengo.ImmutableArray{Value: []tengo.Object{}}, nil
+				return wrapError(err), nil
 			}
-			items := make([]tengo.Object, len(menus))
-			for i, m := range menus {
-				items[i] = menuToTengoObj(m)
+			results := make([]tengo.Object, len(list))
+			for i, m := range list {
+				results[i] = menuToTengoObj(m)
 			}
-			return &tengo.ImmutableArray{Value: items}, nil
+			return &tengo.ImmutableArray{Value: results}, nil
 		}},
 	}
 }
@@ -399,148 +181,38 @@ func nodeTypesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 			}
 			m := getTengoMap(args[0])
 			if m == nil {
-				return wrapError(fmt.Errorf("nodetypes.register: argument must be a map")), nil
+				return wrapError(fmt.Errorf("nodetypes.register: input must be a map")), nil
 			}
-			input := nodeTypeInputFromTengoMap(m)
-			nt, err := api.RegisterNodeType(ctx, input)
+			input := nodeTypeInputFromMap(m)
+			res, err := api.RegisterNodeType(ctx, input)
 			if err != nil {
 				return wrapError(err), nil
 			}
-			return nodeTypeToTengoObj(nt), nil
+			return nodeTypeToTengoObj(res), nil
 		}},
 		"get": &tengo.UserFunction{Name: "get", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			if len(args) < 1 {
-				return tengo.UndefinedValue, nil
+				return wrapError(fmt.Errorf("nodetypes.get: requires slug argument")), nil
 			}
 			slug := tengoToString(args[0])
-			if slug == "" {
-				return tengo.UndefinedValue, nil
-			}
-			nt, err := api.GetNodeType(ctx, slug)
+			res, err := api.GetNodeType(ctx, slug)
 			if err != nil {
-				return tengo.UndefinedValue, nil
+				return wrapError(err), nil
 			}
-			return nodeTypeToTengoObj(nt), nil
+			return nodeTypeToTengoObj(res), nil
 		}},
 		"list": &tengo.UserFunction{Name: "list", Value: func(args ...tengo.Object) (tengo.Object, error) {
 			list, err := api.ListNodeTypes(ctx)
 			if err != nil {
-				return &tengo.ImmutableArray{Value: []tengo.Object{}}, nil
-			}
-			items := make([]tengo.Object, len(list))
-			for i, nt := range list {
-				items[i] = nodeTypeToTengoObj(nt)
-			}
-			return &tengo.ImmutableArray{Value: items}, nil
-		}},
-		"update": &tengo.UserFunction{Name: "update", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 2 {
-				return wrapError(fmt.Errorf("nodetypes.update: requires slug and input arguments")), nil
-			}
-			slug := tengoToString(args[0])
-			if slug == "" {
-				return wrapError(fmt.Errorf("nodetypes.update: slug cannot be empty")), nil
-			}
-			m := getTengoMap(args[1])
-			if m == nil {
-				return wrapError(fmt.Errorf("nodetypes.update: input must be a map")), nil
-			}
-			input := nodeTypeInputFromTengoMap(m)
-			nt, err := api.UpdateNodeType(ctx, slug, input)
-			if err != nil {
 				return wrapError(err), nil
 			}
-			return nodeTypeToTengoObj(nt), nil
-		}},
-		"delete": &tengo.UserFunction{Name: "delete", Value: func(args ...tengo.Object) (tengo.Object, error) {
-			if len(args) < 1 {
-				return wrapError(fmt.Errorf("nodetypes.delete: requires slug argument")), nil
+			results := make([]tengo.Object, len(list))
+			for i, m := range list {
+				results[i] = nodeTypeToTengoObj(m)
 			}
-			slug := tengoToString(args[0])
-			if slug == "" {
-				return wrapError(fmt.Errorf("nodetypes.delete: slug cannot be empty")), nil
-			}
-			if err := api.DeleteNodeType(ctx, slug); err != nil {
-				return tengo.FalseValue, nil
-			}
-			return tengo.TrueValue, nil
+			return &tengo.ImmutableArray{Value: results}, nil
 		}},
 	}
-}
-
-func nodeTypeInputFromTengoMap(m map[string]tengo.Object) NodeTypeInput {
-	input := NodeTypeInput{}
-	if v, ok := m["slug"]; ok {
-		input.Slug = tengoToString(v)
-	}
-	if v, ok := m["label"]; ok {
-		input.Label = tengoToString(v)
-	}
-	if v, ok := m["icon"]; ok {
-		input.Icon = tengoToString(v)
-	}
-	if v, ok := m["description"]; ok {
-		input.Description = tengoToString(v)
-	}
-	if v, ok := m["url_prefixes"]; ok {
-		if pm := getTengoMap(v); pm != nil {
-			input.URLPrefixes = make(map[string]string, len(pm))
-			for k, pv := range pm {
-				input.URLPrefixes[k] = tengoToString(pv)
-			}
-		}
-	}
-	if v, ok := m["field_schema"]; ok {
-		if arr, ok := v.(*tengo.Array); ok {
-			for _, item := range arr.Value {
-				if fm := getTengoMap(item); fm != nil {
-					field := NodeTypeField{}
-					if fv, ok := fm["name"]; ok {
-						field.Name = tengoToString(fv)
-					}
-					if fv, ok := fm["label"]; ok {
-						field.Label = tengoToString(fv)
-					}
-					if fv, ok := fm["type"]; ok {
-						field.Type = tengoToString(fv)
-					}
-					if fv, ok := fm["required"]; ok {
-						if b, ok := fv.(*tengo.Bool); ok {
-							if !b.IsFalsy() {
-								field.Required = true
-							}
-						}
-					}
-					input.FieldSchema = append(input.FieldSchema, field)
-				}
-			}
-		}
-		if arr, ok := v.(*tengo.ImmutableArray); ok {
-			for _, item := range arr.Value {
-				if fm := getTengoMap(item); fm != nil {
-					field := NodeTypeField{}
-					if fv, ok := fm["name"]; ok {
-						field.Name = tengoToString(fv)
-					}
-					if fv, ok := fm["label"]; ok {
-						field.Label = tengoToString(fv)
-					}
-					if fv, ok := fm["type"]; ok {
-						field.Type = tengoToString(fv)
-					}
-					if fv, ok := fm["required"]; ok {
-						if b, ok := fv.(*tengo.Bool); ok {
-							if !b.IsFalsy() {
-								field.Required = true
-							}
-						}
-					}
-					input.FieldSchema = append(input.FieldSchema, field)
-				}
-			}
-		}
-	}
-	return input
 }
 
 func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
@@ -565,22 +237,218 @@ func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
 	for k, v := range nt.URLPrefixes {
 		prefixes[k] = &tengo.String{Value: v}
 	}
+	taxes := make([]tengo.Object, len(nt.Taxonomies))
+	for i, t := range nt.Taxonomies {
+		taxes[i] = &tengo.ImmutableMap{Value: map[string]tengo.Object{
+			"slug":     &tengo.String{Value: t.Slug},
+			"label":    &tengo.String{Value: t.Label},
+			"multiple": boolToTengo(t.Multiple),
+		}}
+	}
 	return &tengo.ImmutableMap{Value: map[string]tengo.Object{
 		"id":           &tengo.Int{Value: int64(nt.ID)},
 		"slug":         &tengo.String{Value: nt.Slug},
 		"label":        &tengo.String{Value: nt.Label},
 		"icon":         &tengo.String{Value: nt.Icon},
 		"description":  &tengo.String{Value: nt.Description},
+		"taxonomies":   &tengo.ImmutableArray{Value: taxes},
 		"field_schema": &tengo.ImmutableArray{Value: fields},
 		"url_prefixes": &tengo.ImmutableMap{Value: prefixes},
 	}}
 }
 
-func boolToTengo(b bool) tengo.Object {
-	if b {
-		return tengo.TrueValue
+func nodeTypeInputFromMap(m map[string]tengo.Object) NodeTypeInput {
+	input := NodeTypeInput{}
+	if v, ok := m["slug"]; ok {
+		input.Slug = tengoToString(v)
 	}
-	return tengo.FalseValue
+	if v, ok := m["label"]; ok {
+		input.Label = tengoToString(v)
+	}
+	if v, ok := m["icon"]; ok {
+		input.Icon = tengoToString(v)
+	}
+	if v, ok := m["description"]; ok {
+		input.Description = tengoToString(v)
+	}
+	if v, ok := m["taxonomies"]; ok {
+		if arr, ok := v.(*tengo.Array); ok {
+			for _, item := range arr.Value {
+				if tm := getTengoMap(item); tm != nil {
+					input.Taxonomies = append(input.Taxonomies, TaxonomyDefinition{
+						Slug:     tengoToString(tm["slug"]),
+						Label:    tengoToString(tm["label"]),
+						Multiple: tengoToBool(tm["multiple"]),
+					})
+				}
+			}
+		}
+	}
+	if v, ok := m["field_schema"]; ok {
+		if arr, ok := v.(*tengo.Array); ok {
+			for _, item := range arr.Value {
+				if fm := getTengoMap(item); fm != nil {
+					input.FieldSchema = append(input.FieldSchema, tengoToField(fm))
+				}
+			}
+		}
+	}
+	if v, ok := m["url_prefixes"]; ok {
+		if pm := getTengoMap(v); pm != nil {
+			input.URLPrefixes = make(map[string]string, len(pm))
+			for k, pv := range pm {
+				input.URLPrefixes[k] = tengoToString(pv)
+			}
+		}
+	}
+	return input
+}
+
+// ---------------------------------------------------------------------------
+// core/taxonomies
+// ---------------------------------------------------------------------------
+
+func taxonomiesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
+	return map[string]tengo.Object{
+		"register": &tengo.UserFunction{Name: "register", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return wrapError(fmt.Errorf("taxonomies.register: requires input argument")), nil
+			}
+			m := getTengoMap(args[0])
+			if m == nil {
+				return wrapError(fmt.Errorf("taxonomies.register: input must be a map")), nil
+			}
+			input := taxonomyInputFromMap(m)
+			res, err := api.RegisterTaxonomy(ctx, input)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			return taxonomyToTengoObj(res), nil
+		}},
+		"get": &tengo.UserFunction{Name: "get", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return wrapError(fmt.Errorf("taxonomies.get: requires slug argument")), nil
+			}
+			slug := tengoToString(args[0])
+			res, err := api.GetTaxonomy(ctx, slug)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			return taxonomyToTengoObj(res), nil
+		}},
+		"list": &tengo.UserFunction{Name: "list", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			list, err := api.ListTaxonomies(ctx)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			results := make([]tengo.Object, len(list))
+			for i, t := range list {
+				results[i] = taxonomyToTengoObj(t)
+			}
+			return &tengo.ImmutableArray{Value: results}, nil
+		}},
+		"update": &tengo.UserFunction{Name: "update", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 2 {
+				return wrapError(fmt.Errorf("taxonomies.update: requires slug and input arguments")), nil
+			}
+			slug := tengoToString(args[0])
+			m := getTengoMap(args[1])
+			if m == nil {
+				return wrapError(fmt.Errorf("taxonomies.update: input must be a map")), nil
+			}
+			input := taxonomyInputFromMap(m)
+			res, err := api.UpdateTaxonomy(ctx, slug, input)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			return taxonomyToTengoObj(res), nil
+		}},
+		"delete": &tengo.UserFunction{Name: "delete", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return wrapError(fmt.Errorf("taxonomies.delete: requires slug argument")), nil
+			}
+			slug := tengoToString(args[0])
+			err := api.DeleteTaxonomy(ctx, slug)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			return tengo.UndefinedValue, nil
+		}},
+	}
+}
+
+func taxonomyToTengoObj(t *Taxonomy) tengo.Object {
+	if t == nil {
+		return tengo.UndefinedValue
+	}
+	m := map[string]tengo.Object{
+		"id":           &tengo.Int{Value: int64(t.ID)},
+		"slug":         &tengo.String{Value: t.Slug},
+		"label":        &tengo.String{Value: t.Label},
+		"description":  &tengo.String{Value: t.Description},
+		"hierarchical": boolToTengo(t.Hierarchical),
+		"show_ui":      boolToTengo(t.ShowUI),
+		"created_at":   &tengo.String{Value: t.CreatedAt.Format(time.RFC3339)},
+		"updated_at":   &tengo.String{Value: t.UpdatedAt.Format(time.RFC3339)},
+	}
+	if t.NodeTypes != nil {
+		ntArr := make([]tengo.Object, len(t.NodeTypes))
+		for i, nt := range t.NodeTypes {
+			ntArr[i] = &tengo.String{Value: nt}
+		}
+		m["node_types"] = &tengo.ImmutableArray{Value: ntArr}
+	}
+	if t.FieldSchema != nil {
+		m["field_schema"] = goToTengoObj(t.FieldSchema)
+	}
+	return &tengo.ImmutableMap{Value: m}
+}
+
+func taxonomyInputFromMap(m map[string]tengo.Object) TaxonomyInput {
+	input := TaxonomyInput{}
+	if v, ok := m["slug"]; ok {
+		input.Slug = tengoToString(v)
+	}
+	if v, ok := m["label"]; ok {
+		input.Label = tengoToString(v)
+	}
+	if v, ok := m["description"]; ok {
+		input.Description = tengoToString(v)
+	}
+	if v, ok := m["hierarchical"]; ok {
+		input.Hierarchical = tengoToBool(v)
+	}
+	if v, ok := m["show_ui"]; ok {
+		b := tengoToBool(v)
+		input.ShowUI = &b
+	}
+	if v, ok := m["node_types"]; ok {
+		if arr, ok := v.(*tengo.Array); ok {
+			for _, item := range arr.Value {
+				input.NodeTypes = append(input.NodeTypes, tengoToString(item))
+			}
+		} else if arr, ok := v.(*tengo.ImmutableArray); ok {
+			for _, item := range arr.Value {
+				input.NodeTypes = append(input.NodeTypes, tengoToString(item))
+			}
+		}
+	}
+	if v, ok := m["field_schema"]; ok {
+		if arr, ok := v.(*tengo.Array); ok {
+			for _, item := range arr.Value {
+				if fm := getTengoMap(item); fm != nil {
+					input.FieldSchema = append(input.FieldSchema, tengoToField(fm))
+				}
+			}
+		} else if arr, ok := v.(*tengo.ImmutableArray); ok {
+			for _, item := range arr.Value {
+				if fm := getTengoMap(item); fm != nil {
+					input.FieldSchema = append(input.FieldSchema, tengoToField(fm))
+				}
+			}
+		}
+	}
+	return input
 }
 
 // ---------------------------------------------------------------------------
@@ -626,6 +494,43 @@ func filtersModule(cb *ScriptCallbacks) map[string]tengo.Object {
 			}
 			if cb != nil && cb.OnFilter != nil {
 				cb.OnFilter(name, scriptPath, priority)
+			}
+			return tengo.UndefinedValue, nil
+		}},
+	}
+}
+
+// ---------------------------------------------------------------------------
+// core/events
+// ---------------------------------------------------------------------------
+
+func eventsModule(api CoreAPI, ctx context.Context, cb *ScriptCallbacks) map[string]tengo.Object {
+	return map[string]tengo.Object{
+		"emit": &tengo.UserFunction{Name: "emit", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return wrapError(fmt.Errorf("events.emit: requires action argument")), nil
+			}
+			action := tengoToString(args[0])
+			var payload map[string]any
+			if len(args) > 1 {
+				if m := getTengoMap(args[1]); m != nil {
+					payload = tengoMapToGoMap(m)
+				}
+			}
+			err := api.Emit(ctx, action, payload)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			return tengo.UndefinedValue, nil
+		}},
+		"subscribe": &tengo.UserFunction{Name: "subscribe", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 2 {
+				return wrapError(fmt.Errorf("events.subscribe: requires action and script_path arguments")), nil
+			}
+			action := tengoToString(args[0])
+			scriptPath := tengoToString(args[1])
+			if cb != nil && cb.OnEvent != nil {
+				cb.OnEvent(action, scriptPath)
 			}
 			return tengo.UndefinedValue, nil
 		}},
@@ -856,6 +761,42 @@ func routingModulePlaceholder() map[string]tengo.Object {
 // Helper functions
 // ===========================================================================
 
+func tengoToBool(obj tengo.Object) bool {
+	if b, ok := obj.(*tengo.Bool); ok {
+		return !b.IsFalsy()
+	}
+	return false
+}
+
+func tengoToField(fm map[string]tengo.Object) NodeTypeField {
+	f := NodeTypeField{
+		Name:  tengoToString(fm["name"]),
+		Label: tengoToString(fm["label"]),
+		Type:  tengoToString(fm["type"]),
+	}
+	if f.Name == "" {
+		f.Name = tengoToString(fm["key"])
+	}
+	if rv, ok := fm["required"]; ok {
+		f.Required = tengoToBool(rv)
+	}
+	if ov, ok := fm["options"]; ok {
+		if oarr, ok := ov.(*tengo.Array); ok {
+			for _, o := range oarr.Value {
+				f.Options = append(f.Options, tengoToString(o))
+			}
+		}
+	}
+	return f
+}
+
+func boolToTengo(b bool) tengo.Object {
+	if b {
+		return tengo.TrueValue
+	}
+	return tengo.FalseValue
+}
+
 // wrapError wraps a Go error into a Tengo Error object.
 func wrapError(err error) tengo.Object {
 	return &tengo.Error{Value: &tengo.String{Value: err.Error()}}
@@ -989,6 +930,25 @@ func applyNodeQueryFromMap(m map[string]tengo.Object, q *NodeQuery) {
 	if v, ok := m["order_by"]; ok {
 		q.OrderBy = tengoToString(v)
 	}
+	if v, ok := m["category"]; ok {
+		q.Category = tengoToString(v)
+	}
+	if v, ok := m["tax_query"]; ok {
+		if tq := getTengoMap(v); tq != nil {
+			q.TaxQuery = make(map[string][]string)
+			for tax, termsObj := range tq {
+				if arr, ok := termsObj.(*tengo.Array); ok {
+					var terms []string
+					for _, item := range arr.Value {
+						terms = append(terms, tengoToString(item))
+					}
+					q.TaxQuery[tax] = terms
+				} else if s, ok := termsObj.(*tengo.String); ok {
+					q.TaxQuery[tax] = []string{s.Value}
+				}
+			}
+		}
+	}
 	// Support page/per_page for backward compatibility
 	if v, ok := m["page"]; ok {
 		page := tengoToInt(v)
@@ -1043,6 +1003,28 @@ func nodeInputFromMap(m map[string]tengo.Object) NodeInput {
 	if v, ok := m["blocks_data"]; ok {
 		input.BlocksData = tengoObjToGo(v)
 	}
+	if v, ok := m["featured_image"]; ok {
+		input.FeaturedImage = tengoObjToGo(v)
+	}
+	if v, ok := m["excerpt"]; ok {
+		input.Excerpt = tengoToString(v)
+	}
+	if v, ok := m["taxonomies"]; ok {
+		if txMap := getTengoMap(v); txMap != nil {
+			input.Taxonomies = make(map[string][]string)
+			for tax, termsObj := range txMap {
+				if arr, ok := termsObj.(*tengo.Array); ok {
+					var terms []string
+					for _, item := range arr.Value {
+						terms = append(terms, tengoToString(item))
+					}
+					input.Taxonomies[tax] = terms
+				} else if s, ok := termsObj.(*tengo.String); ok {
+					input.Taxonomies[tax] = []string{s.Value}
+				}
+			}
+		}
+	}
 	if v, ok := m["fields_data"]; ok {
 		if fd := getTengoMap(v); fd != nil {
 			input.FieldsData = tengoMapToGoMap(fd)
@@ -1091,6 +1073,15 @@ func nodeToTengoObj(n *Node) tengo.Object {
 
 	if n.BlocksData != nil {
 		m["blocks_data"] = goToTengoObj(n.BlocksData)
+	}
+	if n.FeaturedImage != nil {
+		m["featured_image"] = goToTengoObj(n.FeaturedImage)
+	}
+	if n.Excerpt != "" {
+		m["excerpt"] = &tengo.String{Value: n.Excerpt}
+	}
+	if n.Taxonomies != nil {
+		m["taxonomies"] = goToTengoObj(n.Taxonomies)
 	}
 	if n.FieldsData != nil {
 		m["fields_data"] = goToTengoObj(n.FieldsData)

@@ -49,6 +49,13 @@ func (s *GRPCHostServer) QueryNodes(ctx context.Context, req *pb.QueryNodesReque
 		Limit:        int(req.Limit),
 		Offset:       int(req.Offset),
 		OrderBy:      req.OrderBy,
+		Category:     req.Category,
+	}
+	if req.TaxQueryJson != "" {
+		var tq map[string][]string
+		if err := json.Unmarshal([]byte(req.TaxQueryJson), &tq); err == nil {
+			q.TaxQuery = tq
+		}
 	}
 	if req.HasParentId {
 		pid := uint(req.ParentId)
@@ -63,6 +70,14 @@ func (s *GRPCHostServer) QueryNodes(ctx context.Context, req *pb.QueryNodesReque
 		nodes[i] = nodeToProto(n)
 	}
 	return &pb.QueryNodesResponse{Nodes: nodes, Total: list.Total}, nil
+}
+
+func (s *GRPCHostServer) ListTaxonomyTerms(ctx context.Context, req *pb.ListTaxonomyTermsRequest) (*pb.ListTaxonomyTermsResponse, error) {
+	terms, err := s.api.ListTaxonomyTerms(s.ctx(ctx), req.NodeType, req.Taxonomy)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.ListTaxonomyTermsResponse{Terms: terms}, nil
 }
 
 func (s *GRPCHostServer) CreateNode(ctx context.Context, req *pb.CreateNodeRequest) (*pb.NodeResponse, error) {
@@ -96,7 +111,104 @@ func (s *GRPCHostServer) DeleteNode(ctx context.Context, req *pb.DeleteNodeReque
 	return &pb.Empty{}, nil
 }
 
-// --- Settings RPCs ---
+// --- Taxonomies ---
+
+func (s *GRPCHostServer) ListTerms(ctx context.Context, req *pb.ListTermsRequest) (*pb.ListTermsResponse, error) {
+	list, err := s.api.ListTerms(s.ctx(ctx), req.NodeType, req.Taxonomy)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	terms := make([]*pb.TermMessage, len(list))
+	for i, t := range list {
+		terms[i] = termToProto(t)
+	}
+	return &pb.ListTermsResponse{Terms: terms}, nil
+}
+
+func (s *GRPCHostServer) GetTerm(ctx context.Context, req *pb.GetTermRequest) (*pb.TermResponse, error) {
+	t, err := s.api.GetTerm(s.ctx(ctx), uint(req.Id))
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.TermResponse{Term: termToProto(t)}, nil
+}
+
+func (s *GRPCHostServer) CreateTerm(ctx context.Context, req *pb.CreateTermRequest) (*pb.TermResponse, error) {
+	t := termFromProto(req.Term)
+	created, err := s.api.CreateTerm(s.ctx(ctx), &t)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.TermResponse{Term: termToProto(created)}, nil
+}
+
+func (s *GRPCHostServer) UpdateTerm(ctx context.Context, req *pb.UpdateTermRequest) (*pb.TermResponse, error) {
+	var updates map[string]interface{}
+	if err := json.Unmarshal([]byte(req.UpdatesJson), &updates); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid updates JSON: %v", err)
+	}
+	updated, err := s.api.UpdateTerm(s.ctx(ctx), uint(req.Id), updates)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.TermResponse{Term: termToProto(updated)}, nil
+}
+
+func (s *GRPCHostServer) DeleteTerm(ctx context.Context, req *pb.DeleteTermRequest) (*pb.Empty, error) {
+	if err := s.api.DeleteTerm(s.ctx(ctx), uint(req.Id)); err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.Empty{}, nil
+}
+
+// --- Taxonomy Definitions ---
+
+func (s *GRPCHostServer) RegisterTaxonomy(ctx context.Context, req *pb.TaxonomyInputMessage) (*pb.TaxonomyResponse, error) {
+	input := taxonomyInputFromProto(req)
+	t, err := s.api.RegisterTaxonomy(s.ctx(ctx), input)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.TaxonomyResponse{Taxonomy: taxonomyToProto(t)}, nil
+}
+
+func (s *GRPCHostServer) GetTaxonomy(ctx context.Context, req *pb.GetTaxonomyRequest) (*pb.TaxonomyResponse, error) {
+	t, err := s.api.GetTaxonomy(s.ctx(ctx), req.Slug)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.TaxonomyResponse{Taxonomy: taxonomyToProto(t)}, nil
+}
+
+func (s *GRPCHostServer) ListTaxonomies(ctx context.Context, _ *pb.Empty) (*pb.TaxonomyListResponse, error) {
+	list, err := s.api.ListTaxonomies(s.ctx(ctx))
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	pbList := make([]*pb.TaxonomyMessage, len(list))
+	for i, t := range list {
+		pbList[i] = taxonomyToProto(t)
+	}
+	return &pb.TaxonomyListResponse{Taxonomies: pbList}, nil
+}
+
+func (s *GRPCHostServer) UpdateTaxonomy(ctx context.Context, req *pb.UpdateTaxonomyRequest) (*pb.TaxonomyResponse, error) {
+	input := taxonomyInputFromProto(req.Input)
+	t, err := s.api.UpdateTaxonomy(s.ctx(ctx), req.Slug, input)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.TaxonomyResponse{Taxonomy: taxonomyToProto(t)}, nil
+}
+
+func (s *GRPCHostServer) DeleteTaxonomy(ctx context.Context, req *pb.DeleteTaxonomyRequest) (*pb.Empty, error) {
+	if err := s.api.DeleteTaxonomy(s.ctx(ctx), req.Slug); err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.Empty{}, nil
+}
+
+// --- Settings ---
 
 func (s *GRPCHostServer) GetSetting(ctx context.Context, req *pb.GetSettingRequest) (*pb.SettingResponse, error) {
 	val, err := s.api.GetSetting(s.ctx(ctx), req.Key)
@@ -410,9 +522,20 @@ func nodeToProto(n *Node) *pb.NodeMessage {
 		Slug:         n.Slug,
 		FullUrl:      n.FullURL,
 		Title:        n.Title,
+		Excerpt:      n.Excerpt,
 		SeoSettings:  n.SeoSettings,
 		CreatedAt:    n.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    n.UpdatedAt.Format(time.RFC3339),
+	}
+	if n.Taxonomies != nil {
+		if b, err := json.Marshal(n.Taxonomies); err == nil {
+			msg.TaxonomiesJson = string(b)
+		}
+	}
+	if n.FeaturedImage != nil {
+		if b, err := json.Marshal(n.FeaturedImage); err == nil {
+			msg.FeaturedImageJson = string(b)
+		}
 	}
 	if n.ParentID != nil {
 		msg.HasParentId = true
@@ -444,7 +567,21 @@ func nodeInputFromProto(inp *pb.NodeInput) (NodeInput, error) {
 		LanguageCode: inp.LanguageCode,
 		Slug:         inp.Slug,
 		Title:        inp.Title,
+		Excerpt:      inp.Excerpt,
 		SeoSettings:  inp.SeoSettings,
+	}
+	if inp.TaxonomiesJson != "" {
+		var tx map[string][]string
+		if err := json.Unmarshal([]byte(inp.TaxonomiesJson), &tx); err == nil {
+			ni.Taxonomies = tx
+		}
+	}
+	if inp.FeaturedImageJson != "" {
+		var img any
+		if err := json.Unmarshal([]byte(inp.FeaturedImageJson), &img); err != nil {
+			return NodeInput{}, fmt.Errorf("invalid featured_image JSON: %w", err)
+		}
+		ni.FeaturedImage = img
 	}
 	if inp.HasParentId {
 		pid := uint(inp.ParentId)
@@ -541,7 +678,7 @@ func nodeTypeToProto(nt *NodeType) *pb.NodeTypeMessage {
 			Options:  f.Options,
 		}
 	}
-	return &pb.NodeTypeMessage{
+	msg := &pb.NodeTypeMessage{
 		Id:          int32(nt.ID),
 		Slug:        nt.Slug,
 		Label:       nt.Label,
@@ -552,6 +689,12 @@ func nodeTypeToProto(nt *NodeType) *pb.NodeTypeMessage {
 		CreatedAt:   nt.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   nt.UpdatedAt.Format(time.RFC3339),
 	}
+	if nt.Taxonomies != nil {
+		if b, err := json.Marshal(nt.Taxonomies); err == nil {
+			msg.TaxonomiesJson = string(b)
+		}
+	}
+	return msg
 }
 
 func nodeTypeInputFromProto(inp *pb.NodeTypeInputMessage) NodeTypeInput {
@@ -568,13 +711,122 @@ func nodeTypeInputFromProto(inp *pb.NodeTypeInputMessage) NodeTypeInput {
 			Options:  f.Options,
 		})
 	}
-	return NodeTypeInput{
+	ni := NodeTypeInput{
 		Slug:        inp.Slug,
 		Label:       inp.Label,
 		Icon:        inp.Icon,
 		Description: inp.Description,
 		FieldSchema: fields,
 		URLPrefixes: inp.UrlPrefixes,
+	}
+	if inp.TaxonomiesJson != "" {
+		var taxes []TaxonomyDefinition
+		if err := json.Unmarshal([]byte(inp.TaxonomiesJson), &taxes); err == nil {
+			ni.Taxonomies = taxes
+		}
+	}
+	return ni
+}
+
+func termToProto(t *TaxonomyTerm) *pb.TermMessage {
+	if t == nil {
+		return nil
+	}
+	msg := &pb.TermMessage{
+		Id:          uint32(t.ID),
+		NodeType:    t.NodeType,
+		Taxonomy:    t.Taxonomy,
+		Slug:        t.Slug,
+		Name:        t.Name,
+		Description: t.Description,
+		Count:       int32(t.Count),
+		CreatedAt:   t.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   t.UpdatedAt.Format(time.RFC3339),
+	}
+	if t.ParentID != nil {
+		msg.HasParentId = true
+		msg.ParentId = uint32(*t.ParentID)
+	}
+	if t.FieldsData != nil {
+		if b, err := json.Marshal(t.FieldsData); err == nil {
+			msg.FieldsDataJson = string(b)
+		}
+	}
+	return msg
+}
+
+func termFromProto(msg *pb.TermMessage) TaxonomyTerm {
+	if msg == nil {
+		return TaxonomyTerm{}
+	}
+	t := TaxonomyTerm{
+		ID:          uint(msg.Id),
+		NodeType:    msg.NodeType,
+		Taxonomy:    msg.Taxonomy,
+		Slug:        msg.Slug,
+		Name:        msg.Name,
+		Description: msg.Description,
+		Count:       int(msg.Count),
+	}
+	if msg.HasParentId {
+		pid := uint(msg.ParentId)
+		t.ParentID = &pid
+	}
+	if msg.FieldsDataJson != "" {
+		var fields map[string]any
+		if err := json.Unmarshal([]byte(msg.FieldsDataJson), &fields); err == nil {
+			t.FieldsData = fields
+		}
+	}
+	return t
+}
+
+func taxonomyToProto(t *Taxonomy) *pb.TaxonomyMessage {
+	if t == nil {
+		return nil
+	}
+	fields := make([]*pb.NodeTypeFieldMessage, len(t.FieldSchema))
+	for i, f := range t.FieldSchema {
+		fields[i] = &pb.NodeTypeFieldMessage{
+			Name:     f.Name,
+			Label:    f.Label,
+			Type:     f.Type,
+			Required: f.Required,
+			Options:  f.Options,
+		}
+	}
+	return &pb.TaxonomyMessage{
+		Id:          uint32(t.ID),
+		Slug:        t.Slug,
+		Label:       t.Label,
+		Description: t.Description,
+		NodeTypes:   t.NodeTypes,
+		FieldSchema: fields,
+		CreatedAt:   t.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   t.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+func taxonomyInputFromProto(inp *pb.TaxonomyInputMessage) TaxonomyInput {
+	if inp == nil {
+		return TaxonomyInput{}
+	}
+	var fields []NodeTypeField
+	for _, f := range inp.FieldSchema {
+		fields = append(fields, NodeTypeField{
+			Name:     f.Name,
+			Label:    f.Label,
+			Type:     f.Type,
+			Required: f.Required,
+			Options:  f.Options,
+		})
+	}
+	return TaxonomyInput{
+		Slug:        inp.Slug,
+		Label:       inp.Label,
+		Description: inp.Description,
+		NodeTypes:   inp.NodeTypes,
+		FieldSchema: fields,
 	}
 }
 

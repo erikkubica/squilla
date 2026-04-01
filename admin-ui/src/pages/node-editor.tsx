@@ -17,6 +17,8 @@ import {
   ExternalLink,
   Search,
   Code as CodeIcon,
+  Tag,
+  Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,6 +67,7 @@ import {
   getNodeTranslations,
   createNodeTranslation,
   searchNodes,
+  listTerms,
   type ContentNode,
   type NodeType,
   type NodeTypeField,
@@ -72,10 +75,11 @@ import {
   type BlockType,
   type Template,
   type Layout,
+  type TaxonomyTerm,
 } from "@/api/client";
 
 interface NodeEditorProps {
-  nodeType: string;
+  nodeTypeProp: string;
 }
 
 interface BlockData {
@@ -86,13 +90,15 @@ interface BlockData {
 
 function slugify(text: string): string {
   return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
-export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
+export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -109,8 +115,8 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
 
   // Node type definition
   const [nodeTypeDef, setNodeTypeDef] = useState<NodeType | null>(null);
-  const label = nodeTypeDef?.label || nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
-  const basePath = `/admin/${nodeType === "page" ? "pages" : nodeType === "post" ? "posts" : `content/${nodeType}`}`;
+  const label = nodeTypeDef?.label || nodeTypeProp.charAt(0).toUpperCase() + nodeTypeProp.slice(1);
+  const basePath = `/admin/${nodeTypeProp === "page" ? "pages" : nodeTypeProp === "post" ? "posts" : `content/${nodeTypeProp}`}`;
 
   // Block types & templates
   const [blockTypes, setBlockTypes] = useState<BlockType[]>([]);
@@ -146,6 +152,14 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   // SEO
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+
+  // Standard Fields
+  const [featuredImage, setFeaturedImage] = useState<Record<string, unknown>>({});
+  const [excerpt, setExcerpt] = useState("");
+  const [taxonomies, setTaxonomies] = useState<Record<string, string[]>>({});
+  const [availableTerms, setAvailableTerms] = useState<Record<string, TaxonomyTerm[]>>({});
+  const [taxonomySearch, setTaxonomySearch] = useState<Record<string, string>>({});
+  const [taxonomyDropdownOpen, setTaxonomyDropdownOpen] = useState<Record<string, boolean>>({});
 
   // Homepage
   const [homepageId, setHomepageId] = useState<number | null>(null);
@@ -193,11 +207,11 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
   useEffect(() => {
     getNodeTypes()
       .then((types) => {
-        const def = types.find((t) => t.slug === nodeType);
+        const def = types.find((t) => t.slug === nodeTypeProp);
         setNodeTypeDef(def || null);
       })
       .catch(() => {});
-  }, [nodeType]);
+  }, [nodeTypeProp]);
 
   useEffect(() => {
     if (!isEdit) {
@@ -220,6 +234,11 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
         const seo = (node.seo_settings || {}) as Record<string, string>;
         setSeoTitle(seo.meta_title || "");
         setSeoDescription(seo.meta_description || "");
+        // Standard Fields
+        setFeaturedImage((node.featured_image as Record<string, unknown>) || {});
+        setExcerpt(node.excerpt || "");
+        setTaxonomies(node.taxonomies || {});
+
         // Parse blocks_data into typed blocks
         const rawBlocks = (node.blocks_data ?? []) as unknown as BlockData[];
         const parsedBlocks: BlockData[] = rawBlocks.map((b) => ({
@@ -250,11 +269,22 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
       .catch(() => setTranslations([]));
   }, [id, isEdit]);
 
+  // Fetch available terms for each taxonomy defined on the node type
+  useEffect(() => {
+    if (!nodeTypeDef?.taxonomies) return;
+    const taxDefs = nodeTypeDef.taxonomies as Array<{slug: string; label: string; multiple?: boolean}>;
+    taxDefs.forEach(tax => {
+      listTerms(nodeTypeProp, tax.slug)
+        .then(terms => setAvailableTerms(prev => ({ ...prev, [tax.slug]: terms })))
+        .catch(() => {});
+    });
+  }, [nodeTypeDef, nodeTypeProp]);
+
   async function handleCreateTranslation(langCode: string) {
     if (!id) return;
     setCreatingTranslation(true);
     try {
-      const newNode = await createNodeTranslation(id, langCode);
+      const newNode = await createNodeTranslation(id, { language_code: langCode });
       toast.success(`Translation created in ${langCode}`);
       navigate(`${basePath}/${newNode.id}/edit`);
     } catch (err) {
@@ -286,7 +316,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
       try {
         const res = await searchNodes({
           q: parentSearch,
-          node_type: nodeType,
+          node_type: nodeTypeProp,
           limit: 10,
         });
         // Filter out self
@@ -298,7 +328,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [parentSearch, nodeType, id]);
+  }, [parentSearch, nodeTypeProp, id]);
 
   // Auto-generate slug from title
   useEffect(() => {
@@ -339,7 +369,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
     }
   }, [blocks, showRawJson]);
 
-  const customFields: NodeTypeField[] = nodeTypeDef?.field_schema ?? [];
+  const customFields: NodeTypeField[] = (nodeTypeDef?.field_schema ?? []).map(f => ({ ...f, key: f.key || f.name }));
 
   // Resolve language URL slug
   const currentLang = languages.find((l) => l.code === languageCode);
@@ -347,13 +377,13 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
 
   // Resolve the URL prefix for the current language
   const urlPrefix = (() => {
-    if (nodeType === "page") return "";
-    if (!nodeTypeDef) return nodeType !== "post" ? nodeType : "";
+    if (nodeTypeProp === "page") return "";
+    if (!nodeTypeDef) return nodeTypeProp !== "post" ? nodeTypeProp : "";
     const prefixes = nodeTypeDef.url_prefixes || {};
     const translated = prefixes[languageCode];
     if (translated) return translated;
-    if (nodeType === "post") return prefixes["en"] || "";
-    return nodeType;
+    if (nodeTypeProp === "post") return prefixes["en"] || "";
+    return nodeTypeProp;
   })();
 
   function updateFieldValue(key: string, value: unknown) {
@@ -497,13 +527,16 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
     const nodeData: Partial<ContentNode> = {
       title,
       slug,
-      node_type: nodeType,
+      node_type: nodeTypeProp,
       status: publishStatus || status,
       language_code: languageCode,
       parent_id: parentId ? Number(parentId) : null,
       layout_id: layoutId ? Number(layoutId) : null,
       blocks_data: blocks as unknown as Record<string, unknown>[],
       fields_data: fieldsData,
+      featured_image: featuredImage,
+      excerpt: excerpt,
+      taxonomies: taxonomies,
       seo_settings: {
         meta_title: seoTitle,
         meta_description: seoDescription,
@@ -810,6 +843,23 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
             </div>
           </div>
 
+          {/* Excerpt */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">Excerpt</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 p-6 pt-0">
+              <Textarea
+                placeholder="Enter a short summary or teaser..."
+                value={excerpt}
+                onChange={(e) => setExcerpt(e.target.value)}
+                rows={3}
+                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+              />
+              <p className="text-xs text-slate-400">Short description used in cards and search results. If empty, it may be auto-generated from content.</p>
+            </CardContent>
+          </Card>
+
           {/* Custom Fields */}
           {customFields.length > 0 && (
             <Card className="rounded-xl border border-slate-200 shadow-sm">
@@ -883,7 +933,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                       {layouts.map((layout) => (
                         <SelectItem key={layout.id} value={String(layout.id)}>
                           {layout.name}
-                          {layout.source === "theme" ? " [theme]" : " [custom]"}
+                          {layout.source === "theme" ? ` [${layout.theme_name || "theme"}]` : " [custom]"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -980,7 +1030,7 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                 <>
                   <Separator />
                   <div className="flex gap-2">
-                    {nodeType === "page" && (
+                    {nodeTypeProp === "page" && (
                       homepageId === Number(id) ? (
                         <Button
                           type="button"
@@ -1045,6 +1095,184 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
             </CardContent>
           </Card>
 
+          {/* Featured Image */}
+          <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2 p-4 pb-0">
+              <ImageIcon className="h-4 w-4 text-slate-400" />
+              <span className="text-sm font-semibold text-slate-900">Featured Image</span>
+            </div>
+            <CardContent className="space-y-2 px-4 pb-4 pt-3">
+              <CustomFieldInput
+                field={{ name: "featured_image", key: "featured_image", label: "Featured Image", type: "image" }}
+                value={featuredImage}
+                onChange={(val) => setFeaturedImage(val as Record<string, unknown>)}
+              />
+              <p className="text-[11px] text-slate-400">Main image used for listings, sliders, and social sharing.</p>
+            </CardContent>
+          </Card>
+
+          {/* Taxonomies */}
+          {nodeTypeDef?.taxonomies && (nodeTypeDef.taxonomies as Array<{slug: string; label: string; multiple?: boolean}>).length > 0 && (
+            <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex items-center gap-2 p-4 pb-0">
+                <Tag className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-semibold text-slate-900">Taxonomies</span>
+              </div>
+              <CardContent className="space-y-4 px-4 pb-4 pt-3">
+                {(nodeTypeDef.taxonomies as Array<{slug: string; label: string; multiple?: boolean}>).map((tax) => {
+                  const searchValue = taxonomySearch[tax.slug] || "";
+                  const isOpen = taxonomyDropdownOpen[tax.slug] || false;
+                  const terms = availableTerms[tax.slug] || [];
+                  const selectedTerms = taxonomies[tax.slug] || [];
+                  const filtered = searchValue.trim()
+                    ? terms.filter(t => t.name.toLowerCase().includes(searchValue.toLowerCase()) && !selectedTerms.includes(t.name))
+                    : terms.filter(t => !selectedTerms.includes(t.name));
+                  const exactMatch = terms.some(t => t.name.toLowerCase() === searchValue.trim().toLowerCase());
+
+                  return (
+                    <div key={tax.slug} className="space-y-2">
+                      <Label className="text-xs font-medium text-slate-500">{tax.label}</Label>
+                      {/* Selected terms as badges */}
+                      {selectedTerms.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedTerms.map((term, i) => (
+                            <Badge key={i} variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100 gap-1 px-2 py-0.5 text-xs">
+                              {term}
+                              <button
+                                type="button"
+                                className="hover:text-red-500 ml-0.5"
+                                onClick={() => {
+                                  const newTerms = [...selectedTerms];
+                                  newTerms.splice(i, 1);
+                                  setTaxonomies({ ...taxonomies, [tax.slug]: newTerms });
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      {/* Search input */}
+                      <div className="relative">
+                        <Input
+                          placeholder={`Search ${tax.label.toLowerCase()}...`}
+                          value={searchValue}
+                          onChange={(e) => {
+                            setTaxonomySearch(prev => ({ ...prev, [tax.slug]: e.target.value }));
+                            setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: true }));
+                          }}
+                          onFocus={() => setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: true }))}
+                          onBlur={() => setTimeout(() => setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false })), 200)}
+                          className="h-8 rounded-lg border-slate-300 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                        {isOpen && (searchValue.trim() || filtered.length > 0) && (
+                          <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-40 overflow-y-auto">
+                            {filtered.length === 0 && !searchValue.trim() && (
+                              <div className="px-3 py-2 text-xs text-slate-400">No terms available</div>
+                            )}
+                            {filtered.slice(0, 20).map((term) => (
+                              <button
+                                key={term.id}
+                                type="button"
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-indigo-50 transition-colors"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  if (!tax.multiple && selectedTerms.length > 0) {
+                                    setTaxonomies({ ...taxonomies, [tax.slug]: [term.name] });
+                                  } else {
+                                    setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, term.name] });
+                                  }
+                                  setTaxonomySearch(prev => ({ ...prev, [tax.slug]: "" }));
+                                  setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
+                                }}
+                              >
+                                <Tag className="h-3 w-3 text-slate-400" />
+                                <span className="font-medium text-slate-700">{term.name}</span>
+                              </button>
+                            ))}
+                            {searchValue.trim() && !exactMatch && (
+                              <button
+                                type="button"
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-emerald-50 transition-colors border-t border-slate-100"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  const val = searchValue.trim();
+                                  if (!selectedTerms.includes(val)) {
+                                    if (!tax.multiple && selectedTerms.length > 0) {
+                                      setTaxonomies({ ...taxonomies, [tax.slug]: [val] });
+                                    } else {
+                                      setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, val] });
+                                    }
+                                  }
+                                  setTaxonomySearch(prev => ({ ...prev, [tax.slug]: "" }));
+                                  setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
+                                }}
+                              >
+                                <Plus className="h-3 w-3 text-emerald-600" />
+                                <span className="font-medium text-emerald-700">Create: {searchValue.trim()}</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Translations (edit mode) */}
+          {isEdit && (
+            <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between p-4 pb-0">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-slate-400" />
+                  <span className="text-sm font-semibold text-slate-900">Translations</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-indigo-600 hover:text-indigo-700 px-2"
+                  onClick={() => setShowCreateTranslation(true)}
+                >
+                  + Add
+                </Button>
+              </div>
+              <CardContent className="px-4 pb-4 pt-3">
+                {/* Current language */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 rounded-md bg-indigo-50 border border-indigo-100 px-3 py-2">
+                    <span className="text-sm">{languages.find(l => l.code === languageCode)?.flag || "🌐"}</span>
+                    <span className="text-xs font-medium text-indigo-700 flex-1">{languages.find(l => l.code === languageCode)?.name || languageCode}</span>
+                    <Badge className="bg-indigo-100 text-indigo-600 border-0 text-[10px] h-5">Current</Badge>
+                  </div>
+                  {translations.map((t) => {
+                    const lang = languages.find(l => l.code === t.language_code);
+                    return (
+                      <Link
+                        key={t.id}
+                        to={`${basePath}/${t.id}/edit`}
+                        className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="text-sm">{lang?.flag || "🌐"}</span>
+                        <span className="text-xs font-medium text-slate-700 flex-1 truncate">{lang?.name || t.language_code}</span>
+                        <Badge className={`border-0 text-[10px] h-5 ${t.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                          {t.status}
+                        </Badge>
+                      </Link>
+                    );
+                  })}
+                  {translations.length === 0 && (
+                    <p className="text-[11px] text-slate-400 text-center py-1">No translations yet</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* SEO Settings */}
           <Card className="rounded-xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 p-4 pb-0">
@@ -1097,56 +1325,6 @@ export default function NodeEditorPage({ nodeType }: NodeEditorProps) {
                 </div>
               </CardContent>
           </Card>
-
-          {/* Translations (edit mode) */}
-          {isEdit && (
-            <Card className="rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between p-4 pb-0">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-slate-400" />
-                  <span className="text-sm font-semibold text-slate-900">Translations</span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-indigo-600 hover:text-indigo-700 px-2"
-                  onClick={() => setShowCreateTranslation(true)}
-                >
-                  + Add
-                </Button>
-              </div>
-              <CardContent className="px-4 pb-4 pt-3">
-                {/* Current language */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 rounded-md bg-indigo-50 border border-indigo-100 px-3 py-2">
-                    <span className="text-sm">{languages.find(l => l.code === languageCode)?.flag || "🌐"}</span>
-                    <span className="text-xs font-medium text-indigo-700 flex-1">{languages.find(l => l.code === languageCode)?.name || languageCode}</span>
-                    <Badge className="bg-indigo-100 text-indigo-600 border-0 text-[10px] h-5">Current</Badge>
-                  </div>
-                  {translations.map((t) => {
-                    const lang = languages.find(l => l.code === t.language_code);
-                    return (
-                      <Link
-                        key={t.id}
-                        to={`${basePath}/${t.id}/edit`}
-                        className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
-                      >
-                        <span className="text-sm">{lang?.flag || "🌐"}</span>
-                        <span className="text-xs font-medium text-slate-700 flex-1 truncate">{lang?.name || t.language_code}</span>
-                        <Badge className={`border-0 text-[10px] h-5 ${t.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                          {t.status}
-                        </Badge>
-                      </Link>
-                    );
-                  })}
-                  {translations.length === 0 && (
-                    <p className="text-[11px] text-slate-400 text-center py-1">No translations yet</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </form>
 

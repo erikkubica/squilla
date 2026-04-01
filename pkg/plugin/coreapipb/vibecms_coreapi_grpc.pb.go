@@ -19,35 +19,46 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	VibeCMSHost_GetNode_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/GetNode"
-	VibeCMSHost_QueryNodes_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/QueryNodes"
-	VibeCMSHost_CreateNode_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/CreateNode"
-	VibeCMSHost_UpdateNode_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/UpdateNode"
-	VibeCMSHost_DeleteNode_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DeleteNode"
-	VibeCMSHost_GetSetting_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/GetSetting"
-	VibeCMSHost_SetSetting_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/SetSetting"
-	VibeCMSHost_GetSettings_FullMethodName      = "/vibecms.coreapi.VibeCMSHost/GetSettings"
-	VibeCMSHost_EmitEvent_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/EmitEvent"
-	VibeCMSHost_SendEmail_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/SendEmail"
-	VibeCMSHost_GetMenu_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/GetMenu"
-	VibeCMSHost_GetMenus_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/GetMenus"
-	VibeCMSHost_GetUser_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/GetUser"
-	VibeCMSHost_QueryUsers_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/QueryUsers"
-	VibeCMSHost_Fetch_FullMethodName            = "/vibecms.coreapi.VibeCMSHost/Fetch"
-	VibeCMSHost_Log_FullMethodName              = "/vibecms.coreapi.VibeCMSHost/Log"
-	VibeCMSHost_DataGet_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/DataGet"
-	VibeCMSHost_DataQuery_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DataQuery"
-	VibeCMSHost_DataCreate_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DataCreate"
-	VibeCMSHost_DataUpdate_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DataUpdate"
-	VibeCMSHost_DataDelete_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DataDelete"
-	VibeCMSHost_DataExec_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/DataExec"
-	VibeCMSHost_StoreFile_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/StoreFile"
-	VibeCMSHost_DeleteFile_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/DeleteFile"
-	VibeCMSHost_RegisterNodeType_FullMethodName = "/vibecms.coreapi.VibeCMSHost/RegisterNodeType"
-	VibeCMSHost_GetNodeType_FullMethodName      = "/vibecms.coreapi.VibeCMSHost/GetNodeType"
-	VibeCMSHost_ListNodeTypes_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/ListNodeTypes"
-	VibeCMSHost_UpdateNodeType_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/UpdateNodeType"
-	VibeCMSHost_DeleteNodeType_FullMethodName   = "/vibecms.coreapi.VibeCMSHost/DeleteNodeType"
+	VibeCMSHost_GetNode_FullMethodName           = "/vibecms.coreapi.VibeCMSHost/GetNode"
+	VibeCMSHost_QueryNodes_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/QueryNodes"
+	VibeCMSHost_ListTaxonomyTerms_FullMethodName = "/vibecms.coreapi.VibeCMSHost/ListTaxonomyTerms"
+	VibeCMSHost_CreateNode_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/CreateNode"
+	VibeCMSHost_UpdateNode_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/UpdateNode"
+	VibeCMSHost_DeleteNode_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DeleteNode"
+	VibeCMSHost_ListTerms_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/ListTerms"
+	VibeCMSHost_GetTerm_FullMethodName           = "/vibecms.coreapi.VibeCMSHost/GetTerm"
+	VibeCMSHost_CreateTerm_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/CreateTerm"
+	VibeCMSHost_UpdateTerm_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/UpdateTerm"
+	VibeCMSHost_DeleteTerm_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DeleteTerm"
+	VibeCMSHost_RegisterTaxonomy_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/RegisterTaxonomy"
+	VibeCMSHost_GetTaxonomy_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/GetTaxonomy"
+	VibeCMSHost_ListTaxonomies_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/ListTaxonomies"
+	VibeCMSHost_UpdateTaxonomy_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/UpdateTaxonomy"
+	VibeCMSHost_DeleteTaxonomy_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/DeleteTaxonomy"
+	VibeCMSHost_GetSetting_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/GetSetting"
+	VibeCMSHost_SetSetting_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/SetSetting"
+	VibeCMSHost_GetSettings_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/GetSettings"
+	VibeCMSHost_EmitEvent_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/EmitEvent"
+	VibeCMSHost_SendEmail_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/SendEmail"
+	VibeCMSHost_GetMenu_FullMethodName           = "/vibecms.coreapi.VibeCMSHost/GetMenu"
+	VibeCMSHost_GetMenus_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/GetMenus"
+	VibeCMSHost_GetUser_FullMethodName           = "/vibecms.coreapi.VibeCMSHost/GetUser"
+	VibeCMSHost_QueryUsers_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/QueryUsers"
+	VibeCMSHost_Fetch_FullMethodName             = "/vibecms.coreapi.VibeCMSHost/Fetch"
+	VibeCMSHost_Log_FullMethodName               = "/vibecms.coreapi.VibeCMSHost/Log"
+	VibeCMSHost_DataGet_FullMethodName           = "/vibecms.coreapi.VibeCMSHost/DataGet"
+	VibeCMSHost_DataQuery_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/DataQuery"
+	VibeCMSHost_DataCreate_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DataCreate"
+	VibeCMSHost_DataUpdate_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DataUpdate"
+	VibeCMSHost_DataDelete_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DataDelete"
+	VibeCMSHost_DataExec_FullMethodName          = "/vibecms.coreapi.VibeCMSHost/DataExec"
+	VibeCMSHost_StoreFile_FullMethodName         = "/vibecms.coreapi.VibeCMSHost/StoreFile"
+	VibeCMSHost_DeleteFile_FullMethodName        = "/vibecms.coreapi.VibeCMSHost/DeleteFile"
+	VibeCMSHost_RegisterNodeType_FullMethodName  = "/vibecms.coreapi.VibeCMSHost/RegisterNodeType"
+	VibeCMSHost_GetNodeType_FullMethodName       = "/vibecms.coreapi.VibeCMSHost/GetNodeType"
+	VibeCMSHost_ListNodeTypes_FullMethodName     = "/vibecms.coreapi.VibeCMSHost/ListNodeTypes"
+	VibeCMSHost_UpdateNodeType_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/UpdateNodeType"
+	VibeCMSHost_DeleteNodeType_FullMethodName    = "/vibecms.coreapi.VibeCMSHost/DeleteNodeType"
 )
 
 // VibeCMSHostClient is the client API for VibeCMSHost service.
@@ -56,9 +67,22 @@ const (
 type VibeCMSHostClient interface {
 	GetNode(ctx context.Context, in *GetNodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	QueryNodes(ctx context.Context, in *QueryNodesRequest, opts ...grpc.CallOption) (*QueryNodesResponse, error)
+	ListTaxonomyTerms(ctx context.Context, in *ListTaxonomyTermsRequest, opts ...grpc.CallOption) (*ListTaxonomyTermsResponse, error)
 	CreateNode(ctx context.Context, in *CreateNodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	UpdateNode(ctx context.Context, in *UpdateNodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	DeleteNode(ctx context.Context, in *DeleteNodeRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Taxonomies
+	ListTerms(ctx context.Context, in *ListTermsRequest, opts ...grpc.CallOption) (*ListTermsResponse, error)
+	GetTerm(ctx context.Context, in *GetTermRequest, opts ...grpc.CallOption) (*TermResponse, error)
+	CreateTerm(ctx context.Context, in *CreateTermRequest, opts ...grpc.CallOption) (*TermResponse, error)
+	UpdateTerm(ctx context.Context, in *UpdateTermRequest, opts ...grpc.CallOption) (*TermResponse, error)
+	DeleteTerm(ctx context.Context, in *DeleteTermRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Taxonomy Definitions
+	RegisterTaxonomy(ctx context.Context, in *TaxonomyInputMessage, opts ...grpc.CallOption) (*TaxonomyResponse, error)
+	GetTaxonomy(ctx context.Context, in *GetTaxonomyRequest, opts ...grpc.CallOption) (*TaxonomyResponse, error)
+	ListTaxonomies(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*TaxonomyListResponse, error)
+	UpdateTaxonomy(ctx context.Context, in *UpdateTaxonomyRequest, opts ...grpc.CallOption) (*TaxonomyResponse, error)
+	DeleteTaxonomy(ctx context.Context, in *DeleteTaxonomyRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetSetting(ctx context.Context, in *GetSettingRequest, opts ...grpc.CallOption) (*SettingResponse, error)
 	SetSetting(ctx context.Context, in *SetSettingRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetSettings(ctx context.Context, in *GetSettingsRequest, opts ...grpc.CallOption) (*SettingsResponse, error)
@@ -113,6 +137,16 @@ func (c *vibeCMSHostClient) QueryNodes(ctx context.Context, in *QueryNodesReques
 	return out, nil
 }
 
+func (c *vibeCMSHostClient) ListTaxonomyTerms(ctx context.Context, in *ListTaxonomyTermsRequest, opts ...grpc.CallOption) (*ListTaxonomyTermsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTaxonomyTermsResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_ListTaxonomyTerms_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vibeCMSHostClient) CreateNode(ctx context.Context, in *CreateNodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(NodeResponse)
@@ -137,6 +171,106 @@ func (c *vibeCMSHostClient) DeleteNode(ctx context.Context, in *DeleteNodeReques
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, VibeCMSHost_DeleteNode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) ListTerms(ctx context.Context, in *ListTermsRequest, opts ...grpc.CallOption) (*ListTermsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTermsResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_ListTerms_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) GetTerm(ctx context.Context, in *GetTermRequest, opts ...grpc.CallOption) (*TermResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TermResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_GetTerm_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) CreateTerm(ctx context.Context, in *CreateTermRequest, opts ...grpc.CallOption) (*TermResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TermResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_CreateTerm_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) UpdateTerm(ctx context.Context, in *UpdateTermRequest, opts ...grpc.CallOption) (*TermResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TermResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_UpdateTerm_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) DeleteTerm(ctx context.Context, in *DeleteTermRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, VibeCMSHost_DeleteTerm_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) RegisterTaxonomy(ctx context.Context, in *TaxonomyInputMessage, opts ...grpc.CallOption) (*TaxonomyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TaxonomyResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_RegisterTaxonomy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) GetTaxonomy(ctx context.Context, in *GetTaxonomyRequest, opts ...grpc.CallOption) (*TaxonomyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TaxonomyResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_GetTaxonomy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) ListTaxonomies(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*TaxonomyListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TaxonomyListResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_ListTaxonomies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) UpdateTaxonomy(ctx context.Context, in *UpdateTaxonomyRequest, opts ...grpc.CallOption) (*TaxonomyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TaxonomyResponse)
+	err := c.cc.Invoke(ctx, VibeCMSHost_UpdateTaxonomy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vibeCMSHostClient) DeleteTaxonomy(ctx context.Context, in *DeleteTaxonomyRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, VibeCMSHost_DeleteTaxonomy_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -389,9 +523,22 @@ func (c *vibeCMSHostClient) DeleteNodeType(ctx context.Context, in *DeleteNodeTy
 type VibeCMSHostServer interface {
 	GetNode(context.Context, *GetNodeRequest) (*NodeResponse, error)
 	QueryNodes(context.Context, *QueryNodesRequest) (*QueryNodesResponse, error)
+	ListTaxonomyTerms(context.Context, *ListTaxonomyTermsRequest) (*ListTaxonomyTermsResponse, error)
 	CreateNode(context.Context, *CreateNodeRequest) (*NodeResponse, error)
 	UpdateNode(context.Context, *UpdateNodeRequest) (*NodeResponse, error)
 	DeleteNode(context.Context, *DeleteNodeRequest) (*Empty, error)
+	// Taxonomies
+	ListTerms(context.Context, *ListTermsRequest) (*ListTermsResponse, error)
+	GetTerm(context.Context, *GetTermRequest) (*TermResponse, error)
+	CreateTerm(context.Context, *CreateTermRequest) (*TermResponse, error)
+	UpdateTerm(context.Context, *UpdateTermRequest) (*TermResponse, error)
+	DeleteTerm(context.Context, *DeleteTermRequest) (*Empty, error)
+	// Taxonomy Definitions
+	RegisterTaxonomy(context.Context, *TaxonomyInputMessage) (*TaxonomyResponse, error)
+	GetTaxonomy(context.Context, *GetTaxonomyRequest) (*TaxonomyResponse, error)
+	ListTaxonomies(context.Context, *Empty) (*TaxonomyListResponse, error)
+	UpdateTaxonomy(context.Context, *UpdateTaxonomyRequest) (*TaxonomyResponse, error)
+	DeleteTaxonomy(context.Context, *DeleteTaxonomyRequest) (*Empty, error)
 	GetSetting(context.Context, *GetSettingRequest) (*SettingResponse, error)
 	SetSetting(context.Context, *SetSettingRequest) (*Empty, error)
 	GetSettings(context.Context, *GetSettingsRequest) (*SettingsResponse, error)
@@ -432,6 +579,9 @@ func (UnimplementedVibeCMSHostServer) GetNode(context.Context, *GetNodeRequest) 
 func (UnimplementedVibeCMSHostServer) QueryNodes(context.Context, *QueryNodesRequest) (*QueryNodesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryNodes not implemented")
 }
+func (UnimplementedVibeCMSHostServer) ListTaxonomyTerms(context.Context, *ListTaxonomyTermsRequest) (*ListTaxonomyTermsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTaxonomyTerms not implemented")
+}
 func (UnimplementedVibeCMSHostServer) CreateNode(context.Context, *CreateNodeRequest) (*NodeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateNode not implemented")
 }
@@ -440,6 +590,36 @@ func (UnimplementedVibeCMSHostServer) UpdateNode(context.Context, *UpdateNodeReq
 }
 func (UnimplementedVibeCMSHostServer) DeleteNode(context.Context, *DeleteNodeRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteNode not implemented")
+}
+func (UnimplementedVibeCMSHostServer) ListTerms(context.Context, *ListTermsRequest) (*ListTermsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTerms not implemented")
+}
+func (UnimplementedVibeCMSHostServer) GetTerm(context.Context, *GetTermRequest) (*TermResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTerm not implemented")
+}
+func (UnimplementedVibeCMSHostServer) CreateTerm(context.Context, *CreateTermRequest) (*TermResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateTerm not implemented")
+}
+func (UnimplementedVibeCMSHostServer) UpdateTerm(context.Context, *UpdateTermRequest) (*TermResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateTerm not implemented")
+}
+func (UnimplementedVibeCMSHostServer) DeleteTerm(context.Context, *DeleteTermRequest) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTerm not implemented")
+}
+func (UnimplementedVibeCMSHostServer) RegisterTaxonomy(context.Context, *TaxonomyInputMessage) (*TaxonomyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterTaxonomy not implemented")
+}
+func (UnimplementedVibeCMSHostServer) GetTaxonomy(context.Context, *GetTaxonomyRequest) (*TaxonomyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTaxonomy not implemented")
+}
+func (UnimplementedVibeCMSHostServer) ListTaxonomies(context.Context, *Empty) (*TaxonomyListResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTaxonomies not implemented")
+}
+func (UnimplementedVibeCMSHostServer) UpdateTaxonomy(context.Context, *UpdateTaxonomyRequest) (*TaxonomyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateTaxonomy not implemented")
+}
+func (UnimplementedVibeCMSHostServer) DeleteTaxonomy(context.Context, *DeleteTaxonomyRequest) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTaxonomy not implemented")
 }
 func (UnimplementedVibeCMSHostServer) GetSetting(context.Context, *GetSettingRequest) (*SettingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetSetting not implemented")
@@ -570,6 +750,24 @@ func _VibeCMSHost_QueryNodes_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VibeCMSHost_ListTaxonomyTerms_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTaxonomyTermsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).ListTaxonomyTerms(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_ListTaxonomyTerms_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).ListTaxonomyTerms(ctx, req.(*ListTaxonomyTermsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VibeCMSHost_CreateNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateNodeRequest)
 	if err := dec(in); err != nil {
@@ -620,6 +818,186 @@ func _VibeCMSHost_DeleteNode_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(VibeCMSHostServer).DeleteNode(ctx, req.(*DeleteNodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_ListTerms_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTermsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).ListTerms(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_ListTerms_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).ListTerms(ctx, req.(*ListTermsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_GetTerm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTermRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).GetTerm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_GetTerm_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).GetTerm(ctx, req.(*GetTermRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_CreateTerm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTermRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).CreateTerm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_CreateTerm_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).CreateTerm(ctx, req.(*CreateTermRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_UpdateTerm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTermRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).UpdateTerm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_UpdateTerm_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).UpdateTerm(ctx, req.(*UpdateTermRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_DeleteTerm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTermRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).DeleteTerm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_DeleteTerm_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).DeleteTerm(ctx, req.(*DeleteTermRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_RegisterTaxonomy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TaxonomyInputMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).RegisterTaxonomy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_RegisterTaxonomy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).RegisterTaxonomy(ctx, req.(*TaxonomyInputMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_GetTaxonomy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTaxonomyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).GetTaxonomy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_GetTaxonomy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).GetTaxonomy(ctx, req.(*GetTaxonomyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_ListTaxonomies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).ListTaxonomies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_ListTaxonomies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).ListTaxonomies(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_UpdateTaxonomy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTaxonomyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).UpdateTaxonomy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_UpdateTaxonomy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).UpdateTaxonomy(ctx, req.(*UpdateTaxonomyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VibeCMSHost_DeleteTaxonomy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTaxonomyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VibeCMSHostServer).DeleteTaxonomy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VibeCMSHost_DeleteTaxonomy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VibeCMSHostServer).DeleteTaxonomy(ctx, req.(*DeleteTaxonomyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1072,6 +1450,10 @@ var VibeCMSHost_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _VibeCMSHost_QueryNodes_Handler,
 		},
 		{
+			MethodName: "ListTaxonomyTerms",
+			Handler:    _VibeCMSHost_ListTaxonomyTerms_Handler,
+		},
+		{
 			MethodName: "CreateNode",
 			Handler:    _VibeCMSHost_CreateNode_Handler,
 		},
@@ -1082,6 +1464,46 @@ var VibeCMSHost_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteNode",
 			Handler:    _VibeCMSHost_DeleteNode_Handler,
+		},
+		{
+			MethodName: "ListTerms",
+			Handler:    _VibeCMSHost_ListTerms_Handler,
+		},
+		{
+			MethodName: "GetTerm",
+			Handler:    _VibeCMSHost_GetTerm_Handler,
+		},
+		{
+			MethodName: "CreateTerm",
+			Handler:    _VibeCMSHost_CreateTerm_Handler,
+		},
+		{
+			MethodName: "UpdateTerm",
+			Handler:    _VibeCMSHost_UpdateTerm_Handler,
+		},
+		{
+			MethodName: "DeleteTerm",
+			Handler:    _VibeCMSHost_DeleteTerm_Handler,
+		},
+		{
+			MethodName: "RegisterTaxonomy",
+			Handler:    _VibeCMSHost_RegisterTaxonomy_Handler,
+		},
+		{
+			MethodName: "GetTaxonomy",
+			Handler:    _VibeCMSHost_GetTaxonomy_Handler,
+		},
+		{
+			MethodName: "ListTaxonomies",
+			Handler:    _VibeCMSHost_ListTaxonomies_Handler,
+		},
+		{
+			MethodName: "UpdateTaxonomy",
+			Handler:    _VibeCMSHost_UpdateTaxonomy_Handler,
+		},
+		{
+			MethodName: "DeleteTaxonomy",
+			Handler:    _VibeCMSHost_DeleteTaxonomy_Handler,
 		},
 		{
 			MethodName: "GetSetting",

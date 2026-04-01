@@ -250,6 +250,7 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
     if (!newFieldLabel.trim() || !newFieldKey.trim()) return;
     if (value.some((f) => f.key === newFieldKey)) return;
     const sf: NodeTypeField = {
+      name: newFieldKey,
       key: newFieldKey,
       label: newFieldLabel,
       type: newFieldType,

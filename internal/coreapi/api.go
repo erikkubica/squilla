@@ -10,9 +10,24 @@ type CoreAPI interface {
 	// Nodes
 	GetNode(ctx context.Context, id uint) (*Node, error)
 	QueryNodes(ctx context.Context, query NodeQuery) (*NodeList, error)
+	ListTaxonomyTerms(ctx context.Context, nodeType string, taxonomy string) ([]string, error)
 	CreateNode(ctx context.Context, input NodeInput) (*Node, error)
 	UpdateNode(ctx context.Context, id uint, input NodeInput) (*Node, error)
 	DeleteNode(ctx context.Context, id uint) error
+
+	// Taxonomies (Definitions)
+	RegisterTaxonomy(ctx context.Context, input TaxonomyInput) (*Taxonomy, error)
+	GetTaxonomy(ctx context.Context, slug string) (*Taxonomy, error)
+	ListTaxonomies(ctx context.Context) ([]*Taxonomy, error)
+	UpdateTaxonomy(ctx context.Context, slug string, input TaxonomyInput) (*Taxonomy, error)
+	DeleteTaxonomy(ctx context.Context, slug string) error
+
+	// Taxonomy Terms
+	ListTerms(ctx context.Context, nodeType string, taxonomy string) ([]*TaxonomyTerm, error)
+	GetTerm(ctx context.Context, id uint) (*TaxonomyTerm, error)
+	CreateTerm(ctx context.Context, term *TaxonomyTerm) (*TaxonomyTerm, error)
+	UpdateTerm(ctx context.Context, id uint, updates map[string]interface{}) (*TaxonomyTerm, error)
+	DeleteTerm(ctx context.Context, id uint) error
 
 	// Settings
 	GetSetting(ctx context.Context, key string) (string, error)
@@ -91,12 +106,16 @@ type Node struct {
 	Slug         string            `json:"slug"`
 	FullURL      string            `json:"full_url"`
 	Title        string            `json:"title"`
+	FeaturedImage any               `json:"featured_image,omitempty"`
+	Excerpt       string            `json:"excerpt,omitempty"`
+	Taxonomies    map[string][]string `json:"taxonomies,omitempty"`
 	BlocksData   any               `json:"blocks_data,omitempty"`
 	FieldsData   map[string]any    `json:"fields_data,omitempty"`
 	SeoSettings  map[string]string `json:"seo_settings,omitempty"`
 	PublishedAt  *time.Time        `json:"published_at,omitempty"`
 	CreatedAt    time.Time         `json:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at"`
+	Translations []map[string]interface{} `json:"translations,omitempty"`
 }
 
 type NodeQuery struct {
@@ -109,6 +128,8 @@ type NodeQuery struct {
 	Limit        int    `json:"limit,omitempty"`
 	Offset       int    `json:"offset,omitempty"`
 	OrderBy      string `json:"order_by,omitempty"`
+	Category     string `json:"category,omitempty"`
+	TaxQuery     map[string][]string `json:"tax_query,omitempty"`
 }
 
 type NodeList struct {
@@ -123,6 +144,9 @@ type NodeInput struct {
 	LanguageCode string            `json:"language_code,omitempty"`
 	Slug         string            `json:"slug,omitempty"`
 	Title        string            `json:"title,omitempty"`
+	FeaturedImage any               `json:"featured_image,omitempty"`
+	Excerpt       string            `json:"excerpt,omitempty"`
+	Taxonomies    map[string][]string `json:"taxonomies,omitempty"`
 	BlocksData   any               `json:"blocks_data,omitempty"`
 	FieldsData   map[string]any    `json:"fields_data,omitempty"`
 	SeoSettings  map[string]string `json:"seo_settings,omitempty"`
@@ -237,6 +261,7 @@ type NodeType struct {
 	Label       string            `json:"label"`
 	Icon        string            `json:"icon"`
 	Description string            `json:"description"`
+	Taxonomies  []TaxonomyDefinition `json:"taxonomies,omitempty"`
 	FieldSchema []NodeTypeField   `json:"field_schema"`
 	URLPrefixes map[string]string `json:"url_prefixes"`
 	CreatedAt   time.Time         `json:"created_at"`
@@ -256,6 +281,50 @@ type NodeTypeInput struct {
 	Label       string            `json:"label,omitempty"`
 	Icon        string            `json:"icon,omitempty"`
 	Description string            `json:"description,omitempty"`
+	Taxonomies  []TaxonomyDefinition `json:"taxonomies,omitempty"`
 	FieldSchema []NodeTypeField   `json:"field_schema,omitempty"`
 	URLPrefixes map[string]string `json:"url_prefixes,omitempty"`
+}
+
+type TaxonomyDefinition struct {
+	Slug     string `json:"slug"`
+	Label    string `json:"label"`
+	Multiple bool   `json:"multiple"` // Allow multiple terms per node
+}
+
+type Taxonomy struct {
+	ID           uint                 `json:"id"`
+	Slug         string               `json:"slug"`
+	Label        string               `json:"label"`
+	Description  string               `json:"description"`
+	Hierarchical bool                 `json:"hierarchical"`
+	ShowUI       bool                 `json:"show_ui"`
+	NodeTypes    []string             `json:"node_types"`
+	FieldSchema  []NodeTypeField      `json:"field_schema,omitempty"`
+	CreatedAt    time.Time            `json:"created_at"`
+	UpdatedAt    time.Time            `json:"updated_at"`
+}
+
+type TaxonomyInput struct {
+	Slug         string               `json:"slug,omitempty"`
+	Label        string               `json:"label,omitempty"`
+	Description  string               `json:"description,omitempty"`
+	Hierarchical bool                 `json:"hierarchical,omitempty"`
+	ShowUI       *bool                `json:"show_ui,omitempty"`
+	NodeTypes    []string             `json:"node_types,omitempty"`
+	FieldSchema  []NodeTypeField      `json:"field_schema,omitempty"`
+}
+
+type TaxonomyTerm struct {
+	ID          uint                   `json:"id"`
+	NodeType    string                 `json:"node_type"`
+	Taxonomy    string                 `json:"taxonomy"`
+	Slug        string                 `json:"slug"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	ParentID    *uint                  `json:"parent_id,omitempty"`
+	Count       int                    `json:"count"`
+	FieldsData  map[string]interface{} `json:"fields_data,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
 }

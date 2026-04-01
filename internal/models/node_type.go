@@ -9,6 +9,7 @@ type NodeType struct {
 	Label       string    `gorm:"column:label;type:varchar(100);not null" json:"label"`
 	Icon        string    `gorm:"column:icon;type:varchar(50);not null;default:'file-text'" json:"icon"`
 	Description string    `gorm:"column:description;type:text;not null;default:''" json:"description"`
+	Taxonomies  JSONB     `gorm:"column:taxonomies;type:jsonb;not null;default:'[]'" json:"taxonomies"`
 	FieldSchema JSONB     `gorm:"column:field_schema;type:jsonb;not null;default:'[]'" json:"field_schema"`
 	URLPrefixes JSONB     `gorm:"column:url_prefixes;type:jsonb;not null;default:'{}'" json:"url_prefixes"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime" json:"created_at"`

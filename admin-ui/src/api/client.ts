@@ -5,22 +5,10 @@ export interface User {
   role_id: number;
   role: { id: number; slug: string; name: string; is_system: boolean } | string;
   capabilities?: Record<string, any>;
-  last_login_at: string;
+  last_login_at?: string;
   created_at: string;
-}
-
-export interface NodeAccess {
-  access: "none" | "read" | "write";
-  scope: "all" | "own";
-}
-
-export function getNodeAccess(user: User | null, nodeType: string): NodeAccess {
-  if (!user?.capabilities) return { access: "none", scope: "all" };
-  const caps = user.capabilities;
-  const nodes = caps.nodes as Record<string, NodeAccess> | undefined;
-  if (nodes?.[nodeType]) return nodes[nodeType];
-  if (caps.default_node_access) return caps.default_node_access as NodeAccess;
-  return { access: "none", scope: "all" };
+  updated_at: string;
+  language_id?: number | null;
 }
 
 export interface ContentNode {
@@ -33,6 +21,9 @@ export interface ContentNode {
   slug: string;
   full_url: string;
   title: string;
+  featured_image: Record<string, unknown>;
+  excerpt: string;
+  taxonomies: Record<string, string[]>;
   blocks_data: Record<string, unknown>[];
   seo_settings: Record<string, unknown>;
   fields_data: Record<string, unknown>;
@@ -52,7 +43,7 @@ export interface PaginationMeta {
   total_pages: number;
 }
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   data: T;
   meta?: PaginationMeta;
 }
@@ -93,33 +84,27 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const body = await res.json();
 
   if (!res.ok) {
-    const err = body as ApiError;
+    const error = (body as ApiError).error;
     throw new ApiClientError(
-      err.error?.message || "An unexpected error occurred",
-      err.error?.code || "unknown",
+      error?.message || "An unexpected error occurred",
+      error?.code || "unknown_error",
       res.status
     );
   }
 
-  return body as T;
+  return body;
 }
 
-export async function login(
-  email: string,
-  password: string
-): Promise<{ user_id: number; email: string; role: string }> {
-  const res = await api<ApiResponse<{ user_id: number; email: string; role: string }>>(
-    "/auth/login",
-    {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }
-  );
+export async function login(data: Record<string, string>): Promise<User> {
+  const res = await api<ApiResponse<User>>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
   return res.data;
 }
 
 export async function logout(): Promise<void> {
-  await api<void>("/auth/logout", { method: "POST" });
+  await api("/auth/logout", { method: "POST" });
 }
 
 export async function getMe(): Promise<User> {
@@ -127,14 +112,17 @@ export async function getMe(): Promise<User> {
   return res.data;
 }
 
-export async function getNodes(params: {
+export interface GetNodesParams {
   page?: number;
   per_page?: number;
   status?: string;
   node_type?: string;
   language_code?: string;
   search?: string;
-}): Promise<{ data: ContentNode[]; meta: PaginationMeta }> {
+  tax_query?: Record<string, string[]>;
+}
+
+export async function getNodes(params: GetNodesParams): Promise<{ data: ContentNode[]; meta: PaginationMeta }> {
   const searchParams = new URLSearchParams();
   if (params.page) searchParams.set("page", String(params.page));
   if (params.per_page) searchParams.set("per_page", String(params.per_page));
@@ -142,6 +130,7 @@ export async function getNodes(params: {
   if (params.node_type) searchParams.set("node_type", params.node_type);
   if (params.language_code) searchParams.set("language_code", params.language_code);
   if (params.search) searchParams.set("search", params.search);
+  if (params.tax_query) searchParams.set("tax_query", JSON.stringify(params.tax_query));
 
   const res = await api<{ data: ContentNode[]; meta: PaginationMeta }>(
     `/admin/api/nodes?${searchParams.toString()}`
@@ -154,9 +143,7 @@ export async function getNode(id: number | string): Promise<ContentNode> {
   return res.data;
 }
 
-export async function createNode(
-  data: Partial<ContentNode>
-): Promise<ContentNode> {
+export async function createNode(data: Partial<ContentNode>): Promise<ContentNode> {
   const res = await api<ApiResponse<ContentNode>>("/admin/api/nodes", {
     method: "POST",
     body: JSON.stringify(data),
@@ -164,10 +151,7 @@ export async function createNode(
   return res.data;
 }
 
-export async function updateNode(
-  id: number | string,
-  data: Partial<ContentNode>
-): Promise<ContentNode> {
+export async function updateNode(id: number | string, data: Partial<ContentNode>): Promise<ContentNode> {
   const res = await api<ApiResponse<ContentNode>>(`/admin/api/nodes/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
@@ -176,21 +160,7 @@ export async function updateNode(
 }
 
 export async function deleteNode(id: number | string): Promise<void> {
-  await api<void>(`/admin/api/nodes/${id}`, { method: "DELETE" });
-}
-
-export async function getUsers(params?: {
-  page?: number;
-  per_page?: number;
-}): Promise<{ data: User[]; meta: PaginationMeta }> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set("page", String(params.page));
-  if (params?.per_page) searchParams.set("per_page", String(params.per_page));
-
-  const res = await api<{ data: User[]; meta: PaginationMeta }>(
-    `/admin/api/users?${searchParams.toString()}`
-  );
-  return res;
+  await api(`/admin/api/nodes/${id}`, { method: "DELETE" });
 }
 
 export async function getNodeTranslations(id: number | string): Promise<ContentNode[]> {
@@ -198,10 +168,10 @@ export async function getNodeTranslations(id: number | string): Promise<ContentN
   return res.data;
 }
 
-export async function createNodeTranslation(id: number | string, languageCode: string): Promise<ContentNode> {
+export async function createNodeTranslation(id: number | string, data: { language_code: string }): Promise<ContentNode> {
   const res = await api<ApiResponse<ContentNode>>(`/admin/api/nodes/${id}/translations`, {
     method: "POST",
-    body: JSON.stringify({ language_code: languageCode }),
+    body: JSON.stringify(data),
   });
   return res.data;
 }
@@ -216,26 +186,27 @@ export async function setHomepage(nodeId: number | string): Promise<void> {
 }
 
 export interface NodeTypeField {
+  name: string;
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "date" | "select" | "image" | "toggle" | "link" | "group" | "repeater" | "node" | "color" | "email" | "url" | "richtext" | "range" | "file" | "gallery" | "radio" | "checkbox" | "node_type_select" | (string & {});
+  type: string;
   required?: boolean;
-  options?: string[];            // for select, radio, checkbox types
-  placeholder?: string;          // for text, textarea, number, email, url
-  default_value?: string;        // default value for any field
-  help_text?: string;            // instructions/description shown below field
-  sub_fields?: NodeTypeField[];  // for group and repeater
-  node_type_filter?: string;     // for node selector - filter by content type
-  multiple?: boolean;            // for node selector, file - multi-select
-  min?: number;                  // for number, range
-  max?: number;                  // for number, range
-  step?: number;                 // for number, range
-  min_length?: number;           // for text, textarea
-  max_length?: number;           // for text, textarea
-  rows?: number;                 // for textarea
-  prepend?: string;              // text before input (text, number, email, url)
-  append?: string;               // text after input (text, number, email, url)
-  allowed_types?: string;        // for file - comma-separated mime types or extensions
+  options?: string[];
+  placeholder?: string;
+  default_value?: any;
+  help_text?: string;
+  sub_fields?: NodeTypeField[];
+  node_type_filter?: string;
+  multiple?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  min_length?: number;
+  max_length?: number;
+  rows?: number;
+  prepend?: string;
+  append?: string;
+  allowed_types?: string;
 }
 
 export interface NodeSearchResult {
@@ -262,12 +233,19 @@ export async function searchNodes(params: {
   return res.data;
 }
 
+export interface TaxonomyDefinition {
+  slug: string;
+  label: string;
+  multiple: boolean;
+}
+
 export interface NodeType {
   id: number;
   slug: string;
   label: string;
   icon: string;
   description: string;
+  taxonomies: TaxonomyDefinition[];
   field_schema: NodeTypeField[];
   url_prefixes: Record<string, string>;
   created_at: string;
@@ -302,6 +280,100 @@ export async function updateNodeType(id: number | string, data: Partial<NodeType
 
 export async function deleteNodeType(id: number | string): Promise<void> {
   await api<void>(`/admin/api/node-types/${id}`, { method: "DELETE" });
+}
+
+export interface Taxonomy {
+  id: number;
+  slug: string;
+  label: string;
+  description: string;
+  node_types: string[];
+  field_schema: NodeTypeField[];
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getTaxonomies(): Promise<Taxonomy[]> {
+  const res = await api<ApiResponse<Taxonomy[]>>("/admin/api/taxonomies");
+  return res.data;
+}
+
+export async function getTaxonomy(slug: string): Promise<Taxonomy> {
+  const res = await api<ApiResponse<Taxonomy>>(`/admin/api/taxonomies/${slug}`);
+  return res.data;
+}
+
+export async function createTaxonomy(data: Partial<Taxonomy>): Promise<Taxonomy> {
+  const res = await api<ApiResponse<Taxonomy>>("/admin/api/taxonomies", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function updateTaxonomy(slug: string, data: Partial<Taxonomy>): Promise<Taxonomy> {
+  const res = await api<ApiResponse<Taxonomy>>(`/admin/api/taxonomies/${slug}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function deleteTaxonomy(slug: string): Promise<void> {
+  await api(`/admin/api/taxonomies/${slug}`, {
+    method: "DELETE",
+  });
+}
+
+export interface TaxonomyTerm {
+  id: number;
+  node_type: string;
+  taxonomy: string;
+  slug: string;
+  name: string;
+  description: string;
+  parent_id?: number;
+  count: number;
+  fields_data: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listTerms(nodeType: string, taxonomy: string): Promise<TaxonomyTerm[]> {
+  const res = await api<ApiResponse<TaxonomyTerm[]>>(`/admin/api/terms/${nodeType}/${taxonomy}`);
+  return res.data;
+}
+
+export async function getTerm(id: number): Promise<TaxonomyTerm> {
+  const res = await api<ApiResponse<TaxonomyTerm>>(`/admin/api/terms/${id}`);
+  return res.data;
+}
+
+export async function createTerm(nodeType: string, taxonomy: string, data: Partial<TaxonomyTerm>): Promise<TaxonomyTerm> {
+  const res = await api<ApiResponse<TaxonomyTerm>>(`/admin/api/terms/${nodeType}/${taxonomy}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function updateTerm(id: number, data: Partial<TaxonomyTerm>): Promise<TaxonomyTerm> {
+  const res = await api<ApiResponse<TaxonomyTerm>>(`/admin/api/terms/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function deleteTerm(id: number): Promise<void> {
+  await api(`/admin/api/terms/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function listTaxonomyTerms(nodeType: string, taxonomy: string): Promise<string[]> {
+  const res = await api<ApiResponse<string[]>>(`/admin/api/taxonomies/${nodeType}/${taxonomy}/terms`);
+  return res.data;
 }
 
 export interface Language {
@@ -360,6 +432,7 @@ export interface BlockType {
   html_template: string;
   test_data: Record<string, unknown>;
   source: string;
+  theme_name: string | null;
   cache_output: boolean;
   created_at: string;
   updated_at: string;
@@ -793,6 +866,42 @@ export async function getSystemActions(): Promise<SystemAction[]> {
   return res.data;
 }
 
+// --- Users ---
+
+export async function getUsers(params?: { page?: number; per_page?: number }): Promise<{ data: User[]; meta: PaginationMeta }> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.per_page) searchParams.set("per_page", String(params.per_page));
+  const qs = searchParams.toString();
+  const res = await api<{ data: User[]; meta: PaginationMeta }>(`/admin/api/users${qs ? `?${qs}` : ""}`);
+  return res;
+}
+
+export async function getUser(id: number): Promise<User> {
+  const res = await api<ApiResponse<User>>(`/admin/api/users/${id}`);
+  return res.data;
+}
+
+export async function createUser(data: Partial<User>): Promise<User> {
+  const res = await api<ApiResponse<User>>("/admin/api/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function updateUser(id: number, data: Partial<User>): Promise<User> {
+  const res = await api<ApiResponse<User>>(`/admin/api/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function deleteUser(id: number): Promise<void> {
+  await api<void>(`/admin/api/users/${id}`, { method: "DELETE" });
+}
+
 // --- Email Templates ---
 
 export interface EmailTemplate {
@@ -1117,4 +1226,30 @@ export async function getExtensionManifests(): Promise<Array<{
     manifest: Record<string, unknown>;
   }>>>("/admin/api/extensions/manifests");
   return res.data;
+}
+
+// Role Access helper
+export function getNodeAccess(user: User | null, nodeType: string): { access: "none" | "read" | "write" | "all" } {
+  if (!user) return { access: "none" };
+  const caps = user.capabilities || {};
+
+  // System admin or content manager has full access
+  if (caps["*"] || caps["admin_access"] || caps["manage_content"]) return { access: "all" };
+
+  // Check explicit node type access
+  const typeAccess = caps[`nodes:${nodeType}`];
+  if (typeAccess === "write" || typeAccess === "all") return { access: "all" };
+  if (typeAccess === "read") return { access: "read" };
+
+  // Check general node access
+  const generalAccess = caps["nodes:*"];
+  if (generalAccess === "write" || generalAccess === "all") return { access: "all" };
+  if (generalAccess === "read") return { access: "read" };
+
+  // Check default_node_access from role capabilities
+  const defaultAccess = caps["default_node_access"] as Record<string, string> | undefined;
+  if (defaultAccess?.access === "write" || defaultAccess?.access === "all") return { access: "all" };
+  if (defaultAccess?.access === "read") return { access: "read" };
+
+  return { access: "none" };
 }

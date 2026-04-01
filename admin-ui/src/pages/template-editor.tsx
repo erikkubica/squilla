@@ -50,6 +50,8 @@ import {
 
 function slugify(text: string): string {
   return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_]+/g, "-")
@@ -77,6 +79,7 @@ export default function TemplateEditorPage() {
   const [blockConfig, setBlockConfig] = useState<TemplateBlockConfig[]>([]);
   const [originalTemplate, setOriginalTemplate] = useState<Template | null>(null);
   const [source, setSource] = useState("custom");
+  const [themeName, setThemeName] = useState<string | null>(null);
 
   const isManaged = source !== "custom";
 
@@ -100,6 +103,7 @@ export default function TemplateEditorPage() {
         setDescription(tpl.description || "");
         setBlockConfig(tpl.block_config || []);
         setSource(tpl.source || "custom");
+        setThemeName(tpl.theme_name || null);
         setAutoSlug(false);
       })
       .catch(() => {
@@ -241,7 +245,7 @@ export default function TemplateEditorPage() {
           </h1>
           {isEdit && isManaged && (
             <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">
-              {source === "theme" ? "Theme" : "Extension"}
+              {source === "theme" ? (themeName || "Theme") : "Extension"}
             </Badge>
           )}
         </div>

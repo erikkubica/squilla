@@ -22,6 +22,10 @@ import {
   ChevronsRight,
   ArrowUpDown,
   AlertCircle,
+  Sparkles,
+  RotateCcw,
+  RefreshCw,
+  Zap,
 } from "@vibecms/icons";
 import {
   Button,
@@ -65,6 +69,12 @@ interface MediaFile {
   alt: string;
   created_at: string;
   updated_at: string;
+  is_optimized: boolean;
+  original_size: number;
+  original_path: string;
+  original_width: number | null;
+  original_height: number | null;
+  optimization_savings: number;
 }
 
 interface PaginationMeta {
@@ -163,6 +173,32 @@ async function deleteMedia(id: number): Promise<void> {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to delete");
+}
+
+async function restoreOriginal(id: number): Promise<MediaFile> {
+  const res = await fetch(`/admin/api/ext/media-manager/${id}/restore`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.error?.message || "Failed to restore");
+  }
+  const body = await res.json();
+  return body.data;
+}
+
+async function reoptimizeImage(id: number): Promise<MediaFile> {
+  const res = await fetch(`/admin/api/ext/media-manager/${id}/reoptimize`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.error?.message || "Failed to re-optimize");
+  }
+  const body = await res.json();
+  return body.data;
 }
 
 // ---------- Helpers ----------
@@ -316,6 +352,10 @@ export default function MediaLibrary() {
   const [deleteTarget, setDeleteTarget] = useState<MediaFile | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Optimization actions
+  const [restoring, setRestoring] = useState(false);
+  const [reoptimizing, setReoptimizing] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -494,6 +534,43 @@ export default function MediaLibrary() {
     setBulkSelected(new Set());
     toast.success(`${deleted} file${deleted !== 1 ? "s" : ""} deleted`);
     await fetchFiles();
+  }
+
+  // Restore original
+  async function handleRestore() {
+    if (!selected) return;
+    setRestoring(true);
+    try {
+      const updated = await restoreOriginal(selected.id);
+      setSelected(updated);
+      setFiles((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+      toast.success("Original image restored");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to restore original");
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  // Re-optimize image
+  async function handleReoptimize() {
+    if (!selected) return;
+    setReoptimizing(true);
+    try {
+      const updated = await reoptimizeImage(selected.id);
+      setSelected(updated);
+      setFiles((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+      const savings = updated.optimization_savings;
+      toast.success(
+        savings > 0
+          ? `Re-optimized — saved ${humanFileSize(savings)}`
+          : "Re-optimized (no size reduction with current settings)"
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to re-optimize");
+    } finally {
+      setReoptimizing(false);
+    }
   }
 
   // Bulk selection helpers
@@ -772,6 +849,15 @@ export default function MediaLibrary() {
                               <Check className="h-3 w-3 text-white" />
                             </div>
                           )}
+                          {/* Optimization badge */}
+                          {file.is_optimized && isImage(file.mime_type) && (
+                            <div className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-full bg-emerald-500/90 px-1.5 py-0.5 text-white shadow-sm" title={`Optimized — saved ${humanFileSize(file.optimization_savings)}`}>
+                              <Zap className="h-2.5 w-2.5" />
+                              <span className="text-[9px] font-bold leading-none">
+                                {file.original_size > 0 ? `${Math.round((1 - file.size / file.original_size) * 100)}%` : ""}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Footer — file info + actions on hover */}
@@ -844,6 +930,9 @@ export default function MediaLibrary() {
                       </TableHead>
                       <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         Size
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Optimized
                       </TableHead>
                       <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         Dimensions
@@ -919,6 +1008,22 @@ export default function MediaLibrary() {
                           </TableCell>
                           <TableCell className="text-sm text-slate-600">
                             {humanFileSize(file.size)}
+                          </TableCell>
+                          <TableCell>
+                            {isImage(file.mime_type) && file.mime_type !== "image/svg+xml" ? (
+                              file.is_optimized ? (
+                                <Badge className="text-[10px] font-medium border-0 bg-emerald-100 text-emerald-700">
+                                  <Zap className="h-2.5 w-2.5 mr-0.5" />
+                                  {file.original_size > 0 ? `-${Math.round((1 - file.size / file.original_size) * 100)}%` : "Yes"}
+                                </Badge>
+                              ) : (
+                                <Badge className="text-[10px] font-medium border-0 bg-slate-100 text-slate-500">
+                                  No
+                                </Badge>
+                              )
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-sm text-slate-600">
                             {file.width && file.height
@@ -1135,6 +1240,61 @@ export default function MediaLibrary() {
                   </div>
                 </div>
 
+                {/* Optimization status */}
+                {isImage(selected.mime_type) && selected.mime_type !== "image/svg+xml" && (
+                  <div className="space-y-2">
+                    <div className={`flex items-center gap-2 rounded-lg p-2.5 ${selected.is_optimized ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                      {selected.is_optimized ? (
+                        <Zap className="h-4 w-4 text-emerald-600 shrink-0" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-semibold ${selected.is_optimized ? "text-emerald-800" : "text-amber-800"}`}>
+                          {selected.is_optimized ? "Optimized" : "Not Optimized"}
+                        </p>
+                        {selected.is_optimized && selected.original_size > 0 && (
+                          <p className="text-[10px] text-emerald-600 mt-0.5">
+                            {humanFileSize(selected.original_size)} → {humanFileSize(selected.size)}
+                            <span className="ml-1 font-bold">
+                              (saved {Math.round((1 - selected.size / selected.original_size) * 100)}% / {humanFileSize(selected.optimization_savings)})
+                            </span>
+                          </p>
+                        )}
+                        {selected.is_optimized && selected.original_width && selected.original_height && (selected.original_width !== selected.width || selected.original_height !== selected.height) && (
+                          <p className="text-[10px] text-emerald-600">
+                            Original: {selected.original_width} × {selected.original_height}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {selected.original_path && selected.is_optimized && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 rounded-lg text-xs h-7 text-amber-700 border-amber-200 hover:bg-amber-50"
+                          onClick={handleRestore}
+                          disabled={restoring || reoptimizing}
+                        >
+                          {restoring ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
+                          Restore Original
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 rounded-lg text-xs h-7 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                        onClick={handleReoptimize}
+                        disabled={restoring || reoptimizing}
+                      >
+                        {reoptimizing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                        {selected.is_optimized ? "Re-optimize" : "Optimize Now"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Rename */}
                 <div className="space-y-1.5">
                   <Label className="text-xs text-slate-500">File Name</Label>
@@ -1245,6 +1405,37 @@ export default function MediaLibrary() {
                   <div><span className="text-slate-500">Dimensions</span><p className="font-medium text-slate-800">{selected.width} × {selected.height}</p></div>
                 )}
               </div>
+              {/* Optimization status (mobile) */}
+              {isImage(selected.mime_type) && selected.mime_type !== "image/svg+xml" && (
+                <div className="space-y-2">
+                  <div className={`flex items-center gap-2 rounded-lg p-2.5 ${selected.is_optimized ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                    {selected.is_optimized ? <Zap className="h-4 w-4 text-emerald-600 shrink-0" /> : <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-semibold ${selected.is_optimized ? "text-emerald-800" : "text-amber-800"}`}>
+                        {selected.is_optimized ? "Optimized" : "Not Optimized"}
+                      </p>
+                      {selected.is_optimized && selected.original_size > 0 && (
+                        <p className="text-[10px] text-emerald-600 mt-0.5">
+                          {humanFileSize(selected.original_size)} → {humanFileSize(selected.size)}
+                          <span className="ml-1 font-bold">(saved {Math.round((1 - selected.size / selected.original_size) * 100)}%)</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {selected.original_path && selected.is_optimized && (
+                      <Button variant="outline" size="sm" className="flex-1 rounded-lg text-xs h-7 text-amber-700 border-amber-200 hover:bg-amber-50" onClick={handleRestore} disabled={restoring || reoptimizing}>
+                        {restoring ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
+                        Restore Original
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" className="flex-1 rounded-lg text-xs h-7 text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={handleReoptimize} disabled={restoring || reoptimizing}>
+                      {reoptimizing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                      {selected.is_optimized ? "Re-optimize" : "Optimize Now"}
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-500">File Name</Label>
                 <Input value={editName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)} className="rounded-lg border-slate-300 text-sm" />

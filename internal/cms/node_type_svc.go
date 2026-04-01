@@ -109,7 +109,7 @@ func (s *NodeTypeService) Update(id int, updates map[string]interface{}) (*model
 	}
 
 	// Convert JSONB fields from parsed JSON (map/slice) to models.JSONB
-	for _, key := range []string{"field_schema", "url_prefixes"} {
+	for _, key := range []string{"field_schema", "url_prefixes", "taxonomies"} {
 		if val, ok := updates[key]; ok && val != nil {
 			b, err := json.Marshal(val)
 			if err == nil {

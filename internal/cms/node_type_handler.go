@@ -73,6 +73,7 @@ type createNodeTypeRequest struct {
 	Label       string       `json:"label"`
 	Icon        string       `json:"icon"`
 	Description string       `json:"description"`
+	Taxonomies  models.JSONB `json:"taxonomies"`
 	FieldSchema models.JSONB `json:"field_schema"`
 	URLPrefixes models.JSONB `json:"url_prefixes"`
 }
@@ -100,12 +101,16 @@ func (h *NodeTypeHandler) Create(c *fiber.Ctx) error {
 		Label:       req.Label,
 		Icon:        req.Icon,
 		Description: req.Description,
+		Taxonomies:  req.Taxonomies,
 		FieldSchema: req.FieldSchema,
 		URLPrefixes: req.URLPrefixes,
 	}
 
 	if nt.Icon == "" {
 		nt.Icon = "file-text"
+	}
+	if len(nt.Taxonomies) == 0 {
+		nt.Taxonomies = models.JSONB("[]")
 	}
 	if len(nt.FieldSchema) == 0 {
 		nt.FieldSchema = models.JSONB("[]")

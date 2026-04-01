@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      await apiLogin(email, password);
+      await apiLogin({ email, password });
       const me = await getMe();
       setUser(me);
       navigate("/admin/dashboard", { replace: true });

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -9,6 +9,8 @@ import {
   FileText,
   Home,
   Globe,
+  X,
+  Tag,
 } from "lucide-react";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
 import { Button } from "@/components/ui/button";
@@ -42,8 +44,10 @@ import { toast } from "sonner";
 import {
   getNodes,
   deleteNode,
+  getNodeTypes,
   type ContentNode,
   type PaginationMeta,
+  type NodeType,
 } from "@/api/client";
 
 interface NodesListProps {
@@ -64,6 +68,7 @@ function statusBadgeClass(status: string): string {
 }
 
 export default function NodesListPage({ nodeType }: NodesListProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const label = nodeType === "page" ? "Page" : nodeType === "post" ? "Post" : nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
   const labelPlural = nodeType === "page" ? "Pages" : nodeType === "post" ? "Posts" : label + "s";
   const basePath = nodeType === "page" ? "/admin/pages" : nodeType === "post" ? "/admin/posts" : `/admin/content/${nodeType}`;
@@ -80,6 +85,28 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
   const [deleteTarget, setDeleteTarget] = useState<ContentNode | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [searchDebounce, setSearchDebounce] = useState("");
+  const [nodeTypeDef, setNodeTypeDef] = useState<NodeType | null>(null);
+
+  // Extract taxonomy filters from URL
+  const taxQuery: Record<string, string[]> = {};
+  const activeTaxFilters: { taxonomy: string; term: string; label: string }[] = [];
+
+  useEffect(() => {
+    getNodeTypes().then(types => {
+      const def = types.find(t => t.slug === nodeType);
+      setNodeTypeDef(def || null);
+    });
+  }, [nodeType]);
+
+  if (nodeTypeDef?.taxonomies) {
+    nodeTypeDef.taxonomies.forEach(tax => {
+      const term = searchParams.get(tax.slug);
+      if (term) {
+        taxQuery[tax.slug] = [term];
+        activeTaxFilters.push({ taxonomy: tax.slug, term, label: tax.label });
+      }
+    });
+  }
 
   // Resolve effective language code: "global" uses the top-bar setting, "all" shows everything
   const effectiveLangCode = langFilter === "global"
@@ -102,6 +129,7 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
         status: status === "all" ? undefined : status,
         language_code: effectiveLangCode || undefined,
         search: searchDebounce || undefined,
+        tax_query: Object.keys(taxQuery).length > 0 ? taxQuery : undefined,
       });
       setNodes(res.data);
       setMeta(res.meta);
@@ -110,11 +138,11 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
     } finally {
       setLoading(false);
     }
-  }, [page, nodeType, status, effectiveLangCode, searchDebounce, labelPlural]);
+  }, [page, nodeType, status, effectiveLangCode, searchDebounce, labelPlural, JSON.stringify(taxQuery)]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchDebounce, status, nodeType, effectiveLangCode]);
+  }, [searchDebounce, status, nodeType, effectiveLangCode, JSON.stringify(taxQuery)]);
 
   useEffect(() => {
     fetchNodes();
@@ -135,6 +163,12 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
     }
   }
 
+  const removeTaxFilter = (taxonomy: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete(taxonomy);
+    setSearchParams(newParams);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -147,6 +181,24 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
           </Link>
         </Button>
       </div>
+
+      {/* Active Taxonomy Filters */}
+      {activeTaxFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {activeTaxFilters.map((f) => (
+            <Badge key={f.taxonomy} variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200 px-3 py-1 gap-2">
+              <Tag className="h-3 w-3" />
+              <span>{f.label}: <strong>{f.term}</strong></span>
+              <button onClick={() => removeTaxFilter(f.taxonomy)} className="hover:text-red-500 ml-1">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <Button variant="ghost" size="sm" onClick={() => setSearchParams({})} className="h-7 text-xs text-slate-500">
+            Clear all
+          </Button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row">
@@ -222,6 +274,7 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
                 <TableRow className="bg-slate-50 hover:bg-slate-50">
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider md:table-cell">Taxonomies</TableHead>
                   <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider lg:table-cell">Lang</TableHead>
                   <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider md:table-cell">Slug</TableHead>
                   <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider sm:table-cell">
@@ -253,6 +306,17 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
                       <Badge className={`${statusBadgeClass(node.status)} border-0 font-medium`}>
                         {node.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="hidden px-6 py-4 text-sm md:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(node.taxonomies || {}).map(([tax, terms]) => (
+                          terms.map(term => (
+                            <Badge key={`${tax}-${term}`} variant="outline" className="text-[10px] px-1.5 py-0 border-slate-200 text-slate-500">
+                              {term}
+                            </Badge>
+                          ))
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm lg:table-cell">
                       {(() => {

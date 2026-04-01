@@ -37,6 +37,39 @@ func (c *coreImpl) RegisterNodeType(_ context.Context, input NodeTypeInput) (*No
 		nt.Icon = "file-text"
 	}
 
+	if input.Taxonomies != nil {
+		b, err := json.Marshal(input.Taxonomies)
+		if err != nil {
+			return nil, NewInternal("failed to marshal taxonomies: " + err.Error())
+		}
+		nt.Taxonomies = models.JSONB(b)
+	}
+
+	// Check if exists first to support UPSERT from theme scripts
+	existing, err := c.nodeTypeSvc.GetBySlug(input.Slug)
+	if err == nil && existing != nil {
+		// Update existing
+		updates := make(map[string]interface{})
+		updates["label"] = input.Label
+		if input.Icon != "" {
+			updates["icon"] = input.Icon
+		}
+		if input.Description != "" {
+			updates["description"] = input.Description
+		}
+		if input.Taxonomies != nil {
+			updates["taxonomies"] = nt.Taxonomies
+		}
+		updates["field_schema"] = nt.FieldSchema
+		updates["url_prefixes"] = nt.URLPrefixes
+
+		updated, err := c.nodeTypeSvc.Update(existing.ID, updates)
+		if err != nil {
+			return nil, NewInternal("failed to update node type on register: " + err.Error())
+		}
+		return nodeTypeFromModel(updated), nil
+	}
+
 	if err := c.nodeTypeSvc.Create(nt); err != nil {
 		if strings.Contains(err.Error(), "slug conflict") {
 			return nil, NewValidation(err.Error())
@@ -86,6 +119,9 @@ func (c *coreImpl) UpdateNodeType(_ context.Context, slug string, input NodeType
 	if input.Description != "" {
 		updates["description"] = input.Description
 	}
+	if input.Taxonomies != nil {
+		updates["taxonomies"] = input.Taxonomies
+	}
 	if input.FieldSchema != nil {
 		updates["field_schema"] = input.FieldSchema
 	}
@@ -128,6 +164,17 @@ func nodeTypeFromModel(nt *models.NodeType) *NodeType {
 		Description: nt.Description,
 		CreatedAt:   nt.CreatedAt,
 		UpdatedAt:   nt.UpdatedAt,
+	}
+
+	// Parse Taxonomies from JSONB
+	if len(nt.Taxonomies) > 0 {
+		var taxes []TaxonomyDefinition
+		if err := json.Unmarshal([]byte(nt.Taxonomies), &taxes); err == nil {
+			result.Taxonomies = taxes
+		}
+	}
+	if result.Taxonomies == nil {
+		result.Taxonomies = []TaxonomyDefinition{}
 	}
 
 	// Parse FieldSchema from JSONB

@@ -631,15 +631,29 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}) []str
 				json.Unmarshal(n.FieldsData, &fields)
 				schema := typeSchemaMap[n.NodeType]
 				markRichTextFields(fields, schema)
+
+				var featuredImage interface{}
+				if len(n.FeaturedImage) > 0 {
+					json.Unmarshal(n.FeaturedImage, &featuredImage)
+				}
+
+				var taxonomies map[string][]string
+				if len(n.Taxonomies) > 0 {
+					json.Unmarshal(n.Taxonomies, &taxonomies)
+				}
+
 				nodeMap[n.ID] = map[string]interface{}{
-					"id":            n.ID,
-					"title":         n.Title,
-					"slug":          n.Slug,
-					"full_url":      n.FullURL,
-					"fields":        fields,
-					"node_type":     n.NodeType,
-					"language_code": n.LanguageCode,
-					"status":        n.Status,
+					"id":             n.ID,
+					"title":          n.Title,
+					"slug":           n.Slug,
+					"full_url":       n.FullURL,
+					"featured_image": featuredImage,
+					"excerpt":        n.Excerpt,
+					"taxonomies":     taxonomies,
+					"fields":         fields,
+					"node_type":      n.NodeType,
+					"language_code":  n.LanguageCode,
+					"status":         n.Status,
 				}
 			}
 		}
@@ -773,18 +787,31 @@ func (h *PublicHandler) hydrateFields(fields map[string]interface{}) {
 
 	nodeMap := make(map[int]map[string]interface{})
 	for _, node := range nodes {
+		var featuredImage interface{}
+		if len(node.FeaturedImage) > 0 {
+			json.Unmarshal(node.FeaturedImage, &featuredImage)
+		}
+
+		var taxonomies map[string][]string
+		if len(node.Taxonomies) > 0 {
+			json.Unmarshal(node.Taxonomies, &taxonomies)
+		}
+
 		hydrated := map[string]interface{}{
-			"id":            node.ID,
-			"uuid":          node.UUID,
-			"title":         node.Title,
-			"slug":          node.Slug,
-			"full_url":      node.FullURL,
-			"node_type":     node.NodeType,
-			"status":        node.Status,
-			"language_code": node.LanguageCode,
-			"version":       node.Version,
-			"created_at":    node.CreatedAt,
-			"updated_at":    node.UpdatedAt,
+			"id":             node.ID,
+			"uuid":           node.UUID,
+			"title":          node.Title,
+			"slug":           node.Slug,
+			"full_url":       node.FullURL,
+			"featured_image": featuredImage,
+			"excerpt":        node.Excerpt,
+			"taxonomies":     taxonomies,
+			"node_type":      node.NodeType,
+			"status":         node.Status,
+			"language_code":  node.LanguageCode,
+			"version":        node.Version,
+			"created_at":     node.CreatedAt,
+			"updated_at":     node.UpdatedAt,
 		}
 		if node.PublishedAt != nil {
 			hydrated["published_at"] = *node.PublishedAt

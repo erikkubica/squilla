@@ -65,6 +65,8 @@ const TEMPLATE_VARIABLES = [
 
 function slugify(text: string): string {
   return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_]+/g, "-")
@@ -91,6 +93,7 @@ export default function LayoutBlockEditorPage() {
   const [languageId, setLanguageId] = useState<number | null>(null);
   const [templateCode, setTemplateCode] = useState("");
   const [source, setSource] = useState("custom");
+  const [themeName, setThemeName] = useState<string | null>(null);
 
   const isManaged = source !== "custom";
 
@@ -105,6 +108,7 @@ export default function LayoutBlockEditorPage() {
       setLanguageId(data.language_id);
       setTemplateCode(data.template_code || "");
       setSource(data.source || "custom");
+      setThemeName(data.theme_name || null);
       setSlugManual(true);
     } catch {
       toast.error("Failed to load layout block");
@@ -224,7 +228,7 @@ export default function LayoutBlockEditorPage() {
             {isNew ? "New Layout Block" : name || "Edit Layout Block"}
           </h1>
           {isManaged && (
-            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">{source === "theme" ? "Theme" : "Extension"}</Badge>
+            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">{source === "theme" ? (themeName || "Theme") : "Extension"}</Badge>
           )}
         </div>
         <div className="flex items-center gap-2">

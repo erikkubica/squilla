@@ -27,7 +27,7 @@ func NewContentService(db *gorm.DB, eventBus *events.EventBus) *ContentService {
 
 // List retrieves a paginated list of content nodes with optional filters.
 // For performance, blocks_data is excluded from the result set.
-func (s *ContentService) List(page, perPage int, status, nodeType, langCode, search string) ([]models.ContentNode, int64, error) {
+func (s *ContentService) List(page, perPage int, status, nodeType, langCode, search string, taxQuery map[string][]string) ([]models.ContentNode, int64, error) {
 	var nodes []models.ContentNode
 	var total int64
 
@@ -45,6 +45,19 @@ func (s *ContentService) List(page, perPage int, status, nodeType, langCode, sea
 	if search != "" {
 		searchTerm := "%" + search + "%"
 		query = query.Where("title ILIKE ? OR slug ILIKE ?", searchTerm, searchTerm)
+	}
+
+	if len(taxQuery) > 0 {
+		for tax, terms := range taxQuery {
+			if len(terms) > 0 {
+				if len(terms) == 1 {
+					query = query.Where("taxonomies->? ? ?", tax, terms[0])
+				} else {
+					b, _ := json.Marshal(terms)
+					query = query.Where("taxonomies->? @> ?", tax, b)
+				}
+			}
+		}
 	}
 
 	if err := query.Count(&total).Error; err != nil {

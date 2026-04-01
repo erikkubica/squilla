@@ -41,6 +41,13 @@ func (g *capabilityGuard) QueryNodes(ctx context.Context, query NodeQuery) (*Nod
 	return g.inner.QueryNodes(ctx, query)
 }
 
+func (g *capabilityGuard) ListTaxonomyTerms(ctx context.Context, nodeType string, taxonomy string) ([]string, error) {
+	if err := checkCapability(ctx, "nodes:read"); err != nil {
+		return nil, err
+	}
+	return g.inner.ListTaxonomyTerms(ctx, nodeType, taxonomy)
+}
+
 func (g *capabilityGuard) CreateNode(ctx context.Context, input NodeInput) (*Node, error) {
 	if err := checkCapability(ctx, "nodes:write"); err != nil {
 		return nil, err
@@ -60,6 +67,80 @@ func (g *capabilityGuard) DeleteNode(ctx context.Context, id uint) error {
 		return err
 	}
 	return g.inner.DeleteNode(ctx, id)
+}
+
+// --- Taxonomies ---
+
+func (g *capabilityGuard) ListTerms(ctx context.Context, nodeType string, taxonomy string) ([]*TaxonomyTerm, error) {
+	if err := checkCapability(ctx, "nodes:read"); err != nil {
+		return nil, err
+	}
+	return g.inner.ListTerms(ctx, nodeType, taxonomy)
+}
+
+func (g *capabilityGuard) GetTerm(ctx context.Context, id uint) (*TaxonomyTerm, error) {
+	if err := checkCapability(ctx, "nodes:read"); err != nil {
+		return nil, err
+	}
+	return g.inner.GetTerm(ctx, id)
+}
+
+func (g *capabilityGuard) CreateTerm(ctx context.Context, term *TaxonomyTerm) (*TaxonomyTerm, error) {
+	if err := checkCapability(ctx, "nodes:write"); err != nil {
+		return nil, err
+	}
+	return g.inner.CreateTerm(ctx, term)
+}
+
+func (g *capabilityGuard) UpdateTerm(ctx context.Context, id uint, updates map[string]interface{}) (*TaxonomyTerm, error) {
+	if err := checkCapability(ctx, "nodes:write"); err != nil {
+		return nil, err
+	}
+	return g.inner.UpdateTerm(ctx, id, updates)
+}
+
+func (g *capabilityGuard) DeleteTerm(ctx context.Context, id uint) error {
+	if err := checkCapability(ctx, "nodes:write"); err != nil {
+		return err
+	}
+	return g.inner.DeleteTerm(ctx, id)
+}
+
+// --- Taxonomy Definitions ---
+
+func (g *capabilityGuard) RegisterTaxonomy(ctx context.Context, input TaxonomyInput) (*Taxonomy, error) {
+	if err := checkCapability(ctx, "nodetypes:write"); err != nil {
+		return nil, err
+	}
+	return g.inner.RegisterTaxonomy(ctx, input)
+}
+
+func (g *capabilityGuard) GetTaxonomy(ctx context.Context, slug string) (*Taxonomy, error) {
+	if err := checkCapability(ctx, "nodetypes:read"); err != nil {
+		return nil, err
+	}
+	return g.inner.GetTaxonomy(ctx, slug)
+}
+
+func (g *capabilityGuard) ListTaxonomies(ctx context.Context) ([]*Taxonomy, error) {
+	if err := checkCapability(ctx, "nodetypes:read"); err != nil {
+		return nil, err
+	}
+	return g.inner.ListTaxonomies(ctx)
+}
+
+func (g *capabilityGuard) UpdateTaxonomy(ctx context.Context, slug string, input TaxonomyInput) (*Taxonomy, error) {
+	if err := checkCapability(ctx, "nodetypes:write"); err != nil {
+		return nil, err
+	}
+	return g.inner.UpdateTaxonomy(ctx, slug, input)
+}
+
+func (g *capabilityGuard) DeleteTaxonomy(ctx context.Context, slug string) error {
+	if err := checkCapability(ctx, "nodetypes:write"); err != nil {
+		return err
+	}
+	return g.inner.DeleteTaxonomy(ctx, slug)
 }
 
 // --- Settings ---

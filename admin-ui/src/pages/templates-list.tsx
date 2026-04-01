@@ -153,7 +153,7 @@ export default function TemplatesListPage() {
                     </TableCell>
                     <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
                       {tpl.source === "theme" ? (
-                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">Theme</Badge>
+                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-xs">{tpl.theme_name || "Theme"}</Badge>
                       ) : tpl.source === "extension" ? (
                         <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 border-0 text-xs">Extension</Badge>
                       ) : (
