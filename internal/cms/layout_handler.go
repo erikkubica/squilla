@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,12 +14,23 @@ import (
 
 // LayoutHandler provides HTTP handlers for layout CRUD operations.
 type LayoutHandler struct {
-	svc *LayoutService
+	svc   *LayoutService
+	lbSvc *LayoutBlockService
+	db    *gorm.DB
 }
 
 // NewLayoutHandler creates a new LayoutHandler with the given LayoutService.
-func NewLayoutHandler(svc *LayoutService) *LayoutHandler {
-	return &LayoutHandler{svc: svc}
+func NewLayoutHandler(svc *LayoutService, lbSvc ...*LayoutBlockService) *LayoutHandler {
+	h := &LayoutHandler{svc: svc}
+	if len(lbSvc) > 0 {
+		h.lbSvc = lbSvc[0]
+	}
+	return h
+}
+
+// SetDB sets the database connection for the handler.
+func (h *LayoutHandler) SetDB(db *gorm.DB) {
+	h.db = db
 }
 
 // RegisterRoutes registers all layout routes on the provided router group.
@@ -28,6 +40,7 @@ func (h *LayoutHandler) RegisterRoutes(router fiber.Router) {
 	router.Post("/layouts", h.Create)
 	router.Patch("/layouts/:id", h.Update)
 	router.Delete("/layouts/:id", h.Delete)
+	router.Get("/layouts/:id/partials", h.Partials)
 	router.Post("/layouts/:id/detach", h.Detach)
 	router.Post("/layouts/:id/reattach", h.Reattach)
 }
@@ -207,6 +220,59 @@ func (h *LayoutHandler) Detach(c *fiber.Ctx) error {
 	}
 
 	return api.Success(c, layout)
+}
+
+// Partials handles GET /layouts/:id/partials to discover partials used by a layout.
+// Returns layout blocks with their field_schema for each renderLayoutBlock call found in the template.
+func (h *LayoutHandler) Partials(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Layout ID must be a valid integer")
+	}
+
+	layout, err := h.svc.GetByID(id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Layout not found")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch layout")
+	}
+
+	// Extract partial slugs from template code
+	re := regexp.MustCompile(`renderLayoutBlock\s+"([^"]+)"`)
+	matches := re.FindAllStringSubmatch(layout.TemplateCode, -1)
+	seen := make(map[string]bool)
+	var slugs []string
+	for _, m := range matches {
+		if len(m) > 1 && !seen[m[1]] {
+			seen[m[1]] = true
+			slugs = append(slugs, m[1])
+		}
+	}
+
+	if len(slugs) == 0 {
+		return api.Success(c, []models.LayoutBlock{})
+	}
+
+	// Fetch layout blocks for these slugs
+	var blocks []models.LayoutBlock
+	if h.db != nil {
+		h.db.Where("slug IN ? AND language_id IS NULL", slugs).Find(&blocks)
+	}
+
+	// Maintain order from template
+	ordered := make([]models.LayoutBlock, 0, len(slugs))
+	blockMap := make(map[string]models.LayoutBlock)
+	for _, b := range blocks {
+		blockMap[b.Slug] = b
+	}
+	for _, slug := range slugs {
+		if b, ok := blockMap[slug]; ok {
+			ordered = append(ordered, b)
+		}
+	}
+
+	return api.Success(c, ordered)
 }
 
 // Reattach handles POST /layouts/:id/reattach to restore a layout to its theme version.

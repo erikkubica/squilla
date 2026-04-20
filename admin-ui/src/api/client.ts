@@ -27,6 +27,7 @@ export interface ContentNode {
   blocks_data: Record<string, unknown>[];
   seo_settings: Record<string, unknown>;
   fields_data: Record<string, unknown>;
+  layout_data: Record<string, Record<string, unknown>>;
   layout_id: number | null;
   translation_group_id: string | null;
   version: number;
@@ -668,6 +669,11 @@ export async function reattachLayout(id: number | string): Promise<Layout> {
   return res.data;
 }
 
+export async function getLayoutPartials(layoutId: number | string): Promise<LayoutBlock[]> {
+  const res = await api<ApiResponse<LayoutBlock[]>>(`/admin/api/layouts/${layoutId}/partials`);
+  return res.data;
+}
+
 // --- Layout Blocks ---
 
 export interface LayoutBlock {
@@ -677,6 +683,7 @@ export interface LayoutBlock {
   description: string;
   language_id: number | null;
   template_code: string;
+  field_schema: NodeTypeField[];
   source: string;
   theme_name: string | null;
   created_at: string;

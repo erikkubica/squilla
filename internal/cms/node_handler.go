@@ -468,6 +468,7 @@ type createNodeRequest struct {
 	FeaturedImage json.RawMessage `json:"featured_image"`
 	Excerpt       string          `json:"excerpt"`
 	Taxonomies    json.RawMessage `json:"taxonomies"`
+	LayoutData    json.RawMessage `json:"layout_data"`
 }
 
 // Create handles POST /nodes to create a new content node.
@@ -497,6 +498,7 @@ func (h *NodeHandler) Create(c *fiber.Ctx) error {
 		FeaturedImage:  models.JSONB(req.FeaturedImage),
 		Excerpt:       req.Excerpt,
 		Taxonomies:    models.JSONB(req.Taxonomies),
+		LayoutData:    models.JSONB(req.LayoutData),
 	}
 
 	if node.NodeType == "" {

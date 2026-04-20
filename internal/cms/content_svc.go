@@ -164,7 +164,7 @@ func (s *ContentService) Update(id int, updates map[string]interface{}, userID i
 	updates["version"] = existing.Version + 1
 
 	// Convert JSONB fields from parsed JSON (map/slice) to models.JSONB
-	for _, key := range []string{"blocks_data", "seo_settings", "fields_data"} {
+	for _, key := range []string{"blocks_data", "seo_settings", "fields_data", "layout_data", "featured_image", "taxonomies"} {
 		if val, ok := updates[key]; ok && val != nil {
 			b, err := json.Marshal(val)
 			if err == nil {

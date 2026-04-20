@@ -51,9 +51,10 @@ type ThemeLayoutDef struct {
 
 // ThemePartialDef defines a partial declared in theme.json.
 type ThemePartialDef struct {
-	Slug string `json:"slug"`
-	Name string `json:"name"`
-	File string `json:"file"`
+	Slug        string          `json:"slug"`
+	Name        string          `json:"name"`
+	File        string          `json:"file"`
+	FieldSchema json.RawMessage `json:"field_schema"`
 }
 
 // ThemeBlockDef defines a block type declared in theme.json.
@@ -511,11 +512,18 @@ func RegisterLayoutFromFile(db *gorm.DB, def ThemeLayoutDef, code string, source
 func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, source string, sourceName string) error {
 	h := sha256.New()
 	h.Write([]byte(code))
+	h.Write(def.FieldSchema) // include field_schema in hash
 	contentHash := hex.EncodeToString(h.Sum(nil))
 
 	var sourceNamePtr *string
 	if sourceName != "" {
 		sourceNamePtr = &sourceName
+	}
+
+	// Prepare field_schema JSONB
+	fieldSchema := models.JSONB("[]")
+	if len(def.FieldSchema) > 0 {
+		fieldSchema = models.JSONB(def.FieldSchema)
 	}
 
 	var existing models.LayoutBlock
@@ -530,6 +538,7 @@ func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, sour
 		}
 		existing.Name = def.Name
 		existing.TemplateCode = code
+		existing.FieldSchema = fieldSchema
 		existing.Source = source
 		existing.ThemeName = sourceNamePtr
 		existing.ContentHash = contentHash
@@ -542,6 +551,7 @@ func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, sour
 			Name:         def.Name,
 			LanguageID:   nil,
 			TemplateCode: code,
+			FieldSchema:  fieldSchema,
 			Source:       source,
 			ThemeName:    sourceNamePtr,
 			ContentHash:  contentHash,

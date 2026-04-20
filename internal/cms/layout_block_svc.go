@@ -140,6 +140,14 @@ func (s *LayoutBlockService) Update(id int, updates map[string]interface{}) (*mo
 		return nil, err
 	}
 
+	// Convert JSONB fields
+	if fs, ok := updates["field_schema"]; ok && fs != nil {
+		b, err := json.Marshal(fs)
+		if err == nil {
+			updates["field_schema"] = models.JSONB(b)
+		}
+	}
+
 	// Block edits to theme-sourced layout blocks
 	if existing.Source == "theme" {
 		return nil, fmt.Errorf("THEME_READONLY")

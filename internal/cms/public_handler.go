@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -295,14 +296,153 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 		return lb.TemplateCode, nil
 	}
 
+	// Build per-partial data from layout_data with fallback chain
+	dataMap := templateData.ToMap()
+	partialData := h.buildPartialData(node, layout, languageID, dataMap)
+
 	// Render via the layout engine
 	var buf bytes.Buffer
-	if err := h.renderer.RenderLayout(&buf, layout.TemplateCode, templateData.ToMap(), blockResolver); err != nil {
+	if err := h.renderer.RenderLayout(&buf, layout.TemplateCode, dataMap, blockResolver, partialData); err != nil {
 		log.Printf("WARN: layout render failed, falling back: %v", err)
 		return "", false
 	}
 
 	return buf.String(), true
+}
+
+// buildPartialData constructs the per-partial field values map by:
+// 1. Reading explicit values from node.layout_data[partial_slug]
+// 2. Resolving default_from fallbacks from the template data context
+func (h *PublicHandler) buildPartialData(node *models.ContentNode, layout *models.Layout, languageID *int, dataMap map[string]interface{}) map[string]map[string]interface{} {
+	result := make(map[string]map[string]interface{})
+
+	// Parse node's layout_data
+	var layoutData map[string]map[string]interface{}
+	if len(node.LayoutData) > 0 {
+		if err := json.Unmarshal(node.LayoutData, &layoutData); err != nil {
+			log.Printf("WARN: failed to parse layout_data: %v", err)
+			layoutData = make(map[string]map[string]interface{})
+		}
+	}
+	if layoutData == nil {
+		layoutData = make(map[string]map[string]interface{})
+	}
+
+	// Discover partials used by this layout
+	partialSlugs := extractPartialSlugs(layout.TemplateCode)
+
+	for _, slug := range partialSlugs {
+		fields := make(map[string]interface{})
+
+		// Get the partial's field_schema for default_from resolution
+		lb, err := h.layoutBlockSvc.Resolve(slug, languageID)
+		if err != nil {
+			result[slug] = fields
+			continue
+		}
+
+		var schema []map[string]interface{}
+		if len(lb.FieldSchema) > 0 {
+			json.Unmarshal(lb.FieldSchema, &schema)
+		}
+
+		// Get explicit values from layout_data
+		explicit := layoutData[slug]
+		if explicit == nil {
+			explicit = make(map[string]interface{})
+		}
+
+		// For each field in schema, resolve value with fallback
+		for _, fieldDef := range schema {
+			fieldSlug, _ := fieldDef["key"].(string)
+			if fieldSlug == "" {
+				fieldSlug, _ = fieldDef["slug"].(string)
+			}
+			if fieldSlug == "" {
+				continue
+			}
+
+			// 1. Explicit value from layout_data
+			if val, ok := explicit[fieldSlug]; ok && val != nil && !isEmptyValue(val) {
+				fields[fieldSlug] = val
+				continue
+			}
+
+			// 2. default_from fallback
+			if defaultFrom, ok := fieldDef["default_from"].(string); ok && defaultFrom != "" {
+				if val := resolveDataPath(dataMap, defaultFrom); val != nil {
+					fields[fieldSlug] = val
+					continue
+				}
+			}
+
+			// 3. Default value from schema
+			if def, ok := fieldDef["default"]; ok {
+				fields[fieldSlug] = def
+				continue
+			}
+
+			// 4. Empty
+			fields[fieldSlug] = nil
+		}
+
+		// Also include any extra explicit values not in schema
+		for k, v := range explicit {
+			if _, exists := fields[k]; !exists {
+				fields[k] = v
+			}
+		}
+
+		result[slug] = fields
+	}
+
+	return result
+}
+
+// extractPartialSlugs parses renderLayoutBlock calls from a layout template.
+func extractPartialSlugs(templateCode string) []string {
+	re := regexp.MustCompile(`renderLayoutBlock\s+"([^"]+)"`)
+	matches := re.FindAllStringSubmatch(templateCode, -1)
+	seen := make(map[string]bool)
+	var slugs []string
+	for _, m := range matches {
+		if len(m) > 1 && !seen[m[1]] {
+			seen[m[1]] = true
+			slugs = append(slugs, m[1])
+		}
+	}
+	return slugs
+}
+
+// isEmptyValue checks if a value is effectively empty (empty string, empty map, nil).
+func isEmptyValue(val interface{}) bool {
+	if val == nil {
+		return true
+	}
+	switch v := val.(type) {
+	case string:
+		return v == ""
+	case map[string]interface{}:
+		return len(v) == 0
+	}
+	return false
+}
+
+// resolveDataPath resolves a dot-separated path like "node.title" from the data map.
+func resolveDataPath(data map[string]interface{}, path string) interface{} {
+	parts := strings.Split(path, ".")
+	var current interface{} = data
+	for _, part := range parts {
+		m, ok := current.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		current, ok = m[part]
+		if !ok {
+			return nil
+		}
+	}
+	return current
 }
 
 // render404WithLayout renders a 404 page using the default layout.

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import CodeEditor from "@/components/ui/code-editor";
+import FieldSchemaEditor from "@/components/ui/field-schema-editor";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ import {
   getLanguages,
   type LayoutBlock,
   type Language,
+  type NodeTypeField,
 } from "@/api/client";
 
 const TEMPLATE_VARIABLES = [
@@ -61,6 +63,7 @@ const TEMPLATE_VARIABLES = [
   "node.seo",
   "node.node_type",
   "node.language_code",
+  "partial.*",
 ];
 
 function slugify(text: string): string {
@@ -92,6 +95,7 @@ export default function LayoutBlockEditorPage() {
   const [description, setDescription] = useState("");
   const [languageId, setLanguageId] = useState<number | null>(null);
   const [templateCode, setTemplateCode] = useState("");
+  const [fieldSchema, setFieldSchema] = useState<NodeTypeField[]>([]);
   const [source, setSource] = useState("custom");
   const [themeName, setThemeName] = useState<string | null>(null);
 
@@ -107,6 +111,7 @@ export default function LayoutBlockEditorPage() {
       setDescription(data.description || "");
       setLanguageId(data.language_id);
       setTemplateCode(data.template_code || "");
+      setFieldSchema(data.field_schema || []);
       setSource(data.source || "custom");
       setThemeName(data.theme_name || null);
       setSlugManual(true);
@@ -160,6 +165,7 @@ export default function LayoutBlockEditorPage() {
         description: description.trim(),
         language_id: languageId,
         template_code: templateCode,
+        field_schema: fieldSchema,
       };
 
       if (isNew) {
@@ -292,6 +298,23 @@ export default function LayoutBlockEditorPage() {
                 height="400px"
                 placeholder="Enter your Go html/template code here..."
                 variables={TEMPLATE_VARIABLES}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Field Schema */}
+          <Card className="rounded-xl border border-purple-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold text-slate-900">Partial Fields</CardTitle>
+              <p className="text-xs text-slate-500 mt-1">
+                Define editable fields for this partial. When a layout uses this partial, pages will show these fields in the node editor.
+                Use <code className="bg-slate-100 px-1 rounded text-[10px]">{"{{.partial.field_key}}"}</code> in the template.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <FieldSchemaEditor
+                fields={fieldSchema}
+                onChange={setFieldSchema}
               />
             </CardContent>
           </Card>

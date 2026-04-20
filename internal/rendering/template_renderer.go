@@ -276,7 +276,15 @@ func (r *TemplateRenderer) RenderParsed(w io.Writer, cacheKey string, code strin
 
 // RenderLayout renders a layout template_code string (from the DB) with a
 // blockResolver that supports the renderLayoutBlock template function.
-func (r *TemplateRenderer) RenderLayout(w io.Writer, templateCode string, data interface{}, blockResolver func(slug string) (string, error)) error {
+// partialData is an optional map of partial slug -> field values that gets
+// injected as .partial in each layout block's template context.
+func (r *TemplateRenderer) RenderLayout(w io.Writer, templateCode string, data interface{}, blockResolver func(slug string) (string, error), partialData ...map[string]map[string]interface{}) error {
+	// Build partial data lookup
+	var pData map[string]map[string]interface{}
+	if len(partialData) > 0 && partialData[0] != nil {
+		pData = partialData[0]
+	}
+
 	depth := 0
 	maxDepth := 5
 
@@ -296,9 +304,26 @@ func (r *TemplateRenderer) RenderLayout(w io.Writer, templateCode string, data i
 			return ""
 		}
 
+		// Build per-block context: clone base data and inject .partial
+		blockData := data
+		if pData != nil {
+			if baseMap, ok := data.(map[string]interface{}); ok {
+				merged := make(map[string]interface{}, len(baseMap)+1)
+				for k, v := range baseMap {
+					merged[k] = v
+				}
+				if fields, ok := pData[slug]; ok {
+					merged["partial"] = fields
+				} else {
+					merged["partial"] = map[string]interface{}{}
+				}
+				blockData = merged
+			}
+		}
+
 		var buf bytes.Buffer
 		cacheKey := "block:" + slug + ":" + code
-		err = r.RenderParsed(&buf, cacheKey, code, data, template.FuncMap{
+		err = r.RenderParsed(&buf, cacheKey, code, blockData, template.FuncMap{
 			"renderLayoutBlock": renderBlock,
 		})
 		if err != nil {

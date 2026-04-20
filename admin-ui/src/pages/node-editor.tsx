@@ -68,6 +68,7 @@ import {
   createNodeTranslation,
   searchNodes,
   listTerms,
+  getLayoutPartials,
   type ContentNode,
   type NodeType,
   type NodeTypeField,
@@ -75,6 +76,7 @@ import {
   type BlockType,
   type Template,
   type Layout,
+  type LayoutBlock,
   type TaxonomyTerm,
 } from "@/api/client";
 
@@ -134,6 +136,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const [layoutId, setLayoutId] = useState<string>("");
   const [blocks, setBlocks] = useState<BlockData[]>([]);
   const [fieldsData, setFieldsData] = useState<Record<string, unknown>>({});
+  const [layoutData, setLayoutData] = useState<Record<string, Record<string, unknown>>>({});
+  const [layoutPartials, setLayoutPartials] = useState<LayoutBlock[]>([]);
   const [originalNode, setOriginalNode] = useState<ContentNode | null>(null);
 
   // Page templates
@@ -203,6 +207,20 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     getLayouts().then(setLayouts).catch(() => {});
   }, []);
 
+  // Fetch layout partials when layoutId changes
+  useEffect(() => {
+    if (!layoutId) {
+      setLayoutPartials([]);
+      return;
+    }
+    getLayoutPartials(layoutId)
+      .then((partials) => {
+        // Only keep partials that have field_schema
+        setLayoutPartials(partials.filter((p) => p.field_schema && p.field_schema.length > 0));
+      })
+      .catch(() => setLayoutPartials([]));
+  }, [layoutId]);
+
   // Fetch node type definition
   useEffect(() => {
     getNodeTypes()
@@ -247,6 +265,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
         }));
         setBlocks(parsedBlocks);
         setFieldsData((node.fields_data as Record<string, unknown>) ?? {});
+        setLayoutData((node.layout_data as Record<string, Record<string, unknown>>) ?? {});
         setAutoSlug(false);
       })
       .catch(() => {
@@ -541,6 +560,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
         meta_title: seoTitle,
         meta_description: seoDescription,
       },
+      layout_data: layoutData,
     };
 
     setSaving(true);
@@ -883,6 +903,67 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Layout Partial Fields */}
+          {layoutPartials.map((partial) => (
+            <Card key={partial.slug} className="rounded-xl border border-purple-200 shadow-sm">
+              <CardHeader className="cursor-pointer" onClick={() => {
+                setCollapsedBlocks((prev) => {
+                  const next = new Set(prev);
+                  const key = -partial.id; // Negative IDs for partials to avoid collision with block indices
+                  if (next.has(key)) next.delete(key); else next.add(key);
+                  return next;
+                });
+              }}>
+                <div className="flex items-center gap-2">
+                  <LayoutTemplate className="h-4 w-4 text-purple-500" />
+                  <CardTitle className="text-lg font-semibold text-slate-900">{partial.name}</CardTitle>
+                  <Badge variant="secondary" className="ml-auto text-[10px] bg-purple-100 text-purple-700">
+                    Layout Partial
+                  </Badge>
+                  {collapsedBlocks.has(-partial.id) ? (
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                  )}
+                </div>
+              </CardHeader>
+              {!collapsedBlocks.has(-partial.id) && (
+                <CardContent className="space-y-4 p-6 pt-0">
+                  {(partial.field_schema || []).map((field) => {
+                    const fieldKey = field.key || field.name;
+                    const partialData = layoutData[partial.slug] || {};
+                    return (
+                      <div key={fieldKey} className="space-y-2">
+                        <Label className="text-sm font-medium text-slate-700">
+                          {field.label}
+                          {field.required && <span className="ml-1 text-red-500">*</span>}
+                        </Label>
+                        {(field as any).default_from && !partialData[fieldKey] && (
+                          <p className="text-xs text-slate-400">
+                            Falls back to <code className="bg-slate-100 px-1 rounded">{(field as any).default_from}</code>
+                          </p>
+                        )}
+                        <CustomFieldInput
+                          field={field}
+                          value={partialData[fieldKey]}
+                          onChange={(val) => {
+                            setLayoutData((prev) => ({
+                              ...prev,
+                              [partial.slug]: {
+                                ...(prev[partial.slug] || {}),
+                                [fieldKey]: val,
+                              },
+                            }));
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              )}
+            </Card>
+          ))}
         </div>
 
         {/* Sidebar */}
