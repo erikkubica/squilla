@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="{{or .node.language_code "en"}}">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{{or (index .node.seo "meta_title") .node.title "Hello Vietnam Adventures"}}</title>
+{{- with index .node.seo "meta_description" -}}<meta name="description" content="{{.}}">{{- end -}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{{- range .app.head_styles -}}<link rel="stylesheet" href="{{.}}">{{- end -}}
+{{.app.block_styles}}
+</head>
+<body data-accent="red">
+<div id="root">
+{{renderLayoutBlock "site-header"}}
+<div class="page-enter">
+{{.node.blocks_html}}
+</div>
+{{renderLayoutBlock "site-footer"}}
+</div>
+{{- range .app.foot_scripts -}}<script src="{{.}}" defer></script>{{- end -}}
+{{.app.block_scripts}}
+</body>
+</html>

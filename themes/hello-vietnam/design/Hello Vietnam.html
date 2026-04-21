@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Hello Vietnam Adventures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="components/photos.jsx"></script>
+<script type="text/babel" src="components/shared.jsx"></script>
+<script type="text/babel" src="components/home.jsx"></script>
+<script type="text/babel" src="components/pages.jsx"></script>
+<script type="text/babel" src="components/trips.jsx"></script>
+
+<script type="text/babel">
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "accentColor": "red",
+  "displayFont": "Fredoka",
+  "showStickers": true
+}/*EDITMODE-END*/;
+
+const App = () => {
+  const [page, setPage] = React.useState(() => {
+    try { return localStorage.getItem("hv-page") || "home"; } catch { return "home"; }
+  });
+  const [tripId, setTripId] = React.useState(() => {
+    try { return localStorage.getItem("hv-trip") || TRIPS[0].id; } catch { return TRIPS[0].id; }
+  });
+  const [tweakOn, setTweakOn] = React.useState(false);
+  const [tweaks, setTweaks] = React.useState(TWEAKS);
+
+  React.useEffect(() => {
+    try { localStorage.setItem("hv-page", page); } catch {}
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [page]);
+
+  React.useEffect(() => {
+    try { localStorage.setItem("hv-trip", tripId); } catch {}
+  }, [tripId]);
+
+  React.useEffect(() => {
+    document.body.setAttribute("data-accent", tweaks.accentColor);
+    const root = document.documentElement;
+    root.style.setProperty("--font-display", `"${tweaks.displayFont}", system-ui, sans-serif`);
+  }, [tweaks]);
+
+  // Edit mode protocol
+  React.useEffect(() => {
+    const handle = (e) => {
+      if (e.data?.type === "__activate_edit_mode") setTweakOn(true);
+      if (e.data?.type === "__deactivate_edit_mode") setTweakOn(false);
+    };
+    window.addEventListener("message", handle);
+    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+    return () => window.removeEventListener("message", handle);
+  }, []);
+
+  const updateTweak = (k, v) => {
+    const next = { ...tweaks, [k]: v };
+    setTweaks(next);
+    window.parent.postMessage({ type: "__edit_mode_set_keys", edits: { [k]: v } }, "*");
+  };
+
+  const go = (p) => setPage(p);
+  const openTrip = (id) => { setTripId(id); setPage("trip"); };
+
+  return (
+    <>
+      <Nav page={page} go={go}/>
+      {page === "home" && <Home go={go} openTrip={openTrip}/>}
+      {page === "about" && <About go={go}/>}
+      {page === "trips" && <Trips openTrip={openTrip}/>}
+      {page === "trip" && <TripDetail tripId={tripId} go={go} openTrip={openTrip}/>}
+      {page === "contact" && <Contact/>}
+      {page === "gallery" && <Gallery/>}
+      {page === "legal" && <Legal go={go}/>}
+      <Footer go={go}/>
+
+      {tweakOn && (
+        <div className="tweaks-panel">
+          <div className="tweaks-head">
+            <span>Tweaks</span>
+            <button onClick={() => setTweakOn(false)} style={{ color: "var(--cream)" }}><Icon name="x" size={16}/></button>
+          </div>
+          <div className="tweaks-body">
+            <div className="tweak-row">
+              <label>Accent color</label>
+              <div className="tweak-swatches">
+                {[
+                  ["red", "#E31D2B"],
+                  ["yellow", "#FFD200"],
+                  ["green", "#007A33"],
+                ].map(([k, c]) => (
+                  <div key={k}
+                    className={`tweak-sw ${tweaks.accentColor === k ? "active" : ""}`}
+                    style={{ background: c }}
+                    onClick={() => updateTweak("accentColor", k)}/>
+                ))}
+              </div>
+            </div>
+            <div className="tweak-row">
+              <label>Display font</label>
+              <select className="select" value={tweaks.displayFont} onChange={e => updateTweak("displayFont", e.target.value)}>
+                <option>Fredoka</option>
+                <option>Quicksand</option>
+                <option>Poppins</option>
+                <option>DM Serif Display</option>
+              </select>
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "var(--ink-soft)", paddingTop: 4, borderTop: "1px solid var(--line)" }}>
+              Hit <strong>Tweaks</strong> in the toolbar to toggle. Current page: <strong>{page}</strong>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "name": "Hello Vietnam",
+  "version": "1.0.0",
+  "description": "Warm, playful marketing site for Hello Vietnam Adventures — Fredoka display + Montserrat body, cream-and-red palette, candid travel energy.",
+  "author": "VibeCMS",
+  "styles": [
+    { "handle": "theme-css", "src": "styles/theme.css", "position": "head" }
+  ],
+  "scripts": [
+    { "handle": "theme-js", "src": "scripts/theme.js", "position": "footer" }
+  ],
+  "layouts": [
+    { "slug": "default", "name": "Default Layout", "file": "default.html", "is_default": true },
+    { "slug": "trip",    "name": "Trip Detail",    "file": "trip.html",    "is_default": false },
+    { "slug": "legal",   "name": "Legal / Doc",    "file": "legal.html",   "is_default": false }
+  ],
+  "partials": [
+    { "slug": "site-header", "name": "Site Header", "file": "site-header.html" },
+    { "slug": "site-footer", "name": "Site Footer", "file": "site-footer.html" }
+  ],
+  "blocks": [
+    { "slug": "hv-hero",              "dir": "hv-hero" },
+    { "slug": "hv-categories",        "dir": "hv-categories" },
+    { "slug": "hv-featured",          "dir": "hv-featured" },
+    { "slug": "hv-how-it-works",      "dir": "hv-how-it-works" },
+    { "slug": "hv-popular-trips",     "dir": "hv-popular-trips" },
+    { "slug": "hv-wall-of-love",      "dir": "hv-wall-of-love" },
+    { "slug": "hv-lead-magnet",       "dir": "hv-lead-magnet" },
+    { "slug": "hv-about-intro",       "dir": "hv-about-intro" },
+    { "slug": "hv-timeline",          "dir": "hv-timeline" },
+    { "slug": "hv-crew-grid",         "dir": "hv-crew-grid" },
+    { "slug": "hv-values",            "dir": "hv-values" },
+    { "slug": "hv-impact",            "dir": "hv-impact" },
+    { "slug": "hv-contact-band",      "dir": "hv-contact-band" },
+    { "slug": "hv-trips-filter",      "dir": "hv-trips-filter" },
+    { "slug": "hv-staff-pick",        "dir": "hv-staff-pick" },
+    { "slug": "hv-trips-grid",        "dir": "hv-trips-grid" },
+    { "slug": "hv-trips-map",         "dir": "hv-trips-map" },
+    { "slug": "hv-custom-journey",    "dir": "hv-custom-journey" },
+    { "slug": "hv-contact-intro",     "dir": "hv-contact-intro" },
+    { "slug": "hv-contact-form",      "dir": "hv-contact-form" },
+    { "slug": "hv-contact-faq",       "dir": "hv-contact-faq" },
+    { "slug": "hv-gallery-intro",     "dir": "hv-gallery-intro" },
+    { "slug": "hv-gallery-masonry",   "dir": "hv-gallery-masonry" },
+    { "slug": "hv-gallery-cta",       "dir": "hv-gallery-cta" },
+    { "slug": "hv-legal-content",     "dir": "hv-legal-content" },
+    { "slug": "hv-trip-detail",       "dir": "hv-trip-detail" }
+  ],
+  "assets": []
+}
