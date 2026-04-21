@@ -143,12 +143,17 @@ func (s *ContentService) Update(id int, updates map[string]interface{}, userID i
 		return nil, err
 	}
 
-	// Create a revision snapshot before updating
+	// Create a revision snapshot before updating. userID 0 means the update
+	// was issued by kernel infrastructure (MCP, extensions) rather than an
+	// authenticated admin; store NULL instead of violating the FK.
 	revision := models.ContentNodeRevision{
 		NodeID:         existing.ID,
 		BlocksSnapshot: existing.BlocksData,
 		SeoSnapshot:    existing.SeoSettings,
-		CreatedBy:      &userID,
+	}
+	if userID > 0 {
+		uid := userID
+		revision.CreatedBy = &uid
 	}
 	if err := s.db.Create(&revision).Error; err != nil {
 		return nil, fmt.Errorf("creating revision: %w", err)

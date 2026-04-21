@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Check, ChevronsUpDown, Type, AlignLeft, Hash, Calendar, ListOrdered, Image, ToggleLeft, Link2, Layers, Repeat, FileSearch, Palette, Mail, Globe, FileText as RichTextIcon, SlidersHorizontal, File, Images, CircleDot, CheckSquare } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Check, ChevronsUpDown, Type, AlignLeft, Hash, Calendar, ListOrdered, Image, ToggleLeft, Link2, Layers, Repeat, FileSearch, Palette, Mail, Globe, FileText as RichTextIcon, SlidersHorizontal, File, Images, CircleDot, CheckSquare, Puzzle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +21,22 @@ interface FieldTypeOption {
   value: string;
   label: string;
   description: string;
+  howTo?: string;
   icon: React.ComponentType<{ className?: string }>;
   group: string;
 }
 
-const FIELD_TYPE_OPTIONS: FieldTypeOption[] = [
-  // Basic
+// Icon name → component map. Matches the `Icon` strings returned by
+// /admin/api/field-types and authored in internal/cms/field_types/registry.go.
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Type, AlignLeft, FileText: RichTextIcon, Hash, SlidersHorizontal, Mail, Globe,
+  Calendar, Palette, ToggleLeft, ListOrdered, CircleDot, CheckSquare, Image,
+  Images, File, Link2, FileSearch, Layers, Repeat,
+};
+
+// Fallback-only: used if /admin/api/field-types is unreachable. The canonical
+// list (with HowTo text) lives in internal/cms/field_types/registry.go.
+const FALLBACK_OPTIONS: FieldTypeOption[] = [
   { value: "text", label: "Text", description: "Single-line text input", icon: Type, group: "Basic" },
   { value: "textarea", label: "Textarea", description: "Multi-line text input", icon: AlignLeft, group: "Basic" },
   { value: "richtext", label: "Rich Text", description: "WYSIWYG rich text editor", icon: RichTextIcon, group: "Basic" },
@@ -36,22 +46,47 @@ const FIELD_TYPE_OPTIONS: FieldTypeOption[] = [
   { value: "url", label: "URL", description: "Web address input", icon: Globe, group: "Basic" },
   { value: "date", label: "Date", description: "Date picker", icon: Calendar, group: "Basic" },
   { value: "color", label: "Color Picker", description: "Color selection with hex value", icon: Palette, group: "Basic" },
-  // Choice
   { value: "toggle", label: "Toggle", description: "On/off boolean switch", icon: ToggleLeft, group: "Choice" },
   { value: "select", label: "Select", description: "Dropdown with predefined options", icon: ListOrdered, group: "Choice" },
   { value: "radio", label: "Radio Buttons", description: "Single choice from options", icon: CircleDot, group: "Choice" },
   { value: "checkbox", label: "Checkbox Group", description: "Multiple choice from options", icon: CheckSquare, group: "Choice" },
-  // Media
   { value: "image", label: "Image", description: "Single image upload", icon: Image, group: "Media" },
   { value: "gallery", label: "Gallery", description: "Multiple image uploads", icon: Images, group: "Media" },
   { value: "file", label: "File", description: "File upload with type filtering", icon: File, group: "Media" },
-  // Relational
   { value: "link", label: "Link", description: "URL with text, alt, and target", icon: Link2, group: "Relational" },
   { value: "node", label: "Node Selector", description: "Reference to content nodes", icon: FileSearch, group: "Relational" },
-  // Layout
   { value: "group", label: "Group", description: "Container for nested fields", icon: Layers, group: "Layout" },
   { value: "repeater", label: "Repeater", description: "Repeatable set of fields", icon: Repeat, group: "Layout" },
 ];
+
+export const FIELD_TYPE_OPTIONS = FALLBACK_OPTIONS;
+
+// Module-level cache: fetch once per admin session.
+let cachedRemote: FieldTypeOption[] | null = null;
+let cachedPromise: Promise<FieldTypeOption[]> | null = null;
+
+function fetchFieldTypes(): Promise<FieldTypeOption[]> {
+  if (cachedRemote) return Promise.resolve(cachedRemote);
+  if (cachedPromise) return cachedPromise;
+  cachedPromise = fetch("/admin/api/field-types", { credentials: "include" })
+    .then((r) => r.json())
+    .then((body) => {
+      const builtin = body?.data?.builtin ?? [];
+      type RawBuiltin = { type: string; label: string; description: string; how_to?: string; group: string; icon: string };
+      const mapped: FieldTypeOption[] = builtin.map((b: RawBuiltin) => ({
+        value: b.type,
+        label: b.label,
+        description: b.description,
+        howTo: b.how_to,
+        icon: ICON_MAP[b.icon] || Puzzle,
+        group: b.group,
+      }));
+      cachedRemote = mapped;
+      return mapped;
+    })
+    .catch(() => FALLBACK_OPTIONS);
+  return cachedPromise;
+}
 
 interface FieldTypePickerProps {
   value: string;
@@ -61,19 +96,27 @@ interface FieldTypePickerProps {
 }
 
 export function getFieldTypeOption(value: string) {
-  return FIELD_TYPE_OPTIONS.find((o) => o.value === value);
+  return FALLBACK_OPTIONS.find((o) => o.value === value);
 }
 
 export function getFieldTypeGroups() {
-  return [...new Set(FIELD_TYPE_OPTIONS.map((o) => o.group))];
+  return [...new Set(FALLBACK_OPTIONS.map((o) => o.group))];
 }
-
-export { FIELD_TYPE_OPTIONS };
 
 export default function FieldTypePicker({ value, onValueChange, className, compact }: FieldTypePickerProps) {
   const [open, setOpen] = useState(false);
+  const [coreOptions, setCoreOptions] = useState<FieldTypeOption[]>(cachedRemote ?? FALLBACK_OPTIONS);
   const { getFieldTypes } = useExtensions();
   const extFieldTypes = getFieldTypes();
+
+  useEffect(() => {
+    if (cachedRemote) return;
+    let cancelled = false;
+    fetchFieldTypes().then((opts) => {
+      if (!cancelled) setCoreOptions(opts);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Build merged options: core types (minus those "supported" by extensions) + extension types
   const mergedOptions = useMemo(() => {
@@ -82,7 +125,7 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
       if (eft.supports) eft.supports.forEach((s) => supportedSet.add(s));
     }
 
-    const coreFiltered = FIELD_TYPE_OPTIONS.filter((o) => !supportedSet.has(o.value));
+    const coreFiltered = coreOptions.filter((o) => !supportedSet.has(o.value));
     const extOptions: FieldTypeOption[] = extFieldTypes.map((eft) => ({
       value: eft.type,
       label: eft.label,
@@ -92,7 +135,7 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
     }));
 
     return [...coreFiltered, ...extOptions];
-  }, [extFieldTypes]);
+  }, [coreOptions, extFieldTypes]);
 
   const selected = mergedOptions.find((o) => o.value === value);
   const groups = [...new Set(mergedOptions.map((o) => o.group))];
@@ -122,7 +165,7 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0" align="start">
+      <PopoverContent className="w-[420px] p-0" align="start">
         <Command>
           <CommandInput placeholder="Search field types..." />
           <CommandList>
@@ -135,7 +178,7 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
                     <CommandItem
                       key={option.value}
                       value={option.value}
-                      keywords={[option.label, option.description, option.group]}
+                      keywords={[option.label, option.description, option.group, option.howTo || ""]}
                       onSelect={() => {
                         onValueChange(option.value);
                         setOpen(false);
@@ -149,9 +192,12 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
                       )}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                         <span className="text-sm font-medium text-slate-800">{option.label}</span>
                         <span className="text-xs text-slate-400 truncate">{option.description}</span>
+                        {option.howTo && (
+                          <span className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{option.howTo}</span>
+                        )}
                       </div>
                       {value === option.value && (
                         <Check className="ml-auto h-4 w-4 shrink-0 text-indigo-600" />

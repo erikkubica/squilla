@@ -21,9 +21,12 @@ func (c *coreImpl) RegisterTaxonomy(_ context.Context, input TaxonomyInput) (*Ta
 	m := &models.Taxonomy{
 		Slug:         input.Slug,
 		Label:        input.Label,
+		LabelPlural:  input.LabelPlural,
 		Description:  input.Description,
 		NodeTypes:    pq.StringArray(input.NodeTypes),
-		Hierarchical: input.Hierarchical,
+	}
+	if input.Hierarchical != nil {
+		m.Hierarchical = *input.Hierarchical
 	}
 	if input.ShowUI != nil {
 		m.ShowUI = *input.ShowUI
@@ -43,10 +46,15 @@ func (c *coreImpl) RegisterTaxonomy(_ context.Context, input TaxonomyInput) (*Ta
 		if input.Label != "" {
 			updates["label"] = input.Label
 		}
+		if input.LabelPlural != "" {
+			updates["label_plural"] = input.LabelPlural
+		}
 		if input.Description != "" {
 			updates["description"] = input.Description
 		}
-		updates["hierarchical"] = input.Hierarchical
+		if input.Hierarchical != nil {
+			updates["hierarchical"] = *input.Hierarchical
+		}
 		if input.ShowUI != nil {
 			updates["show_ui"] = *input.ShowUI
 		}
@@ -115,11 +123,21 @@ func (c *coreImpl) UpdateTaxonomy(_ context.Context, slug string, input Taxonomy
 		return nil, fmt.Errorf("coreapi UpdateTaxonomy: %w", err)
 	}
 
-	updates := map[string]interface{}{
-		"label":        input.Label,
-		"description":  input.Description,
-		"node_types":    pq.StringArray(input.NodeTypes),
-		"hierarchical": input.Hierarchical,
+	updates := map[string]interface{}{}
+	if input.Label != "" {
+		updates["label"] = input.Label
+	}
+	if input.LabelPlural != "" {
+		updates["label_plural"] = input.LabelPlural
+	}
+	if input.Description != "" {
+		updates["description"] = input.Description
+	}
+	if input.NodeTypes != nil {
+		updates["node_types"] = pq.StringArray(input.NodeTypes)
+	}
+	if input.Hierarchical != nil {
+		updates["hierarchical"] = *input.Hierarchical
 	}
 	if input.ShowUI != nil {
 		updates["show_ui"] = *input.ShowUI
@@ -127,6 +145,9 @@ func (c *coreImpl) UpdateTaxonomy(_ context.Context, slug string, input Taxonomy
 	if input.FieldSchema != nil {
 		b, _ := json.Marshal(input.FieldSchema)
 		updates["field_schema"] = models.JSONB(b)
+	}
+	if len(updates) == 0 {
+		return taxonomyFromModel(&m), nil
 	}
 
 	if err := c.db.Model(&m).Updates(updates).Error; err != nil {
@@ -227,6 +248,7 @@ func taxonomyFromModel(m *models.Taxonomy) *Taxonomy {
 		ID:           uint(m.ID),
 		Slug:         m.Slug,
 		Label:        m.Label,
+		LabelPlural:  m.LabelPlural,
 		Description:  m.Description,
 		Hierarchical: m.Hierarchical,
 		ShowUI:       m.ShowUI,

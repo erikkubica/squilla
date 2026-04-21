@@ -28,6 +28,7 @@ func (c *coreImpl) RegisterNodeType(_ context.Context, input NodeTypeInput) (*No
 	nt := &models.NodeType{
 		Slug:        input.Slug,
 		Label:       input.Label,
+		LabelPlural: input.LabelPlural,
 		Icon:        input.Icon,
 		Description: input.Description,
 		FieldSchema: models.JSONB(fieldSchemaJSON),
@@ -51,6 +52,7 @@ func (c *coreImpl) RegisterNodeType(_ context.Context, input NodeTypeInput) (*No
 		// Update existing
 		updates := make(map[string]interface{})
 		updates["label"] = input.Label
+		updates["label_plural"] = input.LabelPlural
 		if input.Icon != "" {
 			updates["icon"] = input.Icon
 		}
@@ -113,6 +115,9 @@ func (c *coreImpl) UpdateNodeType(_ context.Context, slug string, input NodeType
 	if input.Label != "" {
 		updates["label"] = input.Label
 	}
+	if input.LabelPlural != "" {
+		updates["label_plural"] = input.LabelPlural
+	}
 	if input.Icon != "" {
 		updates["icon"] = input.Icon
 	}
@@ -160,6 +165,7 @@ func nodeTypeFromModel(nt *models.NodeType) *NodeType {
 		ID:          nt.ID,
 		Slug:        nt.Slug,
 		Label:       nt.Label,
+		LabelPlural: nt.LabelPlural,
 		Icon:        nt.Icon,
 		Description: nt.Description,
 		CreatedAt:   nt.CreatedAt,

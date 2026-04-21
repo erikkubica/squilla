@@ -46,7 +46,6 @@ import { toast } from "sonner";
 import FieldTypePicker from "@/components/ui/field-type-picker";
 import SubFieldsEditor from "@/components/ui/sub-fields-editor";
 import CodeEditor from "@/components/ui/code-editor";
-import CodeViewer from "@/components/ui/code-viewer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function keyify(text: string) {
@@ -103,6 +102,8 @@ export default function BlockTypeEditorPage() {
 
   // Preview state
   const [previewHtml, setPreviewHtml] = useState("");
+  const [previewHead, setPreviewHead] = useState("");
+  const [previewBodyClass, setPreviewBodyClass] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
@@ -296,8 +297,10 @@ export default function BlockTypeEditorPage() {
   const handlePreview = async () => {
     setPreviewLoading(true);
     try {
-      const html = await previewBlockTemplate(htmlTemplate, testData);
-      setPreviewHtml(html);
+      const res = await previewBlockTemplate(htmlTemplate, testData);
+      setPreviewHtml(res.html);
+      setPreviewHead(res.head);
+      setPreviewBodyClass(res.body_class);
     } catch (err: any) {
       toast.error("Preview failed: " + (err.message || "unknown error"));
     } finally {
@@ -314,7 +317,7 @@ export default function BlockTypeEditorPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -591,9 +594,14 @@ export default function BlockTypeEditorPage() {
                     </Button>
                   </div>
                 </CardHeader>
-                <div className="flex-1 overflow-auto bg-white">
+                <div className="flex-1 overflow-hidden bg-white">
                   {previewHtml ? (
-                    <CodeViewer value={previewHtml} language="html" />
+                    <iframe
+                      title="Block preview"
+                      className="h-full w-full border-0 bg-white"
+                      sandbox="allow-same-origin allow-scripts"
+                      srcDoc={`<!doctype html><html><head><meta charset="utf-8">${previewHead || '<script src="https://cdn.tailwindcss.com"></script>'}<style>body{margin:0;padding:1rem;}</style></head><body class="${previewBodyClass}">${previewHtml}</body></html>`}
+                    />
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
                       <Eye className="h-10 w-10 opacity-20" />

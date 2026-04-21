@@ -3,6 +3,9 @@ package cms
 import (
 	"fmt"
 	"html/template"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,15 +16,60 @@ import (
 	"vibecms/internal/models"
 )
 
+// activeThemeChrome extracts the <head> inner HTML and the <body class="...">
+// attribute from the active theme's default.html layout, so the preview iframe
+// can render blocks in a frame that looks like the live site. Template
+// directives referencing runtime-only data (.app.*, .node.*) are stripped —
+// then the runtime head_styles / block_styles from the theme asset registry
+// are substituted in, matching what the live renderer emits.
+func (h *BlockTypeHandler) activeThemeChrome() (head, bodyClass string) {
+	var theme models.Theme
+	if err := h.db.Where("is_active = ?", true).First(&theme).Error; err != nil || theme.Path == "" {
+		return "", ""
+	}
+	b, err := os.ReadFile(filepath.Join(theme.Path, "layouts", "default.html"))
+	if err != nil {
+		return "", ""
+	}
+	src := string(b)
+	if m := regexp.MustCompile(`(?is)<head[^>]*>(.*?)</head>`).FindStringSubmatch(src); len(m) == 2 {
+		head = m[1]
+	}
+	if m := regexp.MustCompile(`(?is)<body([^>]*)>`).FindStringSubmatch(src); len(m) == 2 {
+		if c := regexp.MustCompile(`class\s*=\s*"([^"]*)"`).FindStringSubmatch(m[1]); len(c) == 2 {
+			bodyClass = c[1]
+		}
+	}
+	head = regexp.MustCompile(`(?s)\{\{[-]?.*?[-]?\}\}`).ReplaceAllString(head, "")
+	if h.themeAssets != nil {
+		var sb strings.Builder
+		for _, href := range h.themeAssets.GetHeadStyles() {
+			sb.WriteString(`<link rel="stylesheet" href="`)
+			sb.WriteString(template.HTMLEscapeString(href))
+			sb.WriteString(`">`)
+		}
+		sb.WriteString(string(h.themeAssets.BuildBlockStyleTags()))
+		head += sb.String()
+	}
+	return head, bodyClass
+}
+
 // BlockTypeHandler provides HTTP handlers for block type CRUD operations.
 type BlockTypeHandler struct {
-	svc *BlockTypeService
-	db  *gorm.DB
+	svc         *BlockTypeService
+	db          *gorm.DB
+	themeAssets *ThemeAssetRegistry
 }
 
 // NewBlockTypeHandler creates a new BlockTypeHandler with the given BlockTypeService.
 func NewBlockTypeHandler(svc *BlockTypeService, db *gorm.DB) *BlockTypeHandler {
 	return &BlockTypeHandler{svc: svc, db: db}
+}
+
+// SetThemeAssets wires the theme asset registry so the preview endpoint can
+// emit the same head_styles + block_styles the live renderer uses.
+func (h *BlockTypeHandler) SetThemeAssets(r *ThemeAssetRegistry) {
+	h.themeAssets = r
 }
 
 // resolveTestDataSlice replaces any "theme-asset:<key>" or
@@ -250,7 +298,8 @@ func (h *BlockTypeHandler) PreviewBlockTemplate(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"html": fmt.Sprintf("<div class=\"text-red-500 text-sm p-3 bg-red-50 rounded-lg border border-red-200\"><strong>Render Error:</strong> %s</div>", template.HTMLEscapeString(err.Error()))})
 	}
 
-	return c.JSON(fiber.Map{"html": buf.String()})
+	head, bodyClass := h.activeThemeChrome()
+	return c.JSON(fiber.Map{"html": buf.String(), "head": head, "body_class": bodyClass})
 }
 
 // Delete handles DELETE /block-types/:id to remove a block type.

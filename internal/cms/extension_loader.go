@@ -46,6 +46,7 @@ type AdminUIFieldType struct {
 	Type        string   `json:"type"`
 	Label       string   `json:"label"`
 	Description string   `json:"description"`
+	HowTo       string   `json:"how_to,omitempty"`
 	Icon        string   `json:"icon"`
 	Group       string   `json:"group"`
 	Component   string   `json:"component"`

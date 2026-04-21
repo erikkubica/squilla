@@ -61,6 +61,7 @@ export default function TaxonomyEditorPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const [label, setLabel] = useState("");
+  const [labelPlural, setLabelPlural] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [nodeTypes, setNodeTypes] = useState<string[]>([]);
@@ -76,6 +77,7 @@ export default function TaxonomyEditorPage() {
       getTaxonomy(urlSlug)
         .then((t) => {
           setLabel(t.label);
+          setLabelPlural(t.label_plural || "");
           setSlug(t.slug);
           setDescription(t.description || "");
           setNodeTypes(t.node_types || []);
@@ -106,6 +108,7 @@ export default function TaxonomyEditorPage() {
 
     const data: Partial<Taxonomy> = {
       label,
+      label_plural: labelPlural,
       slug,
       description,
       node_types: nodeTypes,
@@ -201,13 +204,23 @@ export default function TaxonomyEditorPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="label">Display Label</Label>
+                  <Label htmlFor="label">Display Label (singular)</Label>
                   <Input
                     id="label"
                     value={label}
                     onChange={(e) => handleLabelChange(e.target.value)}
                     placeholder="e.g. Category, Tag, Genre"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="label_plural">Display Label (plural)</Label>
+                  <Input
+                    id="label_plural"
+                    value={labelPlural}
+                    onChange={(e) => setLabelPlural(e.target.value)}
+                    placeholder="e.g. Categories, Tags, Genres"
+                  />
+                  <p className="text-xs text-slate-500">Used in list headings. Falls back to singular if blank.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="slug">Slug (Unique Key)</Label>

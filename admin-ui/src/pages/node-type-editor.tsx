@@ -100,6 +100,7 @@ export default function NodeTypeEditorPage() {
 
   // Form state
   const [label, setLabel] = useState("");
+  const [labelPlural, setLabelPlural] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [icon, setIcon] = useState("file-text");
@@ -124,6 +125,7 @@ export default function NodeTypeEditorPage() {
         if (cancelled) return;
         setOriginalNodeType(nt);
         setLabel(nt.label);
+        setLabelPlural(nt.label_plural || "");
         setSlug(nt.slug);
         setDescription(nt.description || "");
         setIcon(nt.icon || "file-text");
@@ -162,6 +164,7 @@ export default function NodeTypeEditorPage() {
 
     const data: Partial<NodeType> = {
       label,
+      label_plural: labelPlural,
       slug,
       description,
       icon,
@@ -235,16 +238,29 @@ export default function NodeTypeEditorPage() {
               <CardTitle className="text-lg font-semibold text-slate-900">Basic Info</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 p-6 pt-0">
-              <div className="space-y-2">
-                <Label htmlFor="label" className="text-sm font-medium text-slate-700">Label</Label>
-                <Input
-                  id="label"
-                  placeholder="e.g. Product, Event, Testimonial"
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="label" className="text-sm font-medium text-slate-700">Label (singular)</Label>
+                  <Input
+                    id="label"
+                    placeholder="e.g. Product, Event, Testimonial"
+                    value={label}
+                    onChange={(e) => setLabel(e.target.value)}
+                    required
+                    className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="label_plural" className="text-sm font-medium text-slate-700">Label (plural)</Label>
+                  <Input
+                    id="label_plural"
+                    placeholder="e.g. Products, Events, Testimonials"
+                    value={labelPlural}
+                    onChange={(e) => setLabelPlural(e.target.value)}
+                    className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                  <p className="text-xs text-slate-500">Used in menus and list headings. Falls back to singular if blank.</p>
+                </div>
               </div>
 
               <div className="space-y-2">

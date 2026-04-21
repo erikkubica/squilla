@@ -80,6 +80,7 @@ func (h *TaxonomyHandler) Update(c *fiber.Ctx) error {
 
 	// Raw SQL — GORM cannot handle text[] updates properly
 	label := existing.Label
+	labelPlural := existing.LabelPlural
 	description := existing.Description
 	fieldSchema := string(existing.FieldSchema)
 	nodeTypes := "{}"
@@ -88,6 +89,9 @@ func (h *TaxonomyHandler) Update(c *fiber.Ctx) error {
 
 	if v, ok := updates["label"].(string); ok {
 		label = v
+	}
+	if v, ok := updates["label_plural"].(string); ok {
+		labelPlural = v
 	}
 	if v, ok := updates["description"].(string); ok {
 		description = v
@@ -122,8 +126,8 @@ func (h *TaxonomyHandler) Update(c *fiber.Ctx) error {
 	}
 
 	err := h.db.Exec(
-		`UPDATE taxonomies SET label=$1, description=$2, node_types=$3::text[], field_schema=$4::jsonb, hierarchical=$5, show_ui=$6, updated_at=NOW() WHERE slug=$7`,
-		label, description, nodeTypes, fieldSchema, hierarchical, showUI, slug,
+		`UPDATE taxonomies SET label=$1, label_plural=$2, description=$3, node_types=$4::text[], field_schema=$5::jsonb, hierarchical=$6, show_ui=$7, updated_at=NOW() WHERE slug=$8`,
+		label, labelPlural, description, nodeTypes, fieldSchema, hierarchical, showUI, slug,
 	).Error
 	if err != nil {
 		log.Printf("ERROR taxonomy update slug=%s: %v", slug, err)

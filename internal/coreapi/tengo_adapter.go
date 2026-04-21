@@ -417,7 +417,8 @@ func taxonomyInputFromMap(m map[string]tengo.Object) TaxonomyInput {
 		input.Description = tengoToString(v)
 	}
 	if v, ok := m["hierarchical"]; ok {
-		input.Hierarchical = tengoToBool(v)
+		b := tengoToBool(v)
+		input.Hierarchical = &b
 	}
 	if v, ok := m["show_ui"]; ok {
 		b := tengoToBool(v)

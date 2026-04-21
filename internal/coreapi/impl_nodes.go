@@ -263,22 +263,32 @@ func (c *coreImpl) UpdateNode(_ context.Context, id uint, input NodeInput) (*Nod
 		updates["parent_id"] = int(*input.ParentID)
 	}
 	if input.FeaturedImage != nil {
-		updates["featured_image"] = input.FeaturedImage
+		if b, err := json.Marshal(input.FeaturedImage); err == nil {
+			updates["featured_image"] = models.JSONB(b)
+		}
 	}
 	if input.Excerpt != "" {
 		updates["excerpt"] = input.Excerpt
 	}
 	if input.Taxonomies != nil {
-		updates["taxonomies"] = input.Taxonomies
+		if b, err := json.Marshal(input.Taxonomies); err == nil {
+			updates["taxonomies"] = models.JSONB(b)
+		}
 	}
 	if input.BlocksData != nil {
-		updates["blocks_data"] = input.BlocksData
+		if b, err := json.Marshal(input.BlocksData); err == nil {
+			updates["blocks_data"] = models.JSONB(b)
+		}
 	}
 	if input.FieldsData != nil {
-		updates["fields_data"] = input.FieldsData
+		if b, err := json.Marshal(input.FieldsData); err == nil {
+			updates["fields_data"] = models.JSONB(b)
+		}
 	}
 	if input.SeoSettings != nil {
-		updates["seo_settings"] = input.SeoSettings
+		if b, err := json.Marshal(input.SeoSettings); err == nil {
+			updates["seo_settings"] = models.JSONB(b)
+		}
 	}
 
 	// Use ContentService.Update (userID 0 = system/extension).

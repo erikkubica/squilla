@@ -244,6 +244,7 @@ export interface NodeType {
   id: number;
   slug: string;
   label: string;
+  label_plural?: string;
   icon: string;
   description: string;
   taxonomies: TaxonomyDefinition[];
@@ -287,6 +288,7 @@ export interface Taxonomy {
   id: number;
   slug: string;
   label: string;
+  label_plural?: string;
   description: string;
   node_types: string[];
   field_schema: NodeTypeField[];
@@ -533,12 +535,12 @@ export async function getCacheStats(): Promise<Record<string, unknown>> {
   return res.data;
 }
 
-export async function previewBlockTemplate(htmlTemplate: string, testData: Record<string, unknown>): Promise<string> {
-  const res = await api<{ html: string }>(`/admin/api/block-types/preview`, {
+export async function previewBlockTemplate(htmlTemplate: string, testData: Record<string, unknown>): Promise<{ html: string; head: string; body_class: string }> {
+  const res = await api<{ html: string; head?: string; body_class?: string }>(`/admin/api/block-types/preview`, {
     method: "POST",
     body: JSON.stringify({ html_template: htmlTemplate, test_data: testData }),
   });
-  return res.html;
+  return { html: res.html, head: res.head || "", body_class: res.body_class || "" };
 }
 
 export async function getTemplates(): Promise<Template[]> {

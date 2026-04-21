@@ -71,6 +71,7 @@ func (h *NodeTypeHandler) Get(c *fiber.Ctx) error {
 type createNodeTypeRequest struct {
 	Slug        string       `json:"slug"`
 	Label       string       `json:"label"`
+	LabelPlural string       `json:"label_plural"`
 	Icon        string       `json:"icon"`
 	Description string       `json:"description"`
 	Taxonomies  models.JSONB `json:"taxonomies"`
@@ -99,6 +100,7 @@ func (h *NodeTypeHandler) Create(c *fiber.Ctx) error {
 	nt := models.NodeType{
 		Slug:        req.Slug,
 		Label:       req.Label,
+		LabelPlural: req.LabelPlural,
 		Icon:        req.Icon,
 		Description: req.Description,
 		Taxonomies:  req.Taxonomies,

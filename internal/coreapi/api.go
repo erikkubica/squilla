@@ -259,6 +259,7 @@ type NodeType struct {
 	ID          int               `json:"id"`
 	Slug        string            `json:"slug"`
 	Label       string            `json:"label"`
+	LabelPlural string            `json:"label_plural"`
 	Icon        string            `json:"icon"`
 	Description string            `json:"description"`
 	Taxonomies  []TaxonomyDefinition `json:"taxonomies,omitempty"`
@@ -279,6 +280,7 @@ type NodeTypeField struct {
 type NodeTypeInput struct {
 	Slug        string            `json:"slug,omitempty"`
 	Label       string            `json:"label,omitempty"`
+	LabelPlural string            `json:"label_plural,omitempty"`
 	Icon        string            `json:"icon,omitempty"`
 	Description string            `json:"description,omitempty"`
 	Taxonomies  []TaxonomyDefinition `json:"taxonomies,omitempty"`
@@ -296,6 +298,7 @@ type Taxonomy struct {
 	ID           uint                 `json:"id"`
 	Slug         string               `json:"slug"`
 	Label        string               `json:"label"`
+	LabelPlural  string               `json:"label_plural"`
 	Description  string               `json:"description"`
 	Hierarchical bool                 `json:"hierarchical"`
 	ShowUI       bool                 `json:"show_ui"`
@@ -308,8 +311,9 @@ type Taxonomy struct {
 type TaxonomyInput struct {
 	Slug         string               `json:"slug,omitempty"`
 	Label        string               `json:"label,omitempty"`
+	LabelPlural  string               `json:"label_plural,omitempty"`
 	Description  string               `json:"description,omitempty"`
-	Hierarchical bool                 `json:"hierarchical,omitempty"`
+	Hierarchical *bool                `json:"hierarchical,omitempty"`
 	ShowUI       *bool                `json:"show_ui,omitempty"`
 	NodeTypes    []string             `json:"node_types,omitempty"`
 	FieldSchema  []NodeTypeField      `json:"field_schema,omitempty"`

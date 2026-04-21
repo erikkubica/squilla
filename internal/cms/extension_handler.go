@@ -245,85 +245,86 @@ func (h *ExtensionHandler) BrowseFiles(c *fiber.Ctx) error {
 	return api.Success(c, result)
 }
 
+// HotActivate flips is_active=true and performs the full hot-load sequence:
+// SQL migrations, Tengo scripts, gRPC plugin start, block registry load, and
+// the extension.activated event. Shared between the Fiber handler and the MCP
+// adapter — do not duplicate this sequence elsewhere.
+func (h *ExtensionHandler) HotActivate(slug string) error {
+	if err := h.loader.Activate(slug); err != nil {
+		return err
+	}
+	ext, err := h.loader.GetBySlug(slug)
+	if err != nil {
+		return nil
+	}
+	if migErr := RunExtensionMigrations(h.db, ext.Path, slug); migErr != nil {
+		log.Printf("[extensions] warning: failed to run migrations for %s: %v", slug, migErr)
+	}
+	var manifest ExtensionManifest
+	_ = json.Unmarshal(ext.Manifest, &manifest)
+	caps := manifest.CapabilityMap()
+	if h.scriptLoader != nil {
+		if loadErr := h.scriptLoader.LoadExtensionScripts(ext.Path, slug, caps); loadErr != nil {
+			log.Printf("[extensions] warning: failed to hot-load scripts for %s: %v", slug, loadErr)
+		}
+	}
+	if h.pluginManager != nil {
+		if startErr := h.pluginManager.StartPlugins(ext.Path, slug, json.RawMessage(ext.Manifest), caps); startErr != nil {
+			log.Printf("[extensions] warning: failed to start plugins for %s: %v", slug, startErr)
+		}
+	}
+	if h.assetRegistry != nil {
+		h.loader.LoadBlocksForExtension(slug, h.assetRegistry)
+	}
+	PublishExtensionActivated(h.eventBus, slug, ext.Path, json.RawMessage(ext.Manifest))
+	return nil
+}
+
+// HotDeactivate flips is_active=false and performs the full hot-unload
+// sequence: extension.deactivated event, script unload, plugin stop, block
+// registry unload.
+func (h *ExtensionHandler) HotDeactivate(slug string) error {
+	ext, _ := h.loader.GetBySlug(slug)
+	if err := h.loader.Deactivate(slug); err != nil {
+		return err
+	}
+	if ext == nil {
+		return nil
+	}
+	PublishExtensionDeactivated(h.eventBus, slug)
+	if h.scriptLoader != nil {
+		h.scriptLoader.UnloadExtensionScripts(ext.Path, slug)
+	}
+	if h.pluginManager != nil {
+		h.pluginManager.StopPlugins(slug)
+	}
+	if h.assetRegistry != nil {
+		h.loader.UnloadExtensionBlocks(slug, h.assetRegistry)
+	}
+	return nil
+}
+
 // Activate handles POST /extensions/:slug/activate.
 func (h *ExtensionHandler) Activate(c *fiber.Ctx) error {
 	slug := strings.Clone(c.Params("slug"))
-	if err := h.loader.Activate(slug); err != nil {
+	if err := h.HotActivate(slug); err != nil {
 		if err.Error() == "extension not found: "+slug {
 			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
 		}
 		return api.Error(c, fiber.StatusInternalServerError, "ACTIVATE_FAILED", "Failed to activate extension")
 	}
-
-	ext, err := h.loader.GetBySlug(slug)
-	if err == nil {
-		// Run pending SQL migrations for this extension.
-		if migErr := RunExtensionMigrations(h.db, ext.Path, slug); migErr != nil {
-			log.Printf("[extensions] warning: failed to run migrations for %s: %v", slug, migErr)
-		}
-
-		// Parse manifest to get capabilities
-		var manifest ExtensionManifest
-		_ = json.Unmarshal(ext.Manifest, &manifest)
-		caps := manifest.CapabilityMap()
-
-		// Hot-load extension scripts
-		if h.scriptLoader != nil {
-			if loadErr := h.scriptLoader.LoadExtensionScripts(ext.Path, slug, caps); loadErr != nil {
-				log.Printf("[extensions] warning: failed to hot-load scripts for %s: %v", slug, loadErr)
-			}
-		}
-		// Start gRPC plugins
-		if h.pluginManager != nil {
-			if startErr := h.pluginManager.StartPlugins(ext.Path, slug, json.RawMessage(ext.Manifest), caps); startErr != nil {
-				log.Printf("[extensions] warning: failed to start plugins for %s: %v", slug, startErr)
-			}
-		}
-		// Load extension block types
-		if h.assetRegistry != nil {
-			h.loader.LoadBlocksForExtension(slug, h.assetRegistry)
-		}
-		// Publish extension.activated — other extensions (e.g. media-manager)
-		// can then import any theme-style assets shipped with this extension.
-		PublishExtensionActivated(h.eventBus, slug, ext.Path, json.RawMessage(ext.Manifest))
-	}
-
 	return api.Success(c, fiber.Map{"message": "Extension activated"})
 }
 
 // Deactivate handles POST /extensions/:slug/deactivate.
 func (h *ExtensionHandler) Deactivate(c *fiber.Ctx) error {
 	slug := strings.Clone(c.Params("slug"))
-
-	// Get extension path before deactivating (for script unloading)
-	ext, _ := h.loader.GetBySlug(slug)
-
-	if err := h.loader.Deactivate(slug); err != nil {
+	if err := h.HotDeactivate(slug); err != nil {
 		if err.Error() == "extension not found: "+slug {
 			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
 		}
 		return api.Error(c, fiber.StatusInternalServerError, "DEACTIVATE_FAILED", "Failed to deactivate extension")
 	}
-
-	if ext != nil {
-		// Publish extension.deactivated FIRST — subscribing extensions clean
-		// up their extension-owned data (e.g. media-manager deleting imported
-		// extension assets) before we stop the plugin and lose its subscribers.
-		PublishExtensionDeactivated(h.eventBus, slug)
-		// Hot-unload extension scripts
-		if h.scriptLoader != nil {
-			h.scriptLoader.UnloadExtensionScripts(ext.Path, slug)
-		}
-		// Stop gRPC plugins
-		if h.pluginManager != nil {
-			h.pluginManager.StopPlugins(slug)
-		}
-		// Unload extension block types
-		if h.assetRegistry != nil {
-			h.loader.UnloadExtensionBlocks(slug, h.assetRegistry)
-		}
-	}
-
 	return api.Success(c, fiber.Map{"message": "Extension deactivated"})
 }
 

@@ -36,7 +36,9 @@ import {
   listTerms,
   deleteTerm,
   getNodeTypes,
+  getTaxonomy,
   type NodeType,
+  type Taxonomy,
   type TaxonomyTerm,
 } from "@/api/client";
 import { toast } from "sonner";
@@ -50,6 +52,7 @@ export default function TaxonomyTermsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [nodeTypeDef, setNodeTypeDef] = useState<NodeType | null>(null);
+  const [taxonomyDef, setTaxonomyDef] = useState<Taxonomy | null>(null);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<TaxonomyTerm | null>(null);
@@ -67,10 +70,12 @@ export default function TaxonomyTermsPage() {
       getNodeTypes().then(
         (types) => types.find((t) => t.slug === nodeType) || null
       ),
+      getTaxonomy(taxonomy!).catch(() => null),
     ])
-      .then(([termsData, typeDef]) => {
+      .then(([termsData, typeDef, taxDef]) => {
         setTerms(Array.isArray(termsData) ? termsData : []);
         setNodeTypeDef(typeDef);
+        setTaxonomyDef(taxDef);
       })
       .finally(() => setLoading(false));
   };
@@ -97,10 +102,12 @@ export default function TaxonomyTermsPage() {
   );
 
   const taxLabel =
+    taxonomyDef?.label ||
     nodeTypeDef?.taxonomies?.find((t: any) => t.slug === taxonomy)?.label ||
     taxonomy ||
     "Taxonomy";
-  const typeLabel = nodeTypeDef?.label || nodeType;
+  const taxLabelPlural = taxonomyDef?.label_plural || taxLabel;
+  const typeLabel = nodeTypeDef?.label_plural || nodeTypeDef?.label || nodeType;
   const basePath =
     nodeType === "page"
       ? "/admin/pages"
@@ -132,9 +139,9 @@ export default function TaxonomyTermsPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">{taxLabel}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{taxLabelPlural}</h1>
             <p className="text-sm text-slate-500">
-              Manage {taxLabel.toLowerCase()} for {typeLabel}
+              Manage {taxLabelPlural.toLowerCase()} for {typeLabel}
             </p>
           </div>
         </div>
@@ -154,7 +161,7 @@ export default function TaxonomyTermsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
-            placeholder={`Search ${taxLabel.toLowerCase()}...`}
+            placeholder={`Search ${taxLabelPlural.toLowerCase()}...`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
@@ -178,7 +185,7 @@ export default function TaxonomyTermsPage() {
               <p className="text-sm font-medium">
                 {search
                   ? "No terms match your search"
-                  : `No ${taxLabel.toLowerCase()} yet`}
+                  : `No ${taxLabelPlural.toLowerCase()} yet`}
               </p>
               {!search && (
                 <Button

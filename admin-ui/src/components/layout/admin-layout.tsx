@@ -37,6 +37,7 @@ import {
   Send,
   RefreshCw,
   ExternalLink,
+  Key,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -158,12 +159,14 @@ export default function AdminLayout() {
           Array.isArray(tax.node_types) && tax.node_types.includes(t.slug)
         );
 
+        const plural = t.label_plural || t.label;
+
         if (typeTaxes.length > 0) {
           return {
-            label: t.label,
+            label: plural,
             icon: icon,
             children: [
-              { to: baseTo, label: `All ${t.label}`, icon: icon },
+              { to: baseTo, label: plural, icon: icon },
               ...typeTaxes.map(tax => ({
                 to: `/admin/content/${t.slug}/taxonomies/${tax.slug}`,
                 label: tax.label,
@@ -175,7 +178,7 @@ export default function AdminLayout() {
 
         return {
           to: baseTo,
-          label: t.label,
+          label: plural,
           icon: icon,
         };
       });
@@ -235,6 +238,7 @@ export default function AdminLayout() {
         children: [
           { to: "/admin/settings/site", label: "Site", icon: Settings },
           { to: "/admin/languages", label: "Languages", icon: Globe },
+          { to: "/admin/mcp-tokens", label: "MCP Tokens", icon: Key },
           ...settingsMenuItems.map((item) => ({
             to: item.route,
             label: item.label,

@@ -167,7 +167,7 @@ export default function ExtensionsPage() {
           {extensions.map((ext) => (
             <Card
               key={ext.slug}
-              className={`group rounded-xl overflow-hidden transition-all duration-200 ${
+              className={`group flex h-full flex-col rounded-xl overflow-hidden transition-all duration-200 ${
                 ext.is_active
                   ? "border-2 border-emerald-500/70 shadow-md shadow-emerald-500/5"
                   : "border border-slate-200/80 shadow-sm hover:shadow-md hover:border-slate-300"
@@ -197,7 +197,7 @@ export default function ExtensionsPage() {
               </div>
 
               {/* Content */}
-              <div className="p-4 space-y-3">
+              <div className="flex flex-1 flex-col p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="font-semibold text-[15px] text-slate-900 truncate leading-tight">{ext.name}</h3>
@@ -216,7 +216,7 @@ export default function ExtensionsPage() {
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-1.5 pt-2">
+                <div className="mt-auto flex items-center gap-1.5 pt-2">
                   <Button
                     size="sm"
                     className={`text-xs h-8 rounded-lg flex-1 ${

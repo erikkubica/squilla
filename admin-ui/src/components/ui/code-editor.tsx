@@ -167,7 +167,7 @@ export default function CodeEditor({
   }, [variables]);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-300 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
+    <div className="overflow-hidden">
       <div className="flex items-center justify-end gap-2 border-b border-slate-700 bg-[#282c34] px-3 py-1.5">
         <button
           type="button"

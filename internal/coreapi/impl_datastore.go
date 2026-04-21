@@ -3,9 +3,26 @@ package coreapi
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
+
+// jsonbEncode prepares a value for insertion into a JSONB column. Postgres
+// driver can bind scalars directly but rejects Go maps/slices — those must be
+// JSON-serialized first. Called by DataCreate/DataUpdate so callers can pass
+// structured payloads naturally.
+func jsonbEncode(v any) any {
+	switch v.(type) {
+	case nil, string, bool, int, int32, int64, uint, uint32, uint64, float32, float64, []byte:
+		return v
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return v
+	}
+	return string(b)
+}
 
 func (c *coreImpl) DataGet(ctx context.Context, table string, id uint) (map[string]any, error) {
 	query := fmt.Sprintf("SELECT * FROM %s WHERE id = ? LIMIT 1", quoteIdent(table))
@@ -104,7 +121,7 @@ func (c *coreImpl) DataCreate(ctx context.Context, table string, data map[string
 	for k, v := range data {
 		columns = append(columns, quoteIdent(k))
 		placeholders = append(placeholders, "?")
-		args = append(args, v)
+		args = append(args, jsonbEncode(v))
 	}
 
 	query := fmt.Sprintf(
@@ -140,7 +157,7 @@ func (c *coreImpl) DataUpdate(ctx context.Context, table string, id uint, data m
 
 	for k, v := range data {
 		setClauses = append(setClauses, fmt.Sprintf("%s = ?", quoteIdent(k)))
-		args = append(args, v)
+		args = append(args, jsonbEncode(v))
 	}
 	args = append(args, id)
 

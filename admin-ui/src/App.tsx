@@ -23,6 +23,7 @@ import UsersPage from "@/pages/users";
 import UserEditorPage from "@/pages/user-editor";
 import RolesPage from "@/pages/roles";
 import RoleEditorPage from "@/pages/role-editor";
+import McpTokensPage from "@/pages/mcp-tokens";
 import ThemesPage from "@/pages/themes";
 import ThemeFilesPage from "@/pages/theme-files";
 import ExtensionsPage from "@/pages/extensions";
@@ -161,6 +162,7 @@ function AppRoutes() {
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/new" element={<RoleEditorPage />} />
         <Route path="roles/:id/edit" element={<RoleEditorPage />} />
+        <Route path="mcp-tokens" element={<McpTokensPage />} />
         <Route path="themes" element={<ThemesPage />} />
         <Route path="themes/:id/files" element={<ThemeFilesPage />} />
         <Route path="extensions" element={<ExtensionsPage />} />

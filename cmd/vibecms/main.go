@@ -17,6 +17,7 @@ import (
 	"vibecms/internal/db"
 	"vibecms/internal/email"
 	"vibecms/internal/events"
+	"vibecms/internal/mcp"
 	"vibecms/internal/rbac"
 	"vibecms/internal/rendering"
 	"vibecms/internal/scripting"
@@ -106,6 +107,7 @@ func main() {
 	nodeTypeHandler := cms.NewNodeTypeHandler(nodeTypeSvc)
 	langHandler := cms.NewLanguageHandler(langSvc)
 	blockTypeHandler := cms.NewBlockTypeHandler(blockTypeSvc, database)
+	blockTypeHandler.SetThemeAssets(themeAssets)
 	templateHandler := cms.NewTemplateHandler(templateSvc, database)
 	layoutHandler := cms.NewLayoutHandler(layoutSvc, layoutBlockSvc)
 	layoutHandler.SetDB(database)
@@ -202,6 +204,25 @@ func main() {
 	cacheHandler := cms.NewCacheHandler(publicHandler, eventBus)
 	cacheHandler.RegisterRoutes(adminAPI)
 	themeHandler.RegisterRoutes(adminAPI)
+	cms.NewFieldTypeHandler().RegisterRoutes(adminAPI)
+
+	// MCP — token admin CRUD (session-authed) + /mcp public endpoint (bearer-authed).
+	mcpTokenSvc := mcp.NewTokenService(database)
+	mcp.NewTokenHandler(mcpTokenSvc).RegisterRoutes(adminAPI)
+	mcpServer := mcp.New(mcp.Deps{
+		DB:               database,
+		CoreAPI:          coreAPI,
+		TokenSvc:         mcpTokenSvc,
+		ContentSvc:       contentSvc,
+		ExtensionLoader:  extLoader,
+		ThemeLoader:      themeLoader,
+		ThemeMgmtSvc:     themeMgmtSvc,
+		TemplateRenderer: renderer,
+		BlockTypeSvc:     blockTypeSvc,
+		LayoutSvc:        layoutSvc,
+		PublicHandler:    publicHandler,
+	})
+	mcpServer.Mount(app)
 
 	// Plugin manager for gRPC extension plugins.
 	hostRegistrar := cms.HostServerRegistrar(func(slug string, capabilities map[string]bool) func(s *grpc.Server) {
@@ -281,6 +302,7 @@ func main() {
 	extHandler.SetAssetRegistry(themeAssets)
 	extHandler.SetEventBus(eventBus)
 	extHandler.RegisterRoutes(adminAPI)
+	mcpServer.SetExtensionHandler(extHandler)
 
 	// Theme deploy webhook (public, authenticated by secret).
 	themeHandler.RegisterWebhook(app)
