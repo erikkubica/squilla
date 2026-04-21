@@ -31,7 +31,8 @@ func (s *ContentService) List(page, perPage int, status, nodeType, langCode, sea
 	var nodes []models.ContentNode
 	var total int64
 
-	query := s.db.Model(&models.ContentNode{})
+	query := s.db.Model(&models.ContentNode{}).
+		Where("node_type IN (?)", s.db.Model(&models.NodeType{}).Select("slug"))
 
 	if status != "" {
 		query = query.Where("status = ?", status)

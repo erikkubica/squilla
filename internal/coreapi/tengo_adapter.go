@@ -17,7 +17,7 @@ import (
 type ScriptCallbacks struct {
 	OnRoute  func(method, path, scriptPath string)
 	OnFilter func(name, scriptPath string, priority int)
-	OnEvent  func(action, scriptPath string)
+	OnEvent  func(action, scriptPath string, priority int)
 }
 
 // BuildTengoModules creates a new ModuleMap and registers all VibeCMS modules.
@@ -48,6 +48,7 @@ func RegisterModules(modules *tengo.ModuleMap, api CoreAPI, caller CallerInfo, r
 	modules.AddBuiltinModule("core/taxonomies", taxonomiesModule(api, ctx))
 	modules.AddBuiltinModule("core/helpers", helpersModule())
 	modules.AddBuiltinModule("core/events", eventsModule(api, ctx, cb))
+	modules.AddBuiltinModule("core/settings", settingsModule(api, ctx))
 
 	if renderCtx != nil {
 		modules.AddBuiltinModule("core/routing", routingModule(api, ctx, renderCtx))
@@ -501,6 +502,52 @@ func filtersModule(cb *ScriptCallbacks) map[string]tengo.Object {
 }
 
 // ---------------------------------------------------------------------------
+// core/settings
+// ---------------------------------------------------------------------------
+
+func settingsModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
+	return map[string]tengo.Object{
+		"get": &tengo.UserFunction{Name: "get", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return wrapError(fmt.Errorf("settings.get: requires key argument")), nil
+			}
+			key := tengoToString(args[0])
+			val, err := api.GetSetting(ctx, key)
+			if err != nil {
+				return &tengo.String{Value: ""}, nil
+			}
+			return &tengo.String{Value: val}, nil
+		}},
+		"set": &tengo.UserFunction{Name: "set", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 2 {
+				return wrapError(fmt.Errorf("settings.set: requires key and value arguments")), nil
+			}
+			key := tengoToString(args[0])
+			value := tengoToString(args[1])
+			if err := api.SetSetting(ctx, key, value); err != nil {
+				return wrapError(err), nil
+			}
+			return tengo.UndefinedValue, nil
+		}},
+		"all": &tengo.UserFunction{Name: "all", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			prefix := ""
+			if len(args) > 0 {
+				prefix = tengoToString(args[0])
+			}
+			settings, err := api.GetSettings(ctx, prefix)
+			if err != nil {
+				return wrapError(err), nil
+			}
+			out := make(map[string]tengo.Object, len(settings))
+			for k, v := range settings {
+				out[k] = &tengo.String{Value: v}
+			}
+			return &tengo.Map{Value: out}, nil
+		}},
+	}
+}
+
+// ---------------------------------------------------------------------------
 // core/events
 // ---------------------------------------------------------------------------
 
@@ -529,8 +576,31 @@ func eventsModule(api CoreAPI, ctx context.Context, cb *ScriptCallbacks) map[str
 			}
 			action := tengoToString(args[0])
 			scriptPath := tengoToString(args[1])
+			priority := 10
+			if len(args) > 2 {
+				if p, ok := tengo.ToInt(args[2]); ok {
+					priority = p
+				}
+			}
 			if cb != nil && cb.OnEvent != nil {
-				cb.OnEvent(action, scriptPath)
+				cb.OnEvent(action, scriptPath, priority)
+			}
+			return tengo.UndefinedValue, nil
+		}},
+		"on": &tengo.UserFunction{Name: "on", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 2 {
+				return wrapError(fmt.Errorf("events.on: requires action and script_path arguments")), nil
+			}
+			action := tengoToString(args[0])
+			scriptPath := tengoToString(args[1])
+			priority := 50
+			if len(args) > 2 {
+				if p, ok := tengo.ToInt(args[2]); ok {
+					priority = p
+				}
+			}
+			if cb != nil && cb.OnEvent != nil {
+				cb.OnEvent(action, scriptPath, priority)
 			}
 			return tengo.UndefinedValue, nil
 		}},

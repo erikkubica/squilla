@@ -135,13 +135,15 @@ func (s *NodeTypeService) Update(id int, updates map[string]interface{}) (*model
 }
 
 // Delete removes a node type by ID. Built-in types ("page" and "post") cannot be deleted.
+// Content nodes of this type are preserved as "dormant" rows — invisible to
+// queries (which filter by active node_types) but resurrectable if the type
+// is re-registered later.
 func (s *NodeTypeService) Delete(id int) error {
 	existing, err := s.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	// Prevent deleting built-in types
 	if existing.Slug == "page" || existing.Slug == "post" {
 		return fmt.Errorf("cannot delete built-in node type %q", existing.Slug)
 	}

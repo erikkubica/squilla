@@ -321,7 +321,8 @@ func (h *NodeHandler) Search(c *fiber.Ctx) error {
 
 	query := h.db.Model(&models.ContentNode{}).
 		Select("id, title, slug, node_type, status, language_code").
-		Where("deleted_at IS NULL")
+		Where("deleted_at IS NULL").
+		Where("node_type IN (?)", h.db.Model(&models.NodeType{}).Select("slug"))
 
 	if q != "" {
 		searchTerm := "%" + q + "%"

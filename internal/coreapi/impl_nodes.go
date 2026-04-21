@@ -75,8 +75,11 @@ func (c *coreImpl) GetNode(_ context.Context, id uint) (*Node, error) {
 }
 
 // QueryNodes searches content nodes with optional filters and pagination.
+// Nodes whose node_type is no longer registered are treated as dormant and
+// excluded (they return on their own once the type is re-registered).
 func (c *coreImpl) QueryNodes(_ context.Context, q NodeQuery) (*NodeList, error) {
-	query := c.db.Model(&models.ContentNode{})
+	query := c.db.Model(&models.ContentNode{}).
+		Where("node_type IN (?)", c.db.Model(&models.NodeType{}).Select("slug"))
 
 	if q.NodeType != "" {
 		query = query.Where("node_type = ?", q.NodeType)

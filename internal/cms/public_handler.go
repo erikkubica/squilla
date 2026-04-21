@@ -1213,7 +1213,10 @@ func (h *PublicHandler) findLanguageHomepage(path string) (*models.ContentNode, 
 
 func (h *PublicHandler) findNodeByURL(path string) (*models.ContentNode, bool) {
 	var node models.ContentNode
-	if err := h.db.Where("full_url = ? AND status = ? AND deleted_at IS NULL", path, "published").First(&node).Error; err != nil {
+	if err := h.db.
+		Where("full_url = ? AND status = ? AND deleted_at IS NULL", path, "published").
+		Where("node_type IN (?)", h.db.Model(&models.NodeType{}).Select("slug")).
+		First(&node).Error; err != nil {
 		return nil, false
 	}
 	return &node, true

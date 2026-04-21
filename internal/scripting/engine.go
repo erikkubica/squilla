@@ -57,9 +57,7 @@ func NewScriptEngine(
 // registration methods (EventsOn, FiltersAdd, HTTPRegister).
 func (e *ScriptEngine) scriptCallbacks() *coreapi.ScriptCallbacks {
 	return &coreapi.ScriptCallbacks{
-		OnEvent: func(action, scriptPath string) {
-			e.EventsOn(action, scriptPath, 10)
-		},
+		OnEvent:  e.EventsOn,
 		OnFilter: e.FiltersAdd,
 		OnRoute:  e.HTTPRegister,
 	}
