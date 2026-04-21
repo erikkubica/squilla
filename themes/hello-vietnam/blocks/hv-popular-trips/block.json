@@ -1,8 +1,40 @@
 {
   "slug": "hv-popular-trips",
   "name": "Popular Trips",
-  "description": "Hello Vietnam \u2014 Popular Trips",
+  "description": "Queries published trip nodes and renders a 3-up trip-card grid. Header block above.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "eyebrow",
+      "label": "Eyebrow",
+      "type": "text"
+    },
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "cta_text",
+      "label": "CTA Label",
+      "type": "text"
+    },
+    {
+      "key": "cta_url",
+      "label": "CTA URL",
+      "type": "text"
+    },
+    {
+      "key": "limit",
+      "label": "How many trips",
+      "type": "number"
+    }
+  ],
+  "test_data": {
+    "eyebrow": "Our most-booked",
+    "heading": "Trips travelers can't stop talking about.",
+    "cta_text": "See all trips \u2192",
+    "cta_url": "/trips",
+    "limit": 3
+  }
 }

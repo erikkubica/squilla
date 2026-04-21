@@ -1,8 +1,28 @@
 {
   "slug": "hv-gallery-intro",
-  "name": "Gallery Intro + Filter",
-  "description": "Hello Vietnam \u2014 Gallery Intro + Filter",
+  "name": "Gallery Intro + Filter Pills",
+  "description": "Intro copy + category filter pills (derived from distinct gallery_photo.category \u2014 add a category in admin, pill auto-appears).",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "eyebrow",
+      "label": "Eyebrow",
+      "type": "text"
+    },
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "body",
+      "label": "Body",
+      "type": "textarea"
+    }
+  ],
+  "test_data": {
+    "eyebrow": "Moments",
+    "heading": "Ten years of candid Vietnam.",
+    "body": "Every trip, every laugh, every bowl of ph\u1edf at 6am. The real imagery behind every page on this site."
+  }
 }

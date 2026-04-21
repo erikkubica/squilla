@@ -1,8 +1,28 @@
 {
   "slug": "hv-crew-grid",
   "name": "Meet the Crew",
-  "description": "Hello Vietnam \u2014 Meet the Crew",
+  "description": "Queries crew_member nodes, 3-col polaroid cards with alternating rotation.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "eyebrow",
+      "label": "Eyebrow",
+      "type": "text"
+    },
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "limit",
+      "label": "How many",
+      "type": "number"
+    }
+  ],
+  "test_data": {
+    "eyebrow": "Meet the crew",
+    "heading": "The humans behind the homestays.",
+    "limit": 6
+  }
 }

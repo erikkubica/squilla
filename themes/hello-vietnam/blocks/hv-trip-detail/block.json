@@ -1,7 +1,7 @@
 {
   "slug": "hv-trip-detail",
   "name": "Trip Detail",
-  "description": "Hello Vietnam \u2014 Trip Detail",
+  "description": "Full trip detail page \u2014 hero gallery, accordion itinerary, included/not-included, reviews, booking card, FAQs, related trips. Reads current node's fields_data (trip node).",
   "category": "hello-vietnam",
   "field_schema": [],
   "test_data": {}

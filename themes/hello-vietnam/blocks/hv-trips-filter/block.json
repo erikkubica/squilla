@@ -1,8 +1,28 @@
 {
   "slug": "hv-trips-filter",
   "name": "Trips Filter Header",
-  "description": "Hello Vietnam \u2014 Trips Filter Header",
+  "description": "Search input + pill filters. Pills derived live from distinct trip.tag values \u2014 add a new tag to any trip in admin and the pill appears.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "eyebrow",
+      "label": "Eyebrow",
+      "type": "text"
+    },
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "search_placeholder",
+      "label": "Search placeholder",
+      "type": "text"
+    }
+  ],
+  "test_data": {
+    "eyebrow": "Your next trip",
+    "heading": "I'm looking for...",
+    "search_placeholder": "Search trips, regions, or dishes..."
+  }
 }

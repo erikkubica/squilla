@@ -1,0 +1,39 @@
+// distinct_field.tengo — returns unique fields_data values for a node_type.
+// {{ filter "distinct_field" (dict "type" "trip" "field" "tag" "limit" 20) }}
+// Preserves first-seen order. Used to derive taxonomy-like pills from seeded nodes
+// without an extra terms round-trip.
+
+nodes := import("core/nodes")
+
+input := value
+if is_undefined(input) { input = {} }
+
+node_type := "article"
+if !is_undefined(input.type) { node_type = input.type }
+
+field := "tag"
+if !is_undefined(input.field) { field = input.field }
+
+limit := 100
+if !is_undefined(input.limit) { limit = input.limit }
+
+res := nodes.query({ node_type: node_type, status: "published", limit: limit, order_by: "created_at asc" })
+if is_error(res) {
+	response = []
+} else {
+	seen := {}
+	out := []
+	for n in res.nodes {
+		fd := n.fields_data
+		if is_undefined(fd) { continue }
+		v := fd[field]
+		if is_undefined(v) { continue }
+		s := string(v)
+		if s == "" { continue }
+		if is_undefined(seen[s]) {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	response = out
+}

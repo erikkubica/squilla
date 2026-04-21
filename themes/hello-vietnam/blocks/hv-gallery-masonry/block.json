@@ -1,8 +1,16 @@
 {
   "slug": "hv-gallery-masonry",
   "name": "Gallery Masonry",
-  "description": "Hello Vietnam \u2014 Gallery Masonry",
+  "description": "Queries gallery_photo nodes into a CSS-column masonry; wired to JS filter + lightbox.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "limit",
+      "label": "Max photos",
+      "type": "number"
+    }
+  ],
+  "test_data": {
+    "limit": 12
+  }
 }

@@ -1,8 +1,16 @@
 {
   "slug": "hv-trips-grid",
   "name": "Trips Grid",
-  "description": "Hello Vietnam \u2014 Trips Grid",
+  "description": "Full trip listing with client-side JS filter by tag + search.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "limit",
+      "label": "Max trips",
+      "type": "number"
+    }
+  ],
+  "test_data": {
+    "limit": 20
+  }
 }

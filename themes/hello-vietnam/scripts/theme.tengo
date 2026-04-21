@@ -7,6 +7,7 @@ nodetypes := import("core/nodetypes")
 taxonomies := import("core/taxonomies")
 nodes := import("core/nodes")
 filters := import("core/filters")
+settings := import("core/settings")
 
 log.info("Hello Vietnam theme initializing...")
 
@@ -119,8 +120,42 @@ nodetypes.register({
 log.info("Hello Vietnam: 4 custom node types registered")
 
 // ─── Filters ─────────────────────────────────────────────────
-filters.add("list_nodes", "./filters/list_nodes")
-log.info("Hello Vietnam: list_nodes filter registered")
+filters.add("list_nodes",     "./filters/list_nodes")
+filters.add("distinct_field", "./filters/distinct_field")
+log.info("Hello Vietnam: filters registered (list_nodes, distinct_field)")
+
+// ─── Site Settings (hv.* namespace) ──────────────────────────
+// Seeded once so blocks / partials can read shared values via
+// {{index .app.settings "hv.key"}}. Editors override via the admin.
+seed_setting := func(key, value) {
+	existing := settings.get(key)
+	if existing == "" || is_error(existing) {
+		settings.set(key, value)
+	}
+}
+
+seed_setting("hv.site_tagline",       "Small-group, locally-guided adventures across Vietnam. Zero tourist traps, maximum laughter.")
+seed_setting("hv.primary_cta_label",  "Find Your Adventure →")
+seed_setting("hv.primary_cta_url",    "/trips")
+seed_setting("hv.trust_rating",       "4.9")
+seed_setting("hv.trust_count",        "2,400+")
+seed_setting("hv.trust_platform",     "TripAdvisor")
+seed_setting("hv.whatsapp",           "+84 12 3456 7890")
+seed_setting("hv.email",              "hello@hellovietnam.travel")
+seed_setting("hv.phone",              "+84 24 3333 0000")
+seed_setting("hv.address",            "17 Hang Ca, Old Quarter, Hanoi")
+seed_setting("hv.social.instagram",   "https://instagram.com/hellovietnamadventures")
+seed_setting("hv.social.tiktok",      "https://tiktok.com/@hellovietnam")
+seed_setting("hv.social.whatsapp",    "https://wa.me/84123456789")
+seed_setting("hv.social.email",       "mailto:hello@hellovietnam.travel")
+seed_setting("hv.license",            "Registered tour operator · License #HN-2021-0847")
+seed_setting("hv.copyright_owner",    "Hello Vietnam Adventures")
+seed_setting("hv.impact_percent",     "5%")
+seed_setting("hv.copyright_year",     "2026")
+seed_setting("hv.lead_magnet.title",  "The Hanoi Street Food Map.")
+seed_setting("hv.lead_magnet.body",   "Every dish worth a detour, every egg-coffee den we actually love, 12 laminated-ready pages. Numbered and sortable by district.")
+seed_setting("hv.lead_magnet.cta",    "Send me the map")
+log.info("Hello Vietnam: hv.* settings seeded")
 
 // ─── Demo Node Seeding ───────────────────────────────────────
 seed := func(node_type, label, items) {
@@ -288,8 +323,9 @@ page_missing := func(slug) {
 
 log.info("Hello Vietnam: checking demo pages...")
 
+home_id := 0
 if page_missing("home") {
-	nodes.create({
+	home_node := nodes.create({
 		title: "Home",
 		slug: "home",
 		node_type: "page",
@@ -304,7 +340,22 @@ if page_missing("home") {
 			{ type: "hv-lead-magnet",   fields: {} }
 		]
 	})
+	if !is_error(home_node) {
+		home_id = home_node.id
+	}
 	log.info("Hello Vietnam seed: home page created")
+} else {
+	r := nodes.query({ node_type: "page", slug: "home", limit: 1 })
+	if r.total > 0 {
+		home_id = r.nodes[0].id
+	}
+}
+
+// Always re-assert the homepage mapping so / resolves to our home node
+// rather than any previously-claimed slug from another theme.
+if home_id > 0 {
+	settings.set("homepage_node_id", string(home_id))
+	log.info("Hello Vietnam: homepage_node_id set to " + string(home_id))
 }
 
 if page_missing("about") {

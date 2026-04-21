@@ -1,8 +1,28 @@
 {
   "slug": "hv-trips-map",
   "name": "Trips Map",
-  "description": "Hello Vietnam \u2014 Trips Map",
+  "description": "Aggregates live trip nodes into a region list beside a decorative map placeholder.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "eyebrow",
+      "label": "Eyebrow",
+      "type": "text"
+    },
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "body",
+      "label": "Body",
+      "type": "textarea"
+    }
+  ],
+  "test_data": {
+    "eyebrow": "Where we go",
+    "heading": "Small country, huge variety.",
+    "body": "From Ha Giang's northern passes to the Mekong's palm-lined channels \u2014 every region has its own flavor, texture, and pace."
+  }
 }

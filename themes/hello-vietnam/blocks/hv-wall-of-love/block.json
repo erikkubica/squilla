@@ -1,8 +1,28 @@
 {
   "slug": "hv-wall-of-love",
   "name": "Wall of Love",
-  "description": "Hello Vietnam \u2014 Wall of Love",
+  "description": "Queries testimonial nodes, 4-up cards on cream-warm bg with alternating rotation.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "eyebrow",
+      "label": "Eyebrow",
+      "type": "text"
+    },
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "limit",
+      "label": "How many",
+      "type": "number"
+    }
+  ],
+  "test_data": {
+    "eyebrow": "Wall of love",
+    "heading": "Bragging rights, straight from our guests.",
+    "limit": 4
+  }
 }

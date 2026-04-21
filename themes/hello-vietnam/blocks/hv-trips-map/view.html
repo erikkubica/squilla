@@ -1,1 +1,32 @@
-<section class="section"><div class="container"><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;"><div><span class="eyebrow">Where we roam</span><h2 style="margin-bottom: 16px;">Across Vietnam, north to south.</h2><p style="color: var(--ink-soft); margin-bottom: 22px;">Every pin is a real trip we run — from misty mountain loops in Hà Giang to floating-market dawns in the Mekong.</p><div style="display: grid; gap: 10px;"><div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--white); border-radius: var(--r-md); border: 1px solid var(--line);"><div style="width: 12px; height: 12px; border-radius: 50%; background: var(--red);"></div><span style="font-family: var(--font-display); font-weight: 500;">North Vietnam</span><span style="margin-left: auto; color: var(--ink-soft); font-size: 0.88rem;">7 trips</span></div><div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--white); border-radius: var(--r-md); border: 1px solid var(--line);"><div style="width: 12px; height: 12px; border-radius: 50%; background: var(--yellow);"></div><span style="font-family: var(--font-display); font-weight: 500;">Central Vietnam</span><span style="margin-left: auto; color: var(--ink-soft); font-size: 0.88rem;">5 trips</span></div><div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--white); border-radius: var(--r-md); border: 1px solid var(--line);"><div style="width: 12px; height: 12px; border-radius: 50%; background: var(--green);"></div><span style="font-family: var(--font-display); font-weight: 500;">South Vietnam</span><span style="margin-left: auto; color: var(--ink-soft); font-size: 0.88rem;">6 trips</span></div></div></div><div class="ph ink" style="height: 480px; border-radius: var(--r-xl); position: relative; overflow: hidden;"><span class="ph-label">interactive map of vietnam</span><div style="position: absolute; top: 15%; left: 55%; width: 20px; height: 20px; border-radius: 50%; background: var(--red); border: 3px solid var(--white); box-shadow: var(--shadow-md); z-index: 2;"></div><div style="position: absolute; top: 22%; left: 48%; width: 20px; height: 20px; border-radius: 50%; background: var(--red); border: 3px solid var(--white); box-shadow: var(--shadow-md); z-index: 2;"></div><div style="position: absolute; top: 45%; left: 70%; width: 20px; height: 20px; border-radius: 50%; background: var(--yellow); border: 3px solid var(--white); box-shadow: var(--shadow-md); z-index: 2;"></div><div style="position: absolute; top: 52%; left: 65%; width: 20px; height: 20px; border-radius: 50%; background: var(--yellow); border: 3px solid var(--white); box-shadow: var(--shadow-md); z-index: 2;"></div><div style="position: absolute; top: 75%; left: 50%; width: 20px; height: 20px; border-radius: 50%; background: var(--green); border: 3px solid var(--white); box-shadow: var(--shadow-md); z-index: 2;"></div><div style="position: absolute; top: 82%; left: 42%; width: 20px; height: 20px; border-radius: 50%; background: var(--green); border: 3px solid var(--white); box-shadow: var(--shadow-md); z-index: 2;"></div></div></div></div></section>
+{{- /* Trips Map — aggregate trips by region (location → first word) */ -}}
+{{- $eyebrow := or .eyebrow "Where we go" -}}
+{{- $heading := or .heading "Small country, huge variety." -}}
+{{- $body := or .body "From Ha Giang's northern passes to the Mekong's palm-lined channels — every region has its own flavor, texture, and pace." -}}
+{{- $trips := filter "list_nodes" (dict "type" "trip" "limit" 50) -}}
+<section class="section"><div class="container">
+<div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 56px; align-items: center;">
+<div>
+<span class="eyebrow">{{$eyebrow}}</span>
+<h2 style="margin-bottom: 18px;">{{$heading}}</h2>
+<p style="color: var(--ink-soft); margin-bottom: 28px;">{{$body}}</p>
+<div style="display: flex; flex-direction: column; gap: 14px;">
+{{- range $trips -}}
+{{- $fd := .fields_data -}}
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--cream-warm); border-radius: var(--r-md);">
+<span style="width: 12px; height: 12px; border-radius: 50%; background: var(--{{or $fd.color "red"}});"></span>
+<div style="flex: 1;"><strong>{{$fd.location}}</strong><span style="color: var(--ink-soft); font-size: 0.85rem; margin-left: 8px;">— {{.title}}</span></div>
+<span style="font-size: 0.82rem; color: var(--ink-soft);">{{$fd.duration}}</span>
+</div>
+{{- end -}}
+</div>
+</div>
+<div class="ph ink" style="height: 480px; border-radius: var(--r-xl); position: relative;"><span class="ph-label">interactive map of vietnam</span>
+<span style="position: absolute; top: 18%; left: 32%; width: 20px; height: 20px; border-radius: 50%; background: var(--red); border: 3px solid var(--white);"></span>
+<span style="position: absolute; top: 28%; left: 52%; width: 20px; height: 20px; border-radius: 50%; background: var(--yellow); border: 3px solid var(--white);"></span>
+<span style="position: absolute; top: 48%; left: 64%; width: 20px; height: 20px; border-radius: 50%; background: var(--green); border: 3px solid var(--white);"></span>
+<span style="position: absolute; top: 62%; left: 38%; width: 20px; height: 20px; border-radius: 50%; background: var(--red); border: 3px solid var(--white);"></span>
+<span style="position: absolute; top: 78%; left: 54%; width: 20px; height: 20px; border-radius: 50%; background: var(--yellow); border: 3px solid var(--white);"></span>
+<span style="position: absolute; top: 82%; left: 72%; width: 20px; height: 20px; border-radius: 50%; background: var(--green); border: 3px solid var(--white);"></span>
+</div>
+</div>
+</div></section>
