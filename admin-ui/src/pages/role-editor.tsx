@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { usePageMeta } from "@/components/layout/page-meta";
 import {
   getRole,
   createRole,
@@ -103,6 +104,11 @@ export default function RoleEditorPage() {
 
   // Form state -- email subscriptions
   const [formEmailSubs, setFormEmailSubs] = useState<Set<string>>(new Set());
+
+  usePageMeta([
+    "Roles",
+    isEditing ? (formName ? `Edit "${formName}"` : "Edit") : "New Role",
+  ]);
 
   useEffect(() => {
     async function fetchData() {

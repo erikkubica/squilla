@@ -1,16 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Plus, Pencil, Trash2, Lock, Loader2 } from "lucide-react";
+import { Shield, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -19,25 +10,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { toast } from "sonner";
+import { getRoles, deleteRole, type Role } from "@/api/client";
 import {
-  getRoles,
-  deleteRole,
-  type Role,
-} from "@/api/client";
+  ListPageShell,
+  ListHeader,
+  ListCard,
+  ListTable,
+  Th,
+  Tr,
+  Td,
+  Chip,
+  TitleCell,
+  RowActions,
+  EmptyState,
+  LoadingRow,
+} from "@/components/ui/list-page";
+
+interface RoleWithPerms extends Role {
+  permissions?: unknown[] | Record<string, unknown>;
+}
 
 export default function RolesPage() {
   const navigate = useNavigate();
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [roles, setRoles] = useState<RoleWithPerms[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Delete confirmation
   const [showDelete, setShowDelete] = useState(false);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -45,7 +43,7 @@ export default function RolesPage() {
   async function fetchData() {
     try {
       const rolesData = await getRoles();
-      setRoles(rolesData);
+      setRoles(rolesData as RoleWithPerms[]);
     } catch {
       toast.error("Failed to load roles");
     } finally {
@@ -72,139 +70,109 @@ export default function RolesPage() {
       setDeletingRole(null);
       await fetchData();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete role";
+      const message = err instanceof Error ? err.message : "Failed to delete role";
       toast.error(message);
     } finally {
       setDeleting(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-      </div>
-    );
+  function permissionCount(role: RoleWithPerms): number {
+    const p = role.permissions;
+    if (!p) return 0;
+    if (Array.isArray(p)) return p.length;
+    if (typeof p === "object") return Object.keys(p).length;
+    return 0;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Shield className="h-7 w-7 text-indigo-600" />
-          <h1 className="text-2xl font-bold text-slate-900">Roles</h1>
-        </div>
-        <Button
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm"
-          onClick={() => navigate("/admin/roles/new")}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Role
-        </Button>
-      </div>
+    <ListPageShell>
+      <ListHeader
+        title="Roles"
+        count={roles.length}
+        newLabel="Add Role"
+        onNew={() => navigate("/admin/roles/new")}
+      />
 
-      {/* Table */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900">
-            All Roles
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-200 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-medium">Name</TableHead>
-                <TableHead className="text-slate-500 font-medium">Slug</TableHead>
-                <TableHead className="text-slate-500 font-medium">Description</TableHead>
-                <TableHead className="text-slate-500 font-medium">System</TableHead>
-                <TableHead className="text-slate-500 font-medium text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {roles.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-slate-400">
-                    No roles configured yet. Click &quot;Add Role&quot; to get started.
-                  </TableCell>
-                </TableRow>
-              )}
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : roles.length === 0 ? (
+          <EmptyState
+            icon={Shield}
+            title="No roles configured yet"
+            description='Click "Add Role" to get started.'
+          />
+        ) : (
+          <ListTable>
+            <thead>
+              <tr>
+                <Th>Name</Th>
+                <Th>Description</Th>
+                <Th width={130}>Permissions</Th>
+                <Th width={110}>Type</Th>
+                <Th width={110} align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
               {roles.map((role) => (
-                <TableRow key={role.id} className="border-slate-100">
-                  <TableCell className="font-medium text-slate-800">{role.name}</TableCell>
-                  <TableCell>
-                    <span className="font-mono text-sm text-slate-600">{role.slug}</span>
-                  </TableCell>
-                  <TableCell className="text-slate-600 max-w-xs truncate">
-                    {role.description || <span className="text-slate-300">--</span>}
-                  </TableCell>
-                  <TableCell>
-                    {role.is_system && (
-                      <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-100 border-0 text-xs gap-1">
-                        <Lock className="h-3 w-3" />
+                <Tr key={role.id}>
+                  <Td>
+                    <TitleCell
+                      to={`/admin/roles/${role.id}/edit`}
+                      title={role.name}
+                      slug={role.slug}
+                    />
+                  </Td>
+                  <Td className="text-slate-600">
+                    <span className="block max-w-md truncate" title={role.description || ""}>
+                      {role.description || <span className="text-slate-400">—</span>}
+                    </span>
+                  </Td>
+                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                    {permissionCount(role)}
+                  </Td>
+                  <Td>
+                    {role.is_system ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-px text-[11px] font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-[2px]">
+                        <Lock className="w-3 h-3" />
                         System
-                      </Badge>
+                      </span>
+                    ) : (
+                      <Chip>Custom</Chip>
                     )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-500 hover:text-indigo-600"
-                        onClick={() => navigate(`/admin/roles/${role.id}/edit`)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {!role.is_system && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-red-600"
-                          onClick={() => openDeleteDialog(role)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
+                  </Td>
+                  <Td align="right" className="whitespace-nowrap">
+                    <RowActions
+                      onEdit={() => navigate(`/admin/roles/${role.id}/edit`)}
+                      onDelete={role.is_system ? undefined : () => openDeleteDialog(role)}
+                    />
+                  </Td>
+                </Tr>
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </tbody>
+          </ListTable>
+        )}
+      </ListCard>
 
-      {/* Delete confirmation dialog */}
       <Dialog open={showDelete} onOpenChange={setShowDelete}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Role</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{deletingRole?.name}&quot;? This action cannot be
-              undone. Users with this role will need to be reassigned.
+              Are you sure you want to delete &quot;{deletingRole?.name}&quot;? This action cannot be undone. Users with this role will need to be reassigned.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDelete(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setShowDelete(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPageShell>
   );
 }

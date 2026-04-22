@@ -38,6 +38,9 @@ type AdminUIMenu struct {
 	Label    string            `json:"label"`
 	Icon     string            `json:"icon"`
 	Position string            `json:"position"`
+	// Section routes the menu into a sidebar section: "content" (default),
+	// "design", "development", or "settings".
+	Section  string            `json:"section,omitempty"`
 	Children []AdminUIMenuItem `json:"children"`
 }
 

@@ -94,12 +94,13 @@ func (h *LayoutHandler) Get(c *fiber.Ctx) error {
 
 // createLayoutRequest represents the JSON body for creating a layout.
 type createLayoutRequest struct {
-	Slug         string `json:"slug"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	LanguageID   *int   `json:"language_id"`
-	TemplateCode string `json:"template_code"`
-	IsDefault    bool   `json:"is_default"`
+	Slug           string `json:"slug"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	LanguageID     *int   `json:"language_id"`
+	TemplateCode   string `json:"template_code"`
+	IsDefault      bool   `json:"is_default"`
+	SupportsBlocks *bool  `json:"supports_blocks"`
 }
 
 // Create handles POST /layouts to create a new layout.
@@ -125,13 +126,17 @@ func (h *LayoutHandler) Create(c *fiber.Ctx) error {
 	}
 
 	layout := models.Layout{
-		Slug:         req.Slug,
-		Name:         req.Name,
-		Description:  req.Description,
-		LanguageID:   req.LanguageID,
-		TemplateCode: req.TemplateCode,
-		Source:       "custom",
-		IsDefault:    req.IsDefault,
+		Slug:           req.Slug,
+		Name:           req.Name,
+		Description:    req.Description,
+		LanguageID:     req.LanguageID,
+		TemplateCode:   req.TemplateCode,
+		Source:         "custom",
+		IsDefault:      req.IsDefault,
+		SupportsBlocks: true,
+	}
+	if req.SupportsBlocks != nil {
+		layout.SupportsBlocks = *req.SupportsBlocks
 	}
 
 	if err := h.svc.Create(&layout); err != nil {

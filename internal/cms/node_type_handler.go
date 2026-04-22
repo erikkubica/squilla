@@ -69,14 +69,15 @@ func (h *NodeTypeHandler) Get(c *fiber.Ctx) error {
 
 // createNodeTypeRequest represents the JSON body for creating a node type.
 type createNodeTypeRequest struct {
-	Slug        string       `json:"slug"`
-	Label       string       `json:"label"`
-	LabelPlural string       `json:"label_plural"`
-	Icon        string       `json:"icon"`
-	Description string       `json:"description"`
-	Taxonomies  models.JSONB `json:"taxonomies"`
-	FieldSchema models.JSONB `json:"field_schema"`
-	URLPrefixes models.JSONB `json:"url_prefixes"`
+	Slug           string       `json:"slug"`
+	Label          string       `json:"label"`
+	LabelPlural    string       `json:"label_plural"`
+	Icon           string       `json:"icon"`
+	Description    string       `json:"description"`
+	Taxonomies     models.JSONB `json:"taxonomies"`
+	FieldSchema    models.JSONB `json:"field_schema"`
+	URLPrefixes    models.JSONB `json:"url_prefixes"`
+	SupportsBlocks *bool        `json:"supports_blocks"`
 }
 
 // Create handles POST /node-types to create a new node type.
@@ -98,14 +99,18 @@ func (h *NodeTypeHandler) Create(c *fiber.Ctx) error {
 	}
 
 	nt := models.NodeType{
-		Slug:        req.Slug,
-		Label:       req.Label,
-		LabelPlural: req.LabelPlural,
-		Icon:        req.Icon,
-		Description: req.Description,
-		Taxonomies:  req.Taxonomies,
-		FieldSchema: req.FieldSchema,
-		URLPrefixes: req.URLPrefixes,
+		Slug:           req.Slug,
+		Label:          req.Label,
+		LabelPlural:    req.LabelPlural,
+		Icon:           req.Icon,
+		Description:    req.Description,
+		Taxonomies:     req.Taxonomies,
+		FieldSchema:    req.FieldSchema,
+		URLPrefixes:    req.URLPrefixes,
+		SupportsBlocks: true,
+	}
+	if req.SupportsBlocks != nil {
+		nt.SupportsBlocks = *req.SupportsBlocks
 	}
 
 	if nt.Icon == "" {

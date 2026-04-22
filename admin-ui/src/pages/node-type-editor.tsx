@@ -42,6 +42,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import FieldSchemaEditor from "@/components/ui/field-schema-editor";
 import { toast } from "sonner";
+import { usePageMeta } from "@/components/layout/page-meta";
 import {
   getNodeType,
   createNodeType,
@@ -107,7 +108,13 @@ export default function NodeTypeEditorPage() {
   const [taxonomies, setTaxonomies] = useState<NodeType["taxonomies"]>([]);
   const [fields, setFields] = useState<NodeTypeField[]>([]);
   const [urlPrefixes, setUrlPrefixes] = useState<Record<string, string>>({});
+  const [supportsBlocks, setSupportsBlocks] = useState(true);
   const [originalNodeType, setOriginalNodeType] = useState<NodeType | null>(null);
+
+  usePageMeta([
+    "Content Types",
+    isEdit ? (label ? `Edit "${label}"` : "Edit") : "New Content Type",
+  ]);
 
   // Languages
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -133,6 +140,7 @@ export default function NodeTypeEditorPage() {
         setTaxonomies(Array.isArray(taxes) ? taxes : []);
         setFields(nt.field_schema || []);
         setUrlPrefixes(nt.url_prefixes || {});
+        setSupportsBlocks(nt.supports_blocks !== false);
         setAutoSlug(false);
       })
       .catch(() => {
@@ -171,6 +179,7 @@ export default function NodeTypeEditorPage() {
       taxonomies,
       field_schema: fields,
       url_prefixes: urlPrefixes,
+      supports_blocks: supportsBlocks,
     };
 
     setSaving(true);
@@ -298,6 +307,22 @@ export default function NodeTypeEditorPage() {
                   rows={3}
                   className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
+              </div>
+
+              <div className="space-y-1 pt-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={supportsBlocks}
+                    onChange={(e) => setSupportsBlocks(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  Supports blocks
+                </label>
+                <p className="text-xs text-slate-500 pl-6">
+                  Allow block-based composition on this content type. Disable when content
+                  is rendered entirely from fields (e.g. custom post types with fixed layouts).
+                </p>
               </div>
 
               <div className="space-y-2">

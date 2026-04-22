@@ -1,21 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  ListTree,
-} from "lucide-react";
+import { ListTree, Plus, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   getMenus,
@@ -34,6 +25,21 @@ import {
   type Menu,
   type Language,
 } from "@/api/client";
+import {
+  ListPageShell,
+  ListHeader,
+  ListToolbar,
+  ListCard,
+  ListTable,
+  Th,
+  Tr,
+  Td,
+  Chip,
+  TitleCell,
+  RowActions,
+  EmptyState,
+  LoadingRow,
+} from "@/components/ui/list-page";
 
 export default function MenusListPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -41,13 +47,13 @@ export default function MenusListPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Menu | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [langFilter, setLangFilter] = useState("");
+  const [langFilter, setLangFilter] = useState("all");
 
   const fetchMenus = useCallback(async () => {
     setLoading(true);
     try {
       const params: { language_id?: number } = {};
-      if (langFilter) params.language_id = Number(langFilter);
+      if (langFilter && langFilter !== "all") params.language_id = Number(langFilter);
       const data = await getMenus(params);
       setMenus(data);
     } catch {
@@ -83,149 +89,118 @@ export default function MenusListPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Menus</h1>
-        <div className="flex items-center gap-3">
-          <select
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            value={langFilter}
-            onChange={(e) => setLangFilter(e.target.value)}
-          >
-            <option value="">All Languages</option>
+    <ListPageShell>
+      <ListHeader
+        title="Menus"
+        count={menus.length}
+        newLabel="New Menu"
+        newHref="/admin/menus/new"
+      />
+
+      <ListToolbar>
+        <Select value={langFilter} onValueChange={setLangFilter}>
+          <SelectTrigger className="h-[30px] w-[200px] text-[13px] bg-white border-slate-300 rounded">
+            <Globe className="mr-1 h-3.5 w-3.5 text-slate-400" />
+            <SelectValue placeholder="Language" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Languages</SelectItem>
             {languages.map((lang) => (
-              <option key={lang.id} value={String(lang.id)}>
+              <SelectItem key={lang.id} value={String(lang.id)}>
                 {lang.flag} {lang.name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium">
-            <Link to="/admin/menus/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Menu
-            </Link>
-          </Button>
-        </div>
-      </div>
+          </SelectContent>
+        </Select>
+      </ListToolbar>
 
-      {/* Table */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden py-0 gap-0">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-            </div>
-          ) : menus.length === 0 ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-3 text-slate-400">
-              <ListTree className="h-12 w-12" />
-              <p className="text-lg font-medium">No menus found</p>
-              <p className="text-sm">Create your first menu to get started</p>
-              <Button asChild className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium">
-                <Link to="/admin/menus/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Menu
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Slug</TableHead>
-                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider sm:table-cell">Language</TableHead>
-                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider sm:table-cell">Version</TableHead>
-                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider md:table-cell">Items</TableHead>
-                  <TableHead className="w-24 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {menus.map((menu) => (
-                  <TableRow key={menu.id} className="hover:bg-slate-50">
-                    <TableCell className="px-6 py-4 text-sm">
-                      <Link
-                        to={`/admin/menus/${menu.id}`}
-                        className="font-medium text-slate-800 hover:text-indigo-600"
-                      >
-                        {menu.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-sm text-slate-500">
-                      {menu.slug}
-                    </TableCell>
-                    <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
-                      {menu.language_id != null ? (languages.find(l => l.id === menu.language_id)?.name || String(menu.language_id)) : "All"}
-                    </TableCell>
-                    <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
-                      <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-100 border-0 text-xs">
-                        v{menu.version}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden px-6 py-4 text-sm text-slate-500 md:table-cell">
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : menus.length === 0 ? (
+          <EmptyState
+            icon={ListTree}
+            title="No menus found"
+            description="Create your first menu to get started"
+            action={
+              <Link
+                to="/admin/menus/new"
+                className="h-[30px] px-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New Menu
+              </Link>
+            }
+          />
+        ) : (
+          <ListTable>
+            <thead>
+              <tr>
+                <Th>Name</Th>
+                <Th width={160}>Language</Th>
+                <Th width={90}>Version</Th>
+                <Th width={90}>Items</Th>
+                <Th width={120} align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {menus.map((menu) => {
+                const lang = menu.language_id != null ? languages.find((l) => l.id === menu.language_id) : null;
+                return (
+                  <Tr key={menu.id}>
+                    <Td>
+                      <TitleCell to={`/admin/menus/${menu.id}`} title={menu.name} slug={menu.slug} />
+                    </Td>
+                    <Td>
+                      {lang ? (
+                        <span className="inline-flex items-center gap-1.5 text-[12px] text-slate-700">
+                          <span>{lang.flag}</span>
+                          {lang.name}
+                        </span>
+                      ) : menu.language_id != null ? (
+                        <span className="font-mono text-[12px] text-slate-400">{menu.language_id}</span>
+                      ) : (
+                        <Chip>All</Chip>
+                      )}
+                    </Td>
+                    <Td>
+                      <Chip>v{menu.version}</Chip>
+                    </Td>
+                    <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
                       {menu.items?.length ?? 0}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className="h-8 w-8"
-                        >
-                          <Link to={`/admin/menus/${menu.id}`}>
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600"
-                          onClick={() => setDeleteTarget(menu)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </Td>
+                    <Td align="right" className="whitespace-nowrap">
+                      <RowActions
+                        editTo={`/admin/menus/${menu.id}`}
+                        onDelete={() => setDeleteTarget(menu)}
+                      />
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </ListTable>
+        )}
+      </ListCard>
 
-      {/* Delete dialog */}
-      <Dialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Menu</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{deleteTarget?.name}&quot;?
-              This action cannot be undone.
+              Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPageShell>
   );
 }

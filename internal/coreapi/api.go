@@ -256,17 +256,18 @@ type DataStoreResult struct {
 }
 
 type NodeType struct {
-	ID          int               `json:"id"`
-	Slug        string            `json:"slug"`
-	Label       string            `json:"label"`
-	LabelPlural string            `json:"label_plural"`
-	Icon        string            `json:"icon"`
-	Description string            `json:"description"`
-	Taxonomies  []TaxonomyDefinition `json:"taxonomies,omitempty"`
-	FieldSchema []NodeTypeField   `json:"field_schema"`
-	URLPrefixes map[string]string `json:"url_prefixes"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
+	ID             int                  `json:"id"`
+	Slug           string               `json:"slug"`
+	Label          string               `json:"label"`
+	LabelPlural    string               `json:"label_plural"`
+	Icon           string               `json:"icon"`
+	Description    string               `json:"description"`
+	Taxonomies     []TaxonomyDefinition `json:"taxonomies,omitempty"`
+	FieldSchema    []NodeTypeField      `json:"field_schema"`
+	URLPrefixes    map[string]string    `json:"url_prefixes"`
+	SupportsBlocks bool                 `json:"supports_blocks"`
+	CreatedAt      time.Time            `json:"created_at"`
+	UpdatedAt      time.Time            `json:"updated_at"`
 }
 
 // NodeTypeField — note: both `name` and `key` JSON tags resolve to the same
@@ -347,14 +348,15 @@ func OptionsFromStrings(in []string) []interface{} {
 }
 
 type NodeTypeInput struct {
-	Slug        string            `json:"slug,omitempty"`
-	Label       string            `json:"label,omitempty"`
-	LabelPlural string            `json:"label_plural,omitempty"`
-	Icon        string            `json:"icon,omitempty"`
-	Description string            `json:"description,omitempty"`
-	Taxonomies  []TaxonomyDefinition `json:"taxonomies,omitempty"`
-	FieldSchema []NodeTypeField   `json:"field_schema,omitempty"`
-	URLPrefixes map[string]string `json:"url_prefixes,omitempty"`
+	Slug           string               `json:"slug,omitempty"`
+	Label          string               `json:"label,omitempty"`
+	LabelPlural    string               `json:"label_plural,omitempty"`
+	Icon           string               `json:"icon,omitempty"`
+	Description    string               `json:"description,omitempty"`
+	Taxonomies     []TaxonomyDefinition `json:"taxonomies,omitempty"`
+	FieldSchema    []NodeTypeField      `json:"field_schema,omitempty"`
+	URLPrefixes    map[string]string    `json:"url_prefixes,omitempty"`
+	SupportsBlocks *bool                `json:"supports_blocks,omitempty"`
 }
 
 type TaxonomyDefinition struct {

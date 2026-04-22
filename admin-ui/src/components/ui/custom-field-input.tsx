@@ -16,7 +16,6 @@ import {
   Plus,
   ChevronUp,
   ChevronDown,
-  ChevronRight,
 } from "lucide-react";
 import {
   searchNodes,
@@ -96,20 +95,29 @@ function GroupFieldInput({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-      {subFields.map((sf) => (
-        <div key={sf.key} className="space-y-1">
-          <Label className="text-xs font-medium text-slate-600">
-            {sf.label}
-            {sf.required && <span className="ml-1 text-red-500">*</span>}
-          </Label>
-          <CustomFieldInput
-            field={sf}
-            value={group[sf.key]}
-            onChange={(val) => onChange({ ...group, [sf.key]: val })}
-          />
-        </div>
-      ))}
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <div className="flex flex-wrap" style={{ gap: "12px 12px" }}>
+        {subFields.map((sf) => {
+          const w = typeof sf.width === "number" && sf.width > 0 && sf.width <= 100 ? sf.width : 100;
+          return (
+            <div
+              key={sf.key}
+              className="space-y-1 min-w-0"
+              style={{ flex: `0 0 calc(${w}% - 12px)`, maxWidth: `calc(${w}% - 12px)` }}
+            >
+              <Label className="text-xs font-medium text-slate-600">
+                {sf.label}
+                {sf.required && <span className="ml-1 text-red-500">*</span>}
+              </Label>
+              <CustomFieldInput
+                field={sf}
+                value={group[sf.key]}
+                onChange={(val) => onChange({ ...group, [sf.key]: val })}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -226,60 +234,106 @@ function RepeaterFieldInput({
       {rows.map((row, rowIndex) => {
         const isCollapsed = collapsedRows.has(rowIndex);
         return (
-          <div key={rowIndex} className={`rounded-lg border ${isCollapsed ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50"}`}>
-            {/* Row header - always visible */}
-            <div className="flex items-center gap-2 px-3 py-2">
-              {/* Move up/down */}
-              <div className="flex flex-col gap-0.5">
-                <button type="button" onClick={() => moveRow(rowIndex, "up")} disabled={rowIndex === 0} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed">
+          <div
+            key={rowIndex}
+            className="overflow-hidden"
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+              background: "var(--card-bg)",
+            }}
+          >
+            {/* Row header */}
+            <div
+              className="flex items-center gap-2 cursor-pointer select-none"
+              style={{
+                padding: "6px 10px",
+                background: "var(--sub-bg)",
+                borderBottom: isCollapsed ? "none" : "1px solid var(--border)",
+              }}
+              onClick={() => toggleCollapse(rowIndex)}
+            >
+              <ChevronDown
+                className="shrink-0 transition-transform"
+                size={12}
+                style={{
+                  color: "var(--fg-muted)",
+                  transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                }}
+              />
+              <span
+                className="shrink-0 font-mono"
+                style={{ fontSize: 11, color: "var(--fg-muted)" }}
+              >
+                #{rowIndex + 1}
+              </span>
+              {isCollapsed && (
+                <span
+                  className="truncate"
+                  style={{ fontSize: 12, color: "var(--fg-muted)" }}
+                >
+                  {getRowSummary(row, subFields)}
+                </span>
+              )}
+              <div className="flex-1" />
+              <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => moveRow(rowIndex, "up")}
+                  disabled={rowIndex === 0}
+                  className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
+                  style={{ color: "var(--fg-muted)" }}
+                  title="Move up"
+                >
                   <ChevronUp className="h-3.5 w-3.5" />
                 </button>
-                <button type="button" onClick={() => moveRow(rowIndex, "down")} disabled={rowIndex === rows.length - 1} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                <button
+                  type="button"
+                  onClick={() => moveRow(rowIndex, "down")}
+                  disabled={rowIndex === rows.length - 1}
+                  className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
+                  style={{ color: "var(--fg-muted)" }}
+                  title="Move down"
+                >
                   <ChevronDown className="h-3.5 w-3.5" />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => removeRow(rowIndex)}
+                  className="p-1 rounded hover:bg-red-50"
+                  style={{ color: "var(--danger)" }}
+                  title="Remove row"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
-
-              {/* Collapse toggle + summary */}
-              <button
-                type="button"
-                onClick={() => toggleCollapse(rowIndex)}
-                className="flex flex-1 items-center gap-2 text-left min-w-0"
-              >
-                <ChevronRight className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${!isCollapsed ? "rotate-90" : ""}`} />
-                <span className="text-xs font-semibold text-slate-500 shrink-0">#{rowIndex + 1}</span>
-                {isCollapsed && (
-                  <span className="text-xs text-slate-400 truncate">{getRowSummary(row, subFields)}</span>
-                )}
-              </button>
-
-              {/* Delete */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-red-400 hover:text-red-600 shrink-0"
-                onClick={() => removeRow(rowIndex)}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
             </div>
 
             {/* Row fields - collapsible */}
             {!isCollapsed && (
-              <div className="border-t border-slate-200 px-3 py-3 space-y-3">
-                {subFields.map((sf) => (
-                  <div key={sf.key} className="space-y-1.5">
-                    <Label className="text-xs font-medium text-slate-600">
-                      {sf.label}
-                      {sf.required && <span className="ml-1 text-red-500">*</span>}
-                    </Label>
-                    <CustomFieldInput
-                      field={sf}
-                      value={row[sf.key]}
-                      onChange={(val) => updateRow(rowIndex, sf.key, val)}
-                    />
-                  </div>
-                ))}
+              <div style={{ padding: "10px 12px 12px" }}>
+                <div className="flex flex-wrap" style={{ gap: "12px 12px" }}>
+                  {subFields.map((sf) => {
+                    const w = typeof sf.width === "number" && sf.width > 0 && sf.width <= 100 ? sf.width : 100;
+                    return (
+                      <div
+                        key={sf.key}
+                        className="space-y-1.5 min-w-0"
+                        style={{ flex: `0 0 calc(${w}% - 12px)`, maxWidth: `calc(${w}% - 12px)` }}
+                      >
+                        <Label className="font-medium" style={{ fontSize: 12, color: "var(--fg-2)" }}>
+                          {sf.label}
+                          {sf.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
+                        </Label>
+                        <CustomFieldInput
+                          field={sf}
+                          value={row[sf.key]}
+                          onChange={(val) => updateRow(rowIndex, sf.key, val)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -620,10 +674,10 @@ function CustomFieldInput({
     const ExtComponent = extField.Component as React.ComponentType<{ field: NodeTypeField; value: unknown; onChange: (val: unknown) => void }>;
     return (
       <div>
-        <ExtComponent field={field} value={value} onChange={onChange} />
         {field.help && (
-          <p className="mt-1 text-xs text-slate-400">{field.help}</p>
+          <p className="mb-1 text-xs text-slate-400">{field.help}</p>
         )}
+        <ExtComponent field={field} value={value} onChange={onChange} />
       </div>
     );
   }
@@ -871,10 +925,10 @@ function CustomFieldInput({
 
   return (
     <div>
-      {input}
       {field.help && (
-        <p className="mt-1 text-xs text-slate-400">{field.help}</p>
+        <p className="mb-1 text-xs text-slate-400">{field.help}</p>
       )}
+      {input}
     </div>
   );
 }

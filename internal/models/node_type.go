@@ -13,6 +13,7 @@ type NodeType struct {
 	Taxonomies  JSONB     `gorm:"column:taxonomies;type:jsonb;not null;default:'[]'" json:"taxonomies"`
 	FieldSchema JSONB     `gorm:"column:field_schema;type:jsonb;not null;default:'[]'" json:"field_schema"`
 	URLPrefixes JSONB     `gorm:"column:url_prefixes;type:jsonb;not null;default:'{}'" json:"url_prefixes"`
+	SupportsBlocks bool   `gorm:"column:supports_blocks;type:boolean;not null;default:true" json:"supports_blocks"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
 }

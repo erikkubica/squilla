@@ -18,6 +18,7 @@ export interface AdminUIMenu {
   label: string;
   icon: string;
   position: string;
+  section?: "content" | "design" | "development" | "settings";
   children: AdminUIMenuItem[];
 }
 

@@ -61,6 +61,9 @@ type ThemeLayoutDef struct {
 	Name      string `json:"name"`
 	File      string `json:"file"`
 	IsDefault bool   `json:"is_default"`
+	// SupportsBlocks defaults to true when omitted. When explicitly false,
+	// the admin node editor hides the blocks section for pages on this layout.
+	SupportsBlocks *bool `json:"supports_blocks,omitempty"`
 }
 
 // ThemePartialDef defines a partial declared in theme.json.
@@ -536,20 +539,28 @@ func RegisterLayoutFromFile(db *gorm.DB, def ThemeLayoutDef, code string, source
 		existing.Source = source
 		existing.ThemeName = sourceNamePtr
 		existing.IsDefault = def.IsDefault
+		if def.SupportsBlocks != nil {
+			existing.SupportsBlocks = *def.SupportsBlocks
+		}
 		existing.ContentHash = contentHash
 		if err := db.Save(&existing).Error; err != nil {
 			return fmt.Errorf("failed to update layout %s: %w", def.Slug, err)
 		}
 	} else {
+		supportsBlocks := true
+		if def.SupportsBlocks != nil {
+			supportsBlocks = *def.SupportsBlocks
+		}
 		layout := models.Layout{
-			Slug:         def.Slug,
-			Name:         def.Name,
-			LanguageID:   nil,
-			TemplateCode: code,
-			Source:       source,
-			ThemeName:    sourceNamePtr,
-			IsDefault:    def.IsDefault,
-			ContentHash:  contentHash,
+			Slug:           def.Slug,
+			Name:           def.Name,
+			LanguageID:     nil,
+			TemplateCode:   code,
+			Source:         source,
+			ThemeName:      sourceNamePtr,
+			IsDefault:      def.IsDefault,
+			SupportsBlocks: supportsBlocks,
+			ContentHash:    contentHash,
 		}
 		if err := db.Create(&layout).Error; err != nil {
 			return fmt.Errorf("failed to create layout %s: %w", def.Slug, err)

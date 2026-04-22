@@ -36,6 +36,7 @@ import {
 } from "@/api/client";
 import { toast } from "sonner";
 import CustomFieldInput from "@/components/ui/custom-field-input";
+import { usePageMeta } from "@/components/layout/page-meta";
 
 function slugify(text: string) {
   return text
@@ -68,6 +69,12 @@ export default function TermEditorPage() {
   const [taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
 
   const [autoSlug, setAutoSlug] = useState(!isEdit);
+
+  usePageMeta([
+    "Taxonomies",
+    taxonomy?.label || taxSlug || "",
+    isEdit ? (name ? `Edit "${name}"` : "Edit") : "New Term",
+  ].filter(Boolean) as string[]);
 
   useEffect(() => {
     if (!taxSlug) return;

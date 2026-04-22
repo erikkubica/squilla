@@ -1,29 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import {
-  Plus,
-  Search,
-  Loader2,
-  Pencil,
-  Trash2,
-  FileText,
-  Home,
-  Globe,
-  X,
-  Tag,
-} from "lucide-react";
+import { FileText, Home, Globe, Tag, X, ChevronDown, Plus } from "lucide-react";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -39,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { usePageMeta } from "@/components/layout/page-meta";
 import {
   getNodes,
   deleteNode,
@@ -49,28 +28,31 @@ import {
   type PaginationMeta,
   type NodeType,
 } from "@/api/client";
+import {
+  ListPageShell,
+  ListHeader,
+  ListToolbar,
+  ListSearch,
+  ListCard,
+  ListTable,
+  ListFooter,
+  Th,
+  Tr,
+  Td,
+  StatusPill,
+  Chip,
+  TitleCell,
+  RowActions,
+  EmptyState,
+  LoadingRow,
+} from "@/components/ui/list-page";
 
 interface NodesListProps {
   nodeType: string;
 }
 
-function statusBadgeClass(status: string): string {
-  switch (status) {
-    case "published":
-      return "bg-emerald-100 text-emerald-700 hover:bg-emerald-100";
-    case "draft":
-      return "bg-amber-100 text-amber-700 hover:bg-amber-100";
-    case "archived":
-      return "bg-slate-100 text-slate-600 hover:bg-slate-100";
-    default:
-      return "bg-slate-100 text-slate-600 hover:bg-slate-100";
-  }
-}
-
 export default function NodesListPage({ nodeType }: NodesListProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const label = nodeType === "page" ? "Page" : nodeType === "post" ? "Post" : nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
-  const labelPlural = nodeType === "page" ? "Pages" : nodeType === "post" ? "Posts" : label + "s";
   const basePath = nodeType === "page" ? "/admin/pages" : nodeType === "post" ? "/admin/posts" : `/admin/content/${nodeType}`;
 
   const { languages, currentCode: globalLangCode } = useAdminLanguage();
@@ -87,7 +69,11 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
   const [searchDebounce, setSearchDebounce] = useState("");
   const [nodeTypeDef, setNodeTypeDef] = useState<NodeType | null>(null);
 
-  // Extract taxonomy filters from URL
+  const label = nodeTypeDef?.label ?? "";
+  const labelPlural = nodeTypeDef?.label_plural ?? "";
+
+  usePageMeta(labelPlural ? [labelPlural] : null);
+
   const taxQuery: Record<string, string[]> = {};
   const activeTaxFilters: { taxonomy: string; term: string; label: string }[] = [];
 
@@ -108,12 +94,10 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
     });
   }
 
-  // Resolve effective language code: "global" uses the top-bar setting, "all" shows everything
   const effectiveLangCode = langFilter === "global"
     ? (globalLangCode === "all" ? undefined : globalLangCode)
     : langFilter === "all" ? undefined : langFilter;
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setSearchDebounce(search), 300);
     return () => clearTimeout(timer);
@@ -138,10 +122,12 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, nodeType, status, effectiveLangCode, searchDebounce, labelPlural, JSON.stringify(taxQuery)]);
 
   useEffect(() => {
     setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchDebounce, status, nodeType, effectiveLangCode, JSON.stringify(taxQuery)]);
 
   useEffect(() => {
@@ -164,67 +150,73 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
   }
 
   const removeTaxFilter = (taxonomy: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete(taxonomy);
-    setSearchParams(newParams);
+    const p = new URLSearchParams(searchParams);
+    p.delete(taxonomy);
+    setSearchParams(p);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">{labelPlural}</h1>
-        <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium">
-          <Link to={`${basePath}/new`}>
-            <Plus className="mr-2 h-4 w-4" />
-            New {label}
-          </Link>
-        </Button>
-      </div>
+  const statusTabs = [
+    { value: "all", label: "All" },
+    { value: "published", label: "Published" },
+    { value: "draft", label: "Drafts" },
+    { value: "archived", label: "Archived" },
+  ];
 
-      {/* Active Taxonomy Filters */}
+  if (!nodeTypeDef) {
+    return (
+      <ListPageShell>
+        <ListCard>
+          <LoadingRow />
+        </ListCard>
+      </ListPageShell>
+    );
+  }
+
+  return (
+    <ListPageShell>
+      <ListHeader
+        title={labelPlural}
+        count={meta?.total}
+        tabs={statusTabs}
+        activeTab={status}
+        onTabChange={setStatus}
+        newLabel={`New ${label}`}
+        newHref={`${basePath}/new`}
+      />
+
       {activeTaxFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 mb-2.5">
           {activeTaxFilters.map((f) => (
-            <Badge key={f.taxonomy} variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200 px-3 py-1 gap-2">
-              <Tag className="h-3 w-3" />
-              <span>{f.label}: <strong>{f.term}</strong></span>
-              <button onClick={() => removeTaxFilter(f.taxonomy)} className="hover:text-red-500 ml-1">
-                <X className="h-3 w-3" />
+            <span
+              key={f.taxonomy}
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded"
+            >
+              <Tag className="w-3 h-3" />
+              {f.label}: <strong>{f.term}</strong>
+              <button
+                type="button"
+                onClick={() => removeTaxFilter(f.taxonomy)}
+                className="hover:text-red-500 cursor-pointer bg-transparent border-0"
+              >
+                <X className="w-3 h-3" />
               </button>
-            </Badge>
+            </span>
           ))}
-          <Button variant="ghost" size="sm" onClick={() => setSearchParams({})} className="h-7 text-xs text-slate-500">
+          <button
+            type="button"
+            onClick={() => setSearchParams({})}
+            className="text-[11px] text-slate-500 hover:text-slate-700 cursor-pointer bg-transparent border-0"
+          >
             Clear all
-          </Button>
+          </button>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder={`Search ${labelPlural.toLowerCase()}...`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-          />
-        </div>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-full rounded-lg border-slate-300 sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
+      <ListToolbar>
+        <ListSearch value={search} onChange={setSearch} placeholder={`Search by title or slug…`} />
         <Select value={langFilter} onValueChange={setLangFilter}>
-          <SelectTrigger className="w-full rounded-lg border-slate-300 sm:w-48">
-            <Globe className="mr-1.5 h-4 w-4 text-slate-400" />
+          <SelectTrigger className="h-[30px] w-[160px] text-[13px] bg-white border-slate-300 rounded">
+            <Globe className="mr-1 h-3.5 w-3.5 text-slate-400" />
             <SelectValue placeholder="Language" />
           </SelectTrigger>
           <SelectContent>
@@ -239,192 +231,139 @@ export default function NodesListPage({ nodeType }: NodesListProps) {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </ListToolbar>
 
-      {/* Table */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden py-0 gap-0">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-            </div>
-          ) : nodes.length === 0 ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-3 text-slate-400">
-              <FileText className="h-12 w-12" />
-              <p className="text-lg font-medium">
-                No {labelPlural.toLowerCase()} found
-              </p>
-              <p className="text-sm">
-                {searchDebounce || status !== "all"
-                  ? "Try adjusting your filters"
-                  : `Create your first ${label.toLowerCase()} to get started`}
-              </p>
-              {!searchDebounce && status === "all" && (
-                <Button asChild className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium">
-                  <Link to={`${basePath}/new`}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New {label}
-                  </Link>
-                </Button>
-              )}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider md:table-cell">Taxonomies</TableHead>
-                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider lg:table-cell">Lang</TableHead>
-                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider md:table-cell">Slug</TableHead>
-                  <TableHead className="hidden text-xs font-semibold text-slate-500 uppercase tracking-wider sm:table-cell">
-                    Updated
-                  </TableHead>
-                  <TableHead className="w-24 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {nodes.map((node) => (
-                  <TableRow key={node.id} className="hover:bg-slate-50">
-                    <TableCell className="px-6 py-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Link
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : nodes.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title={`No ${labelPlural.toLowerCase()} found`}
+            description={
+              searchDebounce || status !== "all"
+                ? "Try adjusting your filters"
+                : `Create your first ${label.toLowerCase()} to get started`
+            }
+            action={
+              !searchDebounce && status === "all" ? (
+                <Link
+                  to={`${basePath}/new`}
+                  className="h-[30px] px-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New {label}
+                </Link>
+              ) : undefined
+            }
+          />
+        ) : (
+          <>
+            <ListTable>
+              <thead>
+                <tr>
+                  <Th>Title</Th>
+                  <Th width={120}>Status</Th>
+                  <Th width={240}>Taxonomies</Th>
+                  <Th width={80}>Lang</Th>
+                  <Th width={110}>
+                    <span className="inline-flex items-center gap-1 text-slate-900">
+                      Updated <ChevronDown className="w-2.5 h-2.5" />
+                    </span>
+                  </Th>
+                  <Th width={110} align="right">Actions</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {nodes.map((node) => {
+                  const lang = languages.find((l) => l.code === node.language_code);
+                  return (
+                    <Tr key={node.id}>
+                      <Td>
+                        <TitleCell
                           to={`${basePath}/${node.id}/edit`}
-                          className="font-medium text-slate-800 hover:text-indigo-600"
-                        >
-                          {node.title}
-                        </Link>
-                        {node.is_homepage && (
-                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 gap-1">
-                            <Home className="h-3 w-3" />
-                            Home
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-sm">
-                      <Badge className={`${statusBadgeClass(node.status)} border-0 font-medium`}>
-                        {node.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden px-6 py-4 text-sm md:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(node.taxonomies || {}).map(([tax, terms]) => (
-                          terms.map(term => (
-                            <Badge key={`${tax}-${term}`} variant="outline" className="text-[10px] px-1.5 py-0 border-slate-200 text-slate-500">
-                              {term}
-                            </Badge>
-                          ))
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden px-6 py-4 text-sm lg:table-cell">
-                      {(() => {
-                        const lang = languages.find((l) => l.code === node.language_code);
-                        return lang ? (
-                          <span className="text-slate-600" title={lang.name}>{lang.flag} {lang.code.toUpperCase()}</span>
+                          title={node.title}
+                          slug={node.slug}
+                          extra={
+                            node.is_homepage ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-px text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[2px]">
+                                <Home className="w-2.5 h-2.5" />
+                                Home
+                              </span>
+                            ) : undefined
+                          }
+                        />
+                      </Td>
+                      <Td>
+                        <StatusPill status={node.status} />
+                      </Td>
+                      <Td>
+                        {Object.entries(node.taxonomies || {}).length === 0 ? (
+                          <span className="text-slate-400 text-[12px]">—</span>
                         ) : (
-                          <span className="text-slate-400 font-mono">{node.language_code}</span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="hidden px-6 py-4 text-sm text-slate-500 md:table-cell">
-                      /{node.slug}
-                    </TableCell>
-                    <TableCell className="hidden px-6 py-4 text-sm text-slate-500 sm:table-cell">
-                      {new Date(node.updated_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className="h-8 w-8"
-                        >
-                          <Link to={`${basePath}/${node.id}/edit`}>
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600"
-                          onClick={() => setDeleteTarget(node)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                          <div className="flex gap-1 flex-wrap">
+                            {Object.entries(node.taxonomies || {}).flatMap(([tax, terms]) =>
+                              terms.map((term) => <Chip key={`${tax}-${term}`}>{term}</Chip>)
+                            )}
+                          </div>
+                        )}
+                      </Td>
+                      <Td>
+                        {lang ? (
+                          <span className="inline-flex items-center gap-1.5 text-[12px] text-slate-700" title={lang.name}>
+                            <span>{lang.flag}</span>
+                            {lang.code.toUpperCase()}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-[12px] text-slate-400">{node.language_code}</span>
+                        )}
+                      </Td>
+                      <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                        {new Date(node.updated_at).toLocaleDateString()}
+                      </Td>
+                      <Td align="right" className="whitespace-nowrap">
+                        <RowActions
+                          editTo={`${basePath}/${node.id}/edit`}
+                          onDelete={() => setDeleteTarget(node)}
+                        />
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </tbody>
+            </ListTable>
+            {meta && (
+              <ListFooter
+                page={meta.page}
+                totalPages={meta.total_pages}
+                total={meta.total}
+                perPage={meta.per_page}
+                onPage={setPage}
+                label={labelPlural.toLowerCase()}
+              />
+            )}
+          </>
+        )}
+      </ListCard>
 
-      {/* Pagination */}
-      {meta && meta.total_pages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
-            Showing {(meta.page - 1) * meta.per_page + 1} to{" "}
-            {Math.min(meta.page * meta.per_page, meta.total)} of {meta.total}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border-slate-300"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= meta.total_pages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border-slate-300"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Delete dialog */}
-      <Dialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete {label}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{deleteTarget?.title}&quot;?
-              This action cannot be undone.
+              Are you sure you want to delete &quot;{deleteTarget?.title}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPageShell>
   );
 }

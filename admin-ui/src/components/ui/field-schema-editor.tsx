@@ -288,10 +288,28 @@ export default function FieldSchemaEditor({
                       <Input value={field.key} onChange={(e) => updateField(index, { key: e.target.value })} className="h-8 text-sm font-mono rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
                     </div>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-3">
                     <div className="space-y-1">
                       <Label className="text-xs font-medium text-slate-600">Type</Label>
                       <FieldTypePicker value={field.type} onValueChange={(v) => updateField(index, { type: v as NodeTypeField["type"] })} compact />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-slate-600">Width</Label>
+                      <select
+                        value={field.width ?? 100}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          updateField(index, { width: v === 100 ? undefined : v });
+                        }}
+                        className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                      >
+                        <option value={100}>100% — full row</option>
+                        <option value={75}>75%</option>
+                        <option value={66}>66% (2/3)</option>
+                        <option value={50}>50% (half)</option>
+                        <option value={33}>33% (1/3)</option>
+                        <option value={25}>25% (quarter)</option>
+                      </select>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs font-medium text-slate-600">&nbsp;</Label>

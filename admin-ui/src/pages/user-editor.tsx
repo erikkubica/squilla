@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getRoles, getLanguages, type Role, type Language } from "@/api/client";
+import { usePageMeta } from "@/components/layout/page-meta";
 
 // ---------- Local API helpers ----------
 
@@ -97,6 +98,11 @@ export default function UserEditorPage() {
   const [password, setPassword] = useState("");
   const [roleId, setRoleId] = useState<string>("");
   const [languageId, setLanguageId] = useState<string>("__default__");
+
+  usePageMeta([
+    "Users",
+    isEdit ? (email ? `Edit "${email}"` : "Edit") : "New User",
+  ]);
 
   useEffect(() => {
     async function load() {

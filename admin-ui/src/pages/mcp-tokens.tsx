@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Key, Loader2, Copy, Check } from "lucide-react";
+import { Key, Loader2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -17,13 +9,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { toast } from "sonner";
+import {
+  ListPageShell,
+  ListHeader,
+  ListCard,
+  ListTable,
+  Th,
+  Tr,
+  Td,
+  StatusPill,
+  Chip,
+  TitleCell,
+  RowActions,
+  EmptyState,
+  LoadingRow,
+} from "@/components/ui/list-page";
 
 interface McpToken {
   id: number;
@@ -33,6 +34,7 @@ interface McpToken {
   last_used_at?: string | null;
   expires_at?: string | null;
   created_at: string;
+  revoked_at?: string | null;
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -65,11 +67,21 @@ const scopeLabels: Record<string, string> = {
   read: "Read-only",
 };
 
-const scopeBadge: Record<string, string> = {
-  full: "bg-red-100 text-red-700",
-  content: "bg-indigo-100 text-indigo-700",
-  read: "bg-slate-100 text-slate-700",
-};
+function tokenStatus(t: McpToken): "active" | "danger" | "warning" {
+  if (t.revoked_at) return "danger";
+  if (t.expires_at) {
+    const exp = new Date(t.expires_at).getTime();
+    if (!isNaN(exp) && exp < Date.now()) return "warning";
+  }
+  return "active";
+}
+
+function tokenStatusLabel(t: McpToken): string {
+  const s = tokenStatus(t);
+  if (s === "danger") return "revoked";
+  if (s === "warning") return "expired";
+  return "active";
+}
 
 export default function McpTokensPage() {
   const [tokens, setTokens] = useState<McpToken[]>([]);
@@ -79,7 +91,6 @@ export default function McpTokensPage() {
   const [revealed, setRevealed] = useState<{ token: string; record: McpToken } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Create form state
   const [name, setName] = useState("");
   const [scope, setScope] = useState<"full" | "content" | "read">("full");
   const [expiresAt, setExpiresAt] = useState("");
@@ -148,100 +159,81 @@ export default function McpTokensPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">MCP Tokens</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Bearer tokens that let AI clients control this VibeCMS instance via the
-            Model Context Protocol. Each token is shown once at creation — store it
-            somewhere safe.
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New token
-        </Button>
-      </div>
+    <ListPageShell>
+      <ListHeader
+        title="MCP Tokens"
+        count={tokens.length}
+        newLabel="New token"
+        onNew={() => setCreateOpen(true)}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Key className="h-5 w-5 text-indigo-500" /> Your tokens
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-            </div>
-          ) : tokens.length === 0 ? (
-            <div className="py-10 text-center text-sm text-slate-500">
-              No tokens yet. Create one to connect Claude Code, Cursor, or any other
-              MCP client.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Prefix</TableHead>
-                  <TableHead>Scope</TableHead>
-                  <TableHead>Last used</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-16"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tokens.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="font-mono text-xs text-slate-500">
-                      {t.token_prefix}…
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-block px-2 py-0.5 text-xs rounded-md ${scopeBadge[t.scope] || ""}`}
-                      >
-                        {scopeLabels[t.scope] || t.scope}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500">
-                      {formatDateTime(t.last_used_at)}
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500">
-                      {formatDateTime(t.expires_at)}
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500">
-                      {formatDateTime(t.created_at)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setConfirmDelete(t)}
-                        aria-label="Revoke token"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <p className="mb-3 text-[12px] text-slate-500 max-w-3xl">
+        Bearer tokens that let AI clients control this VibeCMS instance via the Model Context
+        Protocol. Each token is shown once at creation — store it somewhere safe.
+      </p>
 
-      {/* Create dialog */}
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : tokens.length === 0 ? (
+          <EmptyState
+            icon={Key}
+            title="No tokens yet"
+            description="Create one to connect Claude Code, Cursor, or any other MCP client."
+          />
+        ) : (
+          <ListTable>
+            <thead>
+              <tr>
+                <Th>Name</Th>
+                <Th width={140}>Scope</Th>
+                <Th width={100}>Status</Th>
+                <Th width={170}>Last used</Th>
+                <Th width={170}>Expires</Th>
+                <Th width={170}>Created</Th>
+                <Th width={80} align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {tokens.map((t) => (
+                <Tr key={t.id}>
+                  <Td>
+                    <TitleCell title={t.name} slug={`${t.token_prefix}…`} />
+                  </Td>
+                  <Td>
+                    <Chip>{scopeLabels[t.scope] || t.scope}</Chip>
+                  </Td>
+                  <Td>
+                    <StatusPill status={tokenStatus(t)} label={tokenStatusLabel(t)} />
+                  </Td>
+                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                    {formatDateTime(t.last_used_at)}
+                  </Td>
+                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                    {formatDateTime(t.expires_at)}
+                  </Td>
+                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                    {formatDateTime(t.created_at)}
+                  </Td>
+                  <Td align="right" className="whitespace-nowrap">
+                    <RowActions
+                      onDelete={() => setConfirmDelete(t)}
+                      deleteTitle="Revoke token"
+                    />
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </ListTable>
+        )}
+      </ListCard>
+
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New MCP token</DialogTitle>
             <DialogDescription>
-              The raw token is shown once. Copy it into your MCP client config
-              immediately.
+              The raw token is shown once. Copy it into your MCP client config immediately.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
@@ -291,14 +283,11 @@ export default function McpTokensPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Reveal dialog — shown once */}
       <Dialog open={!!revealed} onOpenChange={(o) => !o && setRevealed(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Token "{revealed?.record.name}"</DialogTitle>
-            <DialogDescription>
-              Store this securely. It won't be shown again.
-            </DialogDescription>
+            <DialogDescription>Store this securely. It won't be shown again.</DialogDescription>
           </DialogHeader>
           <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm">
             <span className="flex-1 break-all">{revealed?.token}</span>
@@ -323,7 +312,6 @@ export default function McpTokensPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Revoke confirm */}
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader>
@@ -342,6 +330,6 @@ export default function McpTokensPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPageShell>
   );
 }

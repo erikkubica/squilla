@@ -28,8 +28,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Select,
@@ -50,6 +48,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import CustomFieldInput from "@/components/ui/custom-field-input";
 import BlockPicker, { BLOCK_ICON_MAP } from "@/components/ui/block-picker";
+import { usePageMeta } from "@/components/layout/page-meta";
 import { toast } from "sonner";
 import {
   getNode,
@@ -100,6 +99,12 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+function getFieldWidth(field: NodeTypeField): number {
+  const w = field.width;
+  if (typeof w === "number" && w > 0 && w <= 100) return Math.round(w);
+  return 100;
+}
+
 export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -118,6 +123,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   // Node type definition
   const [nodeTypeDef, setNodeTypeDef] = useState<NodeType | null>(null);
   const label = nodeTypeDef?.label || nodeTypeProp.charAt(0).toUpperCase() + nodeTypeProp.slice(1);
+  const labelPlural = nodeTypeDef?.label_plural || `${label}s`;
   const basePath = `/admin/${nodeTypeProp === "page" ? "pages" : nodeTypeProp === "post" ? "posts" : `content/${nodeTypeProp}`}`;
 
   // Block types & templates
@@ -139,6 +145,11 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const [layoutData, setLayoutData] = useState<Record<string, Record<string, unknown>>>({});
   const [layoutPartials, setLayoutPartials] = useState<LayoutBlock[]>([]);
   const [originalNode, setOriginalNode] = useState<ContentNode | null>(null);
+
+  usePageMeta([
+    labelPlural,
+    isEdit ? (title ? `Edit "${title}"` : "Edit") : `New ${label}`,
+  ]);
 
   // Page templates
   const [showLoadTemplate, setShowLoadTemplate] = useState(false);
@@ -390,6 +401,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
 
   const customFields: NodeTypeField[] = (nodeTypeDef?.field_schema ?? []).map(f => ({ ...f, key: f.key || f.name }));
 
+  // Resolve whether block composition is enabled for this node.
+  // Precedence: explicit layout setting > node type setting. Default true.
+  const selectedLayout = layouts.find((l) => String(l.id) === String(layoutId));
+  const layoutAllowsBlocks = selectedLayout ? (selectedLayout.supports_blocks !== false) : true;
+  const nodeTypeAllowsBlocks = nodeTypeDef ? (nodeTypeDef.supports_blocks !== false) : true;
+  const blocksEnabled = layoutAllowsBlocks && nodeTypeAllowsBlocks;
+
   // Resolve language URL slug
   const currentLang = languages.find((l) => l.code === languageCode);
   const langSlug = currentLang?.hide_prefix ? "" : (currentLang?.slug || languageCode);
@@ -618,80 +636,145 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild className="rounded-lg hover:bg-slate-200">
-          <Link to={basePath}>
-            <ArrowLeft className="h-5 w-5 text-slate-600" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold text-slate-900">
-          {isEdit ? `Edit ${label}` : `New ${label}`}
-        </h1>
-      </div>
-
-      <form onSubmit={(e) => handleSave(e)} className="grid gap-6 lg:grid-cols-3">
+    <div className="space-y-4">
+      <form onSubmit={(e) => handleSave(e)} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Main content */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Title + Slug compact row */}
-          <div className="space-y-3">
-            <Input
-              id="title"
-              placeholder={`Enter ${label.toLowerCase()} title`}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="text-lg font-semibold h-11 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-            />
-            <div className="flex items-center gap-2">
-              <div className="flex items-center flex-1 rounded-lg border border-slate-200 bg-white overflow-hidden h-8">
-                <span className="shrink-0 bg-slate-50 px-2.5 text-xs text-slate-400 border-r border-slate-200 h-full flex items-center">
-                  /{langSlug ? `${langSlug}/` : ""}{urlPrefix ? `${urlPrefix}/` : ""}{parentNode ? `${parentNode.slug}/` : ""}
-                </span>
-                <input
-                  id="slug"
-                  placeholder="url-slug"
-                  value={slug}
-                  onChange={(e) => {
-                    setAutoSlug(false);
-                    setSlug(e.target.value);
-                  }}
-                  disabled={autoSlug}
-                  required
-                  className="flex-1 bg-transparent px-2 text-xs outline-none disabled:opacity-50 font-mono"
-                />
-                <button
-                  type="button"
-                  className="shrink-0 px-2.5 text-xs text-indigo-500 hover:text-indigo-700 border-l border-slate-200 h-full"
-                  onClick={() => setAutoSlug(!autoSlug)}
-                >
-                  {autoSlug ? "Edit" : "Auto"}
-                </button>
-              </div>
-              {isEdit && originalNode && status === "published" && (
-                <a
-                  href={originalNode.full_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg border border-slate-200 text-xs text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  View
-                </a>
-              )}
+        <div className="space-y-4 min-w-0">
+          {/* Inline Title + Slug + ID + View header row */}
+          <div
+            className="flex items-center gap-1.5"
+            style={{
+              padding: 6,
+              background: "var(--card-bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <Button variant="ghost" size="icon" asChild className="h-7 w-7 shrink-0">
+              <Link to={basePath} title={`Back to ${label}s`}>
+                <ArrowLeft className="h-3.5 w-3.5" style={{ color: "var(--fg-muted)" }} />
+              </Link>
+            </Button>
+            <div className="flex items-center gap-1.5 flex-[1_1_60%] min-w-0 px-1">
+              <span
+                className="shrink-0 uppercase"
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  color: "var(--fg-muted)",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                Title
+              </span>
+              <input
+                id="title"
+                placeholder={`Enter ${label.toLowerCase()} title`}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="flex-1 min-w-0 bg-transparent outline-none"
+                style={{
+                  border: "none",
+                  padding: "6px 4px",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: "var(--fg)",
+                }}
+              />
             </div>
-          </div>
-
-          {/* Visual Block Editor */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-slate-900">Blocks</h2>
+            <div className="w-px h-5 shrink-0" style={{ background: "var(--border)" }} />
+            <div className="flex items-center gap-1 flex-[1_1_40%] min-w-0 px-1">
+              <span
+                className="shrink-0"
+                style={{
+                  fontSize: 11,
+                  color: "var(--fg-subtle)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                /{langSlug ? `${langSlug}/` : ""}
+                {urlPrefix ? `${urlPrefix}/` : ""}
+                {parentNode ? `${parentNode.slug}/` : ""}
+              </span>
+              <input
+                id="slug"
+                placeholder="url-slug"
+                value={slug}
+                onChange={(e) => {
+                  setAutoSlug(false);
+                  setSlug(e.target.value);
+                }}
+                disabled={autoSlug}
+                required
+                className="flex-1 min-w-0 bg-transparent outline-none disabled:opacity-60"
+                style={{
+                  border: "none",
+                  padding: "6px 0",
+                  fontSize: 12.5,
+                  color: "var(--fg)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              />
+              <button
+                type="button"
+                className="shrink-0 px-1.5 py-0.5 rounded text-[10.5px] font-medium uppercase"
+                style={{
+                  color: autoSlug ? "var(--accent)" : "var(--fg-muted)",
+                  background: autoSlug ? "color-mix(in oklab, var(--accent) 12%, transparent)" : "var(--sub-bg)",
+                  border: "1px solid var(--border)",
+                  letterSpacing: "0.04em",
+                }}
+                onClick={() => setAutoSlug(!autoSlug)}
+                title={autoSlug ? "Click to edit slug manually" : "Click to auto-generate slug from title"}
+              >
+                {autoSlug ? "Auto" : "Edit"}
+              </button>
+            </div>
+            {isEdit && (
+              <Badge
+                variant="secondary"
+                className="shrink-0 font-mono"
+                style={{ fontSize: 10.5, background: "var(--sub-bg)", color: "var(--fg-muted)", border: "1px solid var(--border)" }}
+              >
+                ID {id}
+              </Badge>
+            )}
+            {isEdit && originalNode && status === "published" && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-lg border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-600"
+                className="h-7 px-2 text-[12px] shrink-0"
+                asChild
+              >
+                <a href={originalNode.full_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-1 h-3 w-3" />
+                  View
+                </a>
+              </Button>
+            )}
+          </div>
+
+          {/* Visual Block Editor */}
+          {blocksEnabled && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold" style={{ fontSize: 14, color: "var(--fg)" }}>Blocks</h2>
+                <Badge
+                  variant="secondary"
+                  style={{ fontSize: 10.5, background: "var(--sub-bg)", color: "var(--fg-muted)", border: "1px solid var(--border)" }}
+                >
+                  {blocks.length}
+                </Badge>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-[12px]"
                 onClick={openLoadTemplate}
               >
                 <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
@@ -713,23 +796,70 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 const isCollapsed = collapsedBlocks.has(index);
                 const blockFields = blockTypeDef?.field_schema || [];
 
+                const typeCategory = block.type.split("-")[0];
                 return (
                   <div
                     key={index}
-                    className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden"
+                    className="overflow-hidden"
+                    style={{
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--radius-lg)",
+                      background: "var(--card-bg)",
+                    }}
                   >
                     {/* Block header */}
                     <div
-                      className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 border-b border-slate-200 cursor-pointer select-none"
+                      className="flex items-center gap-2 cursor-pointer select-none"
+                      style={{
+                        padding: "8px 10px",
+                        background: "var(--sub-bg)",
+                        borderBottom: isCollapsed ? "none" : "1px solid var(--border)",
+                      }}
                       onClick={() => toggleBlockCollapse(index)}
                     >
-                      {/* Move buttons */}
-                      <div className="flex flex-col gap-0" onClick={(e) => e.stopPropagation()}>
+                      <ChevronDown
+                        className="shrink-0 transition-transform"
+                        size={12}
+                        style={{
+                          color: "var(--fg-muted)",
+                          transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                        }}
+                      />
+                      <BlockIcon size={14} style={{ color: "var(--fg-muted)" }} className="shrink-0" />
+                      <span
+                        className="font-semibold"
+                        style={{ fontSize: 12.5, color: "var(--fg)" }}
+                      >
+                        {getBlockLabel(block.type)}
+                      </span>
+                      <span
+                        className="font-mono"
+                        style={{ fontSize: 11, color: "var(--fg-muted)" }}
+                      >
+                        {block.type}
+                      </span>
+                      {typeCategory && typeCategory !== block.type && (
+                        <Badge
+                          variant="secondary"
+                          style={{
+                            fontSize: 10,
+                            background: "color-mix(in oklab, var(--accent) 10%, transparent)",
+                            color: "var(--accent-strong)",
+                            border: "1px solid color-mix(in oklab, var(--accent) 20%, transparent)",
+                          }}
+                        >
+                          {typeCategory}
+                        </Badge>
+                      )}
+                      <div className="flex-1" />
+                      <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => moveBlock(index, "up")}
                           disabled={index === 0}
-                          className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
+                          style={{ color: "var(--fg-muted)" }}
+                          title="Move up"
                         >
                           <ChevronUp className="h-3.5 w-3.5" />
                         </button>
@@ -737,64 +867,73 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           type="button"
                           onClick={() => moveBlock(index, "down")}
                           disabled={index === blocks.length - 1}
-                          className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
+                          style={{ color: "var(--fg-muted)" }}
+                          title="Move down"
                         >
                           <ChevronDown className="h-3.5 w-3.5" />
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => removeBlock(index)}
+                          className="p-1 rounded hover:bg-red-50"
+                          style={{ color: "var(--danger)" }}
+                          title="Delete block"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-
-                      {/* Collapse toggle + label */}
-                      <div className="flex flex-1 items-center gap-2">
-                        <ChevronRight
-                          className={`h-4 w-4 text-slate-400 transition-transform ${
-                            !isCollapsed ? "rotate-90" : ""
-                          }`}
-                        />
-                        <BlockIcon className="h-4 w-4 text-slate-500" />
-                        <span className="text-sm font-medium text-slate-700">
-                          {getBlockLabel(block.type)}
-                        </span>
-                        <span className="text-xs text-slate-400 font-mono">{block.type}</span>
-                      </div>
-
-                      {/* Delete block */}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-400 hover:text-red-600"
-                        onClick={(e) => { e.stopPropagation(); removeBlock(index); }}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
 
                     {/* Block fields */}
                     {!isCollapsed && (
-                      <div className="p-4 space-y-3">
+                      <div style={{ padding: "12px 14px 14px" }} className="space-y-3">
                         {blockTypeDef?.description && (
-                          <p className="text-xs text-slate-500 italic border-l-2 border-slate-200 pl-2">
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "var(--fg-muted)",
+                              padding: "8px 10px",
+                              background: "var(--sub-bg)",
+                              border: "1px solid var(--border)",
+                              borderLeft: "2px solid var(--accent)",
+                              borderRadius: "var(--radius)",
+                              lineHeight: 1.5,
+                            }}
+                          >
                             {blockTypeDef.description}
-                          </p>
+                          </div>
                         )}
                         {blockFields.length === 0 ? (
-                          <p className="text-sm text-slate-400 text-center py-2">
+                          <p className="text-center py-2" style={{ fontSize: 13, color: "var(--fg-subtle)" }}>
                             This block type has no fields defined.
                           </p>
                         ) : (
-                          blockFields.map((field) => (
-                            <div key={field.key} className="space-y-1.5">
-                              <Label className="text-sm font-medium text-slate-700">
-                                {field.label}
-                                {field.required && <span className="ml-1 text-red-500">*</span>}
-                              </Label>
-                              <CustomFieldInput
-                                field={field}
-                                value={block.fields[field.key]}
-                                onChange={(val) => updateBlockField(index, field.key, val)}
-                              />
-                            </div>
-                          ))
+                          <div className="flex flex-wrap" style={{ gap: "12px 14px" }}>
+                            {blockFields.map((field) => {
+                              const w = getFieldWidth(field);
+                              return (
+                                <div
+                                  key={field.key}
+                                  className="space-y-1.5 min-w-0"
+                                  style={{
+                                    flex: `0 0 calc(${w}% - 14px)`,
+                                    maxWidth: `calc(${w}% - 14px)`,
+                                  }}
+                                >
+                                  <Label className="font-medium" style={{ fontSize: 12, color: "var(--fg-2)" }}>
+                                    {field.label}
+                                    {field.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
+                                  </Label>
+                                  <CustomFieldInput
+                                    field={field}
+                                    value={block.fields[field.key]}
+                                    onChange={(val) => updateBlockField(index, field.key, val)}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     )}
@@ -867,108 +1006,156 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               </div>
             </div>
           </div>
+          )}
 
           {/* Excerpt */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900">Excerpt</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-6 pt-0">
+          <Card>
+            <div className="flex items-center gap-2 p-4 pb-0">
+              <span className="font-semibold" style={{ fontSize: 13, color: "var(--fg)" }}>Excerpt</span>
+            </div>
+            <CardContent className="space-y-2 px-4 pb-4 pt-3">
               <Textarea
                 placeholder="Enter a short summary or teaser..."
                 value={excerpt}
                 onChange={(e) => setExcerpt(e.target.value)}
                 rows={3}
-                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                className="resize-none"
               />
-              <p className="text-xs text-slate-400">Short description used in cards and search results. If empty, it may be auto-generated from content.</p>
+              <p style={{ fontSize: 11, color: "var(--fg-muted)" }}>Short description used in cards and search results. If empty, it may be auto-generated from content.</p>
             </CardContent>
           </Card>
 
           {/* Custom Fields */}
           {customFields.length > 0 && (
-            <Card className="rounded-xl border border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900">Custom Fields</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6 pt-0">
-                {customFields.map((field) => (
-                  <div key={field.key} className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">
-                      {field.label}
-                      {field.required && <span className="ml-1 text-red-500">*</span>}
-                    </Label>
-                    <CustomFieldInput
-                      field={field}
-                      value={fieldsData[field.key]}
-                      onChange={(val) => updateFieldValue(field.key, val)}
-                    />
-                  </div>
-                ))}
+            <Card>
+              <div className="flex items-center gap-2 p-4 pb-0">
+                <span className="font-semibold" style={{ fontSize: 13, color: "var(--fg)" }}>Custom Fields</span>
+              </div>
+              <CardContent className="px-4 pb-4 pt-3">
+                <div className="flex flex-wrap" style={{ gap: "16px 14px" }}>
+                  {customFields.map((field) => {
+                    const w = getFieldWidth(field);
+                    return (
+                      <div
+                        key={field.key}
+                        className="space-y-2 min-w-0"
+                        style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
+                      >
+                        <Label className="text-sm font-medium text-slate-700">
+                          {field.label}
+                          {field.required && <span className="ml-1 text-red-500">*</span>}
+                        </Label>
+                        <CustomFieldInput
+                          field={field}
+                          value={fieldsData[field.key]}
+                          onChange={(val) => updateFieldValue(field.key, val)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           )}
 
           {/* Layout Partial Fields */}
-          {layoutPartials.map((partial) => (
-            <Card key={partial.slug} className="rounded-xl border border-purple-200 shadow-sm">
-              <CardHeader className="cursor-pointer" onClick={() => {
-                setCollapsedBlocks((prev) => {
-                  const next = new Set(prev);
-                  const key = -partial.id; // Negative IDs for partials to avoid collision with block indices
-                  if (next.has(key)) next.delete(key); else next.add(key);
-                  return next;
-                });
-              }}>
-                <div className="flex items-center gap-2">
-                  <LayoutTemplate className="h-4 w-4 text-purple-500" />
-                  <CardTitle className="text-lg font-semibold text-slate-900">{partial.name}</CardTitle>
-                  <Badge variant="secondary" className="ml-auto text-[10px] bg-purple-100 text-purple-700">
-                    Layout Partial
-                  </Badge>
-                  {collapsedBlocks.has(-partial.id) ? (
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                  )}
+          {layoutPartials.map((partial) => {
+            const partialCollapsed = collapsedBlocks.has(-partial.id);
+            return (
+            <div
+              key={partial.slug}
+              className="overflow-hidden"
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-lg)",
+                background: "var(--card-bg)",
+              }}
+            >
+              <div
+                className="flex items-center gap-2 cursor-pointer select-none"
+                style={{
+                  padding: "8px 10px",
+                  background: "var(--sub-bg)",
+                  borderBottom: partialCollapsed ? "none" : "1px solid var(--border)",
+                }}
+                onClick={() => {
+                  setCollapsedBlocks((prev) => {
+                    const next = new Set(prev);
+                    const key = -partial.id;
+                    if (next.has(key)) next.delete(key); else next.add(key);
+                    return next;
+                  });
+                }}
+              >
+                <ChevronDown
+                  size={12}
+                  className="shrink-0 transition-transform"
+                  style={{
+                    color: "var(--fg-muted)",
+                    transform: partialCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                  }}
+                />
+                <LayoutTemplate size={14} style={{ color: "var(--fg-muted)" }} className="shrink-0" />
+                <span className="font-semibold" style={{ fontSize: 12.5, color: "var(--fg)" }}>
+                  {partial.name}
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="ml-auto"
+                  style={{
+                    fontSize: 10,
+                    background: "color-mix(in oklab, #a855f7 14%, transparent)",
+                    color: "#7e22ce",
+                    border: "1px solid color-mix(in oklab, #a855f7 24%, transparent)",
+                  }}
+                >
+                  Layout Partial
+                </Badge>
+              </div>
+              {!partialCollapsed && (
+                <div style={{ padding: "12px 14px 14px" }}>
+                  <div className="flex flex-wrap" style={{ gap: "16px 14px" }}>
+                    {(partial.field_schema || []).map((field) => {
+                      const fieldKey = field.key || field.name;
+                      const partialData = layoutData[partial.slug] || {};
+                      const w = getFieldWidth(field);
+                      return (
+                        <div
+                          key={fieldKey}
+                          className="space-y-2 min-w-0"
+                          style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
+                        >
+                          <Label className="text-sm font-medium text-slate-700">
+                            {field.label}
+                            {field.required && <span className="ml-1 text-red-500">*</span>}
+                          </Label>
+                          {(field as any).default_from && !partialData[fieldKey] && (
+                            <p className="text-xs text-slate-400">
+                              Falls back to <code className="bg-slate-100 px-1 rounded">{(field as any).default_from}</code>
+                            </p>
+                          )}
+                          <CustomFieldInput
+                            field={field}
+                            value={partialData[fieldKey]}
+                            onChange={(val) => {
+                              setLayoutData((prev) => ({
+                                ...prev,
+                                [partial.slug]: {
+                                  ...(prev[partial.slug] || {}),
+                                  [fieldKey]: val,
+                                },
+                              }));
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </CardHeader>
-              {!collapsedBlocks.has(-partial.id) && (
-                <CardContent className="space-y-4 p-6 pt-0">
-                  {(partial.field_schema || []).map((field) => {
-                    const fieldKey = field.key || field.name;
-                    const partialData = layoutData[partial.slug] || {};
-                    return (
-                      <div key={fieldKey} className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          {field.label}
-                          {field.required && <span className="ml-1 text-red-500">*</span>}
-                        </Label>
-                        {(field as any).default_from && !partialData[fieldKey] && (
-                          <p className="text-xs text-slate-400">
-                            Falls back to <code className="bg-slate-100 px-1 rounded">{(field as any).default_from}</code>
-                          </p>
-                        )}
-                        <CustomFieldInput
-                          field={field}
-                          value={partialData[fieldKey]}
-                          onChange={(val) => {
-                            setLayoutData((prev) => ({
-                              ...prev,
-                              [partial.slug]: {
-                                ...(prev[partial.slug] || {}),
-                                [fieldKey]: val,
-                              },
-                            }));
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                </CardContent>
               )}
-            </Card>
-          ))}
+            </div>
+            );
+          })}
         </div>
 
         {/* Sidebar */}

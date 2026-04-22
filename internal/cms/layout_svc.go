@@ -42,7 +42,7 @@ func (s *LayoutService) List(languageID *int, source string, page, perPage int) 
 	var total int64
 	q.Count(&total)
 
-	if err := q.Select("id, slug, name, description, language_id, is_default, source, theme_name, created_at, updated_at").
+	if err := q.Select("id, slug, name, description, language_id, is_default, supports_blocks, source, theme_name, created_at, updated_at").
 		Order("name ASC").
 		Offset((page - 1) * perPage).Limit(perPage).
 		Find(&layouts).Error; err != nil {

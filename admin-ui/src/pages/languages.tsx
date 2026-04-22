@@ -1,17 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Plus, Pencil, Trash2, Globe, Loader2 } from "lucide-react";
+import { Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -20,12 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { toast } from "sonner";
 import {
   getLanguages,
@@ -34,22 +19,33 @@ import {
   deleteLanguage,
   type Language,
 } from "@/api/client";
+import {
+  ListPageShell,
+  ListHeader,
+  ListCard,
+  ListTable,
+  Th,
+  Tr,
+  Td,
+  StatusPill,
+  Chip,
+  RowActions,
+  EmptyState,
+  LoadingRow,
+} from "@/components/ui/list-page";
 
 export default function LanguagesPage() {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Dialog state
   const [showEditor, setShowEditor] = useState(false);
   const [editingLanguage, setEditingLanguage] = useState<Language | null>(null);
 
-  // Delete confirmation
   const [showDelete, setShowDelete] = useState(false);
   const [deletingLanguage, setDeletingLanguage] = useState<Language | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Form state
   const [formCode, setFormCode] = useState("");
   const [formSlug, setFormSlug] = useState("");
   const [formName, setFormName] = useState("");
@@ -134,27 +130,10 @@ export default function LanguagesPage() {
       setShowEditor(false);
       await fetchLanguages();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save language";
+      const message = err instanceof Error ? err.message : "Failed to save language";
       toast.error(message);
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleToggleActive(lang: Language) {
-    try {
-      await updateLanguage(lang.id, { is_active: !lang.is_active });
-      setLanguages((prev) =>
-        prev.map((l) =>
-          l.id === lang.id ? { ...l, is_active: !l.is_active } : l
-        )
-      );
-      toast.success(
-        `${lang.name} ${!lang.is_active ? "activated" : "deactivated"}`
-      );
-    } catch {
-      toast.error("Failed to update language");
     }
   }
 
@@ -173,137 +152,84 @@ export default function LanguagesPage() {
       setDeletingLanguage(null);
       await fetchLanguages();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete language";
+      const message = err instanceof Error ? err.message : "Failed to delete language";
       toast.error(message);
     } finally {
       setDeleting(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Globe className="h-7 w-7 text-indigo-600" />
-          <h1 className="text-2xl font-bold text-slate-900">Languages</h1>
-        </div>
-        <Button
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm"
-          onClick={openAddDialog}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Language
-        </Button>
-      </div>
+    <ListPageShell>
+      <ListHeader
+        title="Languages"
+        count={languages.length}
+        newLabel="Add Language"
+        onNew={openAddDialog}
+      />
 
-      {/* Table */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900">
-            All Languages
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-200 hover:bg-transparent">
-                <TableHead className="text-slate-500 font-medium">Flag</TableHead>
-                <TableHead className="text-slate-500 font-medium">Code</TableHead>
-                <TableHead className="text-slate-500 font-medium">URL Slug</TableHead>
-                <TableHead className="text-slate-500 font-medium">Name</TableHead>
-                <TableHead className="text-slate-500 font-medium">Native Name</TableHead>
-                <TableHead className="text-slate-500 font-medium">Default</TableHead>
-                <TableHead className="text-slate-500 font-medium">Active</TableHead>
-                <TableHead className="text-slate-500 font-medium text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {languages.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-slate-400">
-                    No languages configured yet. Click "Add Language" to get started.
-                  </TableCell>
-                </TableRow>
-              )}
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : languages.length === 0 ? (
+          <EmptyState
+            icon={Globe}
+            title="No languages configured yet"
+            description='Click "Add Language" to get started.'
+          />
+        ) : (
+          <ListTable>
+            <thead>
+              <tr>
+                <Th width={60}>Flag</Th>
+                <Th width={90}>Code</Th>
+                <Th width={110}>URL Slug</Th>
+                <Th>Name</Th>
+                <Th>Native Name</Th>
+                <Th width={120}>Status</Th>
+                <Th width={110} align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
               {languages.map((lang) => (
-                <TableRow key={lang.id} className="border-slate-100">
-                  <TableCell className="text-2xl">{lang.flag}</TableCell>
-                  <TableCell>
-                    <span className="font-mono text-sm text-slate-700">{lang.code}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-mono text-sm text-indigo-600">/{lang.slug}/</span>
-                  </TableCell>
-                  <TableCell className="font-medium text-slate-800">{lang.name}</TableCell>
-                  <TableCell className="text-slate-600">{lang.native_name}</TableCell>
-                  <TableCell>
-                    {lang.is_default && (
-                      <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-0 text-xs">
-                        Default
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleActive(lang)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${
-                        lang.is_active ? "bg-indigo-600" : "bg-slate-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          lang.is_active ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-500 hover:text-indigo-600"
-                        onClick={() => openEditDialog(lang)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {!lang.is_default && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-red-600"
-                          onClick={() => openDeleteDialog(lang)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                <Tr key={lang.id}>
+                  <Td className="text-xl leading-none">{lang.flag}</Td>
+                  <Td className="font-mono text-[12px] text-slate-700">{lang.code}</Td>
+                  <Td className="font-mono text-[12px] text-indigo-600">/{lang.slug}/</Td>
+                  <Td>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[13px] font-medium text-slate-900">{lang.name}</span>
+                      {lang.is_default && <Chip>Default</Chip>}
+                      {lang.hide_prefix && <Chip>No prefix</Chip>}
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </Td>
+                  <Td className="text-slate-600">{lang.native_name}</Td>
+                  <Td>
+                    {lang.is_default ? (
+                      <StatusPill status="success" label="default" />
+                    ) : lang.is_active ? (
+                      <StatusPill status="active" />
+                    ) : (
+                      <StatusPill status="inactive" />
+                    )}
+                  </Td>
+                  <Td align="right" className="whitespace-nowrap">
+                    <RowActions
+                      onEdit={() => openEditDialog(lang)}
+                      onDelete={lang.is_default ? undefined : () => openDeleteDialog(lang)}
+                    />
+                  </Td>
+                </Tr>
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </tbody>
+          </ListTable>
+        )}
+      </ListCard>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={showEditor} onOpenChange={setShowEditor}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingLanguage ? "Edit Language" : "Add Language"}
-            </DialogTitle>
+            <DialogTitle>{editingLanguage ? "Edit Language" : "Add Language"}</DialogTitle>
             <DialogDescription>
               {editingLanguage
                 ? "Update the language details below."
@@ -328,9 +254,7 @@ export default function LanguagesPage() {
                   disabled={!!editingLanguage}
                   className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
-                {editingLanguage && (
-                  <p className="text-xs text-slate-400">Code cannot be changed</p>
-                )}
+                {editingLanguage && <p className="text-xs text-slate-400">Code cannot be changed</p>}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -359,7 +283,9 @@ export default function LanguagesPage() {
                   required
                   className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
-                <p className="text-xs text-slate-400">Used in URLs: /{formSlug || formCode}/page-slug</p>
+                <p className="text-xs text-slate-400">
+                  Used in URLs: /{formSlug || formCode}/page-slug
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lang-flag" className="text-sm font-medium text-slate-700">
@@ -434,7 +360,10 @@ export default function LanguagesPage() {
             </div>
             {formHidePrefix && (
               <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-                URLs for this language won't have a prefix: <span className="font-mono">/page-slug</span> instead of <span className="font-mono">/{formSlug || formCode}/page-slug</span>. Typically used for the default language.
+                URLs for this language won't have a prefix:{" "}
+                <span className="font-mono">/page-slug</span> instead of{" "}
+                <span className="font-mono">/{formSlug || formCode}/page-slug</span>. Typically used
+                for the default language.
               </p>
             )}
 
@@ -469,34 +398,25 @@ export default function LanguagesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation dialog */}
       <Dialog open={showDelete} onOpenChange={setShowDelete}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Language</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{deletingLanguage?.name}&quot;
-              ({deletingLanguage?.code})? This action cannot be undone.
+              Are you sure you want to delete &quot;{deletingLanguage?.name}&quot; (
+              {deletingLanguage?.code})? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDelete(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setShowDelete(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPageShell>
   );
 }

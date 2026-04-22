@@ -27,13 +27,17 @@ func (c *coreImpl) RegisterNodeType(_ context.Context, input NodeTypeInput) (*No
 	}
 
 	nt := &models.NodeType{
-		Slug:        input.Slug,
-		Label:       input.Label,
-		LabelPlural: input.LabelPlural,
-		Icon:        input.Icon,
-		Description: input.Description,
-		FieldSchema: models.JSONB(fieldSchemaJSON),
-		URLPrefixes: models.JSONB(urlPrefixesJSON),
+		Slug:           input.Slug,
+		Label:          input.Label,
+		LabelPlural:    input.LabelPlural,
+		Icon:           input.Icon,
+		Description:    input.Description,
+		FieldSchema:    models.JSONB(fieldSchemaJSON),
+		URLPrefixes:    models.JSONB(urlPrefixesJSON),
+		SupportsBlocks: true,
+	}
+	if input.SupportsBlocks != nil {
+		nt.SupportsBlocks = *input.SupportsBlocks
 	}
 	if nt.Icon == "" {
 		nt.Icon = "file-text"
@@ -65,6 +69,9 @@ func (c *coreImpl) RegisterNodeType(_ context.Context, input NodeTypeInput) (*No
 		}
 		updates["field_schema"] = nt.FieldSchema
 		updates["url_prefixes"] = nt.URLPrefixes
+		if input.SupportsBlocks != nil {
+			updates["supports_blocks"] = *input.SupportsBlocks
+		}
 
 		updated, err := c.nodeTypeSvc.Update(existing.ID, updates)
 		if err != nil {
@@ -134,6 +141,9 @@ func (c *coreImpl) UpdateNodeType(_ context.Context, slug string, input NodeType
 	if input.URLPrefixes != nil {
 		updates["url_prefixes"] = input.URLPrefixes
 	}
+	if input.SupportsBlocks != nil {
+		updates["supports_blocks"] = *input.SupportsBlocks
+	}
 
 	updated, err := c.nodeTypeSvc.Update(existing.ID, updates)
 	if err != nil {
@@ -163,14 +173,15 @@ func (c *coreImpl) DeleteNodeType(_ context.Context, slug string) error {
 
 func nodeTypeFromModel(nt *models.NodeType) *NodeType {
 	result := &NodeType{
-		ID:          nt.ID,
-		Slug:        nt.Slug,
-		Label:       nt.Label,
-		LabelPlural: nt.LabelPlural,
-		Icon:        nt.Icon,
-		Description: nt.Description,
-		CreatedAt:   nt.CreatedAt,
-		UpdatedAt:   nt.UpdatedAt,
+		ID:             nt.ID,
+		Slug:           nt.Slug,
+		Label:          nt.Label,
+		LabelPlural:    nt.LabelPlural,
+		Icon:           nt.Icon,
+		Description:    nt.Description,
+		SupportsBlocks: nt.SupportsBlocks,
+		CreatedAt:      nt.CreatedAt,
+		UpdatedAt:      nt.UpdatedAt,
 	}
 
 	// Parse Taxonomies from JSONB

@@ -39,6 +39,7 @@ import {
   type NodeTypeField,
 } from "@/api/client";
 import { toast } from "sonner";
+import { usePageMeta } from "@/components/layout/page-meta";
 
 function slugify(text: string) {
   return text
@@ -69,6 +70,11 @@ export default function TaxonomyEditorPage() {
 
   const [availableNodeTypes, setAvailableNodeTypes] = useState<NodeType[]>([]);
   const [autoSlug, setAutoSlug] = useState(!isEdit);
+
+  usePageMeta([
+    "Taxonomies",
+    isEdit ? (label ? `Edit "${label}"` : "Edit") : "New Taxonomy",
+  ]);
 
   useEffect(() => {
     getNodeTypes().then(setAvailableNodeTypes).catch(console.error);

@@ -36,6 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import BlockPicker, { BLOCK_ICON_MAP } from "@/components/ui/block-picker";
+import { usePageMeta } from "@/components/layout/page-meta";
 import {
   getTemplate,
   createTemplate,
@@ -82,6 +83,11 @@ export default function TemplateEditorPage() {
   const [themeName, setThemeName] = useState<string | null>(null);
 
   const isManaged = source !== "custom";
+
+  usePageMeta([
+    "Templates",
+    isEdit ? (label ? `Edit "${label}"` : "Edit") : "New Template",
+  ]);
 
   // Block types
   const [blockTypes, setBlockTypes] = useState<BlockType[]>([]);

@@ -210,6 +210,7 @@ export interface NodeTypeField {
   prepend?: string;
   append?: string;
   allowed_types?: string;
+  width?: number;
 }
 
 export interface NodeSearchResult {
@@ -252,6 +253,7 @@ export interface NodeType {
   taxonomies: TaxonomyDefinition[];
   field_schema: NodeTypeField[];
   url_prefixes: Record<string, string>;
+  supports_blocks?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -610,6 +612,7 @@ export interface Layout {
   source: string;
   theme_name: string | null;
   is_default: boolean;
+  supports_blocks?: boolean;
   created_at: string;
   updated_at: string;
 }

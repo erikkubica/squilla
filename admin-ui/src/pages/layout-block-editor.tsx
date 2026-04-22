@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { usePageMeta } from "@/components/layout/page-meta";
 import {
   getLayoutBlock,
   createLayoutBlock,
@@ -100,6 +101,11 @@ export default function LayoutBlockEditorPage() {
   const [themeName, setThemeName] = useState<string | null>(null);
 
   const isManaged = source !== "custom";
+
+  usePageMeta([
+    "Layout Partials",
+    isNew ? "New Partial" : (name ? `Edit "${name}"` : "Edit"),
+  ]);
 
   const fetchLayoutBlock = useCallback(async () => {
     if (!id) return;

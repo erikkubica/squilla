@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import CodeEditor from "@/components/ui/code-editor";
 import { toast } from "sonner";
+import { usePageMeta } from "@/components/layout/page-meta";
 import {
   getLayout,
   createLayout,
@@ -89,9 +90,15 @@ export default function LayoutEditorPage() {
   const [languageId, setLanguageId] = useState<number | null>(null);
   const [templateCode, setTemplateCode] = useState("");
   const [isDefault, setIsDefault] = useState(false);
+  const [supportsBlocks, setSupportsBlocks] = useState(true);
   const [source, setSource] = useState("custom");
   const [themeName, setThemeName] = useState<string | null>(null);
   const [originalLayout, setOriginalLayout] = useState<Layout | null>(null);
+
+  usePageMeta([
+    "Layouts",
+    isEdit ? (name ? `Edit "${name}"` : "Edit") : "New Layout",
+  ]);
 
   // Languages
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -118,6 +125,7 @@ export default function LayoutEditorPage() {
         setLanguageId(layout.language_id);
         setTemplateCode(layout.template_code || "");
         setIsDefault(layout.is_default);
+        setSupportsBlocks(layout.supports_blocks !== false);
         setSource(layout.source || "custom");
         setThemeName(layout.theme_name || null);
         setAutoSlug(false);
@@ -156,6 +164,7 @@ export default function LayoutEditorPage() {
       language_id: languageId,
       template_code: templateCode,
       is_default: isDefault,
+      supports_blocks: supportsBlocks,
     };
 
     setSaving(true);
@@ -436,6 +445,22 @@ export default function LayoutEditorPage() {
                   />
                   Set as default layout
                 </label>
+              </div>
+              <div className="space-y-1 pt-1">
+                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={supportsBlocks}
+                    onChange={(e) => setSupportsBlocks(e.target.checked)}
+                    disabled={isManaged}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  Supports blocks
+                </label>
+                <p className="text-xs text-slate-500 pl-6">
+                  Allow block-based composition on nodes using this layout. Disable for
+                  layouts that render content entirely from node fields.
+                </p>
               </div>
             </CardContent>
           </Card>

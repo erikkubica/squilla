@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { usePageMeta } from "@/components/layout/page-meta";
 import {
   getMenu,
   createMenu,
@@ -65,6 +66,11 @@ export default function MenuEditorPage() {
   const [version, setVersion] = useState(1);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+
+  usePageMeta([
+    "Menus",
+    isNew ? "New Menu" : (name ? `Edit "${name}"` : "Edit"),
+  ]);
 
   const fetchMenu = useCallback(async () => {
     if (!id) return;

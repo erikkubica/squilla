@@ -43,6 +43,7 @@ import {
   type NodeTypeField,
 } from "@/api/client";
 import { toast } from "sonner";
+import { usePageMeta } from "@/components/layout/page-meta";
 import FieldTypePicker from "@/components/ui/field-type-picker";
 import SubFieldsEditor from "@/components/ui/sub-fields-editor";
 import CodeEditor from "@/components/ui/code-editor";
@@ -75,6 +76,11 @@ export default function BlockTypeEditorPage() {
   const [testData, setTestData] = useState<Record<string, unknown>>({});
   const [cacheOutput, setCacheOutput] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!isEdit);
+
+  usePageMeta([
+    "Block Types",
+    isEdit ? (label ? `Edit "${label}"` : "Edit") : "New Block Type",
+  ]);
 
   // New field form state
   const [addingField, setAddingField] = useState(false);
