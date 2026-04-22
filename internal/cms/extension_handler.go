@@ -34,6 +34,7 @@ type ExtensionHandler struct {
 	pluginManager *PluginManager
 	assetRegistry *ThemeAssetRegistry
 	eventBus      *events.EventBus
+	themeLoader   *ThemeLoader
 }
 
 // NewExtensionHandler creates a new ExtensionHandler.
@@ -59,6 +60,13 @@ func (h *ExtensionHandler) SetAssetRegistry(r *ThemeAssetRegistry) {
 // SetEventBus sets the event bus used to publish extension lifecycle events.
 func (h *ExtensionHandler) SetEventBus(b *events.EventBus) {
 	h.eventBus = b
+}
+
+// SetThemeLoader sets the theme loader, used to replay theme.activated events
+// when extensions are activated at runtime (so they can import theme assets
+// without requiring a server restart).
+func (h *ExtensionHandler) SetThemeLoader(tl *ThemeLoader) {
+	h.themeLoader = tl
 }
 
 // RegisterRoutes registers all admin API extension routes on the provided router group.
@@ -277,7 +285,47 @@ func (h *ExtensionHandler) HotActivate(slug string) error {
 		h.loader.LoadBlocksForExtension(slug, h.assetRegistry)
 	}
 	PublishExtensionActivated(h.eventBus, slug, ext.Path, json.RawMessage(ext.Manifest))
+
+	// Replay theme.activated so the newly-activated extension can react to
+	// the current active theme (e.g. media-manager importing theme assets).
+	// Without this, extensions activated after boot miss the theme.activated
+	// event that fired during startup.
+	h.replayThemeActivated()
+
 	return nil
+}
+
+// replayThemeActivated re-emits the theme.activated event for the currently
+// active theme. This allows extensions activated at runtime (after boot) to
+// process theme assets — e.g. media-manager importing theme images into its
+// media_files table. No-op if there is no active theme or no event bus.
+func (h *ExtensionHandler) replayThemeActivated() {
+	if h.eventBus == nil {
+		return
+	}
+	var activeTheme struct {
+		Name string
+		Path string
+	}
+	if err := h.db.Table("themes").Where("is_active = ?", true).
+		Select("name, path").Take(&activeTheme).Error; err != nil {
+		return
+	}
+	manifestPath := filepath.Join(activeTheme.Path, "theme.json")
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return
+	}
+	var mf ThemeManifest
+	if err := json.Unmarshal(data, &mf); err != nil {
+		return
+	}
+	h.eventBus.PublishSync("theme.activated", events.Payload{
+		"name":    mf.Name,
+		"path":    activeTheme.Path,
+		"version": mf.Version,
+		"assets":  themeAssetsPayload(activeTheme.Path, mf.Assets),
+	})
 }
 
 // HotDeactivate flips is_active=false and performs the full hot-unload

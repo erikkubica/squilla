@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	goplugin "github.com/hashicorp/go-plugin"
 	vibeplugin "vibecms/pkg/plugin"
+
+	goplugin "github.com/hashicorp/go-plugin"
 
 	"vibecms/internal/events"
 
@@ -35,6 +36,7 @@ type runningPlugin struct {
 	client     *goplugin.Client
 	impl       vibeplugin.ExtensionPlugin
 	eventNames []string
+	stopped    chan struct{} // closed when plugin is stopped; handlers check this before RPC
 }
 
 // PluginManager manages the lifecycle of gRPC plugin processes.
@@ -139,10 +141,11 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 		}
 
 		rp := &runningPlugin{
-			slug:   slug,
-			binary: pe.Binary,
-			client: client,
-			impl:   impl,
+			slug:    slug,
+			binary:  pe.Binary,
+			client:  client,
+			impl:    impl,
+			stopped: make(chan struct{}),
 		}
 
 		// Register event subscriptions
@@ -153,6 +156,14 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 			// Create a closure that calls the plugin's HandleEvent
 			pluginImpl := impl // capture for closure
 			pm.eventBus.Subscribe(eventName, func(action string, payload events.Payload) {
+				// Bail out if the plugin was stopped — avoids RPC errors on
+				// stale handlers that outlived the plugin process.
+				select {
+				case <-rp.stopped:
+					return
+				default:
+				}
+
 				payloadBytes, err := json.Marshal(payload)
 				if err != nil {
 					log.Printf("[plugins] failed to marshal payload for %s: %v", action, err)
@@ -197,6 +208,7 @@ func (pm *PluginManager) stopPluginsLocked(slug string) {
 
 	for _, rp := range plugins {
 		log.Printf("[plugins] stopping %s/%s", slug, rp.binary)
+		close(rp.stopped) // signal event handlers to stop calling this plugin
 		_ = rp.impl.Shutdown()
 		rp.client.Kill()
 	}

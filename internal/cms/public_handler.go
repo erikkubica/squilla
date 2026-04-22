@@ -141,41 +141,26 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 				h.resolveAssetRefsInBlocks(blocks)
 				renderedBlocks := h.renderBlocksBatch(blocks)
 
-				// Try layout-based rendering first
-				if html, ok := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user); ok {
+				// Layout-based rendering
+				html, _, renderErr := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user)
+				if renderErr != nil {
+					c.Set("Content-Type", "text/html; charset=utf-8")
+					return c.SendString(h.layoutErrorPage(renderErr, node.FullURL))
+				}
+				if html != "" {
 					c.Set("Content-Type", "text/html; charset=utf-8")
 					return c.SendString(html)
 				}
-
-				// Fall back to file-based template rendering
-				data := PageData{
-					Title:          node.Title + " - VibeCMS",
-					User:           user,
-					Node:           &node,
-					Blocks:         blocks,
-					RenderedBlocks: renderedBlocks,
-				}
+				// No layout resolved — show error page
 				c.Set("Content-Type", "text/html; charset=utf-8")
-				return h.renderer.RenderPage(c, "public/page.html", data)
+				return c.SendString(h.layoutErrorPage(fmt.Errorf("no layout resolved for homepage"), "/"))
 			}
 		}
 	}
 
-	// Fallback: show recent published content
-	var nodes []models.ContentNode
-	h.db.Where("status = ? AND deleted_at IS NULL", "published").
-		Order("published_at DESC").
-		Limit(9).
-		Find(&nodes)
-
-	data := PageData{
-		Title: "VibeCMS - High-Performance AI-Native CMS",
-		User:  user,
-		Nodes: nodes,
-	}
-
+	// No homepage node found — show error page
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	return h.renderer.RenderPage(c, "public/home.html", data)
+	return c.SendString(h.layoutErrorPage(fmt.Errorf("homepage content node not found"), "/"))
 }
 
 // PageByFullURL looks up a content node by matching the request path against full_url.
@@ -211,44 +196,37 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 			c.Status(fiber.StatusNotFound)
 			return c.SendString(html)
 		}
-		// Fall back to file-based 404
-		data := PageData{
-			Title: "Page Not Found - VibeCMS",
-			User:  user,
-		}
+		// No 404 layout — show error page
 		c.Set("Content-Type", "text/html; charset=utf-8")
 		c.Status(fiber.StatusNotFound)
-		return h.renderer.RenderPage(c, "public/page.html", data)
+		return c.SendString(h.layoutErrorPage(fmt.Errorf("page not found and no 404 layout available"), c.Path()))
 	}
 
 	blocks := parseBlocks(node.BlocksData)
 	h.resolveAssetRefsInBlocks(blocks)
 	renderedBlocks := h.renderBlocksBatch(blocks)
 
-	// Try layout-based rendering first
-	if html, ok := h.renderNodeWithLayout(c, node, blocks, renderedBlocks, user); ok {
+	// Layout-based rendering
+	html, _, renderErr := h.renderNodeWithLayout(c, node, blocks, renderedBlocks, user)
+	if renderErr != nil {
+		c.Set("Content-Type", "text/html; charset=utf-8")
+		return c.SendString(h.layoutErrorPage(renderErr, node.FullURL))
+	}
+	if html != "" {
 		c.Set("Content-Type", "text/html; charset=utf-8")
 		return c.SendString(html)
 	}
 
-	// Fall back to file-based template rendering
-	data := PageData{
-		Title:          node.Title + " - VibeCMS",
-		User:           user,
-		Node:           node,
-		Blocks:         blocks,
-		RenderedBlocks: renderedBlocks,
-	}
-
+	// No layout resolved and no error — show error page (should not happen in normal operation)
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	return h.renderer.RenderPage(c, "public/page.html", data)
+	return c.SendString(h.layoutErrorPage(fmt.Errorf("no layout found for page %q", node.FullURL), node.FullURL))
 }
 
 // renderNodeWithLayout attempts to render a content node using the layout system.
 // If a layout is resolved, it returns the fully rendered HTML and true.
 // If no layout is found or an error occurs, it returns "" and false so the
 // caller can fall back to the legacy file-based rendering.
-func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentNode, blocks []map[string]interface{}, renderedBlocks []string, user *models.User) (string, bool) {
+func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentNode, blocks []map[string]interface{}, renderedBlocks []string, user *models.User) (string, bool, error) {
 	languages := h.loadActiveLanguages()
 	var languageID *int
 	var currentLang *models.Language
@@ -264,7 +242,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	// Resolve layout for this node
 	layout, err := h.layoutSvc.ResolveForNode(node, languageID)
 	if err != nil || layout == nil {
-		return "", false
+		return "", false, fmt.Errorf("no layout resolved for node %q: %w", node.FullURL, err)
 	}
 
 	// Load site settings
@@ -305,11 +283,46 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	// Render via the layout engine
 	var buf bytes.Buffer
 	if err := h.renderer.RenderLayout(&buf, layout.TemplateCode, dataMap, blockResolver, partialData); err != nil {
-		log.Printf("WARN: layout render failed, falling back: %v", err)
-		return "", false
+		renderErr := fmt.Errorf("layout %q render failed for %q: %w", layout.Slug, node.FullURL, err)
+		log.Printf("WARN: %v", renderErr)
+		return "", false, renderErr
 	}
 
-	return buf.String(), true
+	return buf.String(), true, nil
+}
+
+// layoutErrorPage returns a user-friendly error page when layout rendering fails.
+// This is always shown (not just in dev) — silently falling back to a bare
+// "VibeCMS" branded page would be worse for the site owner's visitors.
+func (h *PublicHandler) layoutErrorPage(err error, url string) string {
+	siteName := "This site"
+	if settings := h.loadSiteSettings(); settings != nil {
+		if name, ok := settings["site_name"]; ok && name != "" {
+			siteName = name
+		}
+	}
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendering Error – %s</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:0;background:#f8f9fa;color:#1a1a1a;display:flex;min-height:100vh;align-items:center;justify-content:center}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;max-width:640px;width:90%%;padding:2rem;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+h1{font-size:1.1rem;margin:0 0 .5rem;display:flex;align-items:center;gap:.5rem}
+.badge{background:#fef2f2;color:#b91c1c;font-size:.7rem;font-weight:600;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.03em}
+p{margin:.5rem 0;color:#6b7280;font-size:.9rem;line-height:1.5}
+.url{font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:.8rem}
+details{margin-top:1.25rem;border-top:1px solid #f3f4f6;padding-top:1rem}
+summary{cursor:pointer;font-size:.8rem;color:#9ca3af;font-weight:500}
+pre{background:#fef2f2;border:1px solid #fca5a5;padding:.75rem 1rem;border-radius:8px;font-size:.75rem;white-space:pre-wrap;word-break:break-all;color:#991b1b;margin:.5rem 0 0;overflow:auto}
+.footer{margin-top:1.25rem;font-size:.7rem;color:#d1d5db;text-align:center}
+</style></head><body>
+<div class="card">
+<h1><span class="badge">Error</span>Page failed to render</h1>
+<p>%s encountered a problem while rendering this page.</p>
+<p>Page: <span class="url">%s</span></p>
+<details><summary>Technical details</summary><pre>%s</pre></details>
+<div class="footer">The site administrator has been notified.</div>
+</div></body></html>`, siteName, siteName, url, err.Error())
 }
 
 // buildPartialData constructs the per-partial field values map by:
@@ -676,7 +689,7 @@ func (h *PublicHandler) renderBlocks(blocks []map[string]interface{}) []string {
 		// Check for theme file override with caching
 		tmplContent := bt.HTMLTemplate
 		themeFile := fmt.Sprintf("themes/default/blocks/%s.html", blockType)
-		
+
 		h.cacheMu.RLock()
 		cachedContent, hasCache := h.themeBlockCache[themeFile]
 		h.cacheMu.RUnlock()
@@ -701,7 +714,7 @@ func (h *PublicHandler) renderBlocks(blocks []map[string]interface{}) []string {
 		// Hydrate node references — resolve node selector fields to full node data
 		markRichTextFields(fields, bt.FieldSchema)
 		h.hydrateTermFields(fields, bt.FieldSchema)
-		
+
 		// Use the new RenderParsed method for cached template execution
 		cacheKey := "block:" + blockType + ":" + tmplContent
 		var buf bytes.Buffer

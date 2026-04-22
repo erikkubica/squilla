@@ -32,6 +32,11 @@ type ThemeMgmtService struct {
 	db          *gorm.DB
 	themeLoader *ThemeLoader
 	themesDir   string // base directory e.g. "themes"
+
+	// Callbacks for loading/unloading Tengo scripts. Set via SetScriptLoader
+	// to avoid an import cycle on the scripting package.
+	loadThemeScripts   func(themeDir string) error
+	unloadThemeScripts func()
 }
 
 // NewThemeMgmtService creates a new ThemeMgmtService.
@@ -41,6 +46,15 @@ func NewThemeMgmtService(db *gorm.DB, themeLoader *ThemeLoader, themesDir string
 		themeLoader: themeLoader,
 		themesDir:   themesDir,
 	}
+}
+
+// SetScriptLoader wires callbacks for loading/unloading Tengo scripts during
+// theme activation. Accepts function values to avoid an import cycle on the
+// scripting package. load runs theme.tengo (registers node types, taxonomies,
+// seeds content, event handlers, filters, routes). unload tears those down.
+func (s *ThemeMgmtService) SetScriptLoader(load func(string) error, unload func()) {
+	s.loadThemeScripts = load
+	s.unloadThemeScripts = unload
 }
 
 // List returns all installed themes ordered by name.
@@ -273,26 +287,45 @@ func (s *ThemeMgmtService) PullUpdate(id int) (*models.Theme, error) {
 }
 
 // Activate sets the given theme as the active theme (deactivating all others).
+// The previously active theme is fully deregistered (emitting theme.deactivated
+// so extensions like media-manager can clean up) before the new theme is loaded.
 func (s *ThemeMgmtService) Activate(id int) error {
 	theme, err := s.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	// Deactivate all themes and activate the target in a transaction.
-	if err := s.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.Theme{}).Where("is_active = ?", true).Update("is_active", false).Error; err != nil {
-			return fmt.Errorf("failed to deactivate themes: %w", err)
-		}
-		if err := tx.Model(&models.Theme{}).Where("id = ?", id).Update("is_active", true).Error; err != nil {
-			return fmt.Errorf("failed to activate theme %d: %w", id, err)
-		}
-		return nil
-	}); err != nil {
-		return err
+	// Find the currently active theme so we can deregister it.
+	var prevActive models.Theme
+	hasPrev := s.db.Where("is_active = ?", true).First(&prevActive).Error == nil
+
+	// Unload previous theme's Tengo scripts (event handlers, filters, routes)
+	// before deregistering its DB records.
+	if hasPrev && s.unloadThemeScripts != nil {
+		s.unloadThemeScripts()
 	}
 
-	// Reload the activated theme.
+	// Deregister the previous theme (cleans up its blocks, layouts, partials,
+	// templates from DB and in-memory registry, emits theme.deactivated).
+	// This MUST happen before the new theme loads so that:
+	//   1. Extensions (e.g. media-manager) receive theme.deactivated and purge
+	//      the old theme's imported assets.
+	//   2. Old theme's DB records don't collide with the new theme's.
+	if hasPrev {
+		if err := s.themeLoader.DeregisterTheme(prevActive.Name); err != nil {
+			log.Printf("WARN: deregister previous theme %q: %v", prevActive.Name, err)
+		}
+	}
+
+	// Activate the target theme in the DB.
+	if err := s.db.Model(&models.Theme{}).Where("is_active = ?", true).Update("is_active", false).Error; err != nil {
+		return fmt.Errorf("failed to deactivate themes: %w", err)
+	}
+	if err := s.db.Model(&models.Theme{}).Where("id = ?", id).Update("is_active", true).Error; err != nil {
+		return fmt.Errorf("failed to activate theme %d: %w", id, err)
+	}
+
+	// Load the new theme (registers blocks/layouts/partials, emits theme.activated).
 	return s.Reload(theme.Path)
 }
 
@@ -307,6 +340,11 @@ func (s *ThemeMgmtService) Deactivate(id int) error {
 
 	if err := s.db.Model(&models.Theme{}).Where("id = ?", id).Update("is_active", false).Error; err != nil {
 		return fmt.Errorf("failed to deactivate theme %d: %w", id, err)
+	}
+
+	// Unload theme Tengo scripts before deregistering DB records.
+	if s.unloadThemeScripts != nil {
+		s.unloadThemeScripts()
 	}
 
 	if err := s.themeLoader.DeregisterTheme(theme.Name); err != nil {
@@ -342,9 +380,22 @@ func (s *ThemeMgmtService) Delete(id int) error {
 	return nil
 }
 
-// Reload re-registers layouts, blocks, and assets from a theme directory.
+// Reload re-registers layouts, blocks, and assets from a theme directory,
+// then reloads its Tengo scripts (node types, taxonomies, seeding, events,
+// filters, and routes).
 func (s *ThemeMgmtService) Reload(themePath string) error {
-	return s.themeLoader.LoadTheme(themePath)
+	if err := s.themeLoader.LoadTheme(themePath); err != nil {
+		return err
+	}
+	if s.unloadThemeScripts != nil {
+		s.unloadThemeScripts()
+	}
+	if s.loadThemeScripts != nil {
+		if err := s.loadThemeScripts(themePath); err != nil {
+			log.Printf("WARN: failed to load theme scripts for %s: %v", themePath, err)
+		}
+	}
+	return nil
 }
 
 // --- Helper functions ---

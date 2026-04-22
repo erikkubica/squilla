@@ -54,7 +54,7 @@
 
 <div>
 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
-<span class="badge badge-{{$color}}">{{ with $fd.tag }}{{ .name }}{{ end }}</span>
+<span class="badge badge-{{$color}}">{{ with $fd.tag }}{{ . }}{{ end }}</span>
 <span class="badge" style="background: var(--cream-warm);">&#9201; {{$fd.duration}}</span>
 <span class="badge" style="background: var(--cream-warm);">&#128205; {{$fd.location}}</span>
 {{if $fd.staff_pick}}<span class="badge badge-yellow">&#10024; Staff pick</span>{{end}}
@@ -198,7 +198,7 @@
 <a class="card" href="{{.full_url}}" style="text-decoration: none; color: inherit;">
 {{- $lrb := "" -}}{{- with $rf.hero_image -}}{{- with .url -}}{{- $lrb = . -}}{{- end -}}{{- end -}}<div class="ph {{or $rf.color "red"}}{{if $lrb}} has-photo{{end}}" style="height: 180px;{{if $lrb}} background-image: url('{{$lrb}}');{{end}}"><span class="ph-label" style="{{if $lrb}}opacity:0{{end}}">{{.title}}</span></div>
 <div style="padding: 18px;">
-<span class="badge badge-{{or $rf.color "red"}}">{{ with $rf.tag }}{{ .name }}{{ end }}</span>
+<span class="badge badge-{{or $rf.color "red"}}">{{ with $rf.tag }}{{ . }}{{ end }}</span>
 <h3 style="margin-top: 10px; font-size: 1.1rem;">{{.title}}</h3>
 <div style="margin-top: 8px; font-weight: 500;">${{$rf.price}}</div>
 </div>

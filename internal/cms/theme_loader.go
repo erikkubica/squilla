@@ -341,7 +341,16 @@ func (tl *ThemeLoader) upsertThemeRecord(manifest ThemeManifest, themeDir string
 	slug := strings.ToLower(strings.ReplaceAll(manifest.Name, " ", "-"))
 
 	var existing models.Theme
-	result := tl.db.Where("slug = ?", slug).First(&existing)
+
+	// Look up by path first — the scanner creates records using the
+	// directory name as slug (e.g. "default"), but the manifest name
+	// may produce a different slug (e.g. "vibecms-default").  Path is
+	// the stable identifier across both registration paths.
+	result := tl.db.Where("path = ?", themeDir).First(&existing)
+	if result.Error != nil {
+		// Fallback: try slug derived from manifest name.
+		result = tl.db.Where("slug = ?", slug).First(&existing)
+	}
 
 	if result.Error == nil {
 		existing.Name = manifest.Name
@@ -528,6 +537,9 @@ func RegisterLayoutFromFile(db *gorm.DB, def ThemeLayoutDef, code string, source
 	result := db.Where("slug = ? AND language_id IS NULL", def.Slug).First(&existing)
 
 	if result.Error == nil {
+		// User-customized layouts are sacred — never overwrite.
+		// Seed-created layouts (source "seed") are intentionally
+		// overridable so themes can replace the placeholder template.
 		if existing.Source == "custom" {
 			return nil
 		}
@@ -876,11 +888,27 @@ func themeAssetsPayload(themeDir string, defs []ThemeMediaAssetDef) []map[string
 // deregistration hook existed, or where cleanup failed.
 // Detached records (source='custom') are untouched — the user owns them.
 func (tl *ThemeLoader) PurgeInactiveThemes() error {
+	// Determine the active theme's name so we don't purge stale records
+	// that share the same name — the active theme's freshly-imported assets
+	// must survive (e.g. cold boot on existing DB after upgrade).
+	var active models.Theme
+	activeName := ""
+	if err := tl.db.Where("is_active = ?", true).First(&active).Error; err == nil {
+		activeName = active.Name
+	}
+
 	var inactive []models.Theme
 	if err := tl.db.Where("is_active = ?", false).Find(&inactive).Error; err != nil {
 		return fmt.Errorf("purge inactive themes: list: %w", err)
 	}
 	for _, t := range inactive {
+		if activeName != "" && t.Name == activeName {
+			// Delete the stale DB row but do NOT deregister — that would
+			// emit theme.deactivated and purge the active theme's assets.
+			tl.db.Delete(&t)
+			log.Printf("purged stale record for inactive %q (name matches active theme, skipping deregister)", t.Name)
+			continue
+		}
 		if err := tl.DeregisterTheme(t.Name); err != nil {
 			log.Printf("WARN: purge inactive theme %q: %v", t.Name, err)
 		}

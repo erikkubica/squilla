@@ -66,6 +66,8 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:               "VibeCMS",
 		DisableStartupMessage: false,
+		BodyLimit:             50 * 1024 * 1024, // 50 MB — theme/extension uploads
+		ReadBufferSize:        16 * 1024,        // 16 KB — handles large cookies without 431
 	})
 
 	app.Use(fiberlogger.New())
@@ -147,6 +149,9 @@ func main() {
 	// Theme scripting engine (theme .tgo scripts are loaded later, after
 	// extensions have subscribed and after the theme is activated).
 	scriptEngine := scripting.NewScriptEngine(eventBus, coreAPI)
+	// Wire script engine into theme management so runtime activation loads Tengo scripts.
+	themeMgmtSvc.SetScriptLoader(scriptEngine.LoadThemeScripts, scriptEngine.UnloadThemeScripts)
+
 	// Extension loading.
 	extLoader := cms.NewExtensionLoader(database, "extensions")
 	extLoader.ScanAndRegister()
@@ -301,6 +306,7 @@ func main() {
 	extHandler.SetPluginManager(pluginManager)
 	extHandler.SetAssetRegistry(themeAssets)
 	extHandler.SetEventBus(eventBus)
+	extHandler.SetThemeLoader(themeLoader)
 	extHandler.RegisterRoutes(adminAPI)
 	mcpServer.SetExtensionHandler(extHandler)
 

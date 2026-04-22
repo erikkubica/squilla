@@ -11,7 +11,7 @@
 {{- range $trips -}}{{- $t := . -}}
 {{- $fd := $t.fields_data -}}
 {{- $color := $fd.color -}}{{- if not $color -}}{{- $color = "red" -}}{{- end -}}
-{{- $tagSlug := "" -}}{{- $tagName := "" -}}{{- with $fd.tag -}}{{- with .slug -}}{{- $tagSlug = . -}}{{- end -}}{{- with .name -}}{{- $tagName = . -}}{{- end -}}{{- end -}}
+{{- $tagSlug := "" -}}{{- $tagName := "" -}}{{- with $fd.tag -}}{{- $tagSlug = . -}}{{- $tagName = . -}}{{- end -}}
 {{- $dur := $fd.duration -}}
 {{- $loc := $fd.location -}}
 {{- $price := $fd.price -}}

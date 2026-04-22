@@ -15,6 +15,19 @@ import (
 
 // ThemeBlockDef is defined in theme_loader.go — reused here for extension block definitions.
 
+// builtinActiveExtensions lists extension slugs that should be auto-activated
+// on fresh install. On existing installations the is_active column is not in
+// the ON CONFLICT update set, so re-scanning won't override user choices.
+var builtinActiveExtensions = map[string]bool{
+	"media-manager":     true,
+	"email-manager":     true,
+	"sitemap-generator": true,
+	"smtp-provider":     true,
+	"resend-provider":   true,
+	"forms":             true,
+	"content-blocks":    true,
+}
+
 // AdminUISlot describes a component injected into a named slot.
 type AdminUISlot struct {
 	Component string `json:"component"`
@@ -35,9 +48,9 @@ type AdminUIMenuItem struct {
 
 // AdminUIMenu describes a sidebar menu group registered by an extension.
 type AdminUIMenu struct {
-	Label    string            `json:"label"`
-	Icon     string            `json:"icon"`
-	Position string            `json:"position"`
+	Label    string `json:"label"`
+	Icon     string `json:"icon"`
+	Position string `json:"position"`
 	// Section routes the menu into a sidebar section: "content" (default),
 	// "design", "development", or "settings".
 	Section  string            `json:"section,omitempty"`
@@ -83,23 +96,23 @@ type PublicRouteEntry struct {
 }
 
 type ExtensionManifest struct {
-	Name           string                  `json:"name"`
-	Slug           string                  `json:"slug"`
-	Version        string                  `json:"version"`
-	Author         string                  `json:"author"`
-	Description    string                  `json:"description"`
-	Priority       int                     `json:"priority"`
-	Provides       []string                `json:"provides"`
-	Capabilities   []string                `json:"capabilities"`
-	Plugins        []PluginManifestEntry   `json:"plugins"`
-	AdminUI        *AdminUIManifest        `json:"admin_ui"`
+	Name           string                   `json:"name"`
+	Slug           string                   `json:"slug"`
+	Version        string                   `json:"version"`
+	Author         string                   `json:"author"`
+	Description    string                   `json:"description"`
+	Priority       int                      `json:"priority"`
+	Provides       []string                 `json:"provides"`
+	Capabilities   []string                 `json:"capabilities"`
+	Plugins        []PluginManifestEntry    `json:"plugins"`
+	AdminUI        *AdminUIManifest         `json:"admin_ui"`
 	SettingsSchema map[string]SettingsField `json:"settings_schema"`
-	Blocks         []ThemeBlockDef         `json:"blocks"`
-	Templates      []ThemeTemplateDef      `json:"templates"`
-	Layouts        []ThemeLayoutDef        `json:"layouts"`
-	Partials       []ThemePartialDef       `json:"partials"`
-	PublicRoutes   []PublicRouteEntry      `json:"public_routes"`
-	Assets         []ThemeMediaAssetDef    `json:"assets"`
+	Blocks         []ThemeBlockDef          `json:"blocks"`
+	Templates      []ThemeTemplateDef       `json:"templates"`
+	Layouts        []ThemeLayoutDef         `json:"layouts"`
+	Partials       []ThemePartialDef        `json:"partials"`
+	PublicRoutes   []PublicRouteEntry       `json:"public_routes"`
+	Assets         []ThemeMediaAssetDef     `json:"assets"`
 }
 
 // CapabilityMap returns the Capabilities slice as a map for quick lookup.
@@ -174,6 +187,7 @@ func (l *ExtensionLoader) ScanAndRegister() {
 			Path:        extDir,
 			Priority:    manifest.Priority,
 			Manifest:    models.JSONB(data),
+			IsActive:    builtinActiveExtensions[manifest.Slug],
 		}
 
 		// Upsert: insert if new, update name/version/description/author/path/priority if exists.
@@ -373,4 +387,3 @@ func (l *ExtensionLoader) loadExtensionBlocks(ext models.Extension, registry *Th
 
 	return loaded
 }
-

@@ -278,3 +278,52 @@ func (e *ScriptEngine) UnloadExtensionScripts(extDir string, slug string) {
 
 	log.Printf("[script] extension %s scripts unloaded", slug)
 }
+
+// UnloadThemeScripts removes all event handlers, filter handlers, and HTTP
+// routes that were registered by the currently loaded theme's theme.tengo.
+// Call this before loading a new theme so stale handlers don't leak.
+func (e *ScriptEngine) UnloadThemeScripts() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	scriptsDir := e.scriptsDir
+	if scriptsDir == "" {
+		return
+	}
+
+	// Remove event handlers from the theme
+	for name, handlers := range e.eventHandlers {
+		filtered := make([]scriptHandler, 0, len(handlers))
+		for _, h := range handlers {
+			if h.baseDir != scriptsDir {
+				filtered = append(filtered, h)
+			}
+		}
+		e.eventHandlers[name] = filtered
+	}
+
+	// Remove filter handlers from the theme
+	for name, handlers := range e.filterHandlers {
+		filtered := make([]scriptHandler, 0, len(handlers))
+		for _, h := range handlers {
+			if h.baseDir != scriptsDir {
+				filtered = append(filtered, h)
+			}
+		}
+		e.filterHandlers[name] = filtered
+	}
+
+	// Remove HTTP routes from the theme
+	filteredRoutes := make([]httpRoute, 0, len(e.httpRoutes))
+	for _, r := range e.httpRoutes {
+		if r.baseDir != scriptsDir {
+			filteredRoutes = append(filteredRoutes, r)
+		}
+	}
+	e.httpRoutes = filteredRoutes
+
+	e.themeDir = ""
+	e.scriptsDir = ""
+
+	log.Printf("[script] theme scripts unloaded")
+}

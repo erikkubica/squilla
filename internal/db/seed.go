@@ -188,6 +188,14 @@ func Seed(db *gorm.DB) error {
 	// Seed default site name setting
 	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_name', 'VibeCMS', NOW()) ON CONFLICT (key) DO NOTHING`)
 	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_url', 'http://localhost:8099', NOW()) ON CONFLICT (key) DO NOTHING`)
+
+	// Assign default layout_slug to all seeded nodes that don't have one.
+	// This avoids extra fallback lookups on every render and ensures nodes
+	// survive theme deactivate/reactivate cycles via the slug reference.
+	db.Model(&models.ContentNode{}).
+		Where("layout_slug IS NULL AND deleted_at IS NULL").
+		Update("layout_slug", "default")
+
 	return nil
 }
 
@@ -279,7 +287,7 @@ func seedLayoutBlocks(db *gorm.DB) error {
 			Description:  "Main navigation menu with dropdown support (uses main-nav menu)",
 			LanguageID:   nil,
 			TemplateCode: primaryNavTemplate,
-			Source:       "custom",
+			Source:       "seed",
 		},
 		{
 			Slug:         "user-menu",
@@ -287,7 +295,7 @@ func seedLayoutBlocks(db *gorm.DB) error {
 			Description:  "Login/register or dashboard/logout based on auth state",
 			LanguageID:   nil,
 			TemplateCode: userMenuTemplate,
-			Source:       "custom",
+			Source:       "seed",
 		},
 		{
 			Slug:         "site-header",
@@ -295,7 +303,7 @@ func seedLayoutBlocks(db *gorm.DB) error {
 			Description:  "Full site header — includes primary-nav and user-menu blocks",
 			LanguageID:   nil,
 			TemplateCode: siteHeaderTemplate,
-			Source:       "custom",
+			Source:       "seed",
 		},
 		{
 			Slug:         "footer-nav",
@@ -303,7 +311,7 @@ func seedLayoutBlocks(db *gorm.DB) error {
 			Description:  "Footer links from footer-nav menu",
 			LanguageID:   nil,
 			TemplateCode: footerNavTemplate,
-			Source:       "custom",
+			Source:       "seed",
 		},
 		{
 			Slug:         "site-footer",
@@ -311,7 +319,7 @@ func seedLayoutBlocks(db *gorm.DB) error {
 			Description:  "Site footer with copyright and footer-nav block",
 			LanguageID:   nil,
 			TemplateCode: siteFooterTemplate,
-			Source:       "custom",
+			Source:       "seed",
 		},
 	}
 
@@ -345,7 +353,7 @@ func seedDefaultLayout(db *gorm.DB) error {
 		Description:  "Default page layout with header, footer, and Tailwind CSS",
 		LanguageID:   nil,
 		TemplateCode: defaultLayoutTemplate,
-		Source:       "custom",
+		Source:       "seed",
 		IsDefault:    true,
 	}
 
@@ -356,12 +364,13 @@ func seedDefaultLayout(db *gorm.DB) error {
 		if existing.Source == "theme" {
 			return nil
 		}
-		// Update existing custom layout
+		// Update existing seed/custom layout
 		db.Model(&existing).Updates(map[string]interface{}{
 			"name":          layout.Name,
 			"description":   layout.Description,
 			"template_code": layout.TemplateCode,
 			"is_default":    layout.IsDefault,
+			"source":        layout.Source,
 		})
 	} else {
 		if err := db.Create(&layout).Error; err != nil {
@@ -539,40 +548,40 @@ const resetPasswordFormTemplate = `<div class="flex items-center justify-center 
 func seedAuthBlockTypes(db *gorm.DB) error {
 	blockTypes := []models.BlockType{
 		{
-			Slug:        "login-form",
-			Label:       "Login Form",
-			Icon:        "log-in",
-			Description: "User login form with email and password fields",
-			FieldSchema: models.JSONB(json.RawMessage(`[]`)),
+			Slug:         "login-form",
+			Label:        "Login Form",
+			Icon:         "log-in",
+			Description:  "User login form with email and password fields",
+			FieldSchema:  models.JSONB(json.RawMessage(`[]`)),
 			HTMLTemplate: loginFormTemplate,
-			Source:      "system",
+			Source:       "system",
 		},
 		{
-			Slug:        "register-form",
-			Label:       "Registration Form",
-			Icon:        "user-plus",
-			Description: "User registration form with name, email, and password fields",
-			FieldSchema: models.JSONB(json.RawMessage(`[]`)),
+			Slug:         "register-form",
+			Label:        "Registration Form",
+			Icon:         "user-plus",
+			Description:  "User registration form with name, email, and password fields",
+			FieldSchema:  models.JSONB(json.RawMessage(`[]`)),
 			HTMLTemplate: registerFormTemplate,
-			Source:      "system",
+			Source:       "system",
 		},
 		{
-			Slug:        "forgot-password-form",
-			Label:       "Forgot Password Form",
-			Icon:        "key",
-			Description: "Password reset request form",
-			FieldSchema: models.JSONB(json.RawMessage(`[]`)),
+			Slug:         "forgot-password-form",
+			Label:        "Forgot Password Form",
+			Icon:         "key",
+			Description:  "Password reset request form",
+			FieldSchema:  models.JSONB(json.RawMessage(`[]`)),
 			HTMLTemplate: forgotPasswordFormTemplate,
-			Source:      "system",
+			Source:       "system",
 		},
 		{
-			Slug:        "reset-password-form",
-			Label:       "Reset Password Form",
-			Icon:        "lock",
-			Description: "Set new password form (used with reset token)",
-			FieldSchema: models.JSONB(json.RawMessage(`[]`)),
+			Slug:         "reset-password-form",
+			Label:        "Reset Password Form",
+			Icon:         "lock",
+			Description:  "Set new password form (used with reset token)",
+			FieldSchema:  models.JSONB(json.RawMessage(`[]`)),
 			HTMLTemplate: resetPasswordFormTemplate,
-			Source:      "system",
+			Source:       "system",
 		},
 	}
 
