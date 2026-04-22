@@ -1,8 +1,22 @@
 {
   "slug": "hv-lead-magnet",
   "name": "Lead Magnet Banner",
-  "description": "Hello Vietnam \u2014 Lead Magnet Banner",
+  "description": "Hello Vietnam — Lead Magnet Banner",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    { "key": "badge_text",        "label": "Badge",              "type": "text" },
+    { "key": "heading",           "label": "Heading",            "type": "text" },
+    { "key": "body",              "label": "Body",               "type": "textarea" },
+    { "key": "input_placeholder", "label": "Email Placeholder",  "type": "text" },
+    { "key": "submit_label",      "label": "Submit Button Label","type": "text" },
+    { "key": "image_label",       "label": "Image Placeholder Label", "type": "text" }
+  ],
+  "test_data": {
+    "badge_text": "Free · 12-page PDF",
+    "heading": "The Hanoi Street Food Map.",
+    "body": "Every bún chả, bánh mì, and egg coffee spot we actually eat at. Numbered, mapped, ranked, and updated every month.",
+    "input_placeholder": "your@email.com",
+    "submit_label": "Send me the map",
+    "image_label": "PDF mockup"
+  }
 }

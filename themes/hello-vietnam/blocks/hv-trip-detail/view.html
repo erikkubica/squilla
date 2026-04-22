@@ -1,6 +1,8 @@
-{{- /* Trip Detail — renders first published trip by default. For real trip
-       URLs at /trips/<slug>, the trip node itself should use a dedicated
-       layout (layouts/trip.html) so .node is the trip. TODO item.
+{{- /* DEPRECATED (2026-04-22): Real per-trip pages at /trips/<slug> are now
+       rendered by layouts/trip.html (which has access to .node.fields and
+       .app.settings). This block is kept only so the /trip demo page still
+       renders something (it pulls the first published trip via list_nodes).
+       New trip-related UI should go in the layout, not here.
 */ -}}
 {{- $trips := filter "list_nodes" (dict "type" "trip" "limit" 1 "order_by" "created_at asc") -}}
 {{- range $trips -}}

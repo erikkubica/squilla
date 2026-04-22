@@ -3,23 +3,198 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>{{or (index .node.seo "meta_title") .node.title "Hello Vietnam Adventures"}}</title>
-{{- with index .node.seo "meta_description" -}}<meta name="description" content="{{.}}">{{- end -}}
+<title>{{- with .node.seo -}}{{or (index . "meta_title") $.node.title "Hello Vietnam Adventures"}}{{- else -}}{{or .node.title "Hello Vietnam Adventures"}}{{- end -}}</title>
+{{- with .node.seo -}}{{- with index . "meta_description" -}}<meta name="description" content="{{.}}">{{- end -}}{{- end -}}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 {{- range .app.head_styles -}}<link rel="stylesheet" href="{{.}}">{{- end -}}
 {{.app.block_styles}}
+{{- with .app.settings -}}{{- with index . "analytics_code"}}{{safeHTML .}}{{end -}}{{- with index . "custom_head_code"}}{{safeHTML .}}{{end -}}{{- end -}}
 </head>
 <body data-accent="red">
 <div id="root">
 {{renderLayoutBlock "site-header"}}
 <div class="page-enter">
-{{.node.blocks_html}}
+{{event "before_main_content" .}}
+
+{{- $t := .node -}}
+{{- $fd := $t.fields -}}
+{{- $color := or $fd.color "red" -}}
+{{- $rating := or $fd.rating 4.9 -}}
+{{- $reviews := or $fd.reviews 0 -}}
+{{- $stops := or $fd.stops (list) -}}
+{{- $included := or $fd.included (list) -}}
+{{- $not_included := or $fd.not_included (list) -}}
+{{- $faqs := or $fd.faqs (list) -}}
+{{- $whatsapp := "" -}}{{- with .app.settings -}}{{- $whatsapp = or (index . "hv.whatsapp") "" -}}{{- end -}}
+
+<section style="padding: 32px 0px 0px;"><div class="container">
+<div style="font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 14px;"><a href="/" style="color: inherit; text-decoration: none;">Home</a> &rsaquo; <a href="/trips" style="color: inherit; text-decoration: none;">Trips</a> &rsaquo; <span style="color: var(--ink);">{{$t.title}}</span></div>
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; height: 520px; margin-bottom: 32px;">
+<div class="ph {{$color}}" style="border-radius: var(--r-xl);"><span class="ph-label">{{$t.title}} &middot; hero</span></div>
+<div style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px;">
+<div class="ph yellow" style="border-radius: var(--r-xl);"><span class="ph-label">detail &middot; 1</span></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+<div class="ph green" style="border-radius: var(--r-xl);"><span class="ph-label">detail &middot; 2</span></div>
+<div class="ph red" style="border-radius: var(--r-xl); display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 600;"><span>+2 more</span></div>
+</div>
+</div>
+</div>
+</div></section>
+
+<section style="padding: 0 0 60px;"><div class="container">
+<div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 56px; align-items: flex-start;">
+
+<div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+<span class="badge badge-{{$color}}">{{$fd.tag}}</span>
+<span class="badge" style="background: var(--cream-warm);">&#9201; {{$fd.duration}}</span>
+<span class="badge" style="background: var(--cream-warm);">&#128205; {{$fd.location}}</span>
+{{if $fd.staff_pick}}<span class="badge badge-yellow">&#10024; Staff pick</span>{{end}}
+</div>
+<h1 style="margin-bottom: 14px;">{{$t.title}}</h1>
+<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 28px; color: var(--yellow);">
+&#9733;&#9733;&#9733;&#9733;&#9733; <strong style="color: var(--ink);">{{$rating}}</strong><span style="color: var(--ink-soft); font-weight: normal;">&middot; {{$reviews}} reviews</span>
+</div>
+
+<h3 style="margin-bottom: 12px;">What to expect</h3>
+<p style="margin-bottom: 32px; color: var(--ink-soft);">{{$fd.short}}</p>
+
+<h3 style="margin-bottom: 14px;">The Itinerary</h3>
+<div style="border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 32px;">
+{{- range $idx, $s := $stops -}}
+{{- $n := add $idx 1 -}}
+{{- $c := "red" -}}{{- if eq (mod $idx 3) 1 -}}{{- $c = "yellow" -}}{{- else if eq (mod $idx 3) 2 -}}{{- $c = "green" -}}{{- end -}}
+<div data-accordion-row style="border-bottom: 1px solid var(--line);">
+<button type="button" data-accordion style="width: 100%; padding: 18px 22px; background: none; border: none; display: flex; align-items: center; gap: 16px; cursor: pointer; text-align: left; font: inherit;">
+<span style="width: 36px; height: 36px; border-radius: 50%; background: var(--{{$c}}); color: var(--white); font-family: var(--font-display); font-weight: 600; display: flex; align-items: center; justify-content: center;">{{$n}}</span>
+<span style="flex: 1;"><strong>{{$s.title}}</strong><span style="display: block; color: var(--ink-soft); font-size: 0.85rem;">Stop {{$n}}</span></span>
+<span data-accordion-icon style="width: 24px; height: 24px; border-radius: 50%; background: var(--cream-warm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">+</span>
+</button>
+<div data-accordion-panel style="display: none; padding: 0 22px 22px 76px; color: var(--ink-soft);">{{$s.brief}}</div>
+</div>
+{{- end -}}
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px;">
+<div><h3 style="margin-bottom: 14px;">What's included</h3><ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+{{- range $included -}}<li style="display: flex; align-items: center; gap: 10px;"><span style="width: 22px; height: 22px; border-radius: 50%; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 13px;">&#10003;</span>{{.item}}</li>{{- end -}}
+</ul></div>
+<div><h3 style="margin-bottom: 14px;">Not included</h3><ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+{{- range $not_included -}}<li style="display: flex; align-items: center; gap: 10px;"><span style="width: 22px; height: 22px; border-radius: 50%; background: var(--cream-warm); color: var(--ink-soft); display: flex; align-items: center; justify-content: center; font-size: 13px;">&times;</span>{{.item}}</li>{{- end -}}
+</ul></div>
+</div>
+
+<h3 style="margin-bottom: 18px;">What travelers say</h3>
+{{- $testimonials := filter "list_nodes" (dict "type" "testimonial" "limit" 3) -}}
+<div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 40px;">
+{{- range $testimonials -}}
+{{- $tf := .fields_data -}}
+<div class="card" style="padding: 22px; display: flex; gap: 16px;">
+<div class="ph {{or $tf.color "red"}}" style="width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;"></div>
+<div style="flex: 1;">
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><strong>{{or $tf.author .title}}</strong> <span style="color: var(--yellow);">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<p style="font-size: 0.92rem; color: var(--ink-soft); margin-bottom: 6px;">{{$tf.quote}}</p>
+<span style="font-size: 0.78rem; color: var(--ink-soft);">Booked this trip &middot; 2 months ago</span>
+</div>
+</div>
+{{- end -}}
+</div>
+
+<h3 style="margin-bottom: 14px;">Quick FAQs</h3>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px;">
+{{- range $faqs -}}
+<div data-accordion-row class="card" style="padding: 0; overflow: hidden;">
+<button type="button" data-accordion style="width: 100%; padding: 18px 22px; background: none; border: none; display: flex; align-items: center; gap: 16px; cursor: pointer; text-align: left; font: inherit;">
+<strong style="flex: 1;">{{.q}}</strong>
+<span data-accordion-icon style="width: 28px; height: 28px; border-radius: 50%; background: var(--cream-warm); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">+</span>
+</button>
+<div data-accordion-panel style="display: none; padding: 0 22px 22px 22px; color: var(--ink-soft);">{{.a}}</div>
+</div>
+{{- end -}}
+</div>
+</div>
+
+<aside data-booking-card data-price="{{or $fd.price 0}}" style="position: sticky; top: 100px;">
+<div class="card" style="padding: 28px;">
+<div data-booking-body>
+<div style="margin-bottom: 20px;">
+<div style="font-family: var(--font-display); font-weight: 500; font-size: 2rem;" data-total>${{or $fd.price 0}}</div>
+<div style="font-size: 0.88rem; color: var(--ink-soft);">per adult</div>
+<div style="font-size: 0.78rem; color: var(--ink-soft);">Kids under 12 &middot; 50% off</div>
+</div>
+<form style="display: flex; flex-direction: column; gap: 12px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">First name</label><input class="input" name="firstName" required /></div>
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">Surname</label><input class="input" name="surname" /></div>
+</div>
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">Email</label><input class="input" name="email" type="email" required /></div>
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">WhatsApp / Phone</label><input class="input" name="phone" placeholder="+84 &hellip;" /></div>
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">Trip date</label><input class="input" name="date" type="date" /></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">Adults</label>
+<div style="display: flex; align-items: center; gap: 6px;"><button type="button" data-step="adults" data-delta="-1" class="btn btn-ghost" style="padding: 6px 12px;">&minus;</button><input class="input" data-adults name="adults" value="2" min="1" style="text-align: center;" /><button type="button" data-step="adults" data-delta="1" class="btn btn-ghost" style="padding: 6px 12px;">+</button></div>
+</div>
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">Kids (under 12)</label>
+<div style="display: flex; align-items: center; gap: 6px;"><button type="button" data-step="kids" data-delta="-1" class="btn btn-ghost" style="padding: 6px 12px;">&minus;</button><input class="input" data-kids name="kids" value="0" min="0" style="text-align: center;" /><button type="button" data-step="kids" data-delta="1" class="btn btn-ghost" style="padding: 6px 12px;">+</button></div>
+</div>
+</div>
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">Dietary needs</label><select class="select" name="dietary"><option>None</option><option>Vegetarian</option><option>Vegan</option><option>Gluten-free</option><option>Allergies (specify)</option></select></div>
+<div><label style="font-size: 0.78rem; color: var(--ink-soft);">The Vibe Check</label><textarea class="input" name="vibe" rows="3" placeholder="Any specific foods you're dying to try? Or absolutely hate?"></textarea></div>
+<div style="background: var(--cream-warm); border-radius: var(--r-md); padding: 14px 16px; font-size: 0.88rem;">
+<div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><strong>Total</strong><strong data-total>${{or $fd.price 0}}</strong></div>
+<div style="color: var(--ink-soft); font-size: 0.78rem;">50% now &middot; 50% on trip day</div>
+</div>
+<button type="submit" class="btn btn-primary" style="justify-content: center; padding: 14px;">Reserve my spot</button>
+<p style="font-size: 0.78rem; color: var(--ink-soft); text-align: center;">Free cancellation up to 7 days before trip day.</p>
+</form>
+</div>
+<div data-booking-success style="display: none; text-align: center; padding: 24px 8px;">
+<div style="width: 64px; height: 64px; border-radius: 50%; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; font-size: 28px;">&#10003;</div>
+<h3 style="margin-bottom: 8px;">You're in!</h3>
+<p style="color: var(--ink-soft); margin-bottom: 18px;">We just sent a confirmation to your inbox. Check spam if it's not there in 2 minutes.</p>
+<button type="button" data-booking-again class="btn btn-ghost" style="justify-content: center;">Book another</button>
+</div>
+</div>
+<a class="card" href="{{if $whatsapp}}https://wa.me/{{$whatsapp}}{{else}}#{{end}}" style="margin-top: 16px; padding: 18px; background: var(--cream-warm); display: flex; gap: 12px; align-items: center; text-decoration: none; color: inherit;">
+<span style="width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center;">W</span>
+<div style="font-size: 0.9rem;"><strong>Prefer WhatsApp?</strong><br/>{{if $whatsapp}}{{$whatsapp}} &middot; {{end}}We reply in under an hour.</div>
+</a>
+</aside>
+
+</div>
+</div></section>
+
+{{- /* Related trips (exclude current) */ -}}
+{{- $related := filter "list_nodes" (dict "type" "trip" "limit" 4) -}}
+<section class="section-tight" style="background: var(--cream-warm);"><div class="container">
+<h2 style="margin-bottom: 32px; text-align: center;">You might also love&hellip;</h2>
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+{{- $count := 0 -}}
+{{- range $related -}}
+{{- if and (lt $count 3) (ne .id $t.id) -}}
+{{- $count = add $count 1 -}}
+{{- $rf := .fields_data -}}
+<a class="card" href="{{.full_url}}" style="text-decoration: none; color: inherit;">
+<div class="ph {{or $rf.color "red"}}" style="height: 180px;"><span class="ph-label">{{.title}}</span></div>
+<div style="padding: 18px;">
+<span class="badge badge-{{or $rf.color "red"}}">{{$rf.tag}}</span>
+<h3 style="margin-top: 10px; font-size: 1.1rem;">{{.title}}</h3>
+<div style="margin-top: 8px; font-weight: 500;">${{$rf.price}}</div>
+</div>
+</a>
+{{- end -}}
+{{- end -}}
+</div>
+</div></section>
+
+{{event "after_main_content" .}}
 </div>
 {{renderLayoutBlock "site-footer"}}
 </div>
 {{- range .app.foot_scripts -}}<script src="{{.}}" defer></script>{{- end -}}
 {{.app.block_scripts}}
+{{- with .app.settings -}}{{- with index . "custom_footer_code"}}{{safeHTML .}}{{end -}}{{- end -}}
 </body>
 </html>

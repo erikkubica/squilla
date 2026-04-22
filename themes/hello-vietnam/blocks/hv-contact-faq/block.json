@@ -1,8 +1,29 @@
 {
   "slug": "hv-contact-faq",
   "name": "Contact FAQ",
-  "description": "Hello Vietnam \u2014 Contact FAQ",
+  "description": "Hello Vietnam — Contact FAQ",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    {
+      "key": "faqs",
+      "label": "FAQs",
+      "type": "repeater",
+      "sub_fields": [
+        { "key": "q", "label": "Question", "type": "text" },
+        { "key": "a", "label": "Answer (HTML allowed)", "type": "textarea" }
+      ]
+    }
+  ],
+  "test_data": {
+    "eyebrow": "Common questions",
+    "heading": "Solved before you ask.",
+    "faqs": [
+      { "q": "Do I need a visa?", "a": "Most nationalities can get an e-visa online in under 10 minutes. We'll send you the exact link and walk you through it once you book." },
+      { "q": "Is this vegetarian-friendly?", "a": "Absolutely. Vietnam is a vegetarian paradise — just tell us in the booking form and we'll tailor every meal." },
+      { "q": "What's your cancellation policy?", "a": "Full refund up to 30 days before. 50% between 30 and 7 days. After that we'll do our best — life happens." },
+      { "q": "How fit do I need to be?", "a": "If you can walk 5km comfortably, you're good. We mark any strenuous add-ons clearly in the itinerary." }
+    ]
+  }
 }

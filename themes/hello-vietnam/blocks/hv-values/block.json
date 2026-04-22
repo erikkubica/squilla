@@ -1,8 +1,48 @@
 {
   "slug": "hv-values",
   "name": "Values",
-  "description": "Hello Vietnam \u2014 Values",
+  "description": "Hello Vietnam — Values",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    {
+      "key": "items",
+      "label": "Value cards",
+      "type": "repeater",
+      "sub_fields": [
+        {
+          "key": "color",
+          "label": "Accent color",
+          "type": "select",
+          "options": [
+            { "value": "red", "label": "Red" },
+            { "value": "yellow", "label": "Yellow" },
+            { "value": "green", "label": "Green" }
+          ]
+        },
+        {
+          "key": "icon",
+          "label": "Icon",
+          "type": "select",
+          "options": [
+            { "value": "x", "label": "X / Cross" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "leaf", "label": "Leaf" }
+          ]
+        },
+        { "key": "title", "label": "Title", "type": "text" },
+        { "key": "body", "label": "Body", "type": "textarea" }
+      ]
+    }
+  ],
+  "test_data": {
+    "eyebrow": "What we stand for",
+    "heading": "Three rules we don't break.",
+    "items": [
+      { "color": "red", "icon": "x", "title": "No tourist traps", "body": "If it's in every guidebook, we're not taking you there. Period." },
+      { "color": "yellow", "icon": "heart", "title": "Supporting locals", "body": "Every vendor we work with is a neighbor. Every guide earns a real wage." },
+      { "color": "green", "icon": "leaf", "title": "Always sustainable", "body": "Small groups, reusable everything, and trips that leave places better." }
+    ]
+  }
 }

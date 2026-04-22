@@ -332,9 +332,18 @@ if page_missing("home") {
 		status: "published",
 		blocks_data: [
 			{ type: "hv-hero",          fields: {} },
-			{ type: "hv-categories",    fields: {} },
+			{ type: "hv-categories",    fields: { items: [
+				{ title: "Street Food",     cta_label: "Explore", link: { text: "Explore", url: "/trips?category=street-food",     target: "" }, color: "red",    icon: "fork" },
+				{ title: "Hidden Trails",   cta_label: "Explore", link: { text: "Explore", url: "/trips?category=hidden-trails",   target: "" }, color: "green",  icon: "trail" },
+				{ title: "Local Workshops", cta_label: "Explore", link: { text: "Explore", url: "/trips?category=local-workshops", target: "" }, color: "yellow", icon: "workshop" },
+				{ title: "Family Fun",      cta_label: "Explore", link: { text: "Explore", url: "/trips?category=family-fun",      target: "" }, color: "ink",    icon: "family" }
+			] } },
 			{ type: "hv-featured",      fields: {} },
-			{ type: "hv-how-it-works",  fields: {} },
+			{ type: "hv-how-it-works",  fields: { steps: [
+				{ number: "01", title: "Book it",         body: "Pick a trip, fill the Vibe Check, pay half upfront.",                      color: "red" },
+				{ number: "02", title: "Pack your bags",  body: "We WhatsApp you everything you need — what to wear, what to leave behind.", color: "yellow" },
+				{ number: "03", title: "Eat everything",  body: "Show up hungry. We handle the rest. Bring an empty memory card.",           color: "green" }
+			] } },
 			{ type: "hv-popular-trips", fields: { limit: 3 } },
 			{ type: "hv-wall-of-love",  fields: { limit: 4 } },
 			{ type: "hv-lead-magnet",   fields: {} }

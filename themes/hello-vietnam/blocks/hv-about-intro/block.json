@@ -1,8 +1,20 @@
 {
   "slug": "hv-about-intro",
   "name": "About Intro",
-  "description": "Hello Vietnam \u2014 About Intro",
+  "description": "Hello Vietnam — About Intro",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    { "key": "body_p1", "label": "Body paragraph 1", "type": "textarea" },
+    { "key": "body_p2", "label": "Body paragraph 2", "type": "textarea" },
+    { "key": "team_photo_caption", "label": "Team photo caption", "type": "text" }
+  ],
+  "test_data": {
+    "eyebrow": "About us",
+    "heading": "We're not a tour company. We're your loud Vietnamese cousins.",
+    "body_p1": "Hello Vietnam started over a beer in 2016, when Linh realized most tourists were seeing her country through a tinted bus window. Ten years later, we've hand-built 18 trips across Vietnam — all led by people who grew up here.",
+    "body_p2": "We skip the tourist traps. We pay our guides fairly. We eat lunch on the same tiny plastic stools as our guests.",
+    "team_photo_caption": "team photo · lunch on plastic stools"
+  }
 }

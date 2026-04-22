@@ -1,8 +1,30 @@
 {
   "slug": "hv-how-it-works",
   "name": "How It Works",
-  "description": "Hello Vietnam \u2014 How It Works",
+  "description": "Hello Vietnam — How It Works",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    {
+      "key": "steps",
+      "label": "Steps",
+      "type": "repeater",
+      "sub_fields": [
+        { "key": "number", "label": "Number", "type": "text", "help": "e.g. 01, 02, 03." },
+        { "key": "title",  "label": "Title",  "type": "text" },
+        { "key": "body",   "label": "Body",   "type": "textarea" },
+        { "key": "color",  "label": "Number Color", "type": "select", "options": ["red", "yellow", "green"] }
+      ]
+    }
+  ],
+  "test_data": {
+    "eyebrow": "How it works",
+    "heading": "Three steps. Zero stress.",
+    "steps": [
+      { "number": "01", "title": "Book it",         "body": "Pick a trip, fill the Vibe Check, pay half upfront.",                                    "color": "red" },
+      { "number": "02", "title": "Pack your bags",  "body": "We WhatsApp you everything you need — what to wear, what to leave behind.",              "color": "yellow" },
+      { "number": "03", "title": "Eat everything",  "body": "Show up hungry. We handle the rest. Bring an empty memory card.",                        "color": "green" }
+    ]
+  }
 }

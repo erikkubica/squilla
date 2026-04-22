@@ -1,8 +1,16 @@
 {
   "slug": "hv-custom-journey",
   "name": "Custom Journey CTA",
-  "description": "Hello Vietnam \u2014 Custom Journey CTA",
+  "description": "Hello Vietnam — Custom Journey CTA",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    { "key": "heading", "label": "Heading", "type": "text" },
+    { "key": "body", "label": "Body", "type": "textarea" },
+    { "key": "cta", "label": "Call to action", "type": "link" }
+  ],
+  "test_data": {
+    "heading": "Don't see it? Build it.",
+    "body": "Tell us your dates, your crew, and your cravings. We'll design a private itinerary from scratch — usually within 48 hours.",
+    "cta": { "text": "Plan a custom journey", "url": "/contact", "target": "" }
+  }
 }

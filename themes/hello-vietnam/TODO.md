@@ -73,7 +73,7 @@ All of these currently ship frozen HTML (first-pass verbatim). Rewrite `view.htm
 - [ ] `hv-crew-grid` — query 6 crew, render polaroid grid. Fields: `eyebrow`, `heading`, `limit`.
 - [ ] `hv-gallery-masonry` — query 12 gallery photos with category + color + tall, render CSS-column masonry with `data-category` for JS filter. Fields: `limit`.
 - [ ] `hv-trips-map` — query trips, aggregate by region to render region list with counts. Fields: `eyebrow`, `heading`, `body`.
-- [ ] `hv-trip-detail` — read current node (`trip`), render full detail page: gallery hero, title+rating, itinerary accordion (from `stops` repeater), included/not-included (from repeaters), reviews (query related testimonials), booking card with live price total (uses `data-price` from trip.price), FAQs accordion (from `faqs` repeater), related trips (query siblings, exclude self).
+- [x] `hv-trip-detail` — **SUPERSEDED** by `layouts/trip.html` (2026-04-22). A layout has access to `.node.fields` and `.app.settings`; a block does not. The layout now renders the full per-trip detail page at `/trips/<slug>` from the trip node's `fields_data`. The old `hv-trip-detail` block remains for the `/trip` demo page (renders the first trip via `list_nodes` fallback) but is deprecated. All 4 trip nodes have `layout_id=63` (Trip Detail).
 
 ## 3 · Static / configured blocks — add proper editable fields
 
@@ -100,7 +100,7 @@ All HTML stays 1:1, but copy/links come from `block.json` `field_schema` instead
 ## 4 · Layouts
 
 - [x] Generic `default.html` wired to `{{.node.blocks_html}}`
-- [ ] Verify `trip.html` layout differs appropriately (no header CTA duplication — currently same as default, which is fine)
+- [x] `trip.html` layout is now the full per-trip detail page (breadcrumbs, gallery hero, title+badges+rating, itinerary accordion, included/not included, testimonials, FAQs, sticky booking card, WhatsApp tile, related trips). Reads `.node.fields` and `.app.settings.hv.whatsapp`. Assigned to all `trip` nodes via `layout_id`.
 - [ ] Verify `legal.html` narrow-column behavior works when `hv-legal-content` ships its own `max-width: 760px` inner
 
 ## 5 · Partials
@@ -135,7 +135,7 @@ Then Playwright screenshots → diff against rendered baselines.
 
 ## 8 · Open design questions
 
-- Trip detail URL: currently `/trip` (the demo node). Real site should have `/trips/<slug>` per node_type `url_prefixes: { en: "trips" }`. Verify core routing honors that and that `/trips` listing links to `/trips/<slug>` not `/trip`.
+- [x] Trip detail URL: `/trips/<slug>` now renders the full detail page for that specific trip node via `layouts/trip.html`. Each trip node has `layout_id` pointing at the Trip Detail layout. The `/trip` demo page is kept only for admin-side previewing of the (deprecated) `hv-trip-detail` block.
 - Itinerary open state: single-open vs multi-open per README (multi-open is specced). JS handles this already; verify.
 - Homepage featured trip: pick by `staff_pick=true` (currently "hanoi-street-food") or expose as block field with trip picker?
 

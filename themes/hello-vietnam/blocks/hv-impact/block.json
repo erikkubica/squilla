@@ -1,8 +1,18 @@
 {
   "slug": "hv-impact",
   "name": "Community Impact",
-  "description": "Hello Vietnam \u2014 Community Impact",
+  "description": "Hello Vietnam — Community Impact",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    { "key": "body", "label": "Body", "type": "textarea" },
+    { "key": "cta", "label": "Call to action", "type": "link" }
+  ],
+  "test_data": {
+    "eyebrow": "Community impact",
+    "heading": "5% of every booking funds a village school.",
+    "body": "Since 2019, we've helped build two classrooms and funded 47 scholarships in Ba Be Province. Our partner, the Ma Pi Leng Learning Initiative, is run by former guide Minh.",
+    "cta": { "text": "Read the impact report", "url": "/impact", "target": "" }
+  }
 }
