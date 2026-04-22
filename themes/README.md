@@ -237,3 +237,14 @@ The **hello-vietnam** theme serves as the gold standard for VibeCMS theme archit
 Every block has proper `test_data`. Every field uses the right type. Every theme ships templates that load fully-populated pages. Every asset lives in the repo and is registered for import.
 
 **This is the way.**
+
+---
+
+## 10. Programmatic Access (MCP)
+
+VibeCMS exposes these standards programmatically via its MCP server. AI agents and IDE tools can fetch the latest rules to validate your work automatically.
+
+- **Tool**: `core.theme.standards` — Returns a structured JSON of all rules and common field conventions.
+- **Resource**: `vibecms://guidelines/themes` — The authoritative document for theme development.
+
+When working with an AI assistant, you can ask: *"Fetch the VibeCMS theme standards before we start building this block."*

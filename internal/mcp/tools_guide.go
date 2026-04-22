@@ -19,6 +19,12 @@ func (s *Server) registerGuideTools() {
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		return s.buildGuide(ctx, stringArg(args, "topic"))
 	})
+
+	s.addTool(mcp.NewTool("core.theme.standards",
+		mcp.WithDescription("Returns the official VibeCMS theme development standards. Use this to validate theme structure, block definitions (Rule 1.5), and field schemas (Rule 1.6). Always call this before creating or refactoring theme components."),
+	), "read", func(ctx context.Context, args map[string]any) (any, error) {
+		return themeStandards(), nil
+	})
 }
 
 // buildGuide assembles the static decision tree alongside a cheap live snapshot
@@ -120,6 +126,12 @@ func guideRecipes(topic string) []map[string]any {
 			"steps":   []string{"core.media.upload", "core.media.get", "core.node.update"},
 			"notes":   "Use the returned {id, url, slug} — reference media by slug where possible for theme-portable nodes.",
 		},
+		{
+			"goal":    "Verify theme documentation and schema compliance",
+			"topic":   "themes",
+			"steps":   []string{"core.theme.standards", "core.block_types.get"},
+			"notes":   "Rule 1.5 requires block descriptions; Rule 1.6 requires field help text. Always check standards before finalizing a theme.",
+		},
 	}
 	if topic == "" {
 		return all
@@ -158,4 +170,43 @@ func guideConventions() []string {
 // one-line description, captured at registration time by addTool.
 func (s *Server) toolIndex() []toolCatalogEntry {
 	return s.toolCatalog
+}
+
+func themeStandards() map[string]any {
+	return map[string]any{
+		"rules": []map[string]any{
+			{
+				"id":          "1.1",
+				"title":       "Complete Test Data",
+				"description": "Every field in field_schema must have a value in test_data. Content must be on-brand (no Lorem Ipsum).",
+			},
+			{
+				"id":          "1.2",
+				"title":       "Field Declaration",
+				"description": "No field may be read in view.html that is not declared in block.json's field_schema.",
+			},
+			{
+				"id":          "1.3",
+				"title":       "No Fallback Defaults",
+				"description": "Templates must not carry hardcoded fallback strings. Gate UI parts with {{ with .field }} instead.",
+			},
+			{
+				"id":          "1.5",
+				"title":       "Human-friendly Block Descriptions",
+				"description": "The root 'description' in block.json must summarize visual layout and functional purpose.",
+			},
+			{
+				"id":          "1.6",
+				"title":       "Mandatory Field Help Text",
+				"description": "Every field definition must include a 'help' property with instructions for the CMS editor.",
+			},
+		},
+		"conventions": []string{
+			"Use 'link' field type for all CTAs/URLs.",
+			"Use 'term' field type for taxonomies (tags/categories).",
+			"Reference assets as 'theme-asset:<key>'.",
+			"Use slugs for cross-references, never numeric IDs.",
+		},
+		"mcp_resource": "vibecms://guidelines/themes",
+	}
 }

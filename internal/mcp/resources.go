@@ -83,6 +83,19 @@ func (s *Server) registerResources() {
 			return jsonResource(req.Params.URI, ext)
 		},
 	)
+
+	// Theme Guidelines resource — vibecms://guidelines/themes
+	s.mcp.AddResource(
+		mcp.NewResource(
+			"vibecms://guidelines/themes",
+			"Theme Development Standards",
+			mcp.WithDescription("Official VibeCMS theme development guidelines (Rules 1.1 - 1.6)."),
+			mcp.WithMIMEType("application/json"),
+		),
+		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+			return jsonResource(req.Params.URI, themeStandards())
+		},
+	)
 }
 
 func parseResourceID(uri, prefix string) (uint, error) {
