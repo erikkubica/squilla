@@ -174,17 +174,23 @@ func (s *Server) toolIndex() []toolCatalogEntry {
 
 func themeStandards() map[string]any {
 	return map[string]any{
-		"philosophy": "A theme must render correctly from a cold boot with nothing but its own files — no manual DB edits, no magic.",
-		"structure": map[string]string{
-			"theme.json": "Theme manifest (assets, blocks, templates)",
-			"layouts/":   "Go html/template files (base.html, etc.)",
-			"partials/":  "Reusable template fragments",
-			"blocks/":    "Content block templates and block.json definitions",
-			"assets/":    "Static files (CSS, JS, images) - referenced via theme-asset:<key>",
-			"templates/": "Full page demo templates (JSON)",
-			"scripts/":   "Tengo hooks, filters, and seeding (theme.tengo)",
+		"philosophy": "The golden rule: A theme must render correctly from a cold boot with nothing but its own files — no manual DB edits, no magic.",
+		"structure": map[string]any{
+			"theme.json": "Manifest registering blocks, assets, and page templates.",
+			"layouts/":   "Page layouts (base.html, blank.html) using Go html/template.",
+			"partials/":  "Reusable fragments included via {{ partial \"name\" . }}.",
+			"blocks/":    "Content blocks: each with a template (view.html) and schema (block.json).",
+			"assets/":    "Static images, CSS, and JS. Use theme-asset:<key> to reference them.",
+			"templates/": "Pre-populated page JSON files for demo content.",
+			"scripts/":   "Tengo scripts (theme.tengo) for seeding and custom filters.",
 		},
-		"rules": []map[string]any{
+		"template_functions": []string{
+			"{{ partial \"name\" . }} - Include a partial",
+			"{{ filter \"name\" value }} - Apply a Tengo filter",
+			"{{ image_url .url \"size\" }} - Optimized image URL",
+			"{{ image_srcset .url \"size1\" \"size2\" }} - Responsive srcset",
+		},
+		"core_rules": []map[string]any{
 			{
 				"id":          "1.1",
 				"title":       "Complete Test Data",
@@ -203,36 +209,39 @@ func themeStandards() map[string]any {
 			{
 				"id":          "1.5",
 				"title":       "Human-friendly Block Descriptions",
-				"description": "The root 'description' in block.json must summarize visual layout and functional purpose.",
+				"description": "The root 'description' in block.json must summarize visual layout and functional purpose. Mandatory for CMS discovery.",
 			},
 			{
 				"id":          "1.6",
 				"title":       "Mandatory Field Help Text",
 				"description": "Every field definition must include a 'help' property with instructions for the CMS editor.",
 			},
-			{
-				"id":          "2.1",
-				"title":       "Taxonomies -> term field",
-				"description": "Never use text fields for tags/categories. Use 'term' field type bound to a taxonomy.",
-			},
-			{
-				"id":          "2.3",
-				"title":       "Links/CTAs -> link field",
-				"description": "Never split a button into text/url fields. Use the unified 'link' field type.",
-			},
-			{
-				"id":          "6.1",
-				"title":       "Portable References",
-				"description": "Always reference core entities (nodes, assets, blocks) by slug, never by numeric ID.",
-			},
 		},
-		"field_types": map[string]string{
-			"term":     `{"name": "...", "slug": "..."}`,
-			"image":    `{"url": "theme-asset:...", "alt": "..."}`,
-			"link":     `{"url": "/...", "text": "...", "target": "_self"}`,
-			"node":     `{"id": 123, "slug": "...", "title": "..."}`,
-			"repeater": "Array of objects matching sub_fields schema.",
+		"field_types": []map[string]any{
+			{"type": "term", "intent": "Taxonomies", "shape": `{"name": "...", "slug": "..."}`},
+			{"type": "link", "intent": "CTAs/Buttons", "shape": `{"url": "/...", "text": "...", "target": "_self"}`},
+			{"type": "image", "intent": "Media", "shape": `{"url": "theme-asset:...", "alt": "..."}`},
+			{"type": "node", "intent": "Content Ref", "shape": `{"id": 123, "slug": "...", "title": "..."}`},
+			{"type": "gallery", "intent": "Image List", "shape": `[{"url": "...", "alt": "..."}, ...]`},
+			{"type": "repeater", "intent": "Nested Lists", "shape": "Array of objects matching sub_fields schema."},
+			{"type": "richtext", "intent": "Prose/HTML", "shape": "\"HTML string\""},
+			{"type": "toggle", "intent": "Booleans", "shape": "true | false"},
 		},
-		"mcp_resource": "vibecms://guidelines/themes",
+		"seeding_patterns": map[string]string{
+			"registration": "Always register taxonomies BEFORE node types that use them.",
+			"idempotency":  "Use page_missing() or node_query checks to avoid duplicate data on script re-runs.",
+		},
+		"portable_refs": []string{
+			"Always reference pages/nodes by slug.",
+			"Reference blocks by their registered slug (e.g., hv-hero).",
+			"Reference assets via theme-asset:<key> prefix.",
+		},
+		"verification_checklist": []string{
+			"All assets import into the media library.",
+			"All seeded nodes render (200 status).",
+			"Admin edit forms show all fields (no [object Object]).",
+			"Templates render identically to seeded pages.",
+		},
+		"authoritative_resource": "vibecms://guidelines/themes",
 	}
 }
