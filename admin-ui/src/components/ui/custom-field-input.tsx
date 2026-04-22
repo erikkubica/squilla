@@ -325,12 +325,58 @@ function TermSelectorInput({
       .finally(() => setLoading(false));
   }, [taxonomy, termNodeType]);
 
+  // Resolve a partial term reference (e.g. {slug} or {name}) against loaded terms.
+  function resolveTerm(v: unknown): TaxonomyTerm | null {
+    if (!v || typeof v !== "object") return null;
+    const obj = v as Record<string, unknown>;
+    if ("id" in obj && obj.id != null) {
+      const hit = terms.find((t) => String(t.id) === String(obj.id));
+      return hit || (obj as unknown as TaxonomyTerm);
+    }
+    if (typeof obj.slug === "string") {
+      const hit = terms.find((t) => t.slug === obj.slug);
+      if (hit) return hit;
+    }
+    if (typeof obj.name === "string") {
+      const hit = terms.find((t) => t.name === obj.name);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
   const selected: TaxonomyTerm[] = isMultiple
-    ? (Array.isArray(value) ? (value as TaxonomyTerm[]) : [])
-    : value && typeof value === "object" && "id" in (value as Record<string, unknown>)
-      ? [value as TaxonomyTerm]
-      : [];
+    ? (Array.isArray(value) ? (value as unknown[]).map(resolveTerm).filter((t): t is TaxonomyTerm => !!t) : [])
+    : (() => {
+        const t = resolveTerm(value);
+        return t ? [t] : [];
+      })();
   const selectedIds = new Set(selected.map((t) => t.id));
+
+  // Normalize stored value once terms load: rewrite slug/name-only payloads to the full term object.
+  useEffect(() => {
+    if (!terms.length || !value) return;
+    if (isMultiple) {
+      if (!Array.isArray(value)) return;
+      const needsFix = (value as unknown[]).some((v) => {
+        if (!v || typeof v !== "object") return false;
+        const o = v as Record<string, unknown>;
+        return !o.id && (o.slug || o.name);
+      });
+      if (needsFix) {
+        const resolved = (value as unknown[]).map(resolveTerm).filter((t): t is TaxonomyTerm => !!t);
+        onChange(resolved);
+      }
+      return;
+    }
+    if (typeof value === "object") {
+      const o = value as Record<string, unknown>;
+      if (!o.id && (o.slug || o.name)) {
+        const hit = resolveTerm(value);
+        if (hit && hit.id) onChange(hit);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terms]);
 
   function handleSelectSingle(id: string) {
     if (!id) { onChange(null); return; }
@@ -575,8 +621,8 @@ function CustomFieldInput({
     return (
       <div>
         <ExtComponent field={field} value={value} onChange={onChange} />
-        {field.help_text && (
-          <p className="mt-1 text-xs text-slate-400">{field.help_text}</p>
+        {field.help && (
+          <p className="mt-1 text-xs text-slate-400">{field.help}</p>
         )}
       </div>
     );
@@ -826,8 +872,8 @@ function CustomFieldInput({
   return (
     <div>
       {input}
-      {field.help_text && (
-        <p className="mt-1 text-xs text-slate-400">{field.help_text}</p>
+      {field.help && (
+        <p className="mt-1 text-xs text-slate-400">{field.help}</p>
       )}
     </div>
   );

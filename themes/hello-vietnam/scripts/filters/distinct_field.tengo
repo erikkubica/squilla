@@ -28,11 +28,24 @@ if is_error(res) {
 		if is_undefined(fd) { continue }
 		v := fd[field]
 		if is_undefined(v) { continue }
-		// Term-ref stored as map {id, slug, name, ...} — unwrap to .name for display
+		// Term-ref stored as map {id, slug, name, ...} — emit {slug, name} pair so
+		// templates can use slug as the stable identifier and name as the label.
 		if type_name(v) == "map" || type_name(v) == "immutable-map" {
-			nv := v["name"]
-			if is_undefined(nv) { continue }
-			v = nv
+			slug := v["slug"]
+			name := v["name"]
+			if is_undefined(slug) { continue }
+			ss := string(slug)
+			if ss == "" { continue }
+			if is_undefined(seen[ss]) {
+				seen[ss] = true
+				label := ss
+				if !is_undefined(name) {
+					ns := string(name)
+					if ns != "" { label = ns }
+				}
+				out = append(out, { slug: ss, name: label })
+			}
+			continue
 		}
 		s := string(v)
 		if s == "" { continue }

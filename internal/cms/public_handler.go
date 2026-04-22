@@ -700,6 +700,7 @@ func (h *PublicHandler) renderBlocks(blocks []map[string]interface{}) []string {
 
 		// Hydrate node references — resolve node selector fields to full node data
 		markRichTextFields(fields, bt.FieldSchema)
+		h.hydrateTermFields(fields, bt.FieldSchema)
 		
 		// Use the new RenderParsed method for cached template execution
 		cacheKey := "block:" + blockType + ":" + tmplContent
@@ -857,6 +858,7 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}) []str
 		}
 
 		markRichTextFields(fields, bt.FieldSchema)
+		h.hydrateTermFields(fields, bt.FieldSchema)
 
 		tmplCacheKey := "block:" + blockType + ":" + tmplContent
 		var buf bytes.Buffer
@@ -988,7 +990,156 @@ func (h *PublicHandler) hydrateFields(fields map[string]interface{}) {
 type fieldSchemaDef struct {
 	Key       string           `json:"key"`
 	Type      string           `json:"type"`
+	Taxonomy  string           `json:"taxonomy"`
+	Multiple  bool             `json:"multiple"`
 	SubFields []fieldSchemaDef `json:"sub_fields"`
+}
+
+// hydrateTermFields resolves partial term refs in blocks_data against the DB.
+// Accepts bare slug strings, {"slug":"..."} partials, or full term objects.
+// After this call, term-field values are always full term objects (or untouched
+// if no match is found — the template can still read .slug / .name).
+func (h *PublicHandler) hydrateTermFields(fields map[string]interface{}, schema models.JSONB) {
+	var defs []fieldSchemaDef
+	if err := json.Unmarshal(schema, &defs); err != nil {
+		return
+	}
+	needs := map[string]map[string]bool{}
+	collectTermSlugs(fields, defs, needs)
+	if len(needs) == 0 {
+		return
+	}
+	resolved := map[string]map[string]map[string]interface{}{}
+	for tax, slugs := range needs {
+		slugList := make([]string, 0, len(slugs))
+		for s := range slugs {
+			slugList = append(slugList, s)
+		}
+		var terms []models.TaxonomyTerm
+		if err := h.db.Where("taxonomy = ? AND slug IN ?", tax, slugList).Find(&terms).Error; err != nil {
+			continue
+		}
+		m := map[string]map[string]interface{}{}
+		for _, t := range terms {
+			b, _ := json.Marshal(t)
+			var obj map[string]interface{}
+			_ = json.Unmarshal(b, &obj)
+			m[t.Slug] = obj
+		}
+		resolved[tax] = m
+	}
+	applyTermHydration(fields, defs, resolved)
+}
+
+func termSlugFromRef(v interface{}) string {
+	switch r := v.(type) {
+	case string:
+		return r
+	case map[string]interface{}:
+		if idv, ok := r["id"]; ok {
+			if id := parseNodeID(idv); id > 0 {
+				return ""
+			}
+		}
+		if s, ok := r["slug"].(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func collectTermSlugs(fields map[string]interface{}, defs []fieldSchemaDef, out map[string]map[string]bool) {
+	for _, def := range defs {
+		val, ok := fields[def.Key]
+		if !ok || val == nil {
+			continue
+		}
+		switch def.Type {
+		case "term":
+			tax := def.Taxonomy
+			if tax == "" {
+				continue
+			}
+			add := func(v interface{}) {
+				if s := termSlugFromRef(v); s != "" {
+					if out[tax] == nil {
+						out[tax] = map[string]bool{}
+					}
+					out[tax][s] = true
+				}
+			}
+			if def.Multiple {
+				if arr, ok := val.([]interface{}); ok {
+					for _, it := range arr {
+						add(it)
+					}
+				}
+			} else {
+				add(val)
+			}
+		case "group":
+			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
+				collectTermSlugs(m, def.SubFields, out)
+			}
+		case "repeater":
+			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
+				for _, item := range arr {
+					if m, ok := item.(map[string]interface{}); ok {
+						collectTermSlugs(m, def.SubFields, out)
+					}
+				}
+			}
+		}
+	}
+}
+
+func applyTermHydration(fields map[string]interface{}, defs []fieldSchemaDef, resolved map[string]map[string]map[string]interface{}) {
+	for _, def := range defs {
+		val, ok := fields[def.Key]
+		if !ok || val == nil {
+			continue
+		}
+		switch def.Type {
+		case "term":
+			tax := def.Taxonomy
+			if tax == "" {
+				continue
+			}
+			lookup := resolved[tax]
+			resolve := func(v interface{}) interface{} {
+				s := termSlugFromRef(v)
+				if s == "" {
+					return v
+				}
+				if hit, ok := lookup[s]; ok {
+					return hit
+				}
+				return v
+			}
+			if def.Multiple {
+				if arr, ok := val.([]interface{}); ok {
+					for i, it := range arr {
+						arr[i] = resolve(it)
+					}
+					fields[def.Key] = arr
+				}
+			} else {
+				fields[def.Key] = resolve(val)
+			}
+		case "group":
+			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
+				applyTermHydration(m, def.SubFields, resolved)
+			}
+		case "repeater":
+			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
+				for _, item := range arr {
+					if m, ok := item.(map[string]interface{}); ok {
+						applyTermHydration(m, def.SubFields, resolved)
+					}
+				}
+			}
+		}
+	}
 }
 
 // markRichTextFields walks field values and converts richtext/textarea HTML strings

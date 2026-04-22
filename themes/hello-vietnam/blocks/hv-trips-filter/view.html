@@ -12,7 +12,12 @@
 <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
 <button class="pill active" data-trip-pill="All">All</button>
 {{- range $tags -}}
+{{- /* distinct_field emits {slug,name} for term-typed fields, plain strings for scalar fields */ -}}
+{{- if eq (printf "%T" .) "string" -}}
 <button class="pill" data-trip-pill="{{.}}">{{.}}</button>
+{{- else -}}
+<button class="pill" data-trip-pill="{{.slug}}">{{.name}}</button>
+{{- end -}}
 {{- end -}}
 </div>
 </div></section>

@@ -364,10 +364,10 @@ if page_missing("home") {
 				sticker_text: "100% local-guided"
 			} },
 			{ type: "hv-categories",    fields: { items: [
-				{ title: "Foodie",     tag: { name: "Foodie",     slug: "foodie" },     cta_label: "Explore", color: "red",    icon: "fork",     link: { text: "Explore", url: "/trips?tag=foodie" } },
-				{ title: "Adventure",  tag: { name: "Adventure",  slug: "adventure" },  cta_label: "Explore", color: "green",  icon: "trail",    link: { text: "Explore", url: "/trips?tag=adventure" } },
-				{ title: "Relaxing",   tag: { name: "Relaxing",   slug: "relaxing" },   cta_label: "Explore", color: "yellow", icon: "workshop", link: { text: "Explore", url: "/trips?tag=relaxing" } },
-				{ title: "Family Fun", tag: { name: "Family Fun", slug: "family_fun" }, cta_label: "Explore", color: "ink",    icon: "family",   link: { text: "Explore", url: "/trips?tag=family-fun" } }
+				{ title: "Foodie",     tag: { slug: "foodie" },     cta: { text: "Explore", url: "/trips?tag=foodie" },     color: "red",    icon: "fork" },
+				{ title: "Adventure",  tag: { slug: "adventure" },  cta: { text: "Explore", url: "/trips?tag=adventure" },  color: "green",  icon: "trail" },
+				{ title: "Relaxing",   tag: { slug: "relaxing" },   cta: { text: "Explore", url: "/trips?tag=relaxing" },   color: "yellow", icon: "workshop" },
+				{ title: "Family Fun", tag: { slug: "family-fun" }, cta: { text: "Explore", url: "/trips?tag=family-fun" }, color: "ink",    icon: "family" }
 			] } },
 			{ type: "hv-featured",      fields: { eyebrow: "Featured Experience" } },
 			{ type: "hv-how-it-works",  fields: {

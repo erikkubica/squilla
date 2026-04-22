@@ -118,8 +118,8 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
       <div className="space-y-1.5">
         <Label className={labelClass}>Help Text</Label>
         <Input
-          value={field.help_text || ""}
-          onChange={(e) => updateField({ help_text: e.target.value || undefined })}
+          value={field.help || ""}
+          onChange={(e) => updateField({ help: e.target.value || undefined })}
           placeholder="Instructions shown below the field"
           className={inputClass}
         />
@@ -283,7 +283,7 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
     }
     if (newFieldPlaceholder.trim()) sf.placeholder = newFieldPlaceholder.trim();
     if (newFieldDefaultValue.trim()) sf.default_value = newFieldDefaultValue.trim();
-    if (newFieldHelpText.trim()) sf.help_text = newFieldHelpText.trim();
+    if (newFieldHelpText.trim()) sf.help = newFieldHelpText.trim();
     onChange([...value, sf]);
     reset();
   }
@@ -336,7 +336,7 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
                 </button>
                 <Badge className={`${fieldTypeBadgeClass(sf.type)} border-0 text-xs`}>{sf.type}</Badge>
                 {sf.required && <Badge className="bg-red-100 text-red-600 hover:bg-red-100 border-0 text-xs">Required</Badge>}
-                {sf.help_text && <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-0 text-xs" title={sf.help_text}>?</Badge>}
+                {sf.help && <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-0 text-xs" title={sf.help}>?</Badge>}
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 shrink-0" onClick={() => setEditingIndex(editingIndex === i ? null : i)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>

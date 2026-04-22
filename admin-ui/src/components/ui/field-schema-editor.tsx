@@ -171,7 +171,7 @@ export default function FieldSchemaEditor({
 
     if (newFieldPlaceholder.trim()) sf.placeholder = newFieldPlaceholder.trim();
     if (newFieldDefaultValue.trim()) sf.default_value = newFieldDefaultValue.trim();
-    if (newFieldHelpText.trim()) sf.help_text = newFieldHelpText.trim();
+    if (newFieldHelpText.trim()) sf.help = newFieldHelpText.trim();
 
     if ((newFieldType === "select" || newFieldType === "radio" || newFieldType === "checkbox") && newFieldOptions.trim()) {
       sf.options = newFieldOptions.split(",").map((o) => o.trim()).filter(Boolean);
@@ -267,7 +267,7 @@ export default function FieldSchemaEditor({
                 </button>
                 <Badge className={`${fieldTypeBadgeClass(field.type)} border-0 text-xs`}>{field.type}</Badge>
                 {field.required && <Badge className="bg-red-100 text-red-600 hover:bg-red-100 border-0 text-xs">Required</Badge>}
-                {field.help_text && <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-0 text-xs" title={field.help_text}>?</Badge>}
+                {field.help && <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-0 text-xs" title={field.help}>?</Badge>}
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 shrink-0" onClick={() => setEditingFieldIndex(editingFieldIndex === index ? null : index)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
@@ -354,7 +354,7 @@ export default function FieldSchemaEditor({
                   {/* Help Text */}
                   <div className="space-y-1">
                     <Label className="text-xs font-medium text-slate-600">Help Text</Label>
-                    <Input value={field.help_text || ""} onChange={(e) => updateField(index, { help_text: e.target.value || undefined })} placeholder="Instructions for content editors" className="h-8 text-sm rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
+                    <Input value={field.help || ""} onChange={(e) => updateField(index, { help: e.target.value || undefined })} placeholder="Instructions for content editors" className="h-8 text-sm rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
                   </div>
                   {/* Options for radio/checkbox */}
                   {(field.type === "radio" || field.type === "checkbox") && (

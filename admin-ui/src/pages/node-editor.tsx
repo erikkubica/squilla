@@ -772,6 +772,11 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     {/* Block fields */}
                     {!isCollapsed && (
                       <div className="p-4 space-y-3">
+                        {blockTypeDef?.description && (
+                          <p className="text-xs text-slate-500 italic border-l-2 border-slate-200 pl-2">
+                            {blockTypeDef.description}
+                          </p>
+                        )}
                         {blockFields.length === 0 ? (
                           <p className="text-sm text-slate-400 text-center py-2">
                             This block type has no fields defined.

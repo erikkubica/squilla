@@ -187,7 +187,7 @@ export default function BlockTypeEditorPage() {
 
     if (newFieldPlaceholder.trim()) sf.placeholder = newFieldPlaceholder.trim();
     if (newFieldDefaultValue.trim()) sf.default_value = newFieldDefaultValue.trim();
-    if (newFieldHelpText.trim()) sf.help_text = newFieldHelpText.trim();
+    if (newFieldHelpText.trim()) sf.help = newFieldHelpText.trim();
 
     if ((newFieldType === "select" || newFieldType === "radio" || newFieldType === "checkbox") && newFieldOptions.trim()) {
       sf.options = newFieldOptions.split(",").map((o) => o.trim()).filter(Boolean);
@@ -477,7 +477,7 @@ export default function BlockTypeEditorPage() {
                           </div>
                           <div className="space-y-1">
                             <Label className="text-[10px] text-slate-500 uppercase">Help Text</Label>
-                            <Input value={field.help_text || ""} onChange={e => updateField(index, { help_text: e.target.value })} className="h-8 text-sm" />
+                            <Input value={field.help || ""} onChange={e => updateField(index, { help: e.target.value })} className="h-8 text-sm" />
                           </div>
                           {(field.type === "group" || field.type === "repeater") && (
                             <SubFieldsEditor

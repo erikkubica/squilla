@@ -195,7 +195,7 @@ export interface NodeTypeField {
   options?: string[];
   placeholder?: string;
   default_value?: any;
-  help_text?: string;
+  help?: string;
   sub_fields?: NodeTypeField[];
   node_type_filter?: string;
   taxonomy?: string;
