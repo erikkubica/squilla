@@ -1,70 +1,80 @@
 {
   "slug": "hv-hero",
   "name": "Home Hero",
-  "description": "Hello Vietnam \u2014 Home Hero",
+  "description": "The main entrance block for the homepage. Combines a punchy, multi-line heading with rich social proof, primary/secondary action buttons, and a collage of overlapping, 'floating' photos.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "badge_text",
       "label": "Badge Text",
-      "type": "text"
+      "type": "text",
+      "help": "Small introductory text shown above the main heading (e.g., 'Xin chào!')."
     },
     {
       "key": "heading_line1",
       "label": "Heading Line 1 (HTML allowed)",
       "type": "text",
-      "help": "First line of the hero heading. May contain HTML entities like &amp;."
+      "help": "The first line of the large hero title. Supports HTML entities."
     },
     {
       "key": "heading_accent",
       "label": "Heading Accent Word (red)",
       "type": "text",
-      "help": "Word rendered in red, include trailing space if desired."
+      "help": "A single word highlighted in the theme's red color. Include a trailing space if followed by more text."
     },
     {
       "key": "heading_line2_after",
       "label": "Heading Line 2 After Accent",
-      "type": "text"
+      "type": "text",
+      "help": "Text that appears immediately after the red accent word on the second line."
     },
     {
       "key": "heading_line3_before",
       "label": "Heading Line 3 Before Underlined Word",
-      "type": "text"
+      "type": "text",
+      "help": "Text that appears on the third line, before the final underlined word."
     },
     {
       "key": "heading_underlined",
       "label": "Underlined Word",
-      "type": "text"
+      "type": "text",
+      "help": "The final word in the heading that will have a yellow brush-stroke underline effect."
     },
     {
       "key": "subheading",
       "label": "Subheading",
-      "type": "textarea"
+      "type": "textarea",
+      "help": "Supporting descriptive text shown below the main title. Aim for 2-3 lines."
     },
     {
       "key": "cta_primary",
       "label": "Primary CTA",
-      "type": "link"
+      "type": "link",
+      "help": "The large primary action button for the main conversion goal."
     },
     {
       "key": "cta_secondary",
       "label": "Secondary CTA",
-      "type": "link"
+      "type": "link",
+      "help": "The secondary outline button for alternative paths (e.g., 'Meet the Crew')."
     },
     {
       "key": "social_proof_strong",
       "label": "Social Proof (bold)",
-      "type": "text"
+      "type": "text",
+      "help": "The bold part of the social proof indicator (e.g., '2,400+ travelers')."
     },
     {
       "key": "social_proof_rest",
       "label": "Social Proof (rest)",
-      "type": "text"
+      "type": "text",
+      "help": "Supporting text for the social proof line (e.g., '· Rated 4.9 on TripAdvisor')."
     },
     {
       "key": "sticker_text",
       "label": "Floating Sticker Text",
-      "type": "text"
+      "type": "text",
+      "help": "Text for the floating circular yellow badge (e.g., '100% local-guided')."
     }
   ],
   "test_data": {

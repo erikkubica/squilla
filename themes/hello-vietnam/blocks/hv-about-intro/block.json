@@ -1,18 +1,20 @@
 {
   "slug": "hv-about-intro",
   "name": "About Intro",
-  "description": "Hello Vietnam \u2014 About Intro",
+  "description": "The lead section for the About page. Features a large, expressive heading and a multi-paragraph description text, usually highlighting the mission or team behind the project.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "eyebrow",
       "label": "Eyebrow",
-      "type": "text"
+      "type": "text",
+      "help": "A small, uppercase label displayed above the main heading."
     },
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "body_p1",

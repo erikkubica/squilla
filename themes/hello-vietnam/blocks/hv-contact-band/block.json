@@ -1,23 +1,26 @@
 {
   "slug": "hv-contact-band",
   "name": "Contact CTA Band",
-  "description": "Hello Vietnam \u2014 Contact CTA Band",
+  "description": "A high-impact, dark-themed call-to-action strip for the bottom of pages. Uses bold typography and a theme-colored button to provide a final push for contact or inquiries.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "body",
       "label": "Body",
-      "type": "textarea"
+      "type": "textarea",
+      "help": "The main descriptive text for this section."
     },
     {
       "key": "cta",
       "label": "Call to action",
-      "type": "link"
+      "type": "link",
+      "help": "The primary action link for this block."
     }
   ],
   "test_data": {

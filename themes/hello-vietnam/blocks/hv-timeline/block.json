@@ -1,18 +1,20 @@
 {
   "slug": "hv-timeline",
   "name": "Origin Story Timeline",
-  "description": "Hello Vietnam \u2014 Origin Story Timeline",
+  "description": "A vertical historical timeline documenting the origin story. Features a sequence of year markers, headings, and body text, visually connected by a dotted line.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "eyebrow",
       "label": "Eyebrow",
-      "type": "text"
+      "type": "text",
+      "help": "A small, uppercase label displayed above the main heading."
     },
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "entries",
@@ -27,7 +29,8 @@
         {
           "key": "body",
           "label": "Body",
-          "type": "textarea"
+          "type": "textarea",
+          "help": "The main descriptive text for this section."
         },
         {
           "key": "color",
@@ -37,7 +40,8 @@
             "red",
             "yellow",
             "green"
-          ]
+          ],
+          "help": "Choose the theme color for this element."
         }
       ]
     }

@@ -1,23 +1,26 @@
 {
   "slug": "hv-lead-magnet",
   "name": "Lead Magnet Banner",
-  "description": "Hello Vietnam \u2014 Lead Magnet Banner",
+  "description": "A high-conversion email capture block with a deep red gradient. Features a prominent headline, an image of the freebie (e.g., a PDF map), and an inline email signup form.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "badge_text",
       "label": "Badge",
-      "type": "text"
+      "type": "text",
+      "help": "A small highlight label (e.g. 'New', 'Featured')."
     },
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "body",
       "label": "Body",
-      "type": "textarea"
+      "type": "textarea",
+      "help": "The main descriptive text for this section."
     },
     {
       "key": "input_placeholder",
@@ -27,7 +30,8 @@
     {
       "key": "submit_label",
       "label": "Submit Button Label",
-      "type": "text"
+      "type": "text",
+      "help": "The text displayed on the form submission button."
     },
     {
       "key": "image_label",

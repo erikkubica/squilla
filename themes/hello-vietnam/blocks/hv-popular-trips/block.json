@@ -1,40 +1,41 @@
 {
   "slug": "hv-popular-trips",
   "name": "Popular Trips",
-  "description": "Queries published trip nodes and renders a 3-up trip-card grid. Header block above.",
+  "description": "Queries published trip nodes and renders a 3-up trip-card grid. Designed to show the most popular or latest adventures with clear visual indicators for staff picks and ratings.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "eyebrow",
       "label": "Eyebrow",
-      "type": "text"
+      "type": "text",
+      "help": "A small label shown above the section title (e.g., 'Our most-booked')."
     },
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The main title for the popular trips section."
     },
     {
-      "key": "cta_text",
-      "label": "CTA Label",
-      "type": "text"
-    },
-    {
-      "key": "cta_url",
-      "label": "CTA URL",
-      "type": "text"
+      "key": "cta",
+      "label": "CTA Link",
+      "type": "link",
+      "help": "The link to the 'all trips' page, shown at the end of the section."
     },
     {
       "key": "limit",
       "label": "How many trips",
-      "type": "number"
+      "type": "number",
+      "help": "Maximum number of trip cards to display. We recommend 3 for a clean grid layout."
     }
   ],
   "test_data": {
     "eyebrow": "Our most-booked",
     "heading": "Trips travelers can't stop talking about.",
-    "cta_text": "See all trips \u2192",
-    "cta_url": "/trips",
+    "cta": {
+      "text": "See all trips \u2192",
+      "url": "/trips"
+    },
     "limit": 3
   }
 }

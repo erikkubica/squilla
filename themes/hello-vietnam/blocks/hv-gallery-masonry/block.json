@@ -1,13 +1,14 @@
 {
   "slug": "hv-gallery-masonry",
   "name": "Gallery Masonry",
-  "description": "Queries gallery_photo nodes into a CSS-column masonry; wired to JS filter + lightbox.",
+  "description": "A dynamic, Pinterest-style grid for displaying gallery photos. Photos are arranged in columns of varying heights and can be filtered by category using the Gallery Intro block.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "limit",
       "label": "Max photos",
-      "type": "number"
+      "type": "number",
+      "help": "Maximum number of items to display."
     }
   ],
   "test_data": {

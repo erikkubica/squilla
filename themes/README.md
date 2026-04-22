@@ -86,6 +86,23 @@ docker compose exec -T db sh -c 'psql -U $POSTGRES_USER -d $POSTGRES_DB \
 docker compose restart app
 ```
 
+### 1.5 Every block must have a human-friendly `description`
+The `description` field at the root of `block.json` is used in the CMS block picker and by other developers to understand the block's layout and behavior.
+
+- **Bad**: `"description": "Hello Vietnam — About Intro"`
+- **Good**: `"description": "A high-impact header for the About page. Features a large, expressive heading and multi-paragraph mission statement."`
+
+The description should summarize the **visual layout** and **functional purpose** of the block.
+
+### 1.6 Every field must have a `help` property
+Provide clear, instructional text for the CMS editor via the `help` property. This appears as a hint in the admin interface.
+
+- **Bad**: `{ "key": "eyebrow", "label": "Eyebrow", "type": "text" }`
+- **Good**: `{ "key": "eyebrow", "label": "Eyebrow", "type": "text", "help": "Small label shown above the main heading (e.g. 'Our most-booked')." }`
+
+Guidance should be provided for any field where the intent isn't 100% obvious from the label alone.
+
+
 ## 2. Fields — Picking the Right Type
 
 ### 2.1 Taxonomies → `term` field

@@ -1,23 +1,26 @@
 {
   "slug": "hv-legal-content",
   "name": "Legal Content",
-  "description": "Hello Vietnam \u2014 Legal Content",
+  "description": "A long-form text block for terms, privacy policies, or legal notices. Includes a breadcrumb, 'Last updated' date, and a highlighted 'In a nutshell' summary box.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "heading",
       "label": "Document heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "updated_at",
       "label": "Last updated (display text)",
-      "type": "text"
+      "type": "text",
+      "help": "The date when this content was last reviewed or updated."
     },
     {
       "key": "summary_heading",
       "label": "Summary box heading",
-      "type": "text"
+      "type": "text",
+      "help": "The title for the 'In a nutshell' summary box."
     },
     {
       "key": "summary_points",
@@ -27,9 +30,11 @@
         {
           "key": "body",
           "label": "Point (HTML allowed)",
-          "type": "textarea"
+          "type": "textarea",
+          "help": "The main descriptive text for this section."
         }
-      ]
+      ],
+      "help": "A list of key takeaways or bullet points."
     },
     {
       "key": "sections",
@@ -39,24 +44,29 @@
         {
           "key": "h3",
           "label": "Heading",
-          "type": "text"
+          "type": "text",
+          "help": "A sub-heading for this section."
         },
         {
           "key": "body",
           "label": "Body (HTML allowed)",
-          "type": "textarea"
+          "type": "textarea",
+          "help": "The main descriptive text for this section."
         }
-      ]
+      ],
+      "help": "The main content sections of the page."
     },
     {
       "key": "contact_concern_heading",
       "label": "Concern box heading",
-      "type": "text"
+      "type": "text",
+      "help": "The title for the 'Have a concern?' box."
     },
     {
       "key": "contact_concern_body",
       "label": "Concern box body (HTML allowed)",
-      "type": "textarea"
+      "type": "textarea",
+      "help": "Instructions or contact info for legal concerns."
     }
   ],
   "test_data": {

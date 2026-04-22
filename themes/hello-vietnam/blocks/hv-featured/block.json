@@ -1,13 +1,14 @@
 {
   "slug": "hv-featured",
   "name": "Featured Experience",
-  "description": "Home featured trip \u2014 queries top-rated trip and renders 2-col layout.",
+  "description": "A highlight block for a featured trip. Displays a large, high-impact image alongside a descriptive heading and summary. Uses a 2-column layout to draw attention to a specific experience.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "eyebrow",
       "label": "Eyebrow",
-      "type": "text"
+      "type": "text",
+      "help": "A small, uppercase label displayed above the main heading."
     }
   ],
   "test_data": {

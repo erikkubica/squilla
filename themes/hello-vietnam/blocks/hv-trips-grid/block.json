@@ -1,13 +1,14 @@
 {
   "slug": "hv-trips-grid",
   "name": "Trips Grid",
-  "description": "Full trip listing with client-side JS filter by tag + search.",
+  "description": "The main listing component for trips. Renders a responsive grid of trip cards, each showing a thumbnail, price, duration, and key tags.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "limit",
       "label": "Max trips",
-      "type": "number"
+      "type": "number",
+      "help": "Maximum number of items to display."
     }
   ],
   "test_data": {

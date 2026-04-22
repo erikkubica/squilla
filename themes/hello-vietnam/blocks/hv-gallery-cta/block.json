@@ -1,18 +1,20 @@
 {
   "slug": "hv-gallery-cta",
   "name": "Gallery CTA",
-  "description": "Hello Vietnam \u2014 Gallery CTA",
+  "description": "A simple but effective call-to-action block for the bottom of the gallery page. Encourages users to take the next step after browsing the photos.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "body",
       "label": "Body (HTML allowed)",
-      "type": "textarea"
+      "type": "textarea",
+      "help": "The main descriptive text for this section."
     }
   ],
   "test_data": {

@@ -1,7 +1,7 @@
 {
   "slug": "hv-trip-detail",
   "name": "Trip Detail",
-  "description": "Full trip detail page \u2014 hero gallery, accordion itinerary, included/not-included, reviews, booking card, FAQs, related trips. Reads current node's fields_data (trip node).",
+  "description": "The master block for individual trip pages. It dynamically pulls in all trip data: hero gallery, itinerary accordion, price details, booking form, and related trips section.",
   "category": "hello-vietnam",
   "field_schema": [],
   "test_data": {}

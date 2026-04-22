@@ -1,23 +1,26 @@
 {
   "slug": "hv-custom-journey",
   "name": "Custom Journey CTA",
-  "description": "Hello Vietnam \u2014 Custom Journey CTA",
+  "description": "A prominent call-to-action banner on a soft yellow background. Designed to encourage users to start a custom trip inquiry, featuring a heading, description, and primary button.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "body",
       "label": "Body",
-      "type": "textarea"
+      "type": "textarea",
+      "help": "The main descriptive text for this section."
     },
     {
       "key": "cta",
       "label": "Call to action",
-      "type": "link"
+      "type": "link",
+      "help": "The primary action link for this block."
     }
   ],
   "test_data": {

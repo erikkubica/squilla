@@ -1,7 +1,7 @@
 {
   "slug": "hv-staff-pick",
   "name": "Staff Pick Banner",
-  "description": "Red gradient banner featuring one staff-picked trip. Hidden via JS when filter != All.",
+  "description": "A visually striking banner for 'Staff Pick' trips. Uses a vibrant red-to-yellow gradient background to make a specific trip stand out on listing pages.",
   "category": "hello-vietnam",
   "field_schema": [
     {
@@ -21,12 +21,12 @@
       "key": "cta_label",
       "label": "CTA Label",
       "type": "text",
-      "help": "Button text. Default: \"Book this trip →\"."
+      "help": "Button text. Default: \"Book this trip \u2192\"."
     }
   ],
   "test_data": {
     "trip": null,
     "badge_text": "#1 Staff Pick",
-    "cta_label": "Book this trip →"
+    "cta_label": "Book this trip \u2192"
   }
 }

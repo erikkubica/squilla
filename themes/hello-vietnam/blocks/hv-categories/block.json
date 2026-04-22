@@ -1,7 +1,7 @@
 {
   "slug": "hv-categories",
   "name": "Home Categories Strip",
-  "description": "Hello Vietnam \u2014 Home Categories Strip",
+  "description": "A horizontal strip of colorful 'tiles' representing different trip types or categories. Each tile includes an icon, a title, a tag link, and an 'Explore' button, designed to guide users to specific trip listings.",
   "category": "hello-vietnam",
   "field_schema": [
     {
@@ -13,7 +13,8 @@
         {
           "key": "title",
           "label": "Title",
-          "type": "text"
+          "type": "text",
+          "help": "The name or title of this item."
         },
         {
           "key": "tag",
@@ -44,7 +45,8 @@
             "green",
             "yellow",
             "ink"
-          ]
+          ],
+          "help": "Choose the theme color for this element."
         },
         {
           "key": "icon",
@@ -55,7 +57,8 @@
             "trail",
             "workshop",
             "family"
-          ]
+          ],
+          "help": "Select the icon that best represents this item."
         }
       ]
     }
@@ -69,6 +72,10 @@
           "slug": "foodie"
         },
         "cta_label": "Explore",
+        "link": {
+          "url": "/trips?tag=foodie",
+          "text": "Explore"
+        },
         "color": "red",
         "icon": "fork"
       },
@@ -79,6 +86,10 @@
           "slug": "adventure"
         },
         "cta_label": "Explore",
+        "link": {
+          "url": "/trips?tag=adventure",
+          "text": "Explore"
+        },
         "color": "green",
         "icon": "trail"
       },
@@ -89,6 +100,10 @@
           "slug": "relaxing"
         },
         "cta_label": "Explore",
+        "link": {
+          "url": "/trips?tag=relaxing",
+          "text": "Explore"
+        },
         "color": "yellow",
         "icon": "workshop"
       },
@@ -99,6 +114,10 @@
           "slug": "family_fun"
         },
         "cta_label": "Explore",
+        "link": {
+          "url": "/trips?tag=family-fun",
+          "text": "Explore"
+        },
         "color": "ink",
         "icon": "family"
       }

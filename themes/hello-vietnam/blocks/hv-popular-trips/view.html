@@ -5,7 +5,7 @@
 <section class="section"><div class="container">
 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-wrap: wrap; gap: 16px;">
 <div>{{ with .eyebrow }}<span class="eyebrow">{{ . }}</span>{{ end }}{{ with .heading }}<h2>{{ . }}</h2>{{ end }}</div>
-{{ if and .cta_text .cta_url }}<a class="btn btn-ghost" href="{{ .cta_url }}">{{ .cta_text }}</a>{{ end }}
+{{ with .cta }}<a class="btn btn-ghost" href="{{ .url }}">{{ .text }}</a>{{ end }}
 </div>
 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
 {{- range $trips -}}{{- $t := . -}}

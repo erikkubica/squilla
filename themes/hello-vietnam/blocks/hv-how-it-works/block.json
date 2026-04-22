@@ -1,18 +1,20 @@
 {
   "slug": "hv-how-it-works",
   "name": "How It Works",
-  "description": "Hello Vietnam \u2014 How It Works",
+  "description": "A high-contrast dark section that breaks down a process into simple steps. Features large numeric indicators in theme colors and clear, concise cards for each phase.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "eyebrow",
       "label": "Eyebrow",
-      "type": "text"
+      "type": "text",
+      "help": "A small, uppercase label displayed above the main heading."
     },
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "steps",
@@ -28,12 +30,14 @@
         {
           "key": "title",
           "label": "Title",
-          "type": "text"
+          "type": "text",
+          "help": "The name or title of this item."
         },
         {
           "key": "body",
           "label": "Body",
-          "type": "textarea"
+          "type": "textarea",
+          "help": "The main descriptive text for this section."
         },
         {
           "key": "color",
@@ -43,7 +47,8 @@
             "red",
             "yellow",
             "green"
-          ]
+          ],
+          "help": "Choose the theme color for this element."
         }
       ]
     }

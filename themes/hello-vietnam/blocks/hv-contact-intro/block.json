@@ -1,23 +1,26 @@
 {
   "slug": "hv-contact-intro",
   "name": "Contact Intro",
-  "description": "Hello Vietnam \u2014 Contact Intro",
+  "description": "A centered header for the contact page. Sets the stage with a large heading, descriptive text, and an optional eyebrow label.",
   "category": "hello-vietnam",
   "field_schema": [
     {
       "key": "eyebrow",
       "label": "Eyebrow",
-      "type": "text"
+      "type": "text",
+      "help": "A small, uppercase label displayed above the main heading."
     },
     {
       "key": "heading",
       "label": "Heading",
-      "type": "text"
+      "type": "text",
+      "help": "The primary title of the section."
     },
     {
       "key": "body",
       "label": "Body",
-      "type": "textarea"
+      "type": "textarea",
+      "help": "The main descriptive text for this section."
     }
   ],
   "test_data": {
