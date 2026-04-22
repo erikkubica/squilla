@@ -1,0 +1,23 @@
+{
+  "name": "Gallery",
+  "description": "Hello Vietnam gallery page — intro with filter pills, masonry grid, CTA.",
+  "thumbnail": "",
+  "blocks": [
+    {
+      "type": "hv-gallery-intro",
+      "fields": {
+        "eyebrow": "Moments",
+        "heading": "Ten years of candid Vietnam.",
+        "body": "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site."
+      }
+    },
+    { "type": "hv-gallery-masonry", "fields": { "limit": 12 } },
+    {
+      "type": "hv-gallery-cta",
+      "fields": {
+        "heading": "Want to be featured?",
+        "body": "Tag <strong>@HelloVietnam</strong> on your next trip — we repost our favorites every week."
+      }
+    }
+  ]
+}

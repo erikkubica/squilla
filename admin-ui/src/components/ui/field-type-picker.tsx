@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Check, ChevronsUpDown, Type, AlignLeft, Hash, Calendar, ListOrdered, Image, ToggleLeft, Link2, Layers, Repeat, FileSearch, Palette, Mail, Globe, FileText as RichTextIcon, SlidersHorizontal, File, Images, CircleDot, CheckSquare, Puzzle } from "lucide-react";
+import { Check, ChevronsUpDown, Type, AlignLeft, Hash, Calendar, ListOrdered, Image, ToggleLeft, Link2, Layers, Repeat, FileSearch, Tags, Palette, Mail, Globe, FileText as RichTextIcon, SlidersHorizontal, File, Images, CircleDot, CheckSquare, Puzzle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +31,7 @@ interface FieldTypeOption {
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Type, AlignLeft, FileText: RichTextIcon, Hash, SlidersHorizontal, Mail, Globe,
   Calendar, Palette, ToggleLeft, ListOrdered, CircleDot, CheckSquare, Image,
-  Images, File, Link2, FileSearch, Layers, Repeat,
+  Images, File, Link2, FileSearch, Tags, Layers, Repeat,
 };
 
 // Fallback-only: used if /admin/api/field-types is unreachable. The canonical
@@ -55,6 +55,7 @@ const FALLBACK_OPTIONS: FieldTypeOption[] = [
   { value: "file", label: "File", description: "File upload with type filtering", icon: File, group: "Media" },
   { value: "link", label: "Link", description: "URL with text, alt, and target", icon: Link2, group: "Relational" },
   { value: "node", label: "Node Selector", description: "Reference to content nodes", icon: FileSearch, group: "Relational" },
+  { value: "term", label: "Term Selector", description: "Reference to taxonomy terms", icon: Tags, group: "Relational" },
   { value: "group", label: "Group", description: "Container for nested fields", icon: Layers, group: "Layout" },
   { value: "repeater", label: "Repeater", description: "Repeatable set of fields", icon: Repeat, group: "Layout" },
 ];
@@ -81,6 +82,12 @@ function fetchFieldTypes(): Promise<FieldTypeOption[]> {
         icon: ICON_MAP[b.icon] || Puzzle,
         group: b.group,
       }));
+      // If the backend hasn't been rebuilt with a newly-added builtin type,
+      // fall back to FALLBACK_OPTIONS entries so the picker still surfaces it.
+      const known = new Set(mapped.map((m) => m.value));
+      for (const f of FALLBACK_OPTIONS) {
+        if (!known.has(f.value)) mapped.push(f);
+      }
       cachedRemote = mapped;
       return mapped;
     })

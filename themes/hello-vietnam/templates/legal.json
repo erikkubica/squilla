@@ -1,0 +1,29 @@
+{
+  "name": "Privacy Policy",
+  "description": "Hello Vietnam legal / privacy page — single long-form document block.",
+  "thumbnail": "",
+  "blocks": [
+    {
+      "type": "hv-legal-content",
+      "fields": {
+        "heading": "Privacy Policy",
+        "updated_at": "April 2026",
+        "summary_heading": "Too long? Here's the summary",
+        "summary_points": [
+          { "body": "We only collect info you give us (email, booking details)." },
+          { "body": "We never sell your data. We're a tiny company; we don't even know how to." },
+          { "body": "We use it to run your trip and send you occasional emails (unsubscribe any time)." },
+          { "body": "You can ask us to delete everything about you. Just reply to any email." }
+        ],
+        "sections": [
+          { "h3": "1. Who we are",    "body": "Hello Vietnam Adventures is a registered tour operator based in Hanoi, Vietnam (License #HN-2021-0847). We operate this website and handle bookings through it." },
+          { "h3": "2. What we collect","body": "When you book a trip, fill out a form, or email us, we collect your name, email, phone number, dietary needs, and any other info you share. We also collect anonymous analytics (how many people visited the site, which pages are popular)." },
+          { "h3": "3. How we use it", "body": "To run your trip, coordinate logistics, send booking confirmations, and occasionally email you about new experiences (only if you opt in). That's it." },
+          { "h3": "4. Your rights",   "body": "You can ask us to show you everything we have on file, correct it, or delete it. Just email <strong>xinchao@hellovietnam.co</strong>." }
+        ],
+        "contact_concern_heading": "Have a concern?",
+        "contact_concern_body": "Email us at xinchao@hellovietnam.co — we take privacy seriously."
+      }
+    }
+  ]
+}

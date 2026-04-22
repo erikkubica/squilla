@@ -39,7 +39,7 @@ nodetypes.register({
 	description: "A bookable small-group adventure",
 	url_prefixes: { en: "trips" },
 	field_schema: [
-		{ name: "tag",        label: "Tag",               type: "text",     help: "Foodie / Adventure / Relaxing" },
+		{ name: "tag",        label: "Tag",               type: "term",     taxonomy: "trip_tag", term_node_type: "trip", help: "Pick a trip tag — managed in Taxonomies." },
 		{ name: "duration",   label: "Duration",          type: "text" },
 		{ name: "price",      label: "Price (USD)",       type: "number" },
 		{ name: "location",   label: "Location",          type: "text" },
@@ -49,6 +49,12 @@ nodetypes.register({
 		{ name: "color",      label: "Accent",            type: "text",     help: "red | yellow | green" },
 		{ name: "short",      label: "Short Description", type: "textarea" },
 		{ name: "hero_image", label: "Hero Image",        type: "image" },
+		{ name: "gallery",    label: "Gallery",           type: "repeater",
+			sub_fields: [
+				{ name: "image",   label: "Image",   type: "image" },
+				{ name: "caption", label: "Caption", type: "text"  }
+			]
+		},
 		{ name: "stops",      label: "Stops",             type: "repeater",
 			sub_fields: [
 				{ name: "title", label: "Stop Title", type: "text" },
@@ -70,6 +76,12 @@ nodetypes.register({
 	],
 	taxonomies: ["trip_tag"]
 })
+
+// Note: core/terms Tengo module is not yet available — seed trip_tag terms
+// (Foodie, Adventure, Relaxing, Family Fun) via admin or MCP core.term.create.
+// The /trips filter reads distinct fields_data.tag values directly so the
+// filter pills work regardless, but the admin taxonomy page is empty until
+// terms are seeded separately.
 
 nodetypes.register({
 	slug: "crew_member",
@@ -97,7 +109,8 @@ nodetypes.register({
 		{ name: "author", label: "Author", type: "text" },
 		{ name: "handle", label: "Handle", type: "text" },
 		{ name: "color",  label: "Accent", type: "text", help: "red | yellow | green" },
-		{ name: "photo",  label: "Photo",  type: "image" }
+		{ name: "photo",  label: "Photo",  type: "image" },
+		{ name: "trip",   label: "Trip",   type: "node", node_types: ["trip"], help: "Pick the trip this review is about. Leave empty for generic testimonials." }
 	]
 })
 
@@ -122,7 +135,8 @@ log.info("Hello Vietnam: 4 custom node types registered")
 // ─── Filters ─────────────────────────────────────────────────
 filters.add("list_nodes",     "./filters/list_nodes")
 filters.add("distinct_field", "./filters/distinct_field")
-log.info("Hello Vietnam: filters registered (list_nodes, distinct_field)")
+filters.add("get_node",       "./filters/get_node")
+log.info("Hello Vietnam: filters registered (list_nodes, distinct_field, get_node)")
 
 // ─── Site Settings (hv.* namespace) ──────────────────────────
 // Seeded once so blocks / partials can read shared values via
@@ -179,6 +193,7 @@ seed("trip", "trips", [
 		title: "Hanoi Street Food Safari",
 		slug: "hanoi-street-food",
 		fields_data: {
+			hero_image: { url: "theme-asset:trip-hanoi-street-food", alt: "Bustling Hanoi street food alley" },
 			tag: "Foodie", duration: "4 hrs", price: 45, location: "Hanoi Old Quarter",
 			rating: 4.9, reviews: 312, staff_pick: true, color: "red",
 			short: "Plastic stools, bubbling pots, and twelve things you've never eaten before.",
@@ -213,6 +228,7 @@ seed("trip", "trips", [
 		title: "Ha Giang Motorbike Loop",
 		slug: "ha-giang-loop",
 		fields_data: {
+			hero_image: { url: "theme-asset:trip-ha-giang-loop", alt: "Ha Giang mountain road with motorbikes" },
 			tag: "Adventure", duration: "4 days", price: 320, location: "Northern Highlands",
 			rating: 4.95, reviews: 187, staff_pick: false, color: "green",
 			short: "Three mountain passes, one unforgettable homestay, zero tourist buses.",
@@ -236,6 +252,7 @@ seed("trip", "trips", [
 		title: "Hoi An Lantern Cooking Class",
 		slug: "hoi-an-lantern",
 		fields_data: {
+			hero_image: { url: "theme-asset:trip-hoi-an-lantern", alt: "Hoi An lanterns glowing at dusk" },
 			tag: "Foodie", duration: "5 hrs", price: 68, location: "Hoi An",
 			rating: 4.85, reviews: 241, staff_pick: false, color: "yellow",
 			short: "Market, boat, kitchen, feast. A full sensory dive into Central cuisine.",
@@ -259,6 +276,7 @@ seed("trip", "trips", [
 		title: "Mekong Delta Homestay",
 		slug: "mekong-homestay",
 		fields_data: {
+			hero_image: { url: "theme-asset:trip-mekong-homestay", alt: "Mekong Delta stilt house at sunset" },
 			tag: "Relaxing", duration: "2 days", price: 140, location: "Ben Tre",
 			rating: 4.8, reviews: 156, staff_pick: false, color: "green",
 			short: "Coconut channels, hammocks, home-cooked elephant-ear fish — and zero rush.",
@@ -282,36 +300,36 @@ seed("trip", "trips", [
 
 // Crew — mirrored from CREW.
 seed("crew_member", "crew", [
-	{ title: "Linh Tran",    slug: "linh-tran",    fields_data: { role: "Founder & Head Guide",   based: "Hanoi",       fun: "Banh Mi 25, Hang Ca St.",           color: "red"    } },
-	{ title: "Tuan Pham",    slug: "tuan-pham",    fields_data: { role: "Ha Giang Lead",          based: "Dong Van",    fun: "Still has his first Honda Win.",    color: "green"  } },
-	{ title: "Mai Nguyen",   slug: "mai-nguyen",   fields_data: { role: "Hoi An Kitchen Chief",   based: "Hoi An",      fun: "Grows her own Thai basil.",         color: "yellow" } },
-	{ title: "Dat Le",       slug: "dat-le",       fields_data: { role: "Saigon Night Owl",       based: "District 4",  fun: "Knows every late-night pho spot.",  color: "red"    } },
-	{ title: "Huong Vu",     slug: "huong-vu",     fields_data: { role: "Trip Planner",           based: "Hanoi",       fun: "Speaks 4 languages + sarcasm.",     color: "green"  } },
-	{ title: "Ben Carter",   slug: "ben-carter",   fields_data: { role: "Content & Comms",        based: "Da Nang",     fun: "Aussie who moved for the beach.",   color: "yellow" } }
+	{ title: "Linh Tran",    slug: "linh-tran",    fields_data: { role: "Founder & Head Guide",   based: "Hanoi",       fun: "Banh Mi 25, Hang Ca St.",           color: "red"    , photo: { url: "theme-asset:crew-linh", alt: "Linh, founder and head guide" } } },
+	{ title: "Tuan Pham",    slug: "tuan-pham",    fields_data: { role: "Ha Giang Lead",          based: "Dong Van",    fun: "Still has his first Honda Win.",    color: "green"  , photo: { url: "theme-asset:crew-tuan", alt: "Tuan, Ha Giang lead rider" } } },
+	{ title: "Mai Nguyen",   slug: "mai-nguyen",   fields_data: { role: "Hoi An Kitchen Chief",   based: "Hoi An",      fun: "Grows her own Thai basil.",         color: "yellow" , photo: { url: "theme-asset:crew-hang", alt: "Mai, Hoi An kitchen chief" } } },
+	{ title: "Dat Le",       slug: "dat-le",       fields_data: { role: "Saigon Night Owl",       based: "District 4",  fun: "Knows every late-night pho spot.",  color: "red"    , photo: { url: "theme-asset:crew-minh", alt: "Dat, Saigon night owl" } } },
+	{ title: "Huong Vu",     slug: "huong-vu",     fields_data: { role: "Trip Planner",           based: "Hanoi",       fun: "Speaks 4 languages + sarcasm.",     color: "green"  , photo: { url: "theme-asset:crew-linh", alt: "Huong, trip planner" } } },
+	{ title: "Ben Carter",   slug: "ben-carter",   fields_data: { role: "Content & Comms",        based: "Da Nang",     fun: "Aussie who moved for the beach.",   color: "yellow" , photo: { url: "theme-asset:crew-tuan", alt: "Ben, content and comms" } } }
 ])
 
 // Testimonials — mirrored from TESTIMONIALS.
 seed("testimonial", "testimonials", [
-	{ title: "Sarah M.",   slug: "sarah-m",  fields_data: { quote: "I came for the food, I left with a second family. Linh's tour ruined all other food tours.",      author: "Sarah M.",  handle: "@sarahmonthego",     color: "red"    } },
-	{ title: "Jake & Ana", slug: "jake-ana", fields_data: { quote: "The Ha Giang loop was the best 4 days of our lives. Tuan is a legend. Book it yesterday.",          author: "Jake & Ana", handle: "@theanajaketravels", color: "green"  } },
-	{ title: "Priya K.",   slug: "priya-k",  fields_data: { quote: "Mai taught me to make cao lau and now I cry a little every time I eat it at home.",                  author: "Priya K.",  handle: "@priyaeats",          color: "yellow" } },
-	{ title: "The Kim Family", slug: "kim-family", fields_data: { quote: "Homestay with kids = perfection. The family adopted our 7-year-old by the second breakfast.",  author: "The Kim Family", handle: "@kimsabroad",     color: "red"    } }
+	{ title: "Sarah M.",   slug: "sarah-m",  fields_data: { quote: "I came for the food, I left with a second family. Linh's tour ruined all other food tours.",      author: "Sarah M.",  handle: "@sarahmonthego",     color: "red"    , photo: { url: "theme-asset:review-anna", alt: "Sarah M." } } },
+	{ title: "Jake & Ana", slug: "jake-ana", fields_data: { quote: "The Ha Giang loop was the best 4 days of our lives. Tuan is a legend. Book it yesterday.",          author: "Jake & Ana", handle: "@theanajaketravels", color: "green"  , photo: { url: "theme-asset:review-david", alt: "Jake and Ana" } } },
+	{ title: "Priya K.",   slug: "priya-k",  fields_data: { quote: "Mai taught me to make cao lau and now I cry a little every time I eat it at home.",                  author: "Priya K.",  handle: "@priyaeats",          color: "yellow" , photo: { url: "theme-asset:review-priya", alt: "Priya K." } } },
+	{ title: "The Kim Family", slug: "kim-family", fields_data: { quote: "Homestay with kids = perfection. The family adopted our 7-year-old by the second breakfast.",  author: "The Kim Family", handle: "@kimsabroad",     color: "red"    , photo: { url: "theme-asset:review-marcus", alt: "The Kim family" } } }
 ])
 
 // Gallery photos — placeholders with captions, 12 tiles, alternating tall/short.
 seed("gallery_photo", "gallery photos", [
-	{ title: "Bún chả grandma",        slug: "photo-1",  fields_data: { caption: "bún chả grandma, hanoi",     category: "Street Food", color: "red",    tall: true  } },
-	{ title: "Ma Pi Leng pass",        slug: "photo-2",  fields_data: { caption: "ma pi leng pass",            category: "Landscapes",  color: "green",  tall: false } },
-	{ title: "Linh laughing",          slug: "photo-3",  fields_data: { caption: "linh laughing with guests",  category: "People",      color: "yellow", tall: true  } },
-	{ title: "Cooking class kitchen",  slug: "photo-4",  fields_data: { caption: "cooking class kitchen",      category: "Workshops",   color: "red",    tall: false } },
-	{ title: "Hoi An lantern night",   slug: "photo-5",  fields_data: { caption: "lantern night, hoi an",      category: "Landscapes",  color: "yellow", tall: true  } },
-	{ title: "Phở counter",            slug: "photo-6",  fields_data: { caption: "phở counter, 6am",           category: "Street Food", color: "ink",    tall: false } },
-	{ title: "Hmong kids",             slug: "photo-7",  fields_data: { caption: "hmong kids waving",          category: "People",      color: "green",  tall: true  } },
-	{ title: "Basket boat spin",       slug: "photo-8",  fields_data: { caption: "basket boat spin",           category: "Workshops",   color: "red",    tall: false } },
-	{ title: "Banh mi queen stall",    slug: "photo-9",  fields_data: { caption: "banh mi queen stall",        category: "Street Food", color: "yellow", tall: true  } },
-	{ title: "Mekong hammock",         slug: "photo-10", fields_data: { caption: "mekong hammock",             category: "Landscapes",  color: "green",  tall: false } },
-	{ title: "Tuan on his bike",       slug: "photo-11", fields_data: { caption: "tuan on his bike",           category: "People",      color: "red",    tall: true  } },
-	{ title: "Egg coffee pour",        slug: "photo-12", fields_data: { caption: "egg coffee pour",            category: "Workshops",   color: "ink",    tall: false } }
+	{ title: "Bún chả grandma",        slug: "photo-1",  fields_data: { caption: "bún chả grandma, hanoi",     category: "Street Food", color: "red",    tall: true  , photo: { url: "theme-asset:gal-bun-cha", alt: "photo-1" } } },
+	{ title: "Ma Pi Leng pass",        slug: "photo-2",  fields_data: { caption: "ma pi leng pass",            category: "Landscapes",  color: "green",  tall: false , photo: { url: "theme-asset:gal-ma-pi-leng", alt: "photo-2" } } },
+	{ title: "Linh laughing",          slug: "photo-3",  fields_data: { caption: "linh laughing with guests",  category: "People",      color: "yellow", tall: true  , photo: { url: "theme-asset:gal-linh-laughing", alt: "photo-3" } } },
+	{ title: "Cooking class kitchen",  slug: "photo-4",  fields_data: { caption: "cooking class kitchen",      category: "Workshops",   color: "red",    tall: false , photo: { url: "theme-asset:gal-cooking-class", alt: "photo-4" } } },
+	{ title: "Hoi An lantern night",   slug: "photo-5",  fields_data: { caption: "lantern night, hoi an",      category: "Landscapes",  color: "yellow", tall: true  , photo: { url: "theme-asset:gal-lantern-night", alt: "photo-5" } } },
+	{ title: "Phở counter",            slug: "photo-6",  fields_data: { caption: "phở counter, 6am",           category: "Street Food", color: "ink",    tall: false , photo: { url: "theme-asset:gal-pho-counter", alt: "photo-6" } } },
+	{ title: "Hmong kids",             slug: "photo-7",  fields_data: { caption: "hmong kids waving",          category: "People",      color: "green",  tall: true  , photo: { url: "theme-asset:gal-hmong-kids", alt: "photo-7" } } },
+	{ title: "Basket boat spin",       slug: "photo-8",  fields_data: { caption: "basket boat spin",           category: "Workshops",   color: "red",    tall: false , photo: { url: "theme-asset:gal-basket-boat", alt: "photo-8" } } },
+	{ title: "Banh mi queen stall",    slug: "photo-9",  fields_data: { caption: "banh mi queen stall",        category: "Street Food", color: "yellow", tall: true  , photo: { url: "theme-asset:gal-banh-mi", alt: "photo-9" } } },
+	{ title: "Mekong hammock",         slug: "photo-10", fields_data: { caption: "mekong hammock",             category: "Landscapes",  color: "green",  tall: false , photo: { url: "theme-asset:gal-mekong-hammock", alt: "photo-10" } } },
+	{ title: "Tuan on his bike",       slug: "photo-11", fields_data: { caption: "tuan on his bike",           category: "People",      color: "red",    tall: true  , photo: { url: "theme-asset:gal-tuan-bike", alt: "photo-11" } } },
+	{ title: "Egg coffee pour",        slug: "photo-12", fields_data: { caption: "egg coffee pour",            category: "Workshops",   color: "ink",    tall: false , photo: { url: "theme-asset:gal-egg-coffee", alt: "photo-12" } } }
 ])
 
 // ─── Page Seeding ────────────────────────────────────────────
@@ -331,22 +349,56 @@ if page_missing("home") {
 		node_type: "page",
 		status: "published",
 		blocks_data: [
-			{ type: "hv-hero",          fields: {} },
+			{ type: "hv-hero", fields: {
+				badge_text: "Xin chào! We're Hello Vietnam.",
+				heading_line1: "Eat, wander, &amp;",
+				heading_accent: "laugh ",
+				heading_line2_after: "your way",
+				heading_line3_before: "through ",
+				heading_underlined: "Vietnam",
+				subheading: "Small-group food crawls, mountain loops, and cooking classes — all run by locals who actually live here. No buses. No bullhorns. Just your new favorite country.",
+				cta_primary:   { text: "Find Your Adventure", url: "/trips", target: "_self" },
+				cta_secondary: { text: "Meet the Crew",       url: "/about", target: "_self" },
+				social_proof_strong: "2,400+ travelers",
+				social_proof_rest: "· Rated 4.9 on TripAdvisor",
+				sticker_text: "100% local-guided"
+			} },
 			{ type: "hv-categories",    fields: { items: [
-				{ title: "Street Food",     cta_label: "Explore", link: { text: "Explore", url: "/trips?category=street-food",     target: "" }, color: "red",    icon: "fork" },
-				{ title: "Hidden Trails",   cta_label: "Explore", link: { text: "Explore", url: "/trips?category=hidden-trails",   target: "" }, color: "green",  icon: "trail" },
-				{ title: "Local Workshops", cta_label: "Explore", link: { text: "Explore", url: "/trips?category=local-workshops", target: "" }, color: "yellow", icon: "workshop" },
-				{ title: "Family Fun",      cta_label: "Explore", link: { text: "Explore", url: "/trips?category=family-fun",      target: "" }, color: "ink",    icon: "family" }
+				{ title: "Foodie",     tag: { name: "Foodie",     slug: "foodie" },     cta_label: "Explore", color: "red",    icon: "fork" },
+				{ title: "Adventure",  tag: { name: "Adventure",  slug: "adventure" },  cta_label: "Explore", color: "green",  icon: "trail" },
+				{ title: "Relaxing",   tag: { name: "Relaxing",   slug: "relaxing" },   cta_label: "Explore", color: "yellow", icon: "workshop" },
+				{ title: "Family Fun", tag: { name: "Family Fun", slug: "family_fun" }, cta_label: "Explore", color: "ink",    icon: "family" }
 			] } },
-			{ type: "hv-featured",      fields: {} },
-			{ type: "hv-how-it-works",  fields: { steps: [
-				{ number: "01", title: "Book it",         body: "Pick a trip, fill the Vibe Check, pay half upfront.",                      color: "red" },
-				{ number: "02", title: "Pack your bags",  body: "We WhatsApp you everything you need — what to wear, what to leave behind.", color: "yellow" },
-				{ number: "03", title: "Eat everything",  body: "Show up hungry. We handle the rest. Bring an empty memory card.",           color: "green" }
-			] } },
-			{ type: "hv-popular-trips", fields: { limit: 3 } },
-			{ type: "hv-wall-of-love",  fields: { limit: 4 } },
-			{ type: "hv-lead-magnet",   fields: {} }
+			{ type: "hv-featured",      fields: { eyebrow: "Featured Experience" } },
+			{ type: "hv-how-it-works",  fields: {
+				eyebrow: "How it works",
+				heading: "Three steps. Zero stress.",
+				steps: [
+					{ number: "01", title: "Book it",         body: "Pick a trip, fill the Vibe Check, pay half upfront.",                      color: "red" },
+					{ number: "02", title: "Pack your bags",  body: "We WhatsApp you everything you need — what to wear, what to leave behind.", color: "yellow" },
+					{ number: "03", title: "Eat everything",  body: "Show up hungry. We handle the rest. Bring an empty memory card.",           color: "green" }
+				]
+			} },
+			{ type: "hv-popular-trips", fields: {
+				eyebrow: "Our most-booked",
+				heading: "Trips travelers can't stop talking about.",
+				cta_text: "See all trips →",
+				cta_url: "/trips",
+				limit: 3
+			} },
+			{ type: "hv-wall-of-love",  fields: {
+				eyebrow: "Wall of love",
+				heading: "Bragging rights, straight from our guests.",
+				limit: 4
+			} },
+			{ type: "hv-lead-magnet",   fields: {
+				badge_text: "Free · 12-page PDF",
+				heading: "The Hanoi Street Food Map.",
+				body: "Every bún chả, bánh mì, and egg coffee spot we actually eat at. Numbered, mapped, ranked, and updated every month.",
+				input_placeholder: "your@email.com",
+				submit_label: "Send me the map",
+				image_label: "PDF mockup"
+			} }
 		]
 	})
 	if !is_error(home_node) {
@@ -374,12 +426,49 @@ if page_missing("about") {
 		node_type: "page",
 		status: "published",
 		blocks_data: [
-			{ type: "hv-about-intro",  fields: {} },
-			{ type: "hv-timeline",     fields: {} },
-			{ type: "hv-crew-grid",    fields: { limit: 6 } },
-			{ type: "hv-values",       fields: {} },
-			{ type: "hv-impact",       fields: {} },
-			{ type: "hv-contact-band", fields: {} }
+			{ type: "hv-about-intro", fields: {
+				eyebrow: "About us",
+				heading: "We're not a tour company. We're your loud Vietnamese cousins.",
+				body_p1: "Hello Vietnam started over a beer in 2016, when Linh realized most tourists were seeing her country through a tinted bus window. Ten years later, we've hand-built 18 trips across Vietnam — all led by people who grew up here.",
+				body_p2: "We skip the tourist traps. We pay our guides fairly. We eat lunch on the same tiny plastic stools as our guests.",
+				team_photo_caption: "team photo · lunch on plastic stools"
+			} },
+			{ type: "hv-timeline", fields: {
+				eyebrow: "The origin story",
+				heading: "From backpackers to local guides.",
+				entries: [
+					{ year: "2016", body: "Linh quits her bank job. Starts leading food tours for backpacker friends.", color: "red" },
+					{ year: "2018", body: "Tuan joins after driving Linh through Ha Giang on a whim. The loop is born.", color: "green" },
+					{ year: "2020", body: "Pandemic hits. We pivot to online cooking classes and stay connected.", color: "yellow" },
+					{ year: "2022", body: "We open a Hanoi office. Still just a room above a bánh mì shop.", color: "red" },
+					{ year: "2026", body: "2,400+ travelers later, we're still on plastic stools.", color: "green" }
+				]
+			} },
+			{ type: "hv-crew-grid", fields: {
+				eyebrow: "Meet the crew",
+				heading: "The humans behind the homestays.",
+				limit: 6
+			} },
+			{ type: "hv-values", fields: {
+				eyebrow: "What we stand for",
+				heading: "Three rules we don't break.",
+				items: [
+					{ color: "red",    icon: "x",     title: "No tourist traps",   body: "If it's in every guidebook, we're not taking you there. Period." },
+					{ color: "yellow", icon: "heart", title: "Supporting locals",  body: "Every vendor we work with is a neighbor. Every guide earns a real wage." },
+					{ color: "green",  icon: "leaf",  title: "Always sustainable", body: "Small groups, reusable everything, and trips that leave places better." }
+				]
+			} },
+			{ type: "hv-impact", fields: {
+				eyebrow: "Community impact",
+				heading: "5% of every booking funds a village school.",
+				body: "Since 2019, we've helped build two classrooms and funded 47 scholarships in Ba Be Province. Our partner, the Ma Pi Leng Learning Initiative, is run by former guide Minh.",
+				cta: { text: "Read the impact report", url: "/impact", target: "_self" }
+			} },
+			{ type: "hv-contact-band", fields: {
+				heading: "Got a question?",
+				body: "We answer every WhatsApp within a few hours. Promise.",
+				cta: { text: "Let's chat", url: "/contact", target: "_self" }
+			} }
 		]
 	})
 	log.info("Hello Vietnam seed: about page created")
@@ -392,11 +481,26 @@ if page_missing("trips") {
 		node_type: "page",
 		status: "published",
 		blocks_data: [
-			{ type: "hv-trips-filter",   fields: {} },
-			{ type: "hv-staff-pick",     fields: {} },
-			{ type: "hv-trips-grid",     fields: { limit: 20 } },
-			{ type: "hv-trips-map",      fields: {} },
-			{ type: "hv-custom-journey", fields: {} }
+			{ type: "hv-trips-filter", fields: {
+				eyebrow: "Your next trip",
+				heading: "I'm looking for...",
+				search_placeholder: "Search trips, regions, or dishes..."
+			} },
+			{ type: "hv-staff-pick", fields: {
+				badge_text: "#1 Staff Pick",
+				cta_label: "Book this trip →"
+			} },
+			{ type: "hv-trips-grid", fields: { limit: 20 } },
+			{ type: "hv-trips-map", fields: {
+				eyebrow: "Where we go",
+				heading: "Small country, huge variety.",
+				body: "From Ha Giang's northern passes to the Mekong's palm-lined channels — every region has its own flavor, texture, and pace."
+			} },
+			{ type: "hv-custom-journey", fields: {
+				heading: "Don't see it? Build it.",
+				body: "Tell us your dates, your crew, and your cravings. We'll design a private itinerary from scratch — usually within 48 hours.",
+				cta: { text: "Plan a custom journey", url: "/contact", target: "_self" }
+			} }
 		]
 	})
 	log.info("Hello Vietnam seed: trips page created")
@@ -409,9 +513,48 @@ if page_missing("contact") {
 		node_type: "page",
 		status: "published",
 		blocks_data: [
-			{ type: "hv-contact-intro", fields: {} },
-			{ type: "hv-contact-form",  fields: {} },
-			{ type: "hv-contact-faq",   fields: {} }
+			{ type: "hv-contact-intro", fields: {
+				eyebrow: "Get in touch",
+				heading: "We check our WhatsApp constantly.",
+				body: "Ping us any time. We're a small team — you'll hear back from a real human, probably Huong, probably within a few hours."
+			} },
+			{ type: "hv-contact-form", fields: {
+				contact_cards: [
+					{ icon: "whatsapp", label: "WhatsApp", value: "+84 912 345 678",         hours: "" },
+					{ icon: "mail",     label: "Email",    value: "xinchao@hellovietnam.co", hours: "" },
+					{ icon: "pin",      label: "Meet us",  value: "12 Hàng Cá St, Hanoi",    hours: "<strong>Mon–Sat:</strong> 9am – 8pm · <strong>Sun:</strong> Out eating" }
+				],
+				form_heading: "Drop us a line.",
+				form_subheading: "We reply in the order we receive.",
+				label_name: "Your name",
+				placeholder_name: "What should we call you?",
+				label_email: "Email",
+				placeholder_email: "you@somewhere.com",
+				label_subject: "Subject",
+				subject_placeholder: "Pick one...",
+				subject_options: [
+					{ value: "General question" },
+					{ value: "Custom trip inquiry" },
+					{ value: "Partnership / press" },
+					{ value: "Something else" }
+				],
+				label_message: "Message",
+				placeholder_message: "Tell us what's on your mind...",
+				submit_label: "Send message",
+				success_heading: "Message sent!",
+				success_body: "We'll reply within a day or two — usually from Huong or Linh.",
+				success_again: "Send another"
+			} },
+			{ type: "hv-contact-faq", fields: {
+				eyebrow: "Common questions",
+				heading: "Solved before you ask.",
+				faqs: [
+					{ q: "Do I need a visa?",                a: "Most nationalities can get an e-visa online in under 10 minutes. We'll send you the exact link and walk you through it once you book." },
+					{ q: "Is this vegetarian-friendly?",     a: "Absolutely. Vietnam is a vegetarian paradise — just tell us in the booking form and we'll tailor every meal." },
+					{ q: "What's your cancellation policy?", a: "Full refund up to 30 days before. 50% between 30 and 7 days. After that we'll do our best — life happens." },
+					{ q: "How fit do I need to be?",         a: "If you can walk 5km comfortably, you're good. We mark any strenuous add-ons clearly in the itinerary." }
+				]
+			} }
 		]
 	})
 	log.info("Hello Vietnam seed: contact page created")
@@ -424,9 +567,16 @@ if page_missing("gallery") {
 		node_type: "page",
 		status: "published",
 		blocks_data: [
-			{ type: "hv-gallery-intro",   fields: {} },
+			{ type: "hv-gallery-intro", fields: {
+				eyebrow: "Moments",
+				heading: "Ten years of candid Vietnam.",
+				body: "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site."
+			} },
 			{ type: "hv-gallery-masonry", fields: { limit: 12 } },
-			{ type: "hv-gallery-cta",     fields: {} }
+			{ type: "hv-gallery-cta", fields: {
+				heading: "Want to be featured?",
+				body: "Tag <strong>@HelloVietnam</strong> on your next trip — we repost our favorites every week."
+			} }
 		]
 	})
 	log.info("Hello Vietnam seed: gallery page created")
@@ -440,7 +590,25 @@ if page_missing("legal") {
 		status: "published",
 		layout: "legal",
 		blocks_data: [
-			{ type: "hv-legal-content", fields: {} }
+			{ type: "hv-legal-content", fields: {
+				heading: "Privacy Policy",
+				updated_at: "April 2026",
+				summary_heading: "Too long? Here's the summary",
+				summary_points: [
+					{ body: "We only collect info you give us (email, booking details)." },
+					{ body: "We never sell your data. We're a tiny company; we don't even know how to." },
+					{ body: "We use it to run your trip and send you occasional emails (unsubscribe any time)." },
+					{ body: "You can ask us to delete everything about you. Just reply to any email." }
+				],
+				sections: [
+					{ h3: "1. Who we are",     body: "Hello Vietnam Adventures is a registered tour operator based in Hanoi, Vietnam (License #HN-2021-0847). We operate this website and handle bookings through it." },
+					{ h3: "2. What we collect", body: "When you book a trip, fill out a form, or email us, we collect your name, email, phone number, dietary needs, and any other info you share. We also collect anonymous analytics (how many people visited the site, which pages are popular)." },
+					{ h3: "3. How we use it",  body: "To run your trip, coordinate logistics, send booking confirmations, and occasionally email you about new experiences (only if you opt in). That's it." },
+					{ h3: "4. Your rights",    body: "You can ask us to show you everything we have on file, correct it, or delete it. Just email <strong>xinchao@hellovietnam.co</strong>." }
+				],
+				contact_concern_heading: "Have a concern?",
+				contact_concern_body: "Email us at xinchao@hellovietnam.co — we take privacy seriously."
+			} }
 		]
 	})
 	log.info("Hello Vietnam seed: legal page created")

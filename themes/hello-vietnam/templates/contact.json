@@ -1,0 +1,58 @@
+{
+  "name": "Contact",
+  "description": "Hello Vietnam contact page — intro, contact + form grid, FAQs.",
+  "thumbnail": "",
+  "blocks": [
+    {
+      "type": "hv-contact-intro",
+      "fields": {
+        "eyebrow": "Get in touch",
+        "heading": "We check our WhatsApp constantly.",
+        "body": "Ping us any time. We're a small team — you'll hear back from a real human, probably Huong, probably within a few hours."
+      }
+    },
+    {
+      "type": "hv-contact-form",
+      "fields": {
+        "contact_cards": [
+          { "icon": "whatsapp", "label": "WhatsApp", "value": "+84 912 345 678",          "hours": "" },
+          { "icon": "mail",     "label": "Email",    "value": "xinchao@hellovietnam.co",  "hours": "" },
+          { "icon": "pin",      "label": "Meet us",  "value": "12 Hàng Cá St, Hanoi",     "hours": "<strong>Mon–Sat:</strong> 9am – 8pm · <strong>Sun:</strong> Out eating" }
+        ],
+        "form_heading": "Drop us a line.",
+        "form_subheading": "We reply in the order we receive.",
+        "label_name": "Your name",
+        "placeholder_name": "What should we call you?",
+        "label_email": "Email",
+        "placeholder_email": "you@somewhere.com",
+        "label_subject": "Subject",
+        "subject_placeholder": "Pick one...",
+        "subject_options": [
+          { "value": "General question" },
+          { "value": "Custom trip inquiry" },
+          { "value": "Partnership / press" },
+          { "value": "Something else" }
+        ],
+        "label_message": "Message",
+        "placeholder_message": "Tell us what's on your mind...",
+        "submit_label": "Send message",
+        "success_heading": "Message sent!",
+        "success_body": "We'll reply within a day or two — usually from Huong or Linh.",
+        "success_again": "Send another"
+      }
+    },
+    {
+      "type": "hv-contact-faq",
+      "fields": {
+        "eyebrow": "Common questions",
+        "heading": "Solved before you ask.",
+        "faqs": [
+          { "q": "Do I need a visa?",               "a": "Most nationalities can get an e-visa online in under 10 minutes. We'll send you the exact link and walk you through it once you book." },
+          { "q": "Is this vegetarian-friendly?",    "a": "Absolutely. Vietnam is a vegetarian paradise — just tell us in the booking form and we'll tailor every meal." },
+          { "q": "What's your cancellation policy?","a": "Full refund up to 30 days before. 50% between 30 and 7 days. After that we'll do our best — life happens." },
+          { "q": "How fit do I need to be?",        "a": "If you can walk 5km comfortably, you're good. We mark any strenuous add-ons clearly in the itinerary." }
+        ]
+      }
+    }
+  ]
+}

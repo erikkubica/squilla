@@ -283,6 +283,14 @@ type NodeTypeField struct {
 	SubFields []NodeTypeField  `json:"sub_fields,omitempty"`
 	Default   interface{}      `json:"default,omitempty"`
 	Help      string           `json:"help,omitempty"`
+
+	// Type-specific config carried through to the admin UI and templates.
+	// Kept as explicit fields so JSON round-trips cleanly.
+	NodeTypeFilter string   `json:"node_type_filter,omitempty"` // `node` field: single node_type slug to filter by
+	NodeTypes      []string `json:"node_types,omitempty"`       // `node` field: alt multi-slug filter
+	Multiple       bool     `json:"multiple,omitempty"`         // `node` / `term` / `gallery` multi-select toggle
+	Taxonomy       string   `json:"taxonomy,omitempty"`         // `term` field: taxonomy slug (e.g. "trip_tag")
+	TermNodeType   string   `json:"term_node_type,omitempty"`   // `term` field: owning node_type slug for the taxonomy
 }
 
 // NormalizeFieldSchema mirrors Name↔Key on every field (including recursively

@@ -786,15 +786,39 @@ func (tl *ThemeLoader) DeregisterTheme(themeName string) error {
 	}
 
 	// Delete theme-owned records from all relevant tables.
+	// EXCEPTION: layouts referenced by content_nodes (FK ON DELETE SET NULL)
+	// must not be hard-deleted, otherwise every node using them has its
+	// layout_id wiped and pages stop rendering after any theme
+	// deactivate/reactivate cycle. Orphan them instead — the next theme
+	// registration with the same slug will re-claim the row by upsert.
 	cond := "source = 'theme' AND theme_name = ?"
-	for _, q := range []interface{}{
-		&models.BlockType{},
-		&models.Layout{},
-		&models.LayoutBlock{},
-		&models.Template{},
-	} {
-		if err := tl.db.Where(cond, themeName).Delete(q).Error; err != nil {
-			return fmt.Errorf("deregister theme %q: delete %T: %w", themeName, q, err)
+	if err := tl.db.Where(cond, themeName).Delete(&models.BlockType{}).Error; err != nil {
+		return fmt.Errorf("deregister theme %q: delete block_types: %w", themeName, err)
+	}
+	if err := tl.db.Where(cond, themeName).Delete(&models.LayoutBlock{}).Error; err != nil {
+		return fmt.Errorf("deregister theme %q: delete layout_blocks: %w", themeName, err)
+	}
+	if err := tl.db.Where(cond, themeName).Delete(&models.Template{}).Error; err != nil {
+		return fmt.Errorf("deregister theme %q: delete templates: %w", themeName, err)
+	}
+	// Layouts: hard-delete only those with zero content_node references.
+	// Referenced layouts survive as orphans so FK cascade doesn't null layout_id.
+	var referencedLayoutIDs []int
+	if err := tl.db.Raw(`SELECT DISTINCT layout_id FROM content_nodes WHERE layout_id IN (SELECT id FROM layouts WHERE source = 'theme' AND theme_name = ?)`, themeName).Scan(&referencedLayoutIDs).Error; err != nil {
+		return fmt.Errorf("deregister theme %q: list referenced layouts: %w", themeName, err)
+	}
+	if len(referencedLayoutIDs) == 0 {
+		if err := tl.db.Where(cond, themeName).Delete(&models.Layout{}).Error; err != nil {
+			return fmt.Errorf("deregister theme %q: delete layouts: %w", themeName, err)
+		}
+	} else {
+		if err := tl.db.Where(cond+" AND id NOT IN ?", themeName, referencedLayoutIDs).Delete(&models.Layout{}).Error; err != nil {
+			return fmt.Errorf("deregister theme %q: delete unreferenced layouts: %w", themeName, err)
+		}
+		// Orphan the survivors: source='orphan', theme_name=NULL.
+		// Upsert-by-slug on re-activation will re-claim them.
+		if err := tl.db.Model(&models.Layout{}).Where("id IN ?", referencedLayoutIDs).Updates(map[string]interface{}{"source": "orphan", "theme_name": nil}).Error; err != nil {
+			return fmt.Errorf("deregister theme %q: orphan referenced layouts: %w", themeName, err)
 		}
 	}
 

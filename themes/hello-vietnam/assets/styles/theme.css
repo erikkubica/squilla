@@ -172,14 +172,16 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   border: 1px solid var(--line);
   text-transform: uppercase; letter-spacing: 0.04em;
 }
-.ph.red { background: #F7D9DC; color: var(--red-deep); }
+.ph.red { background-color: #F7D9DC; color: var(--red-deep); }
 .ph.red::before { background-image: repeating-linear-gradient(135deg, transparent 0 14px, rgba(227,29,43,.07) 14px 15px); }
-.ph.yellow { background: #FFF3B0; color: #6B4F00; }
+.ph.yellow { background-color: #FFF3B0; color: #6B4F00; }
 .ph.yellow::before { background-image: repeating-linear-gradient(135deg, transparent 0 14px, rgba(255,210,0,.25) 14px 15px); }
-.ph.green { background: #CDE5D6; color: var(--green-deep); }
+.ph.green { background-color: #CDE5D6; color: var(--green-deep); }
 .ph.green::before { background-image: repeating-linear-gradient(135deg, transparent 0 14px, rgba(0,122,51,.1) 14px 15px); }
-.ph.ink { background: #D7DDE2; color: var(--ink); }
+.ph.ink { background-color: #D7DDE2; color: var(--ink); }
 .ph.ink::before { background-image: repeating-linear-gradient(135deg, transparent 0 14px, rgba(44,62,80,.08) 14px 15px); }
+/* Belt-and-braces: any .ph carrying a photo always covers + centers. */
+.ph.has-photo { background-size: cover !important; background-position: center !important; background-repeat: no-repeat !important; }
 
 /* ---------- Badges ---------- */
 .badge {

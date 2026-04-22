@@ -46,6 +46,8 @@ function fieldTypeBadgeClass(type: string): string {
       return "bg-blue-100 text-blue-700 hover:bg-blue-100";
     case "node":
       return "bg-sky-100 text-sky-700 hover:bg-sky-100";
+    case "term":
+      return "bg-sky-100 text-sky-700 hover:bg-sky-100";
     default:
       return "bg-slate-100 text-slate-600 hover:bg-slate-100";
   }
@@ -189,6 +191,26 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
             <div className="flex items-center gap-2 h-9">
               <input type="checkbox" checked={!!field.multiple} onChange={(e) => updateField({ multiple: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
               <span className="text-sm text-slate-700">Multiple files</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Term options */}
+      {field.type === "term" && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className={labelClass}>Taxonomy slug</Label>
+            <Input value={field.taxonomy || ""} onChange={(e) => updateField({ taxonomy: e.target.value || undefined })} placeholder="e.g. trip_tag" className={inputClass} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className={labelClass}>Term node type</Label>
+            <Input value={field.term_node_type || ""} onChange={(e) => updateField({ term_node_type: e.target.value || undefined })} placeholder="e.g. trip" className={inputClass} />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <div className="flex items-center gap-2 h-9">
+              <input type="checkbox" checked={!!field.multiple} onChange={(e) => updateField({ multiple: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              <span className="text-sm text-slate-700">Allow multiple</span>
             </div>
           </div>
         </div>

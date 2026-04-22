@@ -4,11 +4,12 @@
 
   // Trips filter (Trips listing page): pills + search filter .trip-card grid items by data-tag / data-title / data-location.
   function initTripsFilter() {
+    // Pills/search live in hv-trips-filter block; grid/cards live in hv-trips-grid block — scan globally.
     var root = document.querySelector("[data-trips-root]");
-    if (!root) return;
-    var pills = root.querySelectorAll("[data-trip-pill]");
-    var searchInput = root.querySelector("[data-trip-search]");
-    var grid = root.querySelector("[data-trip-grid]");
+    if (!root && !document.querySelector("[data-trip-grid]")) return;
+    var pills = document.querySelectorAll("[data-trip-pill]");
+    var searchInput = document.querySelector("[data-trip-search]");
+    var grid = document.querySelector("[data-trip-grid]");
     var cards = grid ? grid.querySelectorAll("[data-trip-card]") : [];
     var staffPick = document.querySelector("[data-staff-pick]");
     var countEl = document.querySelector("[data-trip-count]");
@@ -31,17 +32,37 @@
       if (staffPick) staffPick.style.display = (state.tag === "All" && !state.q.trim()) ? "" : "none";
     }
 
+    function activatePill(tag) {
+      pills.forEach(function (p) {
+        var match = (p.getAttribute("data-trip-pill") || "All") === tag;
+        p.classList.toggle("active", match);
+      });
+      state.tag = tag;
+    }
+    function syncURL() {
+      var url = new URL(window.location.href);
+      if (state.tag && state.tag !== "All") url.searchParams.set("tag", state.tag);
+      else url.searchParams.delete("tag");
+      if (state.q.trim()) url.searchParams.set("q", state.q.trim());
+      else url.searchParams.delete("q");
+      window.history.replaceState(null, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    }
     pills.forEach(function (pill) {
       pill.addEventListener("click", function () {
-        pills.forEach(function (p) { p.classList.remove("active"); });
-        pill.classList.add("active");
-        state.tag = pill.getAttribute("data-trip-pill") || "All";
+        activatePill(pill.getAttribute("data-trip-pill") || "All");
+        syncURL();
         apply();
       });
     });
     if (searchInput) {
-      searchInput.addEventListener("input", function () { state.q = searchInput.value; apply(); });
+      searchInput.addEventListener("input", function () { state.q = searchInput.value; syncURL(); apply(); });
     }
+    // Hydrate from URL on load: ?tag=Foodie&q=pho
+    var params = new URLSearchParams(window.location.search);
+    var urlTag = params.get("tag");
+    var urlQ = params.get("q");
+    if (urlTag) activatePill(urlTag);
+    if (urlQ && searchInput) { searchInput.value = urlQ; state.q = urlQ; }
     apply();
   }
 
@@ -51,17 +72,21 @@
       btn.addEventListener("click", function () {
         var wrap = btn.closest("[data-accordion-row]");
         if (!wrap) return;
-        wrap.classList.toggle("is-open");
+        var open = wrap.classList.toggle("is-open");
+        var panel = wrap.querySelector("[data-accordion-panel]");
+        if (panel) panel.style.display = open ? "block" : "none";
+        var icon = wrap.querySelector("[data-accordion-icon]");
+        if (icon) icon.textContent = open ? "–" : "+";
       });
     });
   }
 
-  // Gallery filter pills + lightbox.
+  // Gallery filter pills + lightbox. Pills and tiles can live in different [data-gallery-root] containers (intro vs masonry).
   function initGallery() {
-    var root = document.querySelector("[data-gallery-root]");
-    if (!root) return;
-    var pills = root.querySelectorAll("[data-gallery-pill]");
-    var tiles = root.querySelectorAll("[data-gallery-tile]");
+    var roots = document.querySelectorAll("[data-gallery-root]");
+    if (!roots.length) return;
+    var pills = document.querySelectorAll("[data-gallery-pill]");
+    var tiles = document.querySelectorAll("[data-gallery-tile]");
     pills.forEach(function (pill) {
       pill.addEventListener("click", function () {
         pills.forEach(function (p) { p.classList.remove("active"); });
@@ -151,6 +176,28 @@
     }
   }
 
+  // Newsletter form (footer): prevent submit, swap to thank-you message.
+  function initNewsletter() {
+    document.querySelectorAll("[data-newsletter-form]").forEach(function (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var input = form.querySelector("input[type=email]");
+        if (!input || !input.value) return;
+        Array.prototype.forEach.call(form.children, function (c) { c.style.display = "none"; });
+        var msg = document.createElement("div");
+        msg.style.cssText = "padding: 10px 0; color: var(--green-deep); font-weight: 500;";
+        msg.textContent = "Thanks! Check your inbox.";
+        msg.setAttribute("data-newsletter-msg", "");
+        form.appendChild(msg);
+        setTimeout(function () {
+          msg.remove();
+          Array.prototype.forEach.call(form.children, function (c) { c.style.display = ""; });
+          input.value = "";
+        }, 4000);
+      });
+    });
+  }
+
   // Contact form: submit → success.
   function initContactForm() {
     var form = document.querySelector("[data-contact-form]");
@@ -176,9 +223,9 @@
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
-      initTripsFilter(); initAccordions(); initGallery(); initBooking(); initContactForm();
+      initTripsFilter(); initAccordions(); initGallery(); initBooking(); initContactForm(); initNewsletter();
     });
   } else {
-    initTripsFilter(); initAccordions(); initGallery(); initBooking(); initContactForm();
+    initTripsFilter(); initAccordions(); initGallery(); initBooking(); initContactForm(); initNewsletter();
   }
 })();

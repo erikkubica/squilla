@@ -1,27 +1,31 @@
 {{- /* Meet the Crew — queries crew_member nodes, 3-col polaroid grid */ -}}
-{{- $limit := or .limit 6 -}}
-{{- $eyebrow := or .eyebrow "Meet the crew" -}}
-{{- $heading := or .heading "The humans behind the homestays." -}}
+{{- $limit := .limit -}}{{- if not $limit -}}{{- $limit = 6 -}}{{- end -}}
 {{- $items := filter "list_nodes" (dict "type" "crew_member" "limit" $limit "order_by" "created_at desc") -}}
+{{- if not $items -}}{{- else -}}
 <section class="section" style="background: var(--cream-warm);"><div class="container">
+{{- if or .eyebrow .heading -}}
 <div style="text-align: center; margin-bottom: 48px;">
-<span class="eyebrow">{{$eyebrow}}</span>
-<h2>{{$heading}}</h2>
+{{- with .eyebrow }}<span class="eyebrow">{{ . }}</span>{{- end }}
+{{- with .heading }}<h2>{{ . }}</h2>{{- end }}
 </div>
+{{- end -}}
 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;">
 {{- range $idx, $c := $items -}}
 {{- $fd := $c.fields_data -}}
-{{- $color := or $fd.color "red" -}}
+{{- $color := $fd.color -}}{{- if not $color -}}{{- $color = "red" -}}{{- end -}}
 {{- $rotation := "1.5deg" -}}{{- if eq (mod $idx 2) 1 -}}{{- $rotation = "-1.5deg" -}}{{- end -}}
 <div class="card" style="padding: 20px 24px; transform: rotate({{$rotation}}); transition: transform 0.3s;">
-<div class="ph {{$color}}" style="height: 260px; border-radius: var(--r-md); margin-bottom: 16px;"><span class="ph-label">{{$c.title}} · portrait</span></div>
+{{- $pb := "" -}}{{- with $fd.photo -}}{{- with .url -}}{{- $pb = . -}}{{- end -}}{{- end -}}<div class="ph {{$color}}{{if $pb}} has-photo{{end}}" style="height: 260px; border-radius: var(--r-md); margin-bottom: 16px;{{if $pb}} background-image: url('{{$pb}}');{{end}}"><span class="ph-label" style="{{if $pb}}opacity:0{{end}}">{{$c.title}} · portrait</span></div>
 <h3 style="margin-bottom: 4px; font-size: 1.3rem;">{{$c.title}}</h3>
 <div style="font-size: 0.88rem; color: var(--ink-soft); margin-bottom: 14px;">{{$fd.role}} · {{$fd.based}}</div>
+{{- with $fd.fun }}
 <div style="background: var(--cream-warm); border-radius: var(--r-sm); padding: 10px 12px; font-size: 0.82rem; display: flex; gap: 8px; align-items: flex-start;">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px; color: var(--yellow);"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>
-<span><strong>Fun fact:</strong> {{$fd.fun}}</span>
+<span><strong>Fun fact:</strong> {{ . }}</span>
 </div>
+{{- end }}
 </div>
 {{- end -}}
 </div>
 </div></section>
+{{- end -}}

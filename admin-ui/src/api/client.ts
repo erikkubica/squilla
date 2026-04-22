@@ -198,6 +198,8 @@ export interface NodeTypeField {
   help_text?: string;
   sub_fields?: NodeTypeField[];
   node_type_filter?: string;
+  taxonomy?: string;
+  term_node_type?: string;
   multiple?: boolean;
   min?: number;
   max?: number;

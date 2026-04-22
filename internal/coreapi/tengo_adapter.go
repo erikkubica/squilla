@@ -877,6 +877,29 @@ func tengoToField(fm map[string]tengo.Object) NodeTypeField {
 	if hv, ok := fm["help"]; ok {
 		f.Help = tengoToString(hv)
 	}
+	if v, ok := fm["node_type_filter"]; ok {
+		f.NodeTypeFilter = tengoToString(v)
+	}
+	if v, ok := fm["node_types"]; ok {
+		if arr, ok := v.(*tengo.Array); ok {
+			for _, s := range arr.Value {
+				f.NodeTypes = append(f.NodeTypes, tengoToString(s))
+			}
+		} else if arr, ok := v.(*tengo.ImmutableArray); ok {
+			for _, s := range arr.Value {
+				f.NodeTypes = append(f.NodeTypes, tengoToString(s))
+			}
+		}
+	}
+	if v, ok := fm["multiple"]; ok {
+		f.Multiple = tengoToBool(v)
+	}
+	if v, ok := fm["taxonomy"]; ok {
+		f.Taxonomy = tengoToString(v)
+	}
+	if v, ok := fm["term_node_type"]; ok {
+		f.TermNodeType = tengoToString(v)
+	}
 	return f
 }
 

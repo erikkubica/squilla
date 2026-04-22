@@ -32,12 +32,18 @@
 <section style="padding: 32px 0px 0px;"><div class="container">
 <div style="font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 14px;"><a href="/" style="color: inherit; text-decoration: none;">Home</a> &rsaquo; <a href="/trips" style="color: inherit; text-decoration: none;">Trips</a> &rsaquo; <span style="color: var(--ink);">{{$t.title}}</span></div>
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; height: 520px; margin-bottom: 32px;">
-<div class="ph {{$color}}" style="border-radius: var(--r-xl);"><span class="ph-label">{{$t.title}} &middot; hero</span></div>
+{{- $lhb := "" -}}{{- with $fd.hero_image -}}{{- with .url -}}{{- $lhb = . -}}{{- end -}}{{- end -}}<div class="ph {{$color}}{{if $lhb}} has-photo{{end}}" style="border-radius: var(--r-xl); min-height: 420px;{{if $lhb}} background-image: url('{{$lhb}}');{{end}}"><span class="ph-label" style="{{if $lhb}}opacity:0{{end}}">{{$t.title}} &middot; hero</span></div>
+{{- $gal := or $fd.gallery (list) -}}
+{{- $gcount := len $gal -}}
+{{- $g0 := "" -}}{{- if ge $gcount 1 -}}{{- with (index $gal 0).image -}}{{- $g0 = .url -}}{{- end -}}{{- end -}}
+{{- $g1 := "" -}}{{- if ge $gcount 2 -}}{{- with (index $gal 1).image -}}{{- $g1 = .url -}}{{- end -}}{{- end -}}
+{{- $g2 := "" -}}{{- if ge $gcount 3 -}}{{- with (index $gal 2).image -}}{{- $g2 = .url -}}{{- end -}}{{- end -}}
+{{- $gmore := 0 -}}{{- if gt $gcount 3 -}}{{- $gmore = sub $gcount 3 -}}{{- end -}}
 <div style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px;">
-<div class="ph yellow" style="border-radius: var(--r-xl);"><span class="ph-label">detail &middot; 1</span></div>
+<div class="ph yellow{{if $g0}} has-photo{{end}}" style="border-radius: var(--r-xl);{{if $g0}} background-image: url('{{$g0}}');{{end}}"><span class="ph-label" style="{{if $g0}}opacity:0{{end}}">detail &middot; 1</span></div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-<div class="ph green" style="border-radius: var(--r-xl);"><span class="ph-label">detail &middot; 2</span></div>
-<div class="ph red" style="border-radius: var(--r-xl); display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 600;"><span>+2 more</span></div>
+<div class="ph green{{if $g1}} has-photo{{end}}" style="border-radius: var(--r-xl);{{if $g1}} background-image: url('{{$g1}}');{{end}}"><span class="ph-label" style="{{if $g1}}opacity:0{{end}}">detail &middot; 2</span></div>
+<div class="ph red{{if $g2}} has-photo{{end}}" style="border-radius: var(--r-xl); display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 600;{{if $g2}} background-image: url('{{$g2}}');{{end}}">{{- if gt $gmore 0 -}}<span style="position: relative; z-index: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">+{{$gmore}} more</span>{{- else if not $g2 -}}<span class="ph-label">detail &middot; 3</span>{{- end -}}</div>
 </div>
 </div>
 </div>
@@ -48,7 +54,7 @@
 
 <div>
 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
-<span class="badge badge-{{$color}}">{{$fd.tag}}</span>
+<span class="badge badge-{{$color}}">{{ with $fd.tag }}{{ .name }}{{ end }}</span>
 <span class="badge" style="background: var(--cream-warm);">&#9201; {{$fd.duration}}</span>
 <span class="badge" style="background: var(--cream-warm);">&#128205; {{$fd.location}}</span>
 {{if $fd.staff_pick}}<span class="badge badge-yellow">&#10024; Staff pick</span>{{end}}
@@ -86,21 +92,34 @@
 </ul></div>
 </div>
 
+{{- $tripIDStr := printf "%v" $t.id -}}
+{{- $allTestimonials := filter "list_nodes" (dict "type" "testimonial" "limit" 50 "order_by" "created_at desc") -}}
+{{- $matchCount := 0 -}}
+{{- range $allTestimonials -}}
+  {{- $refID := "" -}}
+  {{- with .fields_data.trip -}}{{- $refID = printf "%v" .id -}}{{- end -}}
+  {{- if eq $refID $tripIDStr -}}{{- $matchCount = add $matchCount 1 -}}{{- end -}}
+{{- end -}}
+{{- if gt $matchCount 0 -}}
 <h3 style="margin-bottom: 18px;">What travelers say</h3>
-{{- $testimonials := filter "list_nodes" (dict "type" "testimonial" "limit" 3) -}}
 <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 40px;">
-{{- range $testimonials -}}
-{{- $tf := .fields_data -}}
+{{- range $tm := $allTestimonials -}}
+  {{- $tf := $tm.fields_data -}}
+  {{- $refID := "" -}}
+  {{- with $tf.trip -}}{{- $refID = printf "%v" .id -}}{{- end -}}
+  {{- if eq $refID $tripIDStr -}}
 <div class="card" style="padding: 22px; display: flex; gap: 16px;">
-<div class="ph {{or $tf.color "red"}}" style="width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;"></div>
+{{- $lab := "" -}}{{- with $tf.photo -}}{{- with .url -}}{{- $lab = . -}}{{- end -}}{{- end -}}<div class="ph {{or $tf.color "red"}}{{if $lab}} has-photo{{end}}" style="width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;{{if $lab}} background-image: url('{{$lab}}');{{end}}"></div>
 <div style="flex: 1;">
-<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><strong>{{or $tf.author .title}}</strong> <span style="color: var(--yellow);">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><strong>{{or $tf.author $tm.title}}</strong> <span style="color: var(--yellow);">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
 <p style="font-size: 0.92rem; color: var(--ink-soft); margin-bottom: 6px;">{{$tf.quote}}</p>
 <span style="font-size: 0.78rem; color: var(--ink-soft);">Booked this trip &middot; 2 months ago</span>
 </div>
 </div>
+  {{- end -}}
 {{- end -}}
 </div>
+{{- end -}}
 
 <h3 style="margin-bottom: 14px;">Quick FAQs</h3>
 <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px;">
@@ -177,9 +196,9 @@
 {{- $count = add $count 1 -}}
 {{- $rf := .fields_data -}}
 <a class="card" href="{{.full_url}}" style="text-decoration: none; color: inherit;">
-<div class="ph {{or $rf.color "red"}}" style="height: 180px;"><span class="ph-label">{{.title}}</span></div>
+{{- $lrb := "" -}}{{- with $rf.hero_image -}}{{- with .url -}}{{- $lrb = . -}}{{- end -}}{{- end -}}<div class="ph {{or $rf.color "red"}}{{if $lrb}} has-photo{{end}}" style="height: 180px;{{if $lrb}} background-image: url('{{$lrb}}');{{end}}"><span class="ph-label" style="{{if $lrb}}opacity:0{{end}}">{{.title}}</span></div>
 <div style="padding: 18px;">
-<span class="badge badge-{{or $rf.color "red"}}">{{$rf.tag}}</span>
+<span class="badge badge-{{or $rf.color "red"}}">{{ with $rf.tag }}{{ .name }}{{ end }}</span>
 <h3 style="margin-top: 10px; font-size: 1.1rem;">{{.title}}</h3>
 <div style="margin-top: 8px; font-weight: 500;">${{$rf.price}}</div>
 </div>

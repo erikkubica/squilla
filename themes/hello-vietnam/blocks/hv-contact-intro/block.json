@@ -1,16 +1,28 @@
 {
   "slug": "hv-contact-intro",
   "name": "Contact Intro",
-  "description": "Hello Vietnam — Contact Intro",
+  "description": "Hello Vietnam \u2014 Contact Intro",
   "category": "hello-vietnam",
   "field_schema": [
-    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
-    { "key": "heading", "label": "Heading", "type": "text" },
-    { "key": "body", "label": "Body", "type": "textarea" }
+    {
+      "key": "eyebrow",
+      "label": "Eyebrow",
+      "type": "text"
+    },
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "body",
+      "label": "Body",
+      "type": "textarea"
+    }
   ],
   "test_data": {
     "eyebrow": "Get in touch",
     "heading": "We check our WhatsApp constantly.",
-    "body": "Ping us any time. We're a small team — you'll hear back from a real human, probably Huong, probably within a few hours."
+    "body": "Ping us any time. We're a small team \u2014 you'll hear back from a real human, probably Huong, probably within a few hours."
   }
 }

@@ -72,12 +72,28 @@ type ContentNode struct {
 	AuthorID           *int           `gorm:"column:author_id" json:"author_id,omitempty"`
 	Author             *User          `gorm:"foreignKey:AuthorID;references:ID" json:"author,omitempty"`
 	LayoutID           *int           `gorm:"column:layout_id" json:"layout_id,omitempty"`
+	LayoutSlug         *string        `gorm:"column:layout_slug" json:"layout_slug,omitempty"`
 	TranslationGroupID *string        `gorm:"column:translation_group_id;type:uuid" json:"translation_group_id,omitempty"`
 	Version            int            `gorm:"column:version;not null;default:1" json:"version"`
 	PublishedAt        *time.Time     `gorm:"column:published_at" json:"published_at,omitempty"`
 	CreatedAt          time.Time      `gorm:"column:created_at;autoCreateTime" json:"created_at"`
 	UpdatedAt          time.Time      `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
 	DeletedAt          gorm.DeletedAt `gorm:"column:deleted_at;index" json:"deleted_at,omitempty"`
+}
+
+// BeforeSave keeps LayoutSlug in sync with LayoutID so a node's layout
+// reference survives theme deactivate/reactivate cycles (layouts may be
+// deleted/recreated; slugs persist across such cycles).
+func (n *ContentNode) BeforeSave(tx *gorm.DB) error {
+	if n.LayoutID != nil {
+		var slug string
+		if err := tx.Model(&Layout{}).Select("slug").Where("id = ?", *n.LayoutID).Scan(&slug).Error; err == nil && slug != "" {
+			n.LayoutSlug = &slug
+		}
+	} else {
+		n.LayoutSlug = nil
+	}
+	return nil
 }
 
 // TableName overrides the default GORM table name.

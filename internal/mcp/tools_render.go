@@ -16,7 +16,7 @@ func (s *Server) registerRenderTools() {
 	pub := s.publicHandler()
 
 	s.addTool(mcp.NewTool("core.render.block",
-		mcp.WithDescription("Render one content block with the given field values and return its HTML. Great for testing block templates without creating a node."),
+		mcp.WithDescription("Smoke-test ONE block with given field values. Returns rendered HTML. No writes, no events, no view counts.\n\nUse when: iterating on a block template and you want to see what it produces. Validating test_data during block creation.\nDO NOT use when: rendering a full page — use core.render.node_preview. Rendering a layout with multiple blocks — use core.render.layout."),
 		mcp.WithString("block_type", mcp.Required(), mcp.Description("Block type slug (e.g. 'hero', 'text_columns')")),
 		mcp.WithObject("fields", mcp.Required(), mcp.Description("Field values keyed by field name")),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
@@ -52,7 +52,7 @@ func (s *Server) registerRenderTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.render.node_preview",
-		mcp.WithDescription("Render a node (published or draft) as it would appear on the public site. No view counts or events fire. Returns the full page HTML."),
+		mcp.WithDescription("Render a node AS A FULL PAGE — layout + blocks + theme CSS — exactly as the public site would serve it. Side-effect-free: no view counts, no events, safe to call repeatedly.\n\nUse when: verifying a node renders correctly before telling the user 'done'. Reproducing a rendering bug. Previewing a draft.\nDO NOT use when: testing a single block in isolation — use core.render.block."),
 		mcp.WithNumber("id", mcp.Required()),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		if pub == nil {

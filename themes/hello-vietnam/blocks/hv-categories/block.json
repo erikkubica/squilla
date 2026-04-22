@@ -1,7 +1,7 @@
 {
   "slug": "hv-categories",
   "name": "Home Categories Strip",
-  "description": "Hello Vietnam — Home Categories Strip",
+  "description": "Hello Vietnam \u2014 Home Categories Strip",
   "category": "hello-vietnam",
   "field_schema": [
     {
@@ -10,20 +10,98 @@
       "type": "repeater",
       "help": "Four tiles fit the strip best.",
       "sub_fields": [
-        { "key": "title", "label": "Title", "type": "text" },
-        { "key": "cta_label", "label": "CTA Label", "type": "text", "help": "Text before the arrow (defaults to \"Explore\")." },
-        { "key": "link", "label": "Link", "type": "link" },
-        { "key": "color", "label": "Bubble Color", "type": "select", "options": ["red", "green", "yellow", "ink"] },
-        { "key": "icon", "label": "Icon", "type": "select", "options": ["fork", "trail", "workshop", "family"] }
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "key": "tag",
+          "label": "Trip Tag",
+          "type": "term",
+          "taxonomy": "trip_tag",
+          "term_node_type": "trip",
+          "help": "Pick a trip tag. Link auto-points to /trips?tag=<name>."
+        },
+        {
+          "key": "cta_label",
+          "label": "CTA Label",
+          "type": "text",
+          "help": "Text before the arrow (defaults to \"Explore\")."
+        },
+        {
+          "key": "link",
+          "label": "Override Link (optional)",
+          "type": "link",
+          "help": "Only used when Trip Tag is empty."
+        },
+        {
+          "key": "color",
+          "label": "Bubble Color",
+          "type": "select",
+          "options": [
+            "red",
+            "green",
+            "yellow",
+            "ink"
+          ]
+        },
+        {
+          "key": "icon",
+          "label": "Icon",
+          "type": "select",
+          "options": [
+            "fork",
+            "trail",
+            "workshop",
+            "family"
+          ]
+        }
       ]
     }
   ],
   "test_data": {
     "items": [
-      { "title": "Street Food",      "cta_label": "Explore", "link": { "text": "Explore", "url": "/trips?category=street-food", "target": "" },     "color": "red",    "icon": "fork" },
-      { "title": "Hidden Trails",    "cta_label": "Explore", "link": { "text": "Explore", "url": "/trips?category=hidden-trails", "target": "" },   "color": "green",  "icon": "trail" },
-      { "title": "Local Workshops",  "cta_label": "Explore", "link": { "text": "Explore", "url": "/trips?category=local-workshops", "target": "" }, "color": "yellow", "icon": "workshop" },
-      { "title": "Family Fun",       "cta_label": "Explore", "link": { "text": "Explore", "url": "/trips?category=family-fun", "target": "" },      "color": "ink",    "icon": "family" }
+      {
+        "title": "Foodie",
+        "tag": {
+          "name": "Foodie",
+          "slug": "foodie"
+        },
+        "cta_label": "Explore",
+        "color": "red",
+        "icon": "fork"
+      },
+      {
+        "title": "Adventure",
+        "tag": {
+          "name": "Adventure",
+          "slug": "adventure"
+        },
+        "cta_label": "Explore",
+        "color": "green",
+        "icon": "trail"
+      },
+      {
+        "title": "Relaxing",
+        "tag": {
+          "name": "Relaxing",
+          "slug": "relaxing"
+        },
+        "cta_label": "Explore",
+        "color": "yellow",
+        "icon": "workshop"
+      },
+      {
+        "title": "Family Fun",
+        "tag": {
+          "name": "Family Fun",
+          "slug": "family_fun"
+        },
+        "cta_label": "Explore",
+        "color": "ink",
+        "icon": "family"
+      }
     ]
   }
 }

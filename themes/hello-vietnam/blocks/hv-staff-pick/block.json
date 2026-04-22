@@ -3,6 +3,30 @@
   "name": "Staff Pick Banner",
   "description": "Red gradient banner featuring one staff-picked trip. Hidden via JS when filter != All.",
   "category": "hello-vietnam",
-  "field_schema": [],
-  "test_data": {}
+  "field_schema": [
+    {
+      "key": "trip",
+      "label": "Featured Trip",
+      "type": "node",
+      "node_type_filter": "trip",
+      "help": "Pick the trip to feature. Leave empty to auto-pick the oldest trip."
+    },
+    {
+      "key": "badge_text",
+      "label": "Badge Text",
+      "type": "text",
+      "help": "Small pill above the heading (e.g. \"#1 Staff Pick\")."
+    },
+    {
+      "key": "cta_label",
+      "label": "CTA Label",
+      "type": "text",
+      "help": "Button text. Default: \"Book this trip →\"."
+    }
+  ],
+  "test_data": {
+    "trip": null,
+    "badge_text": "#1 Staff Pick",
+    "cta_label": "Book this trip →"
+  }
 }

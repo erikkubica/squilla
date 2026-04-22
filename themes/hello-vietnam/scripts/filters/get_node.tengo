@@ -1,0 +1,19 @@
+// get_node.tengo — fetch a single node by id.
+// {{ filter "get_node" (dict "id" 42) }}
+
+nodes := import("core/nodes")
+log := import("core/log")
+
+input := value
+if is_undefined(input) { input = {} }
+if is_undefined(input.id) {
+	response = ""
+} else {
+	res := nodes.get(input.id)
+	if is_error(res) {
+		log.warn("get_node filter: nodes.get failed")
+		response = ""
+	} else {
+		response = res
+	}
+}

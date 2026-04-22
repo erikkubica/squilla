@@ -8,23 +8,29 @@
 {{- range $trips -}}
 {{- $t := . -}}
 {{- $fd := $t.fields_data -}}
-{{- $color := or $fd.color "red" -}}
-{{- $rating := or $fd.rating 4.9 -}}
-{{- $reviews := or $fd.reviews 0 -}}
-{{- $stops := or $fd.stops (list) -}}
-{{- $included := or $fd.included (list) -}}
-{{- $not_included := or $fd.not_included (list) -}}
-{{- $faqs := or $fd.faqs (list) -}}
+{{- $color := $fd.color -}}{{- if not $color -}}{{- $color = "red" -}}{{- end -}}
+{{- $rating := $fd.rating -}}
+{{- $reviews := $fd.reviews -}}
+{{- $stops := $fd.stops -}}
+{{- $included := $fd.included -}}
+{{- $not_included := $fd.not_included -}}
+{{- $faqs := $fd.faqs -}}
 
 <section style="padding: 32px 0px 0px;"><div class="container">
 <div style="font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 14px;"><a href="/" style="color: inherit; text-decoration: none;">Home</a> › <a href="/trips" style="color: inherit; text-decoration: none;">Trips</a> › <span style="color: var(--ink);">{{$t.title}}</span></div>
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; height: 520px; margin-bottom: 32px;">
-<div class="ph {{$color}}" style="border-radius: var(--r-xl);"><span class="ph-label">{{$t.title}} · hero</span></div>
+{{- $hb := "" -}}{{- with $fd.hero_image -}}{{- with .url -}}{{- $hb = . -}}{{- end -}}{{- end -}}<div class="ph {{$color}}{{if $hb}} has-photo{{end}}" style="border-radius: var(--r-xl); min-height: 360px;{{if $hb}} background-image: url('{{$hb}}');{{end}}"><span class="ph-label" style="{{if $hb}}opacity:0{{end}}">{{$t.title}} · hero</span></div>
+{{- $gal := $fd.gallery -}}{{- if not $gal -}}{{- $gal = (list) -}}{{- end -}}
+{{- $gcount := len $gal -}}
+{{- $g0 := "" -}}{{- if ge $gcount 1 -}}{{- with (index $gal 0).image -}}{{- $g0 = .url -}}{{- end -}}{{- end -}}
+{{- $g1 := "" -}}{{- if ge $gcount 2 -}}{{- with (index $gal 1).image -}}{{- $g1 = .url -}}{{- end -}}{{- end -}}
+{{- $g2 := "" -}}{{- if ge $gcount 3 -}}{{- with (index $gal 2).image -}}{{- $g2 = .url -}}{{- end -}}{{- end -}}
+{{- $gmore := 0 -}}{{- if gt $gcount 3 -}}{{- $gmore = sub $gcount 3 -}}{{- end -}}
 <div style="display: grid; grid-template-rows: 1fr 1fr; gap: 14px;">
-<div class="ph yellow" style="border-radius: var(--r-xl);"><span class="ph-label">detail · 1</span></div>
+<div class="ph yellow{{if $g0}} has-photo{{end}}" style="border-radius: var(--r-xl);{{if $g0}} background-image: url('{{$g0}}');{{end}}"><span class="ph-label" style="{{if $g0}}opacity:0{{end}}">detail · 1</span></div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-<div class="ph green" style="border-radius: var(--r-xl);"><span class="ph-label">detail · 2</span></div>
-<div class="ph red" style="border-radius: var(--r-xl); display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 600;"><span>+2 more</span></div>
+<div class="ph green{{if $g1}} has-photo{{end}}" style="border-radius: var(--r-xl);{{if $g1}} background-image: url('{{$g1}}');{{end}}"><span class="ph-label" style="{{if $g1}}opacity:0{{end}}">detail · 2</span></div>
+<div class="ph red{{if $g2}} has-photo{{end}}" style="border-radius: var(--r-xl); display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 600;{{if $g2}} background-image: url('{{$g2}}');{{end}}">{{- if gt $gmore 0 -}}<span style="position: relative; z-index: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">+{{$gmore}} more</span>{{- else if not $g2 -}}<span class="ph-label">detail · 3</span>{{- end -}}</div>
 </div>
 </div>
 </div>
@@ -42,7 +48,7 @@
 </div>
 <h1 style="margin-bottom: 14px;">{{$t.title}}</h1>
 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 28px; color: var(--yellow);">
-⭐⭐⭐⭐⭐ <strong style="color: var(--ink);">{{$rating}}</strong><span style="color: var(--ink-soft); font-weight: normal;">· {{$reviews}} reviews</span>
+⭐⭐⭐⭐⭐ {{ with $rating }}<strong style="color: var(--ink);">{{ . }}</strong>{{ end }}{{ with $reviews }}<span style="color: var(--ink-soft); font-weight: normal;">· {{ . }} reviews</span>{{ end }}
 </div>
 
 <h3 style="margin-bottom: 12px;">What to expect</h3>
@@ -79,9 +85,9 @@
 {{- range $testimonials -}}
 {{- $tf := .fields_data -}}
 <div class="card" style="padding: 22px; display: flex; gap: 16px;">
-<div class="ph {{or $tf.color "red"}}" style="width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;"></div>
+{{- $ab := "" -}}{{- with $tf.photo -}}{{- with .url -}}{{- $ab = . -}}{{- end -}}{{- end -}}{{- $tc := $tf.color -}}{{- if not $tc -}}{{- $tc = "red" -}}{{- end -}}<div class="ph {{ $tc }}{{if $ab}} has-photo{{end}}" style="width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;{{if $ab}} background-image: url('{{$ab}}');{{end}}"></div>
 <div style="flex: 1;">
-<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><strong>{{or $tf.author .title}}</strong> <span style="color: var(--yellow);">⭐⭐⭐⭐⭐</span></div>
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;"><strong>{{ if $tf.author }}{{ $tf.author }}{{ else }}{{ .title }}{{ end }}</strong> <span style="color: var(--yellow);">⭐⭐⭐⭐⭐</span></div>
 <p style="font-size: 0.92rem; color: var(--ink-soft); margin-bottom: 6px;">{{$tf.quote}}</p>
 <span style="font-size: 0.78rem; color: var(--ink-soft);">Booked this trip · 2 months ago</span>
 </div>
@@ -103,11 +109,11 @@
 </div>
 </div>
 
-<aside data-booking-card data-price="{{or $fd.price 0}}" style="position: sticky; top: 100px;">
+<aside data-booking-card data-price="{{ $fd.price }}" style="position: sticky; top: 100px;">
 <div class="card" style="padding: 28px;">
 <div data-booking-body>
 <div style="margin-bottom: 20px;">
-<div style="font-family: var(--font-display); font-weight: 500; font-size: 2rem;" data-total>${{or $fd.price 0}}</div>
+<div style="font-family: var(--font-display); font-weight: 500; font-size: 2rem;" data-total>${{ $fd.price }}</div>
 <div style="font-size: 0.88rem; color: var(--ink-soft);">per adult</div>
 <div style="font-size: 0.78rem; color: var(--ink-soft);">Kids under 12 · 50% off</div>
 </div>
@@ -130,7 +136,7 @@
 <div><label style="font-size: 0.78rem; color: var(--ink-soft);">Dietary needs</label><select class="select" name="dietary"><option>None</option><option>Vegetarian</option><option>Vegan</option><option>Gluten-free</option><option>Allergies (specify)</option></select></div>
 <div><label style="font-size: 0.78rem; color: var(--ink-soft);">The Vibe Check</label><textarea class="input" name="vibe" rows="3" placeholder="Any specific foods you're dying to try? Or absolutely hate?"></textarea></div>
 <div style="background: var(--cream-warm); border-radius: var(--r-md); padding: 14px 16px; font-size: 0.88rem;">
-<div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><strong>Total</strong><strong data-total>${{or $fd.price 0}}</strong></div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><strong>Total</strong><strong data-total>${{ $fd.price }}</strong></div>
 <div style="color: var(--ink-soft); font-size: 0.78rem;">50% now · 50% on trip day</div>
 </div>
 <button type="submit" class="btn btn-primary" style="justify-content: center; padding: 14px;">Reserve my spot</button>
@@ -164,9 +170,9 @@
 {{- $count = add $count 1 -}}
 {{- $rt := . -}}{{- $rf := .fields_data -}}
 <a class="card" href="{{.full_url}}" style="text-decoration: none; color: inherit;">
-<div class="ph {{or $rf.color "red"}}" style="height: 180px;"><span class="ph-label">{{.title}}</span></div>
+{{- $rb := "" -}}{{- with $rf.hero_image -}}{{- with .url -}}{{- $rb = . -}}{{- end -}}{{- end -}}{{- $rc := $rf.color -}}{{- if not $rc -}}{{- $rc = "red" -}}{{- end -}}<div class="ph {{ $rc }}{{if $rb}} has-photo{{end}}" style="height: 180px;{{if $rb}} background-image: url('{{$rb}}');{{end}}"><span class="ph-label" style="{{if $rb}}opacity:0{{end}}">{{.title}}</span></div>
 <div style="padding: 18px;">
-<span class="badge badge-{{or $rf.color "red"}}">{{$rf.tag}}</span>
+<span class="badge badge-{{ $rc }}">{{$rf.tag}}</span>
 <h3 style="margin-top: 10px; font-size: 1.1rem;">{{.title}}</h3>
 <div style="margin-top: 8px; font-weight: 500;">${{$rf.price}}</div>
 </div>

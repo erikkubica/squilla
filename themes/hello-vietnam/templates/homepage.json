@@ -1,0 +1,77 @@
+{
+  "name": "Home",
+  "description": "Hello Vietnam homepage — hero, categories, featured, how-it-works, popular trips, wall of love, lead magnet.",
+  "thumbnail": "",
+  "blocks": [
+    {
+      "type": "hv-hero",
+      "fields": {
+        "badge_text": "Xin chào! We're Hello Vietnam.",
+        "heading_line1": "Eat, wander, &amp;",
+        "heading_accent": "laugh ",
+        "heading_line2_after": "your way",
+        "heading_line3_before": "through ",
+        "heading_underlined": "Vietnam",
+        "subheading": "Small-group food crawls, mountain loops, and cooking classes — all run by locals who actually live here. No buses. No bullhorns. Just your new favorite country.",
+        "cta_primary":   { "text": "Find Your Adventure", "url": "/trips",   "target": "_self" },
+        "cta_secondary": { "text": "Meet the Crew",      "url": "/about",  "target": "_self" },
+        "social_proof_strong": "2,400+ travelers",
+        "social_proof_rest": "· Rated 4.9 on TripAdvisor",
+        "sticker_text": "100% local-guided"
+      }
+    },
+    {
+      "type": "hv-categories",
+      "fields": {
+        "items": [
+          { "title": "Foodie",     "tag": { "name": "Foodie",     "slug": "foodie" },     "cta_label": "Explore", "color": "red",    "icon": "fork" },
+          { "title": "Adventure",  "tag": { "name": "Adventure",  "slug": "adventure" },  "cta_label": "Explore", "color": "green",  "icon": "trail" },
+          { "title": "Relaxing",   "tag": { "name": "Relaxing",   "slug": "relaxing" },   "cta_label": "Explore", "color": "yellow", "icon": "workshop" },
+          { "title": "Family Fun", "tag": { "name": "Family Fun", "slug": "family_fun" }, "cta_label": "Explore", "color": "ink",    "icon": "family" }
+        ]
+      }
+    },
+    { "type": "hv-featured", "fields": { "eyebrow": "Featured Experience" } },
+    {
+      "type": "hv-how-it-works",
+      "fields": {
+        "eyebrow": "How it works",
+        "heading": "Three steps. Zero stress.",
+        "steps": [
+          { "number": "01", "title": "Book it",        "body": "Pick a trip, fill the Vibe Check, pay half upfront.",                                   "color": "red" },
+          { "number": "02", "title": "Pack your bags", "body": "We WhatsApp you everything you need — what to wear, what to leave behind.",             "color": "yellow" },
+          { "number": "03", "title": "Eat everything", "body": "Show up hungry. We handle the rest. Bring an empty memory card.",                       "color": "green" }
+        ]
+      }
+    },
+    {
+      "type": "hv-popular-trips",
+      "fields": {
+        "eyebrow": "Our most-booked",
+        "heading": "Trips travelers can't stop talking about.",
+        "cta_text": "See all trips →",
+        "cta_url": "/trips",
+        "limit": 3
+      }
+    },
+    {
+      "type": "hv-wall-of-love",
+      "fields": {
+        "eyebrow": "Wall of love",
+        "heading": "Bragging rights, straight from our guests.",
+        "limit": 4
+      }
+    },
+    {
+      "type": "hv-lead-magnet",
+      "fields": {
+        "badge_text": "Free · 12-page PDF",
+        "heading": "The Hanoi Street Food Map.",
+        "body": "Every bún chả, bánh mì, and egg coffee spot we actually eat at. Numbered, mapped, ranked, and updated every month.",
+        "input_placeholder": "your@email.com",
+        "submit_label": "Send me the map",
+        "image_label": "PDF mockup"
+      }
+    }
+  ]
+}

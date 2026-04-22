@@ -1,21 +1,20 @@
-{{- /* Trips Map — aggregate trips by region (location → first word) */ -}}
-{{- $eyebrow := or .eyebrow "Where we go" -}}
-{{- $heading := or .heading "Small country, huge variety." -}}
-{{- $body := or .body "From Ha Giang's northern passes to the Mekong's palm-lined channels — every region has its own flavor, texture, and pace." -}}
+{{- /* Trips Map — query-driven. Renders nothing if no trips. */ -}}
 {{- $trips := filter "list_nodes" (dict "type" "trip" "limit" 50) -}}
+{{- if not $trips -}}{{- else -}}
 <section class="section"><div class="container">
 <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 56px; align-items: center;">
 <div>
-<span class="eyebrow">{{$eyebrow}}</span>
-<h2 style="margin-bottom: 18px;">{{$heading}}</h2>
-<p style="color: var(--ink-soft); margin-bottom: 28px;">{{$body}}</p>
+{{ with .eyebrow }}<span class="eyebrow">{{ . }}</span>{{ end }}
+{{ with .heading }}<h2 style="margin-bottom: 18px;">{{ . }}</h2>{{ end }}
+{{ with .body }}<p style="color: var(--ink-soft); margin-bottom: 28px;">{{ . }}</p>{{ end }}
 <div style="display: flex; flex-direction: column; gap: 14px;">
 {{- range $trips -}}
 {{- $fd := .fields_data -}}
+{{- $c := $fd.color -}}{{- if not $c -}}{{- $c = "red" -}}{{- end -}}
 <div style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--cream-warm); border-radius: var(--r-md);">
-<span style="width: 12px; height: 12px; border-radius: 50%; background: var(--{{or $fd.color "red"}});"></span>
-<div style="flex: 1;"><strong>{{$fd.location}}</strong><span style="color: var(--ink-soft); font-size: 0.85rem; margin-left: 8px;">— {{.title}}</span></div>
-<span style="font-size: 0.82rem; color: var(--ink-soft);">{{$fd.duration}}</span>
+<span style="width: 12px; height: 12px; border-radius: 50%; background: var(--{{ $c }});"></span>
+<div style="flex: 1;">{{ with $fd.location }}<strong>{{ . }}</strong>{{ end }}<span style="color: var(--ink-soft); font-size: 0.85rem; margin-left: 8px;">— {{.title}}</span></div>
+{{ with $fd.duration }}<span style="font-size: 0.82rem; color: var(--ink-soft);">{{ . }}</span>{{ end }}
 </div>
 {{- end -}}
 </div>
@@ -30,3 +29,4 @@
 </div>
 </div>
 </div></section>
+{{- end -}}

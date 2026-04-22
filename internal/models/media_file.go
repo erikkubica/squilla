@@ -13,6 +13,7 @@ type MediaFile struct {
 	Width        *int      `json:"width,omitempty"`        // image width (nil for non-images)
 	Height       *int      `json:"height,omitempty"`       // image height (nil for non-images)
 	Alt          string    `json:"alt"`                    // alt text
+	Slug         *string   `gorm:"column:slug" json:"slug,omitempty"` // portable reference (unique)
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

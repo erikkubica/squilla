@@ -116,6 +116,11 @@ func Builtin() []FieldTypeDef {
 			Description: "Reference to content nodes",
 			HowTo: "Use to reference other CMS content — 'related posts', 'featured page', 'parent product'. Stores node IDs and resolves to full node data at render time. Filter by node type with the 'node_types' schema option. If you just want an external URL, use Link.",
 		},
+		{
+			Type: "term", Label: "Term Selector", Group: "Relational", Icon: "Tags",
+			Description: "Reference to taxonomy terms",
+			HowTo: "Use to assign taxonomy terms (categories, tags) to a node or block field — 'trip tag', 'product category', 'blog topic'. Stores {id, slug, name, taxonomy, node_type} and resolves live so term renames propagate. Declare taxonomy+node_type in the schema. For free-form strings, use Text; for a fixed list of non-taxonomy options, use Select.",
+		},
 
 		// --- Layout ---
 		{

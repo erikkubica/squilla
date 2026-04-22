@@ -1,18 +1,34 @@
 {
   "slug": "hv-legal-content",
   "name": "Legal Content",
-  "description": "Hello Vietnam — Legal Content",
+  "description": "Hello Vietnam \u2014 Legal Content",
   "category": "hello-vietnam",
   "field_schema": [
-    { "key": "heading", "label": "Document heading", "type": "text" },
-    { "key": "updated_at", "label": "Last updated (display text)", "type": "text" },
-    { "key": "summary_heading", "label": "Summary box heading", "type": "text" },
+    {
+      "key": "heading",
+      "label": "Document heading",
+      "type": "text"
+    },
+    {
+      "key": "updated_at",
+      "label": "Last updated (display text)",
+      "type": "text"
+    },
+    {
+      "key": "summary_heading",
+      "label": "Summary box heading",
+      "type": "text"
+    },
     {
       "key": "summary_points",
       "label": "Summary bullet points",
       "type": "repeater",
       "sub_fields": [
-        { "key": "body", "label": "Point (HTML allowed)", "type": "textarea" }
+        {
+          "key": "body",
+          "label": "Point (HTML allowed)",
+          "type": "textarea"
+        }
       ]
     },
     {
@@ -20,30 +36,66 @@
       "label": "Content sections",
       "type": "repeater",
       "sub_fields": [
-        { "key": "h3", "label": "Heading", "type": "text" },
-        { "key": "body", "label": "Body (HTML allowed)", "type": "textarea" }
+        {
+          "key": "h3",
+          "label": "Heading",
+          "type": "text"
+        },
+        {
+          "key": "body",
+          "label": "Body (HTML allowed)",
+          "type": "textarea"
+        }
       ]
     },
-    { "key": "contact_concern_heading", "label": "Concern box heading", "type": "text" },
-    { "key": "contact_concern_body", "label": "Concern box body (HTML allowed)", "type": "textarea" }
+    {
+      "key": "contact_concern_heading",
+      "label": "Concern box heading",
+      "type": "text"
+    },
+    {
+      "key": "contact_concern_body",
+      "label": "Concern box body (HTML allowed)",
+      "type": "textarea"
+    }
   ],
   "test_data": {
     "heading": "Privacy Policy",
     "updated_at": "April 2026",
     "summary_heading": "Too long? Here's the summary",
     "summary_points": [
-      { "body": "We only collect info you give us (email, booking details)." },
-      { "body": "We never sell your data. We're a tiny company; we don't even know how to." },
-      { "body": "We use it to run your trip and send you occasional emails (unsubscribe any time)." },
-      { "body": "You can ask us to delete everything about you. Just reply to any email." }
+      {
+        "body": "We only collect info you give us (email, booking details)."
+      },
+      {
+        "body": "We never sell your data. We're a tiny company; we don't even know how to."
+      },
+      {
+        "body": "We use it to run your trip and send you occasional emails (unsubscribe any time)."
+      },
+      {
+        "body": "You can ask us to delete everything about you. Just reply to any email."
+      }
     ],
     "sections": [
-      { "h3": "1. Who we are", "body": "Hello Vietnam Adventures is a registered tour operator based in Hanoi, Vietnam (License #HN-2021-0847). We operate this website and handle bookings through it." },
-      { "h3": "2. What we collect", "body": "When you book a trip, fill out a form, or email us, we collect your name, email, phone number, dietary needs, and any other info you share. We also collect anonymous analytics (how many people visited the site, which pages are popular)." },
-      { "h3": "3. How we use it", "body": "To run your trip, coordinate logistics, send booking confirmations, and occasionally email you about new experiences (only if you opt in). That's it." },
-      { "h3": "4. Your rights", "body": "You can ask us to show you everything we have on file, correct it, or delete it. Just email <strong>xinchao@hellovietnam.co</strong>." }
+      {
+        "h3": "1. Who we are",
+        "body": "Hello Vietnam Adventures is a registered tour operator based in Hanoi, Vietnam (License #HN-2021-0847). We operate this website and handle bookings through it."
+      },
+      {
+        "h3": "2. What we collect",
+        "body": "When you book a trip, fill out a form, or email us, we collect your name, email, phone number, dietary needs, and any other info you share. We also collect anonymous analytics (how many people visited the site, which pages are popular)."
+      },
+      {
+        "h3": "3. How we use it",
+        "body": "To run your trip, coordinate logistics, send booking confirmations, and occasionally email you about new experiences (only if you opt in). That's it."
+      },
+      {
+        "h3": "4. Your rights",
+        "body": "You can ask us to show you everything we have on file, correct it, or delete it. Just email <strong>xinchao@hellovietnam.co</strong>."
+      }
     ],
     "contact_concern_heading": "Have a concern?",
-    "contact_concern_body": "Email us at xinchao@hellovietnam.co — we take privacy seriously."
+    "contact_concern_body": "Email us at xinchao@hellovietnam.co \u2014 we take privacy seriously."
   }
 }

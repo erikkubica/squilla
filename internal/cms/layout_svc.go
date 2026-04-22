@@ -263,10 +263,18 @@ func (s *LayoutService) Reattach(id int) (*models.Layout, error) {
 }
 
 // ResolveForNode resolves the best layout for a content node using cascade resolution.
-// Priority: 1) explicit LayoutID, 2) layout-{type}-{slug} by language_id, 3) layout-{type} by language_id,
-// 4) is_default=true by language_id, 5) error.
+// Priority: 1) explicit LayoutSlug (portable), 2) explicit LayoutID (legacy), 3)
+// layout-{type}-{slug} by language_id, 4) layout-{type} by language_id, 5)
+// is_default=true by language_id, 6) error.
 func (s *LayoutService) ResolveForNode(node *models.ContentNode, languageID *int) (*models.Layout, error) {
-	// 1. Explicit LayoutID on the node
+	// 1. Explicit LayoutSlug on the node (portable across theme cycles).
+	if node.LayoutSlug != nil && *node.LayoutSlug != "" {
+		if layout := s.findBySlugAndLang(*node.LayoutSlug, languageID); layout != nil {
+			return layout, nil
+		}
+	}
+
+	// 2. Explicit LayoutID on the node (legacy; slug is preferred).
 	if node.LayoutID != nil {
 		cacheKey := fmt.Sprintf("id:%d", *node.LayoutID)
 		if cached, ok := s.cache.Load(cacheKey); ok {

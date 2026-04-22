@@ -24,6 +24,8 @@ import {
   type NodeTypeField,
   type NodeSearchResult,
   type NodeType,
+  listTerms,
+  type TaxonomyTerm,
 } from "@/api/client";
 import { useExtensions } from "@/hooks/use-extensions";
 
@@ -292,6 +294,93 @@ function RepeaterFieldInput({
         <Plus className="mr-2 h-4 w-4" />
         Add Row
       </Button>
+    </div>
+  );
+}
+
+
+
+// Term selector: pick a taxonomy term (loads terms for the configured taxonomy)
+function TermSelectorInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: NodeTypeField;
+  value: unknown;
+  onChange: (val: unknown) => void;
+}) {
+  const [terms, setTerms] = useState<TaxonomyTerm[]>([]);
+  const [loading, setLoading] = useState(false);
+  const isMultiple = !!field.multiple;
+  const taxonomy = (field as NodeTypeField & { taxonomy?: string }).taxonomy || "";
+  const termNodeType = (field as NodeTypeField & { term_node_type?: string }).term_node_type || "";
+
+  useEffect(() => {
+    if (!taxonomy || !termNodeType) return;
+    setLoading(true);
+    listTerms(termNodeType, taxonomy)
+      .then((t) => setTerms(t))
+      .catch(() => setTerms([]))
+      .finally(() => setLoading(false));
+  }, [taxonomy, termNodeType]);
+
+  const selected: TaxonomyTerm[] = isMultiple
+    ? (Array.isArray(value) ? (value as TaxonomyTerm[]) : [])
+    : value && typeof value === "object" && "id" in (value as Record<string, unknown>)
+      ? [value as TaxonomyTerm]
+      : [];
+  const selectedIds = new Set(selected.map((t) => t.id));
+
+  function handleSelectSingle(id: string) {
+    if (!id) { onChange(null); return; }
+    const t = terms.find((x) => String(x.id) === id);
+    if (t) onChange(t);
+  }
+  function handleToggleMulti(t: TaxonomyTerm) {
+    if (selectedIds.has(t.id)) {
+      onChange(selected.filter((x) => x.id !== t.id));
+    } else {
+      onChange([...selected, t]);
+    }
+  }
+
+  if (!taxonomy || !termNodeType) {
+    return <div className="text-sm text-amber-600">Term field needs both <code>taxonomy</code> and <code>term_node_type</code> set in the schema.</div>;
+  }
+  if (loading) return <div className="text-sm text-slate-500">Loading terms…</div>;
+  if (terms.length === 0) return <div className="text-sm text-slate-500">No terms in <code>{taxonomy}</code>. Create some in admin first.</div>;
+
+  if (!isMultiple) {
+    const currentId = selected[0]?.id ?? "";
+    return (
+      <select
+        value={String(currentId)}
+        onChange={(e) => handleSelectSingle(e.target.value)}
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+      >
+        <option value="">— Select {field.label || "term"} —</option>
+        {terms.map((t) => (
+          <option key={t.id} value={String(t.id)}>{t.name}</option>
+        ))}
+      </select>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {terms.map((t) => {
+        const on = selectedIds.has(t.id);
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => handleToggleMulti(t)}
+            className={`rounded-full px-3 py-1 text-sm border ${on ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-300 hover:border-indigo-400"}`}
+          >
+            {t.name}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -590,6 +679,8 @@ function CustomFieldInput({
       return <GroupFieldInput field={field} value={value as Record<string, unknown> | null} onChange={onChange} />;
     case "repeater":
       return <RepeaterFieldInput field={field} value={value as unknown[] | null} onChange={onChange} />;
+    case "term":
+      return <TermSelectorInput field={field} value={value} onChange={onChange} />;
     case "node":
       return <NodeSelectorInput field={field} value={value} onChange={onChange} />;
     case "richtext":

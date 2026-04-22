@@ -1,16 +1,32 @@
 {
   "slug": "hv-contact-band",
   "name": "Contact CTA Band",
-  "description": "Hello Vietnam — Contact CTA Band",
+  "description": "Hello Vietnam \u2014 Contact CTA Band",
   "category": "hello-vietnam",
   "field_schema": [
-    { "key": "heading", "label": "Heading", "type": "text" },
-    { "key": "body", "label": "Body", "type": "textarea" },
-    { "key": "cta", "label": "Call to action", "type": "link" }
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "body",
+      "label": "Body",
+      "type": "textarea"
+    },
+    {
+      "key": "cta",
+      "label": "Call to action",
+      "type": "link"
+    }
   ],
   "test_data": {
     "heading": "Got a question?",
     "body": "We answer every WhatsApp within a few hours. Promise.",
-    "cta": { "text": "Let's chat", "url": "/contact", "target": "" }
+    "cta": {
+      "text": "Let's chat",
+      "url": "/contact",
+      "target": ""
+    }
   }
 }

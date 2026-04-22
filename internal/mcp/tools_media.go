@@ -41,7 +41,7 @@ func (s *Server) registerMediaTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.media.upload",
-		mcp.WithDescription("Upload a media file. Pass base64-encoded body. Returns the stored MediaFile with its URL."),
+		mcp.WithDescription("Upload a media file (image, video, doc) and register it in the media library. Returns {id, url, slug, ...} — reference by slug in theme-portable content.\n\nUse when: attaching an image/file to a node, hero, gallery, etc.\nDO NOT use when: storing arbitrary files with no URL/DB record — use core.files.store. Importing a theme-packaged asset — theme activation handles that automatically.\n\nBody must be base64-encoded. Max size limits apply per storage backend."),
 		mcp.WithString("filename", mcp.Required()),
 		mcp.WithString("mime_type", mcp.Required()),
 		mcp.WithString("body_base64", mcp.Required(), mcp.Description("base64-encoded file body")),

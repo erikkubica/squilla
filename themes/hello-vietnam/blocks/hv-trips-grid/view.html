@@ -1,6 +1,7 @@
-{{- /* Trips Grid — all trips, wired for JS filter (data-tag / data-title / data-location) */ -}}
-{{- $limit := or .limit 20 -}}
+{{- /* Trips Grid — query-driven. Renders nothing if no trips. */ -}}
+{{- $limit := .limit -}}{{- if not $limit -}}{{- $limit = 20 -}}{{- end -}}
 {{- $trips := filter "list_nodes" (dict "type" "trip" "limit" $limit "order_by" "created_at asc") -}}
+{{- if not $trips -}}{{- else -}}
 <section style="padding: 24px 0px 40px;"><div class="container">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
 <span data-trip-count style="font-size: 0.9rem; color: var(--ink-soft);">{{len $trips}} trips</span>
@@ -9,31 +10,31 @@
 <div class="trips-grid" data-trip-grid style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
 {{- range $trips -}}{{- $t := . -}}
 {{- $fd := $t.fields_data -}}
-{{- $color := or $fd.color "red" -}}
-{{- $tag := or $fd.tag "Foodie" -}}
-{{- $dur := or $fd.duration "" -}}
-{{- $loc := or $fd.location "" -}}
-{{- $price := or $fd.price 0 -}}
-{{- $rating := or $fd.rating 4.9 -}}
-{{- $short := or $fd.short "" -}}
+{{- $color := $fd.color -}}{{- if not $color -}}{{- $color = "red" -}}{{- end -}}
+{{- $tag := "" -}}{{- with $fd.tag -}}{{- with .name -}}{{- $tag = . -}}{{- end -}}{{- end -}}
+{{- $dur := $fd.duration -}}
+{{- $loc := $fd.location -}}
+{{- $price := $fd.price -}}
+{{- $rating := $fd.rating -}}
+{{- $short := $fd.short -}}
 <a class="card trip-card" href="{{$t.full_url}}" data-trip-card data-tag="{{$tag}}" data-title="{{$t.title}}" data-location="{{$loc}}" style="cursor: pointer; text-decoration: none; color: inherit; display: block;">
-  <div class="ph {{$color}}" style="height: 220px; border-radius: 0; position: relative;">
+  {{- $gb := "" -}}{{- with $fd.hero_image -}}{{- with .url -}}{{- $gb = . -}}{{- end -}}{{- end -}}<div class="ph {{$color}}{{if $gb}} has-photo{{end}}" style="height: 220px; border-radius: 0; position: relative;{{if $gb}} background-image: url('{{$gb}}');{{end}}">
     <span class="ph-label">{{$t.title}}</span>
     {{if $fd.staff_pick}}<div style="position: absolute; top: 14px; left: 14px; background: var(--yellow); color: var(--ink); padding: 6px 12px; border-radius: var(--r-pill); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg> Staff pick</div>{{end}}
-    <div style="position: absolute; top: 14px; right: 14px; background: var(--white); padding: 6px 12px; border-radius: var(--r-pill); font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg> {{$rating}}</div>
+    {{ with $rating }}<div style="position: absolute; top: 14px; right: 14px; background: var(--white); padding: 6px 12px; border-radius: var(--r-pill); font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg> {{ . }}</div>{{ end }}
   </div>
   <div style="padding: 22px;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 10px;">
-      <span class="badge badge-{{$color}}">{{$tag}}</span>
-      <div style="display: flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--ink-soft);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> {{$dur}}</div>
+      {{ with $tag }}<span class="badge badge-{{$color}}">{{ . }}</span>{{ end }}
+      {{ with $dur }}<div style="display: flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--ink-soft);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> {{ . }}</div>{{ end }}
     </div>
     <h3 style="margin-bottom: 6px; font-size: 1.2rem;">{{$t.title}}</h3>
-    <div style="font-size: 0.85rem; color: var(--ink-soft); display: flex; align-items: center; gap: 5px; margin-bottom: 14px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-7-7-7-13a7 7 0 1 1 14 0c0 6-7 13-7 13z"/><circle cx="12" cy="9" r="2.5"/></svg> {{$loc}}</div>
-    <p style="font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 18px; min-height: 2.6em;">{{$short}}</p>
+    {{ with $loc }}<div style="font-size: 0.85rem; color: var(--ink-soft); display: flex; align-items: center; gap: 5px; margin-bottom: 14px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-7-7-7-13a7 7 0 1 1 14 0c0 6-7 13-7 13z"/><circle cx="12" cy="9" r="2.5"/></svg> {{ . }}</div>{{ end }}
+    {{ with $short }}<p style="font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 18px; min-height: 2.6em;">{{ . }}</p>{{ end }}
     <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--line);">
       <div>
-        <div style="font-size: 0.72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em;">From</div>
-        <div style="font-family: var(--font-display); font-weight: 500; font-size: 1.3rem;">${{$price}}</div>
+        {{ with $price }}<div style="font-size: 0.72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em;">From</div>
+        <div style="font-family: var(--font-display); font-weight: 500; font-size: 1.3rem;">${{ . }}</div>{{ end }}
       </div>
       <span class="btn btn-primary" style="padding: 10px 18px; font-size: 0.88rem;">Book now <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span>
     </div>
@@ -46,3 +47,4 @@
 <p style="color: var(--ink-soft);">Try a different tag or clear the search.</p>
 </div>
 </div></section>
+{{- end -}}

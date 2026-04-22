@@ -1,14 +1,15 @@
 {{- /* Gallery Masonry — queries gallery_photo nodes, CSS-column layout with JS filter + lightbox */ -}}
-{{- $limit := or .limit 12 -}}
+{{- $limit := .limit -}}{{- if not $limit -}}{{- $limit = 12 -}}{{- end -}}
 {{- $items := filter "list_nodes" (dict "type" "gallery_photo" "limit" $limit "order_by" "created_at asc") -}}
+{{- if not $items -}}{{- else -}}
 <section style="padding: 20px 0px 60px;"><div class="container">
 <div data-gallery-root style="column-count: 4; column-gap: 16px;">
 {{- range $items -}}
 {{- $fd := .fields_data -}}
-{{- $color := or $fd.color "yellow" -}}
-{{- $cat := or $fd.category "All" -}}
+{{- $color := $fd.color -}}{{- if not $color -}}{{- $color = "yellow" -}}{{- end -}}
+{{- $cat := $fd.category -}}{{- if not $cat -}}{{- $cat = "All" -}}{{- end -}}
 {{- $h := "240px" -}}{{- if $fd.tall -}}{{- $h = "340px" -}}{{- end -}}
-<div class="ph {{$color}}" data-gallery-tile data-category="{{$cat}}" data-ph-variant="{{$color}}" style="height: {{$h}}; border-radius: var(--r-md); break-inside: avoid; margin-bottom: 16px; cursor: zoom-in; transition: transform 0.2s;"><span class="ph-label">{{$fd.caption}}</span></div>
+{{- $bg := "" -}}{{- with $fd.photo -}}{{- with .url -}}{{- $bg = . -}}{{- end -}}{{- end -}}<div class="ph {{$color}}{{if $bg}} has-photo{{end}}" data-gallery-tile data-category="{{$cat}}" data-ph-variant="{{$color}}" data-bg="{{if $bg}}url('{{$bg}}'){{end}}" style="height: {{$h}}; border-radius: var(--r-md); break-inside: avoid; margin-bottom: 16px; cursor: zoom-in; transition: transform 0.2s;{{if $bg}} background-image: url('{{$bg}}');{{end}}"><span class="ph-label" style="{{if $bg}}opacity:0{{end}}">{{$fd.caption}}</span></div>
 {{- end -}}
 </div>
 <div data-lightbox style="display: none; position: fixed; inset: 0; background: rgba(44,62,80,.92); z-index: 9999; align-items: center; justify-content: center;">
@@ -17,3 +18,4 @@
 </div>
 </div></section>
 <style>[data-lightbox].is-open{display:flex !important;animation:fadeIn .2s ease}[data-gallery-tile]:hover{transform:scale(1.02)}</style>
+{{- end -}}

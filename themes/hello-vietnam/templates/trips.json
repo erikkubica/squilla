@@ -1,0 +1,33 @@
+{
+  "name": "Trips",
+  "description": "Hello Vietnam trips listing — filter header, staff pick banner, grid, regional map, custom journey CTA.",
+  "thumbnail": "",
+  "blocks": [
+    {
+      "type": "hv-trips-filter",
+      "fields": {
+        "eyebrow": "Your next trip",
+        "heading": "I'm looking for...",
+        "search_placeholder": "Search trips, regions, or dishes..."
+      }
+    },
+    { "type": "hv-staff-pick", "fields": {} },
+    { "type": "hv-trips-grid", "fields": { "limit": 20 } },
+    {
+      "type": "hv-trips-map",
+      "fields": {
+        "eyebrow": "Where we go",
+        "heading": "Small country, huge variety.",
+        "body": "From Ha Giang's northern passes to the Mekong's palm-lined channels — every region has its own flavor, texture, and pace."
+      }
+    },
+    {
+      "type": "hv-custom-journey",
+      "fields": {
+        "heading": "Don't see it? Build it.",
+        "body": "Tell us your dates, your crew, and your cravings. We'll design a private itinerary from scratch — usually within 48 hours.",
+        "cta": { "text": "Plan a custom journey", "url": "/contact", "target": "_self" }
+      }
+    }
+  ]
+}

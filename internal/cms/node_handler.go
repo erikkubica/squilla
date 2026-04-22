@@ -451,6 +451,24 @@ func (h *NodeHandler) Get(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You can only view your own content")
 	}
 
+	// Resolve theme-asset:<key> refs in JSONB fields so the admin edit form
+	// renders actual thumbnails instead of raw refs. Save path tolerates both
+	// resolved objects and raw refs — either round-trips cleanly.
+	if lookup := loadActiveAssetLookup(h.db); lookup.hasAny() {
+		if len(node.FieldsData) > 0 {
+			node.FieldsData = models.JSONB(ResolveThemeAssetRefsInJSON([]byte(node.FieldsData), lookup))
+		}
+		if len(node.BlocksData) > 0 {
+			node.BlocksData = models.JSONB(ResolveThemeAssetRefsInJSON([]byte(node.BlocksData), lookup))
+		}
+		if len(node.LayoutData) > 0 {
+			node.LayoutData = models.JSONB(ResolveThemeAssetRefsInJSON([]byte(node.LayoutData), lookup))
+		}
+		if len(node.FeaturedImage) > 0 {
+			node.FeaturedImage = models.JSONB(ResolveThemeAssetRefsInJSON([]byte(node.FeaturedImage), lookup))
+		}
+	}
+
 	return api.Success(c, node)
 }
 

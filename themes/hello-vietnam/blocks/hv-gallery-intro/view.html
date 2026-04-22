@@ -1,12 +1,9 @@
 {{- /* Gallery intro + category pills (derived from nodes) */ -}}
-{{- $eyebrow := or .eyebrow "Moments" -}}
-{{- $heading := or .heading "Ten years of candid Vietnam." -}}
-{{- $body := or .body "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site." -}}
 {{- $cats := filter "distinct_field" (dict "type" "gallery_photo" "field" "category") -}}
 <section style="padding: 60px 0px 40px;"><div class="container" style="text-align: center;">
-<span class="eyebrow">{{$eyebrow}}</span>
-<h1 style="margin-bottom: 16px;">{{$heading}}</h1>
-<p style="max-width: 620px; margin: 0 auto 32px; color: var(--ink-soft); font-size: 1.05rem;">{{$body}}</p>
+{{- with .eyebrow }}<span class="eyebrow">{{ . }}</span>{{- end }}
+{{ with .heading }}<h1 style="margin-bottom: 16px;">{{ . }}</h1>{{ end }}
+{{- with .body }}<p style="max-width: 620px; margin: 0 auto 32px; color: var(--ink-soft); font-size: 1.05rem;">{{ . }}</p>{{- end }}
 <div data-gallery-root style="display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
 <button class="pill-dark active" data-gallery-pill="All">All</button>
 {{- range $cats -}}

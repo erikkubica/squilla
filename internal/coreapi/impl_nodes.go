@@ -71,7 +71,13 @@ func (c *coreImpl) GetNode(_ context.Context, id uint) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("coreapi GetNode: %w", err)
 	}
-	return nodeFromModel(m), nil
+	n := nodeFromModel(m)
+	if n.FieldsData != nil {
+		if lookup := c.loadThemeAssetLookup(); len(lookup) > 0 {
+			n.FieldsData = resolveAssetRefsIn(n.FieldsData, lookup)
+		}
+	}
+	return n, nil
 }
 
 // QueryNodes searches content nodes with optional filters and pagination.

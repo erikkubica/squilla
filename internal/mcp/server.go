@@ -46,6 +46,17 @@ type Server struct {
 	logger  *log.Logger
 	// allowRawSQL gates core.data.exec behind an env flag in addition to scope=full.
 	allowRawSQL bool
+	// toolCatalog is a flat index of every registered tool, populated by
+	// addTool. Surfaced by the core.guide meta-tool so AI clients can see
+	// every available verb in one call without trawling schema metadata.
+	toolCatalog []toolCatalogEntry
+}
+
+// toolCatalogEntry is the shape returned by Server.registeredTools.
+type toolCatalogEntry struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Class       string `json:"class"`
 }
 
 // New constructs the MCP server and registers every tool and resource.
@@ -88,6 +99,7 @@ func New(deps Deps) *Server {
 	s.registerCoreTools()
 	s.registerSystemTools()
 	s.registerRenderTools()
+	s.registerGuideTools()
 	s.registerResources()
 
 	return s
@@ -129,9 +141,69 @@ func (s *Server) registerCoreTools() {
 
 const instructionText = `VibeCMS — an AI-native CMS exposed via MCP.
 
-Every tool is namespaced core.<domain>.<verb>. Tools with "query" or "list" in
-the name accept optional limit (default 25, max 200) and offset. Use
-core.render.block / core.render.layout / core.render.node_preview to preview
-content without publishing. core.extension.activate / core.extension.deactivate
-flip the is_active flag but require a process restart to fully load plugin
-binaries (the response carries restart_required=true).`
+# Naming
+All tools are namespaced core.<domain>.<verb>. The verb reveals intent:
+  get/list/query = read            create/update/delete = write
+  activate/deactivate = lifecycle  render.* = preview without publishing
+
+# When lost, start here
+Call core.guide first. It returns a goal→tool decision tree and the current
+CMS state (active theme, counts, recent nodes). That one call replaces ~10
+discovery calls and primes you with what exists before you mutate anything.
+
+# Golden-path recipes (follow these — do not reinvent)
+
+1. PUBLISH A NEW PAGE WITH AN IMAGE
+   core.media.upload       → { id, url, slug }
+   core.node.create        → { node_type, title, featured_image: <media obj>,
+                               blocks_data: [...], status: "published" }
+   core.render.node_preview(id) → verify before telling the user "done"
+
+2. ADD A CUSTOM CONTENT BLOCK TO A THEME
+   core.block_types.list                          → confirm slug is free
+   core.block_types.create { slug, field_schema,  → body is html/template
+                             html_template,         source that reads .fields
+                             test_data }            and .node
+   core.render.block { block_type, fields }       → smoke-test
+   core.node.update { id, blocks_data: [...] }    → wire into a page
+
+3. SWITCH THE SITE'S LOOK
+   core.theme.list        → find id
+   core.theme.activate(id)  (NO restart required for themes)
+
+4. ADD/EDIT A CUSTOM NODE TYPE ("post type")
+   core.nodetype.list / .get to inspect existing schemas first
+   core.nodetype.create { slug, label, label_plural, url_prefixes,
+                          field_schema }
+   core.taxonomy.create if the type needs tagging/categories
+   Then core.node.create with the new node_type slug.
+
+5. INSPECT WHAT BROKE ON THE LIVE SITE
+   core.theme.active           → which theme is serving pages
+   core.layout.list            → what layouts resolved
+   core.render.node_preview    → reproduce the failing page
+   core.block_types.get        → inspect the template source
+
+# Key data shapes (do NOT flatten these)
+  image field  = { url, alt, width?, height? }           object, not string
+  link field   = { label, url, target? }                 object, not string
+  repeater     = [ { sub_field: ... }, ... ]             array of objects
+  term field   = { slug, name, taxonomy? }               object, not string
+  blocks_data  = [ { type: "<slug>", fields: {...} }, ... ]
+
+# Lifecycle / side-effects flags in responses
+  restart_required:true  → the call flipped a flag but a process restart is
+                           needed before plugin binaries fully load.
+                           (Themes never set this; some extensions do.)
+
+# Pagination contract
+Any tool with "list" or "query" in its name accepts {limit, offset}. Default
+limit=25, max=200. The response includes {total} so you know when to stop.
+
+# Preview vs publish
+core.render.* never fires events, never increments view counts, never writes.
+Always preview before calling update/create when a user is watching output.
+
+# Raw SQL
+core.data.exec is gated behind scope=full AND a server env flag. Prefer the
+typed tools (core.node.query, core.data.query) which enforce tenancy/ACL.`

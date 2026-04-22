@@ -1,7 +1,7 @@
 {
   "slug": "hv-contact-form",
   "name": "Contact Form Grid",
-  "description": "Hello Vietnam — Contact Form Grid",
+  "description": "Hello Vietnam \u2014 Contact Form Grid",
   "category": "hello-vietnam",
   "field_schema": [
     {
@@ -9,42 +9,122 @@
       "label": "Contact cards",
       "type": "repeater",
       "sub_fields": [
-        { "key": "icon", "label": "Icon", "type": "select", "options": [
-          { "value": "whatsapp", "label": "WhatsApp" },
-          { "value": "mail", "label": "Email" },
-          { "value": "phone", "label": "Phone" },
-          { "value": "pin", "label": "Location (Meet us)" }
-        ] },
-        { "key": "label", "label": "Small label", "type": "text" },
-        { "key": "value", "label": "Primary value", "type": "text" },
-        { "key": "hours", "label": "Hours line (only for Meet us card, HTML allowed)", "type": "textarea" }
+        {
+          "key": "icon",
+          "label": "Icon",
+          "type": "select",
+          "options": [
+            "whatsapp",
+            "mail",
+            "phone",
+            "pin"
+          ]
+        },
+        {
+          "key": "label",
+          "label": "Small label",
+          "type": "text"
+        },
+        {
+          "key": "value",
+          "label": "Primary value",
+          "type": "text"
+        },
+        {
+          "key": "hours",
+          "label": "Hours line (only for Meet us card, HTML allowed)",
+          "type": "textarea"
+        }
       ]
     },
-    { "key": "form_heading", "label": "Form heading", "type": "text" },
-    { "key": "form_subheading", "label": "Form subheading", "type": "text" },
-    { "key": "label_name", "label": "Label: Name", "type": "text" },
-    { "key": "placeholder_name", "label": "Placeholder: Name", "type": "text" },
-    { "key": "label_email", "label": "Label: Email", "type": "text" },
-    { "key": "placeholder_email", "label": "Placeholder: Email", "type": "text" },
-    { "key": "label_subject", "label": "Label: Subject", "type": "text" },
-    { "key": "subject_placeholder", "label": "Subject empty option text", "type": "text" },
+    {
+      "key": "form_heading",
+      "label": "Form heading",
+      "type": "text"
+    },
+    {
+      "key": "form_subheading",
+      "label": "Form subheading",
+      "type": "text"
+    },
+    {
+      "key": "label_name",
+      "label": "Label: Name",
+      "type": "text"
+    },
+    {
+      "key": "placeholder_name",
+      "label": "Placeholder: Name",
+      "type": "text"
+    },
+    {
+      "key": "label_email",
+      "label": "Label: Email",
+      "type": "text"
+    },
+    {
+      "key": "placeholder_email",
+      "label": "Placeholder: Email",
+      "type": "text"
+    },
+    {
+      "key": "label_subject",
+      "label": "Label: Subject",
+      "type": "text"
+    },
+    {
+      "key": "subject_placeholder",
+      "label": "Subject empty option text",
+      "type": "text"
+    },
     {
       "key": "subject_options",
       "label": "Subject options",
       "type": "repeater",
       "sub_fields": [
-        { "key": "value", "label": "Option", "type": "text" }
+        {
+          "key": "value",
+          "label": "Option",
+          "type": "text"
+        }
       ]
     },
-    { "key": "label_message", "label": "Label: Message", "type": "text" },
-    { "key": "placeholder_message", "label": "Placeholder: Message", "type": "text" },
-    { "key": "submit_label", "label": "Submit button label", "type": "text" }
+    {
+      "key": "label_message",
+      "label": "Label: Message",
+      "type": "text"
+    },
+    {
+      "key": "placeholder_message",
+      "label": "Placeholder: Message",
+      "type": "text"
+    },
+    {
+      "key": "submit_label",
+      "label": "Submit button label",
+      "type": "text"
+    }
   ],
   "test_data": {
     "contact_cards": [
-      { "icon": "whatsapp", "label": "WhatsApp", "value": "+84 912 345 678", "hours": "" },
-      { "icon": "mail", "label": "Email", "value": "xinchao@hellovietnam.co", "hours": "" },
-      { "icon": "pin", "label": "Meet us", "value": "12 Hàng Cá St, Hanoi", "hours": "<strong>Mon–Sat:</strong> 9am – 8pm · <strong>Sun:</strong> Out eating" }
+      {
+        "icon": "whatsapp",
+        "label": "WhatsApp",
+        "value": "+84 912 345 678",
+        "hours": ""
+      },
+      {
+        "icon": "mail",
+        "label": "Email",
+        "value": "xinchao@hellovietnam.co",
+        "hours": ""
+      },
+      {
+        "icon": "pin",
+        "label": "Meet us",
+        "value": "12 H\u00e0ng C\u00e1 St, Hanoi",
+        "hours": "<strong>Mon\u2013Sat:</strong> 9am \u2013 8pm \u00b7 <strong>Sun:</strong> Out eating"
+      }
     ],
     "form_heading": "Drop us a line.",
     "form_subheading": "We reply in the order we receive.",
@@ -55,13 +135,24 @@
     "label_subject": "Subject",
     "subject_placeholder": "Pick one...",
     "subject_options": [
-      { "value": "General question" },
-      { "value": "Custom trip inquiry" },
-      { "value": "Partnership / press" },
-      { "value": "Something else" }
+      {
+        "value": "General question"
+      },
+      {
+        "value": "Custom trip inquiry"
+      },
+      {
+        "value": "Partnership / press"
+      },
+      {
+        "value": "Something else"
+      }
     ],
     "label_message": "Message",
     "placeholder_message": "Tell us what's on your mind...",
-    "submit_label": "Send message"
+    "submit_label": "Send message",
+    "success_heading": "Message sent!",
+    "success_body": "We'll reply within a day or two — usually from Huong or Linh.",
+    "success_again": "Send another"
   }
 }

@@ -1,0 +1,68 @@
+{
+  "name": "About",
+  "description": "Hello Vietnam about page — intro, origin-story timeline, crew, values, impact, contact band.",
+  "thumbnail": "",
+  "blocks": [
+    {
+      "type": "hv-about-intro",
+      "fields": {
+        "eyebrow": "About us",
+        "heading": "We're not a tour company. We're your loud Vietnamese cousins.",
+        "body_p1": "Hello Vietnam started over a beer in 2016, when Linh realized most tourists were seeing her country through a tinted bus window. Ten years later, we've hand-built 18 trips across Vietnam — all led by people who grew up here.",
+        "body_p2": "We skip the tourist traps. We pay our guides fairly. We eat lunch on the same tiny plastic stools as our guests.",
+        "team_photo_caption": "team photo · lunch on plastic stools"
+      }
+    },
+    {
+      "type": "hv-timeline",
+      "fields": {
+        "eyebrow": "The origin story",
+        "heading": "From backpackers to local guides.",
+        "entries": [
+          { "year": "2016", "body": "Linh quits her bank job. Starts leading food tours for backpacker friends.",             "color": "red" },
+          { "year": "2018", "body": "Tuan joins after driving Linh through Ha Giang on a whim. The loop is born.",           "color": "green" },
+          { "year": "2020", "body": "Pandemic hits. We pivot to online cooking classes and stay connected.",                  "color": "yellow" },
+          { "year": "2022", "body": "We open a Hanoi office. Still just a room above a bánh mì shop.",                        "color": "red" },
+          { "year": "2026", "body": "2,400+ travelers later, we're still on plastic stools.",                                   "color": "green" }
+        ]
+      }
+    },
+    {
+      "type": "hv-crew-grid",
+      "fields": {
+        "eyebrow": "Meet the crew",
+        "heading": "The humans behind the homestays.",
+        "limit": 6
+      }
+    },
+    {
+      "type": "hv-values",
+      "fields": {
+        "eyebrow": "What we stand for",
+        "heading": "Three rules we don't break.",
+        "items": [
+          { "color": "red",    "icon": "x",     "title": "No tourist traps",    "body": "If it's in every guidebook, we're not taking you there. Period." },
+          { "color": "yellow", "icon": "heart", "title": "Supporting locals",   "body": "Every vendor we work with is a neighbor. Every guide earns a real wage." },
+          { "color": "green",  "icon": "leaf",  "title": "Always sustainable",  "body": "Small groups, reusable everything, and trips that leave places better." }
+        ]
+      }
+    },
+    {
+      "type": "hv-impact",
+      "fields": {
+        "eyebrow": "Community impact",
+        "heading": "5% of every booking funds a village school.",
+        "body": "Since 2019, we've helped build two classrooms and funded 47 scholarships in Ba Be Province. Our partner, the Ma Pi Leng Learning Initiative, is run by former guide Minh.",
+        "cta": { "text": "Read the impact report", "url": "/impact", "target": "_self" }
+      }
+    },
+    {
+      "type": "hv-contact-band",
+      "fields": {
+        "heading": "Got a question?",
+        "body": "We answer every WhatsApp within a few hours. Promise.",
+        "cta": { "text": "Let's chat", "url": "/contact", "target": "_self" }
+      }
+    }
+  ]
+}

@@ -1,14 +1,22 @@
 {
   "slug": "hv-gallery-cta",
   "name": "Gallery CTA",
-  "description": "Hello Vietnam — Gallery CTA",
+  "description": "Hello Vietnam \u2014 Gallery CTA",
   "category": "hello-vietnam",
   "field_schema": [
-    { "key": "heading", "label": "Heading", "type": "text" },
-    { "key": "body", "label": "Body (HTML allowed)", "type": "textarea" }
+    {
+      "key": "heading",
+      "label": "Heading",
+      "type": "text"
+    },
+    {
+      "key": "body",
+      "label": "Body (HTML allowed)",
+      "type": "textarea"
+    }
   ],
   "test_data": {
     "heading": "Want to be featured?",
-    "body": "Tag <strong>@HelloVietnam</strong> on your next trip — we repost our favorites every week."
+    "body": "Tag <strong>@HelloVietnam</strong> on your next trip \u2014 we repost our favorites every week."
   }
 }

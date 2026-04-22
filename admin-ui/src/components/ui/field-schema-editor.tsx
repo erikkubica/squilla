@@ -48,6 +48,8 @@ export function fieldTypeBadgeClass(type: string): string {
       return "bg-orange-100 text-orange-700 hover:bg-orange-100";
     case "node":
       return "bg-sky-100 text-sky-700 hover:bg-sky-100";
+    case "term":
+      return "bg-teal-100 text-teal-700 hover:bg-teal-100";
     case "color":
       return "bg-rose-100 text-rose-700 hover:bg-rose-100";
     case "email":
@@ -97,6 +99,8 @@ export default function FieldSchemaEditor({
   const [newFieldOptions, setNewFieldOptions] = useState("");
   const [newFieldSubFields, setNewFieldSubFields] = useState<NodeTypeField[]>([]);
   const [newFieldNodeTypeFilter, setNewFieldNodeTypeFilter] = useState("");
+  const [newFieldTaxonomy, setNewFieldTaxonomy] = useState("");
+  const [newFieldTermNodeType, setNewFieldTermNodeType] = useState("");
   const [newFieldMultiple, setNewFieldMultiple] = useState(false);
   const [newFieldPlaceholder, setNewFieldPlaceholder] = useState("");
   const [newFieldDefaultValue, setNewFieldDefaultValue] = useState("");
@@ -127,6 +131,8 @@ export default function FieldSchemaEditor({
     setNewFieldOptions("");
     setNewFieldSubFields([]);
     setNewFieldNodeTypeFilter("");
+    setNewFieldTaxonomy("");
+    setNewFieldTermNodeType("");
     setNewFieldMultiple(false);
     setNewFieldPlaceholder("");
     setNewFieldDefaultValue("");
@@ -175,6 +181,11 @@ export default function FieldSchemaEditor({
     }
     if (newFieldType === "node") {
       if (newFieldNodeTypeFilter.trim()) sf.node_type_filter = newFieldNodeTypeFilter.trim();
+      if (newFieldMultiple) sf.multiple = true;
+    }
+    if (newFieldType === "term") {
+      if (newFieldTaxonomy.trim()) sf.taxonomy = newFieldTaxonomy.trim();
+      if (newFieldTermNodeType.trim()) sf.term_node_type = newFieldTermNodeType.trim();
       if (newFieldMultiple) sf.multiple = true;
     }
     if (newFieldType === "number" || newFieldType === "range") {
@@ -523,6 +534,36 @@ export default function FieldSchemaEditor({
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-slate-700">&nbsp;</Label>
+                  <div className="flex items-center gap-2 h-9">
+                    <input type="checkbox" checked={newFieldMultiple} onChange={(e) => setNewFieldMultiple(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                    <span className="text-sm text-slate-700">Allow multiple selection</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Term config */}
+            {newFieldType === "term" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">Taxonomy Slug</Label>
+                  <Input
+                    value={newFieldTaxonomy}
+                    onChange={(e) => setNewFieldTaxonomy(e.target.value)}
+                    placeholder="e.g. trip_tag, category"
+                    className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">Node Type (for terms)</Label>
+                  <Input
+                    value={newFieldTermNodeType}
+                    onChange={(e) => setNewFieldTermNodeType(e.target.value)}
+                    placeholder="e.g. trip, post (must match taxonomy)"
+                    className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
                   <div className="flex items-center gap-2 h-9">
                     <input type="checkbox" checked={newFieldMultiple} onChange={(e) => setNewFieldMultiple(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
                     <span className="text-sm text-slate-700">Allow multiple selection</span>

@@ -36,6 +36,11 @@ func scopeAllows(scope, class string) bool {
 // context. Tool bodies return (data any, error); dispatch serializes data as
 // JSON into a text tool result.
 func (s *Server) addTool(tool mcp.Tool, class string, fn func(ctx context.Context, args map[string]any) (any, error)) {
+	s.toolCatalog = append(s.toolCatalog, toolCatalogEntry{
+		Name:        tool.Name,
+		Description: tool.Description,
+		Class:       class,
+	})
 	handler := func(ctx context.Context, req mcp.CallToolRequest) (result *mcp.CallToolResult, err error) {
 		start := time.Now()
 		args := req.GetArguments()

@@ -26,7 +26,7 @@ func (s *Server) registerNodeTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.nodetype.create",
-		mcp.WithDescription("Register a new node type. slug and label are required. field_schema is an array of {name,label,type,required,options?}. Valid field types come from core.field_types.list."),
+		mcp.WithDescription("Register a new node TYPE (the schema — like 'Product', 'Trip'). This is a definition, not an instance.\n\nUse when: the user wants a new kind of content (e.g. 'add a Recipe post type').\nDO NOT use when: creating a page/post/trip — use core.node.create. Adding a tag vocabulary — use core.taxonomy.create.\n\nfield_schema is an array of {name,label,type,required,options?}. select/radio/checkbox options MUST be plain strings, not {label,value} objects (client renders them as React children and crashes on objects)."),
 		mcp.WithString("slug", mcp.Required()),
 		mcp.WithString("label", mcp.Required(), mcp.Description("Singular label, e.g. 'Product'")),
 		mcp.WithString("label_plural", mcp.Description("Plural label used in admin menus and list headings, e.g. 'Products'. Falls back to label when blank.")),

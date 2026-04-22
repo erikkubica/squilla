@@ -15,7 +15,7 @@ func (s *Server) registerNodeTools() {
 	api := s.deps.CoreAPI
 
 	s.addTool(mcp.NewTool("core.node.get",
-		mcp.WithDescription("Fetch a single content node by numeric ID. Returns the full node with blocks_data, fields_data, taxonomies, seo_settings, and translations. Use core.node.query when searching by slug/title/type."),
+		mcp.WithDescription("Fetch ONE content node by numeric ID. Returns full node with blocks_data, fields_data, taxonomies, seo_settings, translations.\n\nUse when: you already have the ID and need the full record.\nDO NOT use when: searching by slug/title/type — use core.node.query. Reading a node type schema — use core.nodetype.get. Previewing rendered HTML — use core.render.node_preview."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Node ID")),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		return api.GetNode(ctx, uintArg(args, "id"))
@@ -46,7 +46,7 @@ func (s *Server) registerNodeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.node.create",
-		mcp.WithDescription("Create a new content node. Always include node_type, language_code, title, and status. blocks_data is the array of content blocks (objects with type + data). fields_data is the map of custom fields defined on the node type."),
+		mcp.WithDescription("Create a new content node (an instance of a node type — a page, post, trip, etc.).\n\nUse when: you're authoring actual content.\nDO NOT use when: defining a NEW post type — use core.nodetype.create. Uploading a file — use core.media.upload first, then reference the returned media object here as featured_image.\n\nRequired: node_type, language_code, title, status.\nShapes: blocks_data=[{type,fields},...]; fields_data={<field_key>:<value>,...}; featured_image is an object {url,alt,...}, never a bare string."),
 		mcp.WithString("node_type", mcp.Required()),
 		mcp.WithString("language_code", mcp.Required(), mcp.Description("e.g. 'en'")),
 		mcp.WithString("title", mcp.Required()),
