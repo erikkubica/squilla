@@ -216,9 +216,6 @@ function SidebarNav({
                 ? "text-white"
                 : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
             }`}
-            style={{
-              paddingLeft: depth > 0 ? `${12 + depth * 12}px` : undefined,
-            }}
             title={collapsed ? item.label : undefined}
           >
             {IconComp && (
@@ -293,7 +290,6 @@ function SidebarNav({
             ? "bg-slate-800 text-white"
             : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
         }`}
-        style={{ paddingLeft: depth > 0 ? `${12 + depth * 12}px` : undefined }}
         title={collapsed ? item.label : undefined}
       >
         {linkContent}
