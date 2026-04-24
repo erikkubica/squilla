@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
-import { Unplug, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Unplug, ArrowUp, ArrowDown, ArrowUpDown, Check } from "lucide-react";
 import {
   ListCard,
   ListTable,
@@ -241,6 +241,34 @@ export function GenericListTable({
         return (
           <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
             {val || "—"}
+          </Td>
+        );
+
+      case "supportsBlocks":
+      case "hierarchical":
+        return (
+          <Td align="center">
+            {val ? (
+              <Check className="inline-block w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <span className="text-slate-300 text-[12px]">—</span>
+            )}
+          </Td>
+        );
+
+      case "taxonomyCount":
+        return (
+          <Td className="text-slate-500 tabular-nums" align="center">
+            {val > 0 ? val : <span className="text-slate-300">—</span>}
+          </Td>
+        );
+
+      case "nodeTypesDisplay":
+        return (
+          <Td className="text-slate-600">
+            <span className="block max-w-xs truncate" title={val || ""}>
+              {val || "—"}
+            </span>
           </Td>
         );
 

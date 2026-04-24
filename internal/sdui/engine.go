@@ -139,7 +139,8 @@ func (e *Engine) GenerateBootManifest(user *models.User) (*BootManifest, error) 
 func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userName string) (*LayoutNode, error) {
 	skipCache := pageSlug == "dashboard" || pageSlug == "node-list" || pageSlug == "taxonomy-terms" ||
 		pageSlug == "templates" || pageSlug == "layouts" || pageSlug == "block-types" || pageSlug == "layout-blocks" || pageSlug == "menus" ||
-		pageSlug == "themes" || pageSlug == "extensions"
+		pageSlug == "themes" || pageSlug == "extensions" ||
+		pageSlug == "content-types" || pageSlug == "taxonomies"
 
 	if !skipCache {
 		e.mu.RLock()
@@ -158,9 +159,9 @@ func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userN
 	case "list":
 		layout = e.listLayout(params["nodeType"])
 	case "content-types":
-		layout = e.contentTypesLayout()
+		layout = e.contentTypesLayout(params)
 	case "taxonomies":
-		layout = e.taxonomiesLayout()
+		layout = e.taxonomiesLayout(params)
 	case "node-list":
 		layout = e.nodeListLayout(params)
 	case "taxonomy-terms":
@@ -500,7 +501,7 @@ func (e *Engine) listLayout(nodeType string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{
 				Type: "ListHeader",
@@ -527,192 +528,369 @@ func (e *Engine) listLayout(nodeType string) *LayoutNode {
 	}
 }
 
-func (e *Engine) contentTypesLayout() *LayoutNode {
-	var nodeTypes []models.NodeType
-	if err := e.db.Order("label ASC").Find(&nodeTypes).Error; err != nil {
-		return e.defaultLayout("content-types")
+// isBuiltinNodeType returns true for the two types the kernel reserves —
+// "page" and "post" cannot be deleted (node_type_svc enforces this).
+func isBuiltinNodeType(slug string) bool {
+	return slug == "page" || slug == "post"
+}
+
+func (e *Engine) contentTypesLayout(params map[string]string) *LayoutNode {
+	page, _ := strconv.Atoi(params["page"])
+	if page < 1 {
+		page = 1
+	}
+	perPage := getPerPage(params)
+	tab := params["tab"]
+	search := params["search"]
+
+	sortBy := params["sort"]
+	sortOrder := params["order"]
+	switch sortBy {
+	case "label", "slug", "updated_at":
+	default:
+		sortBy = "label"
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc"
 	}
 
-	cards := make([]LayoutNode, 0, len(nodeTypes))
-	for _, nt := range nodeTypes {
-		// Count taxonomies from JSONB field
+	q := e.db.Model(&models.NodeType{})
+	if search != "" {
+		q = q.Where("label ILIKE ? OR slug ILIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+	var allTypes []models.NodeType
+	q.Order(sortBy + " " + sortOrder).Find(&allTypes)
+
+	builtinCount := 0
+	customCount := 0
+	for _, nt := range allTypes {
+		if isBuiltinNodeType(nt.Slug) {
+			builtinCount++
+		} else {
+			customCount++
+		}
+	}
+
+	filtered := allTypes
+	switch tab {
+	case "builtin":
+		filtered = filtered[:0]
+		for _, nt := range allTypes {
+			if isBuiltinNodeType(nt.Slug) {
+				filtered = append(filtered, nt)
+			}
+		}
+	case "custom":
+		filtered = filtered[:0]
+		for _, nt := range allTypes {
+			if !isBuiltinNodeType(nt.Slug) {
+				filtered = append(filtered, nt)
+			}
+		}
+	}
+
+	total := len(filtered)
+	offset := (page - 1) * perPage
+	end := offset + perPage
+	if end > total {
+		end = total
+	}
+	pageData := []models.NodeType{}
+	if offset < total {
+		pageData = filtered[offset:end]
+	}
+
+	rows := make([]map[string]interface{}, 0, len(pageData))
+	for _, nt := range pageData {
 		var taxSlugs []string
 		if err := json.Unmarshal(nt.Taxonomies, &taxSlugs); err != nil {
 			taxSlugs = []string{}
 		}
-		taxCount := len(taxSlugs)
-
-		// Resolve display label
-		displayLabel := nt.LabelPlural
-		if displayLabel == "" {
-			displayLabel = nt.Label
-		}
-
-		editPath := fmt.Sprintf("/admin/content-types/%d/edit", nt.ID)
-		confirmMsg := fmt.Sprintf("Delete content type '%s'? This cannot be undone.", nt.Label)
-
-		cardProps := map[string]interface{}{
+		builtin := isBuiltinNodeType(nt.Slug)
+		rows = append(rows, map[string]interface{}{
 			"id":             nt.ID,
 			"slug":           nt.Slug,
 			"label":          nt.Label,
 			"labelPlural":    nt.LabelPlural,
-			"icon":           nt.Icon,
-			"description":    nt.Description,
+			"taxonomyCount":  len(taxSlugs),
 			"supportsBlocks": nt.SupportsBlocks,
-			"taxonomyCount":  taxCount,
-			"editPath":       editPath,
-		}
-
-		cardActions := map[string]ActionDef{
-			"onEdit": {
-				Type: "NAVIGATE",
-				To:   editPath,
-			},
-			"onDelete": {
-				Type: "SEQUENCE",
-				Steps: []ActionDef{
-					{Type: "CONFIRM", Message: confirmMsg},
-					{Type: "CORE_API", Method: "node-types:delete", Params: map[string]interface{}{"id": nt.ID}},
-					{Type: "TOAST", Message: "Content type deleted", Variant: "success"},
-					{Type: "INVALIDATE", Keys: []string{"layout", "boot"}},
-				},
-			},
-		}
-
-		cards = append(cards, LayoutNode{
-			Type:    "ContentTypeCard",
-			Props:   cardProps,
-			Actions: cardActions,
+			"sourceLabel":    ternary(builtin, "Built-in", "Custom"),
+			"isCustom":       !builtin,
+			"updated_at":     nt.UpdatedAt.Format("2006-01-02"),
+			"editPath":       fmt.Sprintf("/admin/content-types/%d/edit", nt.ID),
 		})
 	}
 
+	totalPages := total / perPage
+	if total%perPage > 0 {
+		totalPages++
+	}
+
+	tabs := []map[string]interface{}{
+		{"value": "all", "label": "All", "count": len(allTypes)},
+	}
+	if builtinCount > 0 {
+		tabs = append(tabs, map[string]interface{}{"value": "builtin", "label": "Built-in", "count": builtinCount})
+	}
+	if customCount > 0 {
+		tabs = append(tabs, map[string]interface{}{"value": "custom", "label": "Custom", "count": customCount})
+	}
+
+	activeTab := tab
+	if activeTab == "" {
+		activeTab = "all"
+	}
+	hasFilters := search != "" || (tab != "" && tab != "all")
+
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 6},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
-			{
-				Type:  "AdminHeader",
-				Props: map[string]interface{}{"title": "Content Types"},
-			},
-			{
-				Type:  "HorizontalStack",
-				Props: map[string]interface{}{"gap": 3},
-				Children: []LayoutNode{
-					{
-						Type:  "TextBlock",
-						Props: map[string]interface{}{"text": "Manage your content types..."},
-					},
-					{
-						Type: "VibeButton",
-						Props: map[string]interface{}{
-							"label":   "New Content Type",
-							"variant": "default",
-						},
-						Actions: map[string]ActionDef{
-							"onClick": {Type: "NAVIGATE", To: "/admin/content-types/new"},
-						},
+			{Type: "PageHeader", Props: map[string]interface{}{
+				"newLabel":  "New Content Type",
+				"newPath":   "/admin/content-types/new",
+				"tabs":      tabs,
+				"activeTab": activeTab,
+				"tabParam":  "tab",
+			}},
+			{Type: "SearchToolbar", Props: map[string]interface{}{
+				"searchPlaceholder": "Search content types…",
+			}},
+			{Type: "GenericListTable", Props: map[string]interface{}{
+				"columns": []map[string]interface{}{
+					{"key": "label", "label": "Label", "sortable": true},
+					{"key": "slug", "label": "Slug", "width": 160, "sortable": true},
+					{"key": "taxonomyCount", "label": "Taxonomies", "width": 110, "align": "center"},
+					{"key": "supportsBlocks", "label": "Blocks", "width": 80, "align": "center"},
+					{"key": "sourceLabel", "label": "Source", "width": 110},
+					{"key": "updated_at", "label": "Updated", "width": 110, "sortable": true},
+					{"key": "actions", "label": "Actions", "width": 120, "align": "right"},
+				},
+				"rows":       rows,
+				"emptyIcon":  "Shapes",
+				"emptyTitle": "No content types found",
+				"emptyDesc":  "Create your first content type to model custom data",
+				"newPath":    "/admin/content-types/new",
+				"newLabel":   "New Content Type",
+				"pagination": map[string]interface{}{
+					"page": page, "perPage": perPage,
+					"total": total, "totalPages": totalPages,
+				},
+				"label":      "content types",
+				"hasFilters": hasFilters,
+				"sortBy":     sortBy,
+				"sortOrder":  sortOrder,
+			}, Actions: map[string]ActionDef{
+				"onRowDelete": {
+					Type: "SEQUENCE",
+					Steps: []ActionDef{
+						{Type: "CONFIRM", Message: "Delete this content type? This cannot be undone."},
+						{Type: "CORE_API", Method: "node-types:delete", Params: map[string]interface{}{"id": "$event.id"}},
+						{Type: "TOAST", Message: "Content type deleted", Variant: "success"},
+						{Type: "INVALIDATE", Keys: []string{"layout", "boot"}},
 					},
 				},
-			},
-			{
-				Type:     "Grid",
-				Props:    map[string]interface{}{"cols": 3, "gap": 4},
-				Children: cards,
-			},
+			}},
 		},
 	}
 }
 
-func (e *Engine) taxonomiesLayout() *LayoutNode {
-	var taxonomies []models.Taxonomy
-	if err := e.db.Order("label ASC").Find(&taxonomies).Error; err != nil {
-		return e.defaultLayout("taxonomies")
+// ternary returns a when cond is true, b otherwise. Small helper to keep
+// the row-mapping code readable.
+func ternary[T any](cond bool, a, b T) T {
+	if cond {
+		return a
+	}
+	return b
+}
+
+func (e *Engine) taxonomiesLayout(params map[string]string) *LayoutNode {
+	page, _ := strconv.Atoi(params["page"])
+	if page < 1 {
+		page = 1
+	}
+	perPage := getPerPage(params)
+	tab := params["tab"]
+	search := params["search"]
+
+	sortBy := params["sort"]
+	sortOrder := params["order"]
+	switch sortBy {
+	case "label", "slug", "updated_at":
+	default:
+		sortBy = "label"
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc"
 	}
 
-	cards := make([]LayoutNode, 0, len(taxonomies))
-	for _, tax := range taxonomies {
-		// Resolve display label
-		displayLabel := tax.LabelPlural
-		if displayLabel == "" {
-			displayLabel = tax.Label
+	// Resolve node-type display labels so pills and tabs read nicely.
+	var nodeTypes []models.NodeType
+	e.db.Select("slug, label, label_plural").Find(&nodeTypes)
+	nodeTypeLabels := make(map[string]string, len(nodeTypes))
+	for _, nt := range nodeTypes {
+		label := nt.LabelPlural
+		if label == "" {
+			label = nt.Label
 		}
+		if label == "" {
+			label = nt.Slug
+		}
+		nodeTypeLabels[nt.Slug] = label
+	}
 
-		// Convert pq.StringArray to []string for JSON serialization
-		nodeTypesArr := make([]string, len(tax.NodeTypes))
-		for i, s := range tax.NodeTypes {
+	q := e.db.Model(&models.Taxonomy{})
+	if search != "" {
+		q = q.Where("label ILIKE ? OR slug ILIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+	var allTaxonomies []models.Taxonomy
+	q.Order(sortBy + " " + sortOrder).Find(&allTaxonomies)
+
+	// Tab counts per node-type slug. A taxonomy attached to multiple node
+	// types shows up in each tab so the counts add up to the usage count,
+	// not the distinct taxonomy count.
+	nodeTypeTabCounts := make(map[string]int)
+	for _, t := range allTaxonomies {
+		for _, nts := range t.NodeTypes {
+			nodeTypeTabCounts[nts]++
+		}
+	}
+
+	filtered := allTaxonomies
+	if tab != "" && tab != "all" {
+		filtered = filtered[:0]
+		for _, t := range allTaxonomies {
+			for _, nts := range t.NodeTypes {
+				if nts == tab {
+					filtered = append(filtered, t)
+					break
+				}
+			}
+		}
+	}
+
+	total := len(filtered)
+	offset := (page - 1) * perPage
+	end := offset + perPage
+	if end > total {
+		end = total
+	}
+	pageData := []models.Taxonomy{}
+	if offset < total {
+		pageData = filtered[offset:end]
+	}
+
+	rows := make([]map[string]interface{}, 0, len(pageData))
+	for _, t := range pageData {
+		nodeTypesArr := make([]string, len(t.NodeTypes))
+		labels := make([]string, 0, len(t.NodeTypes))
+		for i, s := range t.NodeTypes {
 			nodeTypesArr[i] = s
+			if l, ok := nodeTypeLabels[s]; ok {
+				labels = append(labels, l)
+			} else {
+				labels = append(labels, s)
+			}
+		}
+		nodeTypesDisplay := "—"
+		if len(labels) > 0 {
+			nodeTypesDisplay = strings.Join(labels, ", ")
 		}
 
-		editPath := fmt.Sprintf("/admin/taxonomies/%s/edit", tax.Slug)
-		confirmMsg := fmt.Sprintf("Delete taxonomy '%s'? This cannot be undone.", tax.Label)
-
-		cardProps := map[string]interface{}{
-			"id":           tax.ID,
-			"slug":         tax.Slug,
-			"label":        tax.Label,
-			"labelPlural":  tax.LabelPlural,
-			"description":  tax.Description,
-			"hierarchical": tax.Hierarchical,
-			"nodeTypes":    nodeTypesArr,
-			"editPath":     editPath,
-		}
-
-		cardActions := map[string]ActionDef{
-			"onEdit": {
-				Type: "NAVIGATE",
-				To:   editPath,
-			},
-			"onDelete": {
-				Type: "SEQUENCE",
-				Steps: []ActionDef{
-					{Type: "CONFIRM", Message: confirmMsg},
-					{Type: "CORE_API", Method: "taxonomies:delete", Params: map[string]interface{}{"slug": tax.Slug}},
-					{Type: "TOAST", Message: "Taxonomy deleted", Variant: "success"},
-					{Type: "INVALIDATE", Keys: []string{"layout", "boot"}},
-				},
-			},
-		}
-
-		cards = append(cards, LayoutNode{
-			Type:    "TaxonomyCard",
-			Props:   cardProps,
-			Actions: cardActions,
+		rows = append(rows, map[string]interface{}{
+			"id":               t.ID,
+			"slug":             t.Slug,
+			"label":            t.Label,
+			"labelPlural":      t.LabelPlural,
+			"description":      t.Description,
+			"hierarchical":     t.Hierarchical,
+			"nodeTypes":        nodeTypesArr,
+			"nodeTypesDisplay": nodeTypesDisplay,
+			"updated_at":       t.UpdatedAt.Format("2006-01-02"),
+			"editPath":         fmt.Sprintf("/admin/taxonomies/%s/edit", t.Slug),
 		})
 	}
 
+	totalPages := total / perPage
+	if total%perPage > 0 {
+		totalPages++
+	}
+
+	// Build tabs: All + one per node-type slug with at least one attached taxonomy.
+	tabs := []map[string]interface{}{
+		{"value": "all", "label": "All", "count": len(allTaxonomies)},
+	}
+	slugs := make([]string, 0, len(nodeTypeTabCounts))
+	for s := range nodeTypeTabCounts {
+		slugs = append(slugs, s)
+	}
+	sort.Strings(slugs)
+	for _, s := range slugs {
+		label := s
+		if l, ok := nodeTypeLabels[s]; ok {
+			label = l
+		}
+		tabs = append(tabs, map[string]interface{}{
+			"value": s,
+			"label": label,
+			"count": nodeTypeTabCounts[s],
+		})
+	}
+
+	activeTab := tab
+	if activeTab == "" {
+		activeTab = "all"
+	}
+	hasFilters := search != "" || (tab != "" && tab != "all")
+
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 6},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
-			{
-				Type:  "AdminHeader",
-				Props: map[string]interface{}{"title": "Taxonomies"},
-			},
-			{
-				Type:  "HorizontalStack",
-				Props: map[string]interface{}{"gap": 3},
-				Children: []LayoutNode{
-					{
-						Type:  "TextBlock",
-						Props: map[string]interface{}{"text": "Manage your taxonomies..."},
-					},
-					{
-						Type: "VibeButton",
-						Props: map[string]interface{}{
-							"label":   "New Taxonomy",
-							"variant": "default",
-						},
-						Actions: map[string]ActionDef{
-							"onClick": {Type: "NAVIGATE", To: "/admin/taxonomies/new"},
-						},
+			{Type: "PageHeader", Props: map[string]interface{}{
+				"newLabel":  "New Taxonomy",
+				"newPath":   "/admin/taxonomies/new",
+				"tabs":      tabs,
+				"activeTab": activeTab,
+				"tabParam":  "tab",
+			}},
+			{Type: "SearchToolbar", Props: map[string]interface{}{
+				"searchPlaceholder": "Search taxonomies…",
+			}},
+			{Type: "GenericListTable", Props: map[string]interface{}{
+				"columns": []map[string]interface{}{
+					{"key": "label", "label": "Label", "sortable": true},
+					{"key": "slug", "label": "Slug", "width": 160, "sortable": true},
+					{"key": "nodeTypesDisplay", "label": "Content Types"},
+					{"key": "hierarchical", "label": "Hierarchical", "width": 110, "align": "center"},
+					{"key": "updated_at", "label": "Updated", "width": 110, "sortable": true},
+					{"key": "actions", "label": "Actions", "width": 120, "align": "right"},
+				},
+				"rows":       rows,
+				"emptyIcon":  "Tags",
+				"emptyTitle": "No taxonomies found",
+				"emptyDesc":  "Create your first taxonomy to group content with terms",
+				"newPath":    "/admin/taxonomies/new",
+				"newLabel":   "New Taxonomy",
+				"pagination": map[string]interface{}{
+					"page": page, "perPage": perPage,
+					"total": total, "totalPages": totalPages,
+				},
+				"label":      "taxonomies",
+				"hasFilters": hasFilters,
+				"sortBy":     sortBy,
+				"sortOrder":  sortOrder,
+			}, Actions: map[string]ActionDef{
+				"onRowDelete": {
+					Type: "SEQUENCE",
+					Steps: []ActionDef{
+						{Type: "CONFIRM", Message: "Delete this taxonomy? This cannot be undone."},
+						{Type: "CORE_API", Method: "taxonomies:delete", Params: map[string]interface{}{"slug": "$event.slug"}},
+						{Type: "TOAST", Message: "Taxonomy deleted", Variant: "success"},
+						{Type: "INVALIDATE", Keys: []string{"layout", "boot"}},
 					},
 				},
-			},
-			{
-				Type:     "Grid",
-				Props:    map[string]interface{}{"cols": 3, "gap": 4},
-				Children: cards,
-			},
+			}},
 		},
 	}
 }
@@ -967,7 +1145,7 @@ func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:     "VerticalStack",
-		Props:    map[string]interface{}{"gap": 4},
+		Props:    map[string]interface{}{"gap": 0},
 		Children: children,
 	}
 }
@@ -1057,7 +1235,7 @@ func (e *Engine) taxonomyTermsLayout(params map[string]string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{
 				Type: "PageHeader",
@@ -1386,7 +1564,7 @@ func (e *Engine) templatesLayout(params map[string]string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{Type: "PageHeader", Props: map[string]interface{}{
 				"newLabel":  "New Template",
@@ -1603,7 +1781,7 @@ func (e *Engine) layoutsLayout(params map[string]string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{Type: "PageHeader", Props: map[string]interface{}{
 				"newLabel":  "New Layout",
@@ -1795,7 +1973,7 @@ func (e *Engine) blockTypesLayout(params map[string]string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{Type: "PageHeader", Props: map[string]interface{}{
 				"newLabel":  "New Block Type",
@@ -2015,7 +2193,7 @@ func (e *Engine) layoutBlocksLayout(params map[string]string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{Type: "PageHeader", Props: map[string]interface{}{
 				"newLabel":  "New Layout Block",
@@ -2184,7 +2362,7 @@ func (e *Engine) menusLayout(params map[string]string) *LayoutNode {
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{Type: "PageHeader", Props: map[string]interface{}{
 				"newLabel":  "New Menu",
@@ -2317,7 +2495,7 @@ func basePathForNodeType(slug string) string {
 func (e *Engine) defaultLayout(pageSlug string) *LayoutNode {
 	return &LayoutNode{
 		Type:  "VerticalStack",
-		Props: map[string]interface{}{"gap": 4},
+		Props: map[string]interface{}{"gap": 0},
 		Children: []LayoutNode{
 			{
 				Type:  "AdminHeader",
