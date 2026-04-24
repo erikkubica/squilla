@@ -87,7 +87,7 @@ func main() {
 	// Services.
 	sessionSvc := auth.NewSessionService(database, cfg.SessionExpiryHours)
 	contentSvc := cms.NewContentService(database, eventBus)
-	nodeTypeSvc := cms.NewNodeTypeService(database)
+	nodeTypeSvc := cms.NewNodeTypeService(database, eventBus)
 	langSvc := cms.NewLanguageService(database)
 	themeAssets := cms.NewThemeAssetRegistry()
 	if err := themeAssets.LoadBlockAssetsFromDB(database); err != nil {
@@ -120,7 +120,7 @@ func main() {
 	layoutHandler.SetDB(database)
 	layoutBlockHandler := cms.NewLayoutBlockHandler(layoutBlockSvc)
 	menuHandler := cms.NewMenuHandler(menuSvc)
-	taxonomyHandler := cms.NewTaxonomyHandler(database)
+	taxonomyHandler := cms.NewTaxonomyHandler(database, eventBus)
 	termHandler := cms.NewTermHandler(database)
 	healthHandler := api.NewHealthHandler(database)
 	roleHandler := rbac.NewRoleHandler(database)

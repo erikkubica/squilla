@@ -44,6 +44,9 @@ func NewEngine(db *gorm.DB, eventBus *events.EventBus) *Engine {
 	eventBus.Subscribe("node_type.created", e.onStateChange)
 	eventBus.Subscribe("node_type.updated", e.onStateChange)
 	eventBus.Subscribe("node_type.deleted", e.onStateChange)
+	eventBus.Subscribe("taxonomy.created", e.onStateChange)
+	eventBus.Subscribe("taxonomy.updated", e.onStateChange)
+	eventBus.Subscribe("taxonomy.deleted", e.onStateChange)
 
 	return e
 }
