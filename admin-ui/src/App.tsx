@@ -168,11 +168,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AdminLanguageProvider>
-              <ExtensionsProvider>
-                <SduiAdminShell>
-                  <ExtensionPageLoader />
-                </SduiAdminShell>
-              </ExtensionsProvider>
+              <SduiAdminShell>
+                <ExtensionPageLoader />
+              </SduiAdminShell>
             </AdminLanguageProvider>
           </ProtectedRoute>
         }
@@ -190,7 +188,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ExtensionsProvider>
+        <AppRoutes />
+      </ExtensionsProvider>
     </AuthProvider>
   );
 }
