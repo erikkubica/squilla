@@ -320,6 +320,32 @@ func (e *Engine) buildNavigation(nodeTypes []models.NodeType, taxonomies []model
 		{ID: "nav-mcp-tokens", Label: "MCP Tokens", Icon: "Key", Path: "/admin/mcp-tokens"},
 	}...)
 
+	// Extension-contributed settings items are appended here so they
+	// group with the rest of the Settings section.
+	for _, ext := range exts {
+		var manifest struct {
+			AdminUI *struct {
+				SettingsMenu []struct {
+					Label string `json:"label"`
+					Route string `json:"route"`
+					Icon  string `json:"icon"`
+				} `json:"settings_menu"`
+			} `json:"admin_ui"`
+		}
+		_ = json.Unmarshal(ext.Manifest, &manifest)
+		if manifest.AdminUI == nil {
+			continue
+		}
+		for _, item := range manifest.AdminUI.SettingsMenu {
+			nav = append(nav, NavItem{
+				ID:    "nav-ext-" + ext.Slug + "-settings-" + item.Route,
+				Label: item.Label,
+				Icon:  item.Icon,
+				Path:  item.Route,
+			})
+		}
+	}
+
 	// ── Extension navigation items ──
 	// Extensions declare which section their items belong to via the
 	// manifest's menu.section field. If no section or no children, the
