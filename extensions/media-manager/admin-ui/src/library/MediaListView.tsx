@@ -1,4 +1,4 @@
-import { Copy, Download, Trash2, AlertTriangle } from "@vibecms/icons";
+import { Copy, Download, Trash2, AlertTriangle, ChevronUp, ChevronDown } from "@vibecms/icons";
 import {
   MediaFile,
   isImage,
@@ -13,6 +13,8 @@ import SelectCheck from "./SelectCheck";
 interface MediaListViewProps {
   files: MediaFile[];
   selected: Set<number>;
+  sortBy: string;
+  onSort: (v: string) => void;
   onOpen: (f: MediaFile) => void;
   onToggle: (id: number, e: React.MouseEvent) => void;
   onToggleAll: () => void;
@@ -23,9 +25,46 @@ interface MediaListViewProps {
 
 const COLS = "grid grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_90px_110px_110px_100px] gap-3 px-3 py-2 items-center";
 
+interface SortableHeaderProps {
+  label: string;
+  field: "name" | "size" | "date";
+  sortBy: string;
+  onSort: (v: string) => void;
+  className?: string;
+}
+
+function SortableHeader({ label, field, sortBy, onSort, className = "" }: SortableHeaderProps) {
+  const ascKey = `${field}_asc`;
+  const descKey = `${field}_desc`;
+  const active = sortBy === ascKey || sortBy === descKey;
+  const dir: "asc" | "desc" | null = sortBy === ascKey ? "asc" : sortBy === descKey ? "desc" : null;
+  // Default click order per field: name → asc, size/date → desc.
+  const defaultDir: "asc" | "desc" = field === "name" ? "asc" : "desc";
+  function next() {
+    if (!active) onSort(field === "name" ? ascKey : descKey);
+    else onSort(dir === defaultDir ? (defaultDir === "asc" ? descKey : ascKey) : (defaultDir === "asc" ? ascKey : descKey));
+  }
+  return (
+    <button
+      type="button"
+      onClick={next}
+      className={`flex items-center gap-1 cursor-pointer hover:text-slate-700 ${active ? "text-slate-900" : ""} ${className}`}
+    >
+      {label}
+      {active ? (
+        dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+      ) : (
+        <ChevronDown className="h-3 w-3 opacity-0 group-hover:opacity-40" />
+      )}
+    </button>
+  );
+}
+
 export default function MediaListView({
   files,
   selected,
+  sortBy,
+  onSort,
   onOpen,
   onToggle,
   onToggleAll,
@@ -35,16 +74,16 @@ export default function MediaListView({
 }: MediaListViewProps) {
   const allSelected = files.length > 0 && files.every((f) => selected.has(f.id));
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+    <div className="rounded border border-slate-200 bg-white overflow-hidden">
       <div className={`${COLS} text-[10.5px] font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-200 bg-slate-50`}>
         <div className="flex items-center">
           <SelectCheck checked={allSelected} onClick={(e) => { e.stopPropagation(); onToggleAll(); }} size={16} />
         </div>
-        <div>File</div>
+        <SortableHeader label="File" field="name" sortBy={sortBy} onSort={onSort} />
         <div>Alt text</div>
-        <div className="tabular-nums">Size</div>
+        <SortableHeader label="Size" field="size" sortBy={sortBy} onSort={onSort} className="tabular-nums" />
         <div>Dimensions</div>
-        <div>Uploaded</div>
+        <SortableHeader label="Uploaded" field="date" sortBy={sortBy} onSort={onSort} />
         <div className="text-right pr-1">Actions</div>
       </div>
       <div className="divide-y divide-slate-100">

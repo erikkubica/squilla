@@ -1,24 +1,16 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Upload,
-  Search,
   Loader2,
   Image as ImageIcon,
-  X,
   LayoutGrid,
   List,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   ArrowUpDown,
-  Filter,
   ChevronDown,
   Check,
 } from "@vibecms/icons";
 import {
   Button,
-  Input,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -28,9 +20,45 @@ import {
 } from "@vibecms/ui";
 import { toast } from "sonner";
 
-const { useSearchParams } = (window as unknown as {
-  __VIBECMS_SHARED__: { ReactRouterDOM: { useSearchParams: () => [URLSearchParams, (next: URLSearchParams | ((prev: URLSearchParams) => URLSearchParams), opts?: { replace?: boolean }) => void] } };
-}).__VIBECMS_SHARED__.ReactRouterDOM;
+const SHARED = (window as unknown as {
+  __VIBECMS_SHARED__: {
+    ReactRouterDOM: {
+      useSearchParams: () => [
+        URLSearchParams,
+        (
+          next: URLSearchParams | ((prev: URLSearchParams) => URLSearchParams),
+          opts?: { replace?: boolean }
+        ) => void
+      ];
+    };
+    ui: {
+      ListPageShell: React.ComponentType<{ children: React.ReactNode }>;
+      ListHeader: React.ComponentType<{
+        title?: string;
+        tabs?: { value: string; label: string; count?: number }[];
+        activeTab?: string;
+        onTabChange?: (v: string) => void;
+        extra?: React.ReactNode;
+      }>;
+      ListSearch: React.ComponentType<{
+        value: string;
+        onChange: (v: string) => void;
+        placeholder?: string;
+      }>;
+      ListFooter: React.ComponentType<{
+        page: number;
+        totalPages: number;
+        total: number;
+        perPage: number;
+        onPage: (p: number) => void;
+        onPerPage?: (n: number) => void;
+        label?: string;
+      }>;
+    };
+  };
+}).__VIBECMS_SHARED__;
+const { useSearchParams } = SHARED.ReactRouterDOM;
+const { ListPageShell, ListHeader, ListSearch, ListFooter } = SHARED.ui;
 
 import {
   MediaFile,
@@ -126,12 +154,12 @@ async function reoptimizeImage(id: number): Promise<MediaFile> {
 
 // ---------- Constants ----------
 
-const MIME_FILTERS = [
-  { value: "all", label: "All files" },
+const TYPE_TABS = [
+  { value: "all", label: "All" },
   { value: "image", label: "Images" },
-  { value: "application", label: "Documents" },
   { value: "video", label: "Videos" },
   { value: "audio", label: "Audio" },
+  { value: "application", label: "Documents" },
 ];
 
 const SORT_OPTIONS = [
@@ -143,7 +171,7 @@ const SORT_OPTIONS = [
   { value: "size_asc", label: "Smallest first" },
 ];
 
-const PER_PAGE_OPTIONS = [24, 48, 96];
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
 // ---------- Pill dropdown ----------
 
@@ -208,7 +236,7 @@ export default function MediaLibrary() {
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const perPage = PER_PAGE_OPTIONS.includes(Number(searchParams.get("per_page")))
     ? Number(searchParams.get("per_page"))
-    : 24;
+    : 25;
   const search = searchParams.get("q") || "";
   const mimeFilter = searchParams.get("type") || "all";
   const sortBy = searchParams.get("sort") || "date_desc";
@@ -241,7 +269,7 @@ export default function MediaLibrary() {
     const next = typeof p === "function" ? p(page) : p;
     updateParams({ page: next === 1 ? null : next });
   }, [page, updateParams]);
-  const setPerPage = (n: number) => updateParams({ per_page: n === 24 ? null : n }, { resetPage: true });
+  const setPerPage = (n: number) => updateParams({ per_page: n === 25 ? null : n }, { resetPage: true });
   const setSearch = (s: string) => updateParams({ q: s || null }, { replace: true, resetPage: true });
   const setMimeFilter = (v: string) => updateParams({ type: v === "all" ? null : v }, { resetPage: true });
   const setSortBy = (v: string) => updateParams({ sort: v === "date_desc" ? null : v }, { resetPage: true });
@@ -252,6 +280,7 @@ export default function MediaLibrary() {
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchDebounce, setSearchDebounce] = useState(search);
+  const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
 
   const [editing, setEditing] = useState<MediaFile | null>(null);
   const [savingDetail, setSavingDetail] = useState(false);
@@ -305,6 +334,32 @@ export default function MediaLibrary() {
   useEffect(() => {
     fetchFiles();
   }, [fetchFiles]);
+
+  // Per-tab counts. Search-aware so tab numbers reflect the current search.
+  // Cheap parallel fetches (per_page=1, only meta.total is read).
+  const fetchTabCounts = useCallback(async () => {
+    const types: string[] = TYPE_TABS.map((t) => t.value);
+    const results = await Promise.all(
+      types.map(async (t) => {
+        try {
+          const res = await fetchMedia({
+            page: 1,
+            per_page: 1,
+            mime_type: t === "all" ? undefined : t,
+            search: searchDebounce || undefined,
+          });
+          return [t, res.meta.total] as const;
+        } catch {
+          return [t, 0] as const;
+        }
+      })
+    );
+    setTabCounts(Object.fromEntries(results));
+  }, [searchDebounce]);
+
+  useEffect(() => {
+    fetchTabCounts();
+  }, [fetchTabCounts]);
 
   // Global drag-drop
   useEffect(() => {
@@ -397,7 +452,7 @@ export default function MediaLibrary() {
         return n;
       });
       setDeleteTarget(null);
-      await fetchFiles();
+      await Promise.all([fetchFiles(), fetchTabCounts()]);
     } catch {
       toast.error("Failed to delete file");
     } finally {
@@ -421,7 +476,7 @@ export default function MediaLibrary() {
     if (editing && selected.has(editing.id)) setEditing(null);
     clearSelection();
     toast.success(`${n} file${n !== 1 ? "s" : ""} deleted`);
-    await fetchFiles();
+    await Promise.all([fetchFiles(), fetchTabCounts()]);
   }
 
   async function handleSave(patch: { alt?: string; original_name?: string }) {
@@ -491,140 +546,102 @@ export default function MediaLibrary() {
     setUploadInitial(undefined);
     if (uploaded > 0) {
       toast.success(`Added ${uploaded} file${uploaded !== 1 ? "s" : ""}`);
-      await fetchFiles();
+      await Promise.all([fetchFiles(), fetchTabCounts()]);
     }
   }
 
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.per_page)) : 1;
 
-  const pageNumbers = useMemo<(number | "...")[]>(() => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    const arr: (number | "...")[] = [1];
-    if (page > 3) arr.push("...");
-    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) arr.push(i);
-    if (page < totalPages - 2) arr.push("...");
-    if (totalPages > 1) arr.push(totalPages);
-    return arr;
-  }, [totalPages, page]);
+  const tabs = TYPE_TABS.map((t) => ({
+    value: t.value,
+    label: t.label,
+    count: tabCounts[t.value],
+  }));
+
+  const uploadBtn = (
+    <Button
+      onClick={openUpload}
+      className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-indigo-600 border border-indigo-600 rounded hover:bg-indigo-700 cursor-pointer"
+    >
+      <Upload className="w-3 h-3" />
+      Upload
+    </Button>
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Media Library</h1>
-          {meta && (
-            <p className="text-[13px] text-slate-500 mt-0.5">
-              {meta.total} file{meta.total !== 1 ? "s" : ""}
-              {selected.size > 0 && (
-                <>
-                  {" "}
-                  · <span className="text-indigo-600 font-medium">{selected.size} selected</span>
-                </>
-              )}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={openUpload}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium cursor-pointer"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload
-          </Button>
-        </div>
-      </div>
+    <ListPageShell>
+      <ListHeader
+        tabs={tabs}
+        activeTab={mimeFilter}
+        onTabChange={setMimeFilter}
+        extra={uploadBtn}
+      />
 
-      {/* Toolbar */}
-      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Search media files..."
-              value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-              className="pl-9 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 grid place-items-center text-slate-600 cursor-pointer"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-1 border border-slate-200 rounded-lg p-1 shrink-0 bg-slate-50">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-md transition-colors cursor-pointer ${
-                viewMode === "grid"
-                  ? "bg-white text-indigo-700 shadow-sm border border-slate-200"
-                  : "text-slate-400 hover:text-slate-600 border border-transparent"
-              }`}
-              title="Grid view"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              className={`p-2 rounded-md transition-colors cursor-pointer ${
-                viewMode === "list"
-                  ? "bg-white text-indigo-700 shadow-sm border border-slate-200"
-                  : "text-slate-400 hover:text-slate-600 border border-transparent"
-              }`}
-              title="List view"
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Pill icon={Filter} value={mimeFilter} onChange={setMimeFilter} options={MIME_FILTERS} />
-          <Pill icon={ArrowUpDown} value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
-          {viewMode === "grid" && (
-            <div className="flex items-center gap-0.5 h-8 rounded-lg border border-slate-300 bg-white px-1">
-              {(["compact", "comfy", "spacious"] as Density[]).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDensity(d)}
-                  className={`h-6 px-2 rounded text-[11px] font-medium capitalize cursor-pointer ${
-                    density === d ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="flex-1" />
+      {/* Toolbar: search + view + sort + density */}
+      <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+        <ListSearch value={search} onChange={setSearch} placeholder="Search media files…" />
+        <div className="flex items-center gap-0.5 h-[30px] rounded border border-slate-300 bg-white p-0.5 shrink-0">
           <button
             type="button"
-            onClick={toggleAll}
-            className="h-8 px-2.5 rounded-md text-[11.5px] text-slate-600 hover:bg-slate-100 font-medium cursor-pointer"
+            onClick={() => setViewMode("grid")}
+            className={`h-[24px] w-[26px] grid place-items-center rounded-[2px] transition-colors cursor-pointer ${
+              viewMode === "grid" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-800"
+            }`}
+            title="Grid view"
           >
-            {selected.size === files.length && files.length > 0 ? "Deselect all" : "Select all"}
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={`h-[24px] w-[26px] grid place-items-center rounded-[2px] transition-colors cursor-pointer ${
+              viewMode === "list" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-800"
+            }`}
+            title="List view"
+          >
+            <List className="h-3.5 w-3.5" />
           </button>
         </div>
+        <Pill icon={ArrowUpDown} value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
+        {viewMode === "grid" && (
+          <div className="flex items-center gap-0.5 h-[30px] rounded border border-slate-300 bg-white p-0.5">
+            {(["compact", "comfy", "spacious"] as Density[]).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDensity(d)}
+                className={`h-[24px] px-2 rounded-[2px] text-[11px] font-medium capitalize cursor-pointer ${
+                  density === d ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="h-[30px] px-2.5 rounded text-[12px] text-slate-600 hover:bg-slate-100 font-medium cursor-pointer"
+        >
+          {selected.size === files.length && files.length > 0 ? "Deselect all" : "Select all"}
+        </button>
       </div>
 
       {/* Selection bar */}
       {selected.size > 0 && (
-        <SelectionBar
-          count={selected.size}
-          onClear={clearSelection}
-          onDelete={() => setBulkDeleteOpen(true)}
-        />
+        <div className="mb-2.5">
+          <SelectionBar
+            count={selected.size}
+            onClear={clearSelection}
+            onDelete={() => setBulkDeleteOpen(true)}
+          />
+        </div>
       )}
 
       {/* Content */}
+      <div className="mt-1">
       {loading ? (
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -665,6 +682,8 @@ export default function MediaLibrary() {
         <MediaListView
           files={files}
           selected={selected}
+          sortBy={sortBy}
+          onSort={setSortBy}
           onOpen={setEditing}
           onToggle={toggle}
           onToggleAll={toggleAll}
@@ -673,64 +692,19 @@ export default function MediaLibrary() {
           onDelete={requestDelete}
         />
       )}
+      </div>
 
-      {/* Pagination */}
-      {meta && totalPages > 1 && (
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <p className="text-[12.5px] text-slate-500 tabular-nums">
-              {(meta.page - 1) * meta.per_page + 1}–{Math.min(meta.page * meta.per_page, meta.total)} of {meta.total}
-            </p>
-            <div className="relative">
-              <select
-                value={perPage}
-                onChange={(e) => setPerPage(Number(e.target.value))}
-                className="appearance-none h-8 pl-2.5 pr-7 rounded-lg border border-slate-300 bg-white text-[11.5px] outline-none focus:border-indigo-500 cursor-pointer"
-              >
-                {PER_PAGE_OPTIONS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
-            <span className="text-[11px] text-slate-400">per page</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <PageBtn disabled={page <= 1} onClick={() => setPage(1)}>
-              <ChevronsLeft className="h-3.5 w-3.5" />
-            </PageBtn>
-            <PageBtn disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </PageBtn>
-            {pageNumbers.map((p, i) =>
-              p === "..." ? (
-                <span key={`d-${i}`} className="px-1 text-slate-400 text-sm">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPage(p)}
-                  className={`h-8 w-8 grid place-items-center rounded-lg text-[12px] font-medium cursor-pointer ${
-                    p === page
-                      ? "bg-indigo-600 text-white"
-                      : "border border-slate-300 bg-white hover:bg-slate-50 text-slate-700"
-                  }`}
-                >
-                  {p}
-                </button>
-              )
-            )}
-            <PageBtn disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </PageBtn>
-            <PageBtn disabled={page >= totalPages} onClick={() => setPage(totalPages)}>
-              <ChevronsRight className="h-3.5 w-3.5" />
-            </PageBtn>
-          </div>
+      {meta && (
+        <div className="mt-3">
+          <ListFooter
+            page={page}
+            totalPages={totalPages}
+            total={meta.total}
+            perPage={perPage}
+            onPage={setPage}
+            onPerPage={setPerPage}
+            label="files"
+          />
         </div>
       )}
 
@@ -807,27 +781,6 @@ export default function MediaLibrary() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function PageBtn({
-  disabled,
-  onClick,
-  children,
-}: {
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="h-8 w-8 grid place-items-center rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-    >
-      {children}
-    </button>
+    </ListPageShell>
   );
 }
