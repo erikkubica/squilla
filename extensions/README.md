@@ -255,9 +255,10 @@ Describes the React micro-frontend loaded into the admin SPA shell:
 - **`entry`**: Path to the built ES module (relative to extension directory).
 - **`slots`**: Named UI injection points. The key (e.g. `"email-settings"`) matches a slot defined by another extension's admin UI. This is how `smtp-provider` and `resend-provider` inject their settings into `email-manager`.
 - **`routes`**: SPA routes registered under `/admin/ext/{slug}/`. The `path` is relative to that prefix.
-- **`menu`**: Sidebar menu entry. `section` can be `"content"` (default), `"design"`, `"development"`, or `"settings"`. Set to `null` to hide from sidebar (useful for slot-only extensions).
-- **`settings_menu`**: Links that appear in the global Settings area of the admin UI.
+- **`menu`**: Sidebar menu entry. `section` is **honored** by the SDUI sidebar engine (`internal/sdui/engine.go`) and routes the entry into the named group: `"content"` (default), `"design"`, `"development"`, or `"settings"`. Items with no/unknown section land at the top level. Set the whole `menu` to `null` to hide from sidebar (useful for slot-only extensions or extensions that only contribute via `settings_menu`).
+- **`settings_menu`**: Links that appear in the global Settings section of the sidebar. The SDUI engine iterates `settings_menu` alongside `menu` and splices each entry into the Settings group — extensions that only contribute a single settings page can omit `menu` entirely and still appear in the right place.
 - **`field_types`**: Custom field types registered for use in node type schemas.
+- **Icons**: any valid `lucide-react` icon name works (e.g. `"ImageDown"`, `"Images"`, `"Puzzle"`). The admin shell resolves names dynamically against the full lucide export; unknown names fall back to `Puzzle` rather than rendering blank.
 
 #### `settings_schema`
 
@@ -474,7 +475,7 @@ export default defineConfig({
 
 #### CSS / Tailwind — Each Extension Owns Its Build
 
-**This is the most common source of "my layout is broken in Docker" bugs.** Every extension admin UI ships its own compiled CSS. The admin shell does **not** scan extension sources for Tailwind classes (the Docker `frontend` stage only copies `admin-ui/`, so any `@source` directive pointing at `extensions/` silently sees nothing and drops every extension-only class).
+**This is the most common source of "my layout is broken in Docker" bugs.** Every non-trivial extension admin UI should ship its own compiled CSS. As of the 2026-04-25 hardening pass the admin shell's stylesheet **also** declares a fallback `@source "../../extensions/*/admin-ui/src/**/*.{ts,tsx}"` (see `admin-ui/src/index.css`), so simple Tailwind classes used in extension code (e.g. `pt-5`, `gap-x-6`) get picked up by the main scan even if the extension hasn't wired up its own Tailwind build yet — but this only works in the local checkout. Inside the Docker `frontend` stage only `admin-ui/` is copied, so any `@source` pointing at `extensions/` silently sees nothing and drops every extension-only class. **Per-extension Tailwind builds remain the only Docker-safe option** — treat the shared `@source` as a developer convenience, not a substitute.
 
 Required setup:
 
@@ -565,7 +566,7 @@ import { Button } from "@vibecms/ui";
 import { Upload } from "@vibecms/icons"; // → lucide-react at runtime
 ```
 
-`__VIBECMS_SHARED__.ui` exposes the design-system list-page primitives: `ListPageShell`, `ListHeader`, `ListSearch`, `ListFooter`, `EmptyState`, `LoadingRow`, `Chip`, `StatusPill`, `TitleCell`, `RowActions`, `Th`, `Td`, `Tr`, `Checkbox`. Reach for these before rolling your own — they're what makes pages look like nodes/forms/media.
+`__VIBECMS_SHARED__.ui` exposes the design-system list-page primitives: `ListPageShell`, `ListHeader` (with `tabs={[{value, label, count}]}` for tab+count pills), `ListSearch`, `ListFooter`, `EmptyState`, `LoadingRow`, `Chip`, `StatusPill`, `TitleCell`, `RowActions`, `Th`, `Td`, `Tr`, `Checkbox`, `AccordionRow`, `SectionHeader`, `CodeWindow`. Reach for these before rolling your own — they're what makes pages look like nodes/forms/media. The reference implementations are `extensions/media-manager/admin-ui/src/MediaLibrary.tsx` (drawer + upload modal + URL state) and `extensions/forms/admin-ui/src/FormsList.tsx`.
 
 #### List Page Pattern
 
@@ -822,6 +823,10 @@ events.on("after_main_content", "handlers/powered_by", 99)
 | `extension.deactivated` | Extension is deactivated (before cleanup) | `slug` |
 | `theme.activated` | Any theme is activated | `name`, `path`, `version`, `assets` |
 | `theme.deactivated` | Any theme is deactivated | `name` |
+| `node_type.created` / `.updated` / `.deleted` | Custom post type registered/changed/removed | `slug` |
+| `taxonomy.created` / `.updated` / `.deleted` | Taxonomy registered/changed/removed | `slug` |
+
+The node-type and taxonomy lifecycle events were added in the 2026-04-25 hardening pass — the SDUI engine subscribes to them to evict its content-types/taxonomies layout cache, and extensions can subscribe to react to schema changes (e.g. invalidate a per-type derived view).
 
 ### Using Lifecycle Events
 
