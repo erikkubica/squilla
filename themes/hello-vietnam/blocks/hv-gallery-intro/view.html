@@ -1,14 +1,18 @@
-{{- /* Gallery intro + category pills (derived from nodes) */ -}}
-{{- $cats := filter "distinct_field" (dict "type" "gallery_photo" "field" "category") -}}
+{{- /* Gallery intro + manually-defined category pills */ -}}
+{{- $cats := .categories -}}
 <section style="padding: 60px 0px 40px;"><div class="container" style="text-align: center;">
 {{- with .eyebrow }}<span class="eyebrow">{{ . }}</span>{{- end }}
 {{ with .heading }}<h1 style="margin-bottom: 16px;">{{ . }}</h1>{{ end }}
 {{- with .body }}<p style="max-width: 620px; margin: 0 auto 32px; color: var(--ink-soft); font-size: 1.05rem;">{{ . }}</p>{{- end }}
+{{- if $cats -}}
 <div data-gallery-root style="display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
 <button class="pill-dark active" data-gallery-pill="All">All</button>
 {{- range $cats -}}
+{{- with .label -}}
 <button class="pill-dark" data-gallery-pill="{{.}}">{{.}}</button>
 {{- end -}}
+{{- end -}}
 </div>
+{{- end -}}
 </div></section>
 <style>.pill-dark{background:var(--white);border:1px solid var(--line);padding:10px 18px;border-radius:var(--r-pill);font-family:var(--font-display);font-weight:500;cursor:pointer;font-size:0.88rem}.pill-dark.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}</style>

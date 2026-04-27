@@ -8,10 +8,34 @@
       "fields": {
         "eyebrow": "Moments",
         "heading": "Ten years of candid Vietnam.",
-        "body": "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site."
+        "body": "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site.",
+        "categories": [
+          { "label": "Street Food" },
+          { "label": "Landscapes" },
+          { "label": "People" },
+          { "label": "Workshops" }
+        ]
       }
     },
-    { "type": "hv-gallery-masonry", "fields": { "limit": 12 } },
+    {
+      "type": "hv-gallery-masonry",
+      "fields": {
+        "photos": [
+          { "caption": "bún chả grandma, hanoi",    "category": "Street Food", "color": "red",    "tall": true,  "photo": { "url": "theme-asset:gal-bun-cha",        "alt": "bún chả grandma" } },
+          { "caption": "ma pi leng pass",           "category": "Landscapes",  "color": "green",  "tall": false, "photo": { "url": "theme-asset:gal-ma-pi-leng",     "alt": "ma pi leng pass" } },
+          { "caption": "linh laughing with guests", "category": "People",      "color": "yellow", "tall": true,  "photo": { "url": "theme-asset:gal-linh-laughing",  "alt": "linh laughing" } },
+          { "caption": "cooking class kitchen",     "category": "Workshops",   "color": "red",    "tall": false, "photo": { "url": "theme-asset:gal-cooking-class",  "alt": "cooking class" } },
+          { "caption": "lantern night, hoi an",     "category": "Landscapes",  "color": "yellow", "tall": true,  "photo": { "url": "theme-asset:gal-lantern-night",  "alt": "lantern night" } },
+          { "caption": "phở counter, 6am",          "category": "Street Food", "color": "ink",    "tall": false, "photo": { "url": "theme-asset:gal-pho-counter",    "alt": "phở counter" } },
+          { "caption": "hmong kids waving",         "category": "People",      "color": "green",  "tall": true,  "photo": { "url": "theme-asset:gal-hmong-kids",     "alt": "hmong kids" } },
+          { "caption": "basket boat spin",          "category": "Workshops",   "color": "red",    "tall": false, "photo": { "url": "theme-asset:gal-basket-boat",    "alt": "basket boat" } },
+          { "caption": "banh mi queen stall",       "category": "Street Food", "color": "yellow", "tall": true,  "photo": { "url": "theme-asset:gal-banh-mi",        "alt": "banh mi queen" } },
+          { "caption": "mekong hammock",            "category": "Landscapes",  "color": "green",  "tall": false, "photo": { "url": "theme-asset:gal-mekong-hammock", "alt": "mekong hammock" } },
+          { "caption": "tuan on his bike",          "category": "People",      "color": "red",    "tall": true,  "photo": { "url": "theme-asset:gal-tuan-bike",      "alt": "tuan on bike" } },
+          { "caption": "egg coffee pour",           "category": "Workshops",   "color": "ink",    "tall": false, "photo": { "url": "theme-asset:gal-egg-coffee",     "alt": "egg coffee" } }
+        ]
+      }
+    },
     {
       "type": "hv-gallery-cta",
       "fields": {

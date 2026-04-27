@@ -24,15 +24,6 @@ taxonomies.register({
 	node_types: ["trip"]
 })
 
-taxonomies.register({
-	slug: "gallery_category",
-	label: "Gallery category",
-	label_plural: "Gallery categories",
-	description: "Street Food / Landscapes / People / Workshops",
-	hierarchical: false,
-	node_types: ["gallery_photo"]
-})
-
 // ─── Node Types ──────────────────────────────────────────────
 nodetypes.register({
 	slug: "trip",
@@ -119,23 +110,7 @@ nodetypes.register({
 	]
 })
 
-nodetypes.register({
-	slug: "gallery_photo",
-	label: "Gallery photo",
-	label_plural: "Gallery photos",
-	icon: "image",
-	description: "An image for the public gallery",
-	field_schema: [
-		{ name: "caption",  label: "Caption",           type: "text" },
-		{ name: "category", label: "Category",          type: "text", help: "Street Food | Landscapes | People | Workshops" },
-		{ name: "color",    label: "Placeholder Color", type: "text", help: "red | yellow | green | ink" },
-		{ name: "tall",     label: "Tall Tile",         type: "checkbox", help: "340px if true, 240px if false" },
-		{ name: "photo",    label: "Photo",             type: "image" }
-	],
-	taxonomies: ["gallery_category"]
-})
-
-log.info("Hello Vietnam: 4 custom node types registered")
+log.info("Hello Vietnam: 3 custom node types registered")
 
 // ─── Filters ─────────────────────────────────────────────────
 filters.add("list_nodes",     "./filters/list_nodes")
@@ -433,22 +408,6 @@ seed("testimonial", "testimonials", [
 	{ title: "The Kim Family", slug: "kim-family", fields_data: { quote: "Homestay with kids = perfection. The family adopted our 7-year-old by the second breakfast.",  author: "The Kim Family", handle: "@kimsabroad",     color: "red"    , photo: { url: "theme-asset:review-marcus", alt: "The Kim family" } } }
 ], "default")
 
-// Gallery photos — placeholders with captions, 12 tiles, alternating tall/short.
-seed("gallery_photo", "gallery photos", [
-	{ title: "Bún chả grandma",        slug: "photo-1",  fields_data: { caption: "bún chả grandma, hanoi",     category: "Street Food", color: "red",    tall: true  , photo: { url: "theme-asset:gal-bun-cha", alt: "photo-1" } } },
-	{ title: "Ma Pi Leng pass",        slug: "photo-2",  fields_data: { caption: "ma pi leng pass",            category: "Landscapes",  color: "green",  tall: false , photo: { url: "theme-asset:gal-ma-pi-leng", alt: "photo-2" } } },
-	{ title: "Linh laughing",          slug: "photo-3",  fields_data: { caption: "linh laughing with guests",  category: "People",      color: "yellow", tall: true  , photo: { url: "theme-asset:gal-linh-laughing", alt: "photo-3" } } },
-	{ title: "Cooking class kitchen",  slug: "photo-4",  fields_data: { caption: "cooking class kitchen",      category: "Workshops",   color: "red",    tall: false , photo: { url: "theme-asset:gal-cooking-class", alt: "photo-4" } } },
-	{ title: "Hoi An lantern night",   slug: "photo-5",  fields_data: { caption: "lantern night, hoi an",      category: "Landscapes",  color: "yellow", tall: true  , photo: { url: "theme-asset:gal-lantern-night", alt: "photo-5" } } },
-	{ title: "Phở counter",            slug: "photo-6",  fields_data: { caption: "phở counter, 6am",           category: "Street Food", color: "ink",    tall: false , photo: { url: "theme-asset:gal-pho-counter", alt: "photo-6" } } },
-	{ title: "Hmong kids",             slug: "photo-7",  fields_data: { caption: "hmong kids waving",          category: "People",      color: "green",  tall: true  , photo: { url: "theme-asset:gal-hmong-kids", alt: "photo-7" } } },
-	{ title: "Basket boat spin",       slug: "photo-8",  fields_data: { caption: "basket boat spin",           category: "Workshops",   color: "red",    tall: false , photo: { url: "theme-asset:gal-basket-boat", alt: "photo-8" } } },
-	{ title: "Banh mi queen stall",    slug: "photo-9",  fields_data: { caption: "banh mi queen stall",        category: "Street Food", color: "yellow", tall: true  , photo: { url: "theme-asset:gal-banh-mi", alt: "photo-9" } } },
-	{ title: "Mekong hammock",         slug: "photo-10", fields_data: { caption: "mekong hammock",             category: "Landscapes",  color: "green",  tall: false , photo: { url: "theme-asset:gal-mekong-hammock", alt: "photo-10" } } },
-	{ title: "Tuan on his bike",       slug: "photo-11", fields_data: { caption: "tuan on his bike",           category: "People",      color: "red",    tall: true  , photo: { url: "theme-asset:gal-tuan-bike", alt: "photo-11" } } },
-	{ title: "Egg coffee pour",        slug: "photo-12", fields_data: { caption: "egg coffee pour",            category: "Workshops",   color: "ink",    tall: false , photo: { url: "theme-asset:gal-egg-coffee", alt: "photo-12" } } }
-], "default")
-
 // ─── Page Seeding ────────────────────────────────────────────
 
 page_missing := func(slug) {
@@ -686,9 +645,28 @@ if page_missing("gallery") {
 			{ type: "hv-gallery-intro", fields: {
 				eyebrow: "Moments",
 				heading: "Ten years of candid Vietnam.",
-				body: "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site."
+				body: "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site.",
+				categories: [
+					{ label: "Street Food" },
+					{ label: "Landscapes" },
+					{ label: "People" },
+					{ label: "Workshops" }
+				]
 			} },
-			{ type: "hv-gallery-masonry", fields: { limit: 12 } },
+			{ type: "hv-gallery-masonry", fields: { photos: [
+				{ caption: "bún chả grandma, hanoi",    category: "Street Food", color: "red",    tall: true,  photo: { url: "theme-asset:gal-bun-cha",        alt: "bún chả grandma" } },
+				{ caption: "ma pi leng pass",           category: "Landscapes",  color: "green",  tall: false, photo: { url: "theme-asset:gal-ma-pi-leng",     alt: "ma pi leng pass" } },
+				{ caption: "linh laughing with guests", category: "People",      color: "yellow", tall: true,  photo: { url: "theme-asset:gal-linh-laughing",  alt: "linh laughing" } },
+				{ caption: "cooking class kitchen",     category: "Workshops",   color: "red",    tall: false, photo: { url: "theme-asset:gal-cooking-class",  alt: "cooking class" } },
+				{ caption: "lantern night, hoi an",     category: "Landscapes",  color: "yellow", tall: true,  photo: { url: "theme-asset:gal-lantern-night",  alt: "lantern night" } },
+				{ caption: "phở counter, 6am",          category: "Street Food", color: "ink",    tall: false, photo: { url: "theme-asset:gal-pho-counter",    alt: "phở counter" } },
+				{ caption: "hmong kids waving",         category: "People",      color: "green",  tall: true,  photo: { url: "theme-asset:gal-hmong-kids",     alt: "hmong kids" } },
+				{ caption: "basket boat spin",          category: "Workshops",   color: "red",    tall: false, photo: { url: "theme-asset:gal-basket-boat",    alt: "basket boat" } },
+				{ caption: "banh mi queen stall",       category: "Street Food", color: "yellow", tall: true,  photo: { url: "theme-asset:gal-banh-mi",        alt: "banh mi queen" } },
+				{ caption: "mekong hammock",            category: "Landscapes",  color: "green",  tall: false, photo: { url: "theme-asset:gal-mekong-hammock", alt: "mekong hammock" } },
+				{ caption: "tuan on his bike",          category: "People",      color: "red",    tall: true,  photo: { url: "theme-asset:gal-tuan-bike",      alt: "tuan on bike" } },
+				{ caption: "egg coffee pour",           category: "Workshops",   color: "ink",    tall: false, photo: { url: "theme-asset:gal-egg-coffee",     alt: "egg coffee" } }
+			] } },
 			{ type: "hv-gallery-cta", fields: {
 				heading: "Want to be featured?",
 				body: "Tag <strong>@HelloVietnam</strong> on your next trip — we repost our favorites every week."

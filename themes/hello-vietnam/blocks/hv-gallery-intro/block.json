@@ -1,7 +1,7 @@
 {
   "slug": "hv-gallery-intro",
   "name": "Gallery Intro + Filter Pills",
-  "description": "The header for the gallery page. Displays a centered title and description, followed by interactive category filter pills automatically generated from photo categories.",
+  "description": "The header for the gallery page. Displays a centered title and description, followed by category filter pills that filter the masonry grid below.",
   "category": "hello-vietnam",
   "field_schema": [
     {
@@ -21,11 +21,31 @@
       "label": "Body",
       "type": "textarea",
       "help": "The main descriptive text for this section."
+    },
+    {
+      "key": "categories",
+      "label": "Filter Categories",
+      "type": "repeater",
+      "help": "Pills that filter the masonry grid. Must match the categories used on photos in the Gallery Masonry block.",
+      "sub_fields": [
+        {
+          "key": "label",
+          "label": "Label",
+          "type": "text",
+          "help": "Category name shown on the pill (e.g. Street Food)."
+        }
+      ]
     }
   ],
   "test_data": {
     "eyebrow": "Moments",
     "heading": "Ten years of candid Vietnam.",
-    "body": "Every trip, every laugh, every bowl of ph\u1edf at 6am. The real imagery behind every page on this site."
+    "body": "Every trip, every laugh, every bowl of phở at 6am. The real imagery behind every page on this site.",
+    "categories": [
+      { "label": "Street Food" },
+      { "label": "Landscapes" },
+      { "label": "People" },
+      { "label": "Workshops" }
+    ]
   }
 }
