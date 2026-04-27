@@ -75,24 +75,51 @@ func (p *FormsPlugin) verifyCAPTCHA(ctx context.Context, provider, secret, token
 
 // captchaScriptTag returns the provider's loader script + a placeholder div.
 // Injected before </form> in renderFormHTML when captcha_provider != "none".
+//
+// siteKey is admin-supplied via form settings. If the admin (or anyone
+// who can edit the form) sets siteKey to `"><script>alert(1)</script>`,
+// the rendered form would smuggle that script into every public page
+// it appears on. recaptcha additionally interpolates siteKey into a
+// query parameter, so URL-encode that flavour. All other uses are HTML
+// attribute values — HTMLEscapeString handles the quote/angle cases.
 func captchaScriptTag(provider, siteKey string) string {
 	if provider == "" || provider == "none" || siteKey == "" {
 		return ""
 	}
+	keyAttr := htmlescape(siteKey)
+	keyURL := urlEncodeQueryComponent(siteKey)
 	switch provider {
 	case "recaptcha":
 		return fmt.Sprintf(`<script src="https://www.google.com/recaptcha/api.js?render=%s"></script>
-<input type="hidden" name="_captcha_token" data-captcha="recaptcha" data-sitekey="%s">`, siteKey, siteKey)
+<input type="hidden" name="_captcha_token" data-captcha="recaptcha" data-sitekey="%s">`, keyURL, keyAttr)
 	case "hcaptcha":
 		return fmt.Sprintf(`<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
 <div class="h-captcha" data-sitekey="%s"></div>
-<input type="hidden" name="_captcha_token" data-captcha="hcaptcha">`, siteKey)
+<input type="hidden" name="_captcha_token" data-captcha="hcaptcha">`, keyAttr)
 	case "turnstile":
 		return fmt.Sprintf(`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <div class="cf-turnstile" data-sitekey="%s" data-callback="vibeFormTurnstileCallback"></div>
-<input type="hidden" name="_captcha_token" data-captcha="turnstile">`, siteKey)
+<input type="hidden" name="_captcha_token" data-captcha="turnstile">`, keyAttr)
 	}
 	return ""
+}
+
+// htmlescape and urlEncodeQueryComponent are internal escapers kept
+// inline so this file doesn't pull html/template into a non-template
+// context (the rest of the plugin uses encoding/json for output).
+func htmlescape(s string) string {
+	r := strings.NewReplacer(
+		"&", "&amp;",
+		"<", "&lt;",
+		">", "&gt;",
+		`"`, "&quot;",
+		"'", "&#39;",
+	)
+	return r.Replace(s)
+}
+
+func urlEncodeQueryComponent(s string) string {
+	return url.QueryEscape(s)
 }
 
 // extractCaptchaToken pulls the CAPTCHA token from submissionData and removes it.

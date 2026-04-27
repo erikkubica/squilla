@@ -66,9 +66,17 @@ func applyFormPostProcessing(result string, settings map[string]any) string {
 		}
 	}
 
-	// 3. privacy_policy_url substitution
+	// 3. privacy_policy_url substitution. The placeholder lives inside
+	// an href attribute, so escape ppURL first; without it a form
+	// admin who sets ppURL to `" onclick="alert(1)` injects an event
+	// handler that fires for every visitor rendering the form. We
+	// also pre-block javascript: / data: schemes which would survive
+	// HTML escaping but still clickjack the visitor.
 	ppURL, _ := settings["privacy_policy_url"].(string)
-	result = strings.ReplaceAll(result, "{privacy_policy_url}", ppURL)
+	if !isSafeURL(ppURL) {
+		ppURL = ""
+	}
+	result = strings.ReplaceAll(result, "{privacy_policy_url}", template.HTMLEscapeString(ppURL))
 	if ppURL == "" {
 		result = strings.ReplaceAll(result, `href=""`, "")
 	}
@@ -92,6 +100,33 @@ func applyFormPostProcessing(result string, settings map[string]any) string {
 	}
 
 	return result
+}
+
+// isSafeURL accepts only http(s) and protocol-relative / path-relative
+// URLs, rejecting javascript: / data: / vbscript: schemes that an
+// admin-supplied "privacy policy URL" could otherwise smuggle into
+// the rendered form. Empty strings are considered safe — the caller
+// strips empty hrefs separately.
+func isSafeURL(u string) bool {
+	u = strings.TrimSpace(u)
+	if u == "" {
+		return true
+	}
+	low := strings.ToLower(u)
+	// Allow same-origin paths and protocol-relative.
+	if strings.HasPrefix(low, "/") || strings.HasPrefix(low, "./") || strings.HasPrefix(low, "../") || strings.HasPrefix(low, "#") {
+		return true
+	}
+	if strings.HasPrefix(low, "//") {
+		return true
+	}
+	// Explicit scheme — allow http/https/mailto/tel only.
+	for _, scheme := range []string{"http://", "https://", "mailto:", "tel:"} {
+		if strings.HasPrefix(low, scheme) {
+			return true
+		}
+	}
+	return false
 }
 
 // normalizeFieldOptions ensures each option in a select/radio/checkbox field
