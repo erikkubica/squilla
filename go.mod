@@ -8,8 +8,10 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-plugin v1.6.2
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/lib/pq v1.12.1
 	github.com/mark3labs/mcp-go v0.30.0
+	github.com/microcosm-cc/bluemonday v1.0.27
 	golang.org/x/crypto v0.32.0
 	golang.org/x/image v0.23.0
 	golang.org/x/text v0.21.0
@@ -22,11 +24,12 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/ebitengine/purego v0.8.3 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
