@@ -165,6 +165,7 @@ func SeedIfEmpty(db *gorm.DB) error {
 	if err := db.Table("users").Count(&count).Error; err != nil {
 		return fmt.Errorf("failed to count users: %w", err)
 	}
+	log.Printf("[seed] users table contains %d row(s)", count)
 	if count > 0 {
 		return nil
 	}
