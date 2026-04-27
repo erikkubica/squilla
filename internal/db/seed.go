@@ -157,6 +157,21 @@ const defaultLayoutTemplate = `<!DOCTYPE html>
 </body>
 </html>`
 
+// SeedIfEmpty runs Seed only when the users table has no rows. Used to
+// bootstrap zero-config deploys on first boot without re-seeding on
+// every restart.
+func SeedIfEmpty(db *gorm.DB) error {
+	var count int64
+	if err := db.Table("users").Count(&count).Error; err != nil {
+		return fmt.Errorf("failed to count users: %w", err)
+	}
+	if count > 0 {
+		return nil
+	}
+	log.Println("[seed] no users found — running first-boot seed")
+	return Seed(db)
+}
+
 // Seed populates the database with initial data including a default admin
 // user, a sample content node, layout blocks, a default layout, and a main navigation menu.
 func Seed(db *gorm.DB) error {

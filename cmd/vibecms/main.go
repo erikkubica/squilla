@@ -61,6 +61,13 @@ func main() {
 		}
 	}
 
+	// Auto-seed on first boot when the DB has no users yet. Idempotent —
+	// once seeded, subsequent boots skip this. This is what makes
+	// zero-config deploys (e.g. Coolify) usable out of the box.
+	if err := db.SeedIfEmpty(database); err != nil {
+		log.Fatalf("first-boot seed failed: %v", err)
+	}
+
 	// Event bus.
 	eventBus := events.New()
 
