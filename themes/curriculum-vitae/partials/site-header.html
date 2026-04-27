@@ -1,0 +1,19 @@
+{{- $s := .app.settings -}}
+{{- $brand := or (index $s "cv.brand") "erik-kubica.dev" -}}
+{{- $cta_label := or (index $s "cv.nav_cta_label") "available" -}}
+{{- $cta_url := or (index $s "cv.nav_cta_url") "mailto:erik.kubica@gmail.com" -}}
+{{- $accent := or (index $s "cv.accent") "#DA251D" -}}
+{{- $menu := index .app.menus "main-nav" -}}
+<nav class="nav">
+  <span class="mono nav-brand">{{ $brand }}</span>
+  <ul>
+  {{- if $menu -}}
+    {{- range $menu.items -}}
+      <li><a href="{{or .url "#"}}">{{.title}}</a></li>
+    {{- end -}}
+  {{- end -}}
+  </ul>
+  <a class="nav-cta" href="{{ $cta_url }}">
+    <span class="ind" style="background: {{ $accent }};"></span> {{ $cta_label }}
+  </a>
+</nav>

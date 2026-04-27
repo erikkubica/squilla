@@ -1,0 +1,13 @@
+{{- /* Curriculum Vitae — contact (section 06). Dark block, accent button, ghost button. */ -}}
+{{- $sid := or .section_id "contact" -}}
+<section class="block contact" id="{{ $sid }}">
+  <div class="contact-inner">
+    {{ with .eyebrow }}<span class="mono">{{ . }}</span>{{ end }}
+    {{ with .heading }}<h2>{{ safeHTML . }}</h2>{{ end }}
+    <div class="contact-cta">
+      {{ if and .primary_label .primary_url }}<a class="btn primary" href="{{ .primary_url }}">{{ .primary_label }}</a>{{ end }}
+      {{ if and .secondary_label .secondary_url }}<a class="btn ghost" href="{{ .secondary_url }}">{{ .secondary_label }}</a>{{ end }}
+    </div>
+    {{ with .fineprint }}<p class="fineprint"><span class="mono">{{ . }}</span></p>{{ end }}
+  </div>
+</section>

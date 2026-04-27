@@ -1,0 +1,56 @@
+{
+  "slug": "cv-experience",
+  "name": "CV Experience",
+  "description": "Section 04 — experience. Click-to-expand list rows: 10rem date column · role + org · +/− toggle. Open row reveals body and dark mono bullet pills.",
+  "category": "curriculum-vitae",
+  "field_schema": [
+    { "key": "section_id", "label": "Anchor id", "type": "text" },
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    { "key": "items", "label": "Roles", "type": "repeater",
+      "sub_fields": [
+        { "key": "range", "label": "Date range", "type": "text", "help": "e.g. 2015 — now" },
+        { "key": "role",  "label": "Role title", "type": "text" },
+        { "key": "org",   "label": "Org / employer", "type": "text" },
+        { "key": "body",  "label": "Body paragraph", "type": "textarea" },
+        { "key": "bullets", "label": "Bullet pills (one per line)", "type": "textarea",
+          "help": "Each non-empty line renders as a dark mono pill." }
+      ]
+    }
+  ],
+  "test_data": {
+    "section_id": "xp",
+    "eyebrow": "04 · experience",
+    "heading": "A straight line, mostly.",
+    "items": [
+      {
+        "range": "2015 — now",
+        "role": "Senior PHP Developer · AI lead",
+        "org": "GALTON Brands s.r.o. (ex ZoneMedia)",
+        "body": "Lead backend + the new AI track. Turn static designs into data-driven apps, design REST APIs, optimize databases, and lately — wire MCP servers and agent workflows into the existing Symfony / WordPress stack so the team actually uses them.",
+        "bullets": "130+ WordPress sites\n7 React apps\n4 Symfony APIs\nAI / MCP integration across the stack"
+      },
+      {
+        "range": "2014 — 2015",
+        "role": "IT all-rounder",
+        "org": "TvarPlast s.r.o.",
+        "body": "Sysadmin, web dev and the person you call when nothing prints. Manufacturing IT.",
+        "bullets": ""
+      },
+      {
+        "range": "~2014",
+        "role": "Web developer",
+        "org": "CMMS s.r.o.",
+        "body": "Built the company site on Symfony. Clean PHP, no shortcuts.",
+        "bullets": ""
+      },
+      {
+        "range": "~2013",
+        "role": "Software collaborator",
+        "org": "Soft-Tech EU s.r.o.",
+        "body": "Java EE + GWT solution for Suzuki Kft. Enterprise automotive software.",
+        "bullets": ""
+      }
+    ]
+  }
+}

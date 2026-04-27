@@ -1,0 +1,44 @@
+{
+  "slug": "cv-now",
+  "name": "CV Now / AI",
+  "description": "Section 02 — now. Cream-2 background. Left rail of clickable tabs (numbered 01..N) controls a panel on the right that swaps body + chips. Side aside lists practical examples.",
+  "category": "curriculum-vitae",
+  "field_schema": [
+    { "key": "section_id", "label": "Anchor id", "type": "text", "help": "HTML id (default: now)." },
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    { "key": "sub",     "label": "Subhead (HTML allowed)", "type": "textarea", "help": "Supports <em> for emphasis." },
+    { "key": "items", "label": "Tabs", "type": "repeater",
+      "sub_fields": [
+        { "key": "label", "label": "Tab label", "type": "text" },
+        { "key": "body",  "label": "Panel body", "type": "textarea" },
+        { "key": "tags",  "label": "Tag chips", "type": "text", "help": "Comma-separated chip labels." }
+      ]
+    },
+    { "key": "side_intro", "label": "Side intro", "type": "text", "help": "Mono line above the side bullets." },
+    { "key": "side_items", "label": "Side bullets", "type": "repeater",
+      "sub_fields": [
+        { "key": "text", "label": "Line", "type": "text" }
+      ]
+    }
+  ],
+  "test_data": {
+    "section_id": "now",
+    "eyebrow": "02 · now",
+    "heading": "AI-native, on top of a stack that already works.",
+    "sub": "The last decade was PHP, Symfony, WordPress, React. The next one is all of that <em>plus</em> agents, MCP and LLMs doing real work — not demos.",
+    "items": [
+      { "label": "MCP servers",      "body": "Build and ship Model Context Protocol servers that plug company data, internal APIs and tooling into Claude / Cursor / agent runtimes. The bridge between LLMs and the messy real world.", "tags": "MCP, TypeScript, Python, Claude" },
+      { "label": "Agent workflows",  "body": "Multi-step agents for support, ops, content and code review. Tool use, guardrails, evals, human-in-the-loop. Boring on purpose — they have to actually work on Monday morning.", "tags": "Agents, Tool use, Evals" },
+      { "label": "RAG + search",     "body": "Hybrid retrieval over PDFs, ticketing systems, CRMs and 130+ legacy WordPress installs. Postgres + pgvector when sane, dedicated vector DBs when not.", "tags": "pgvector, Embeddings, Hybrid search" },
+      { "label": "LLM in PHP",       "body": "Yes, really. Symfony + LLM gateways, streaming responses into WooCommerce, content pipelines for WordPress at scale. AI on top of the stack you already paid for.", "tags": "Symfony, WordPress, OpenAI, Anthropic" }
+    ],
+    "side_intro": "// what this looks like in practice",
+    "side_items": [
+      { "text": "An MCP server that lets Claude hit your Symfony admin API directly." },
+      { "text": "A support agent that reads tickets, drafts replies, tags them, and shuts up when it isn't sure." },
+      { "text": "A WordPress plugin that uses an LLM for content ops without leaking your data." },
+      { "text": "RAG over a decade of project docs so the next dev doesn't start from zero." }
+    ]
+  }
+}

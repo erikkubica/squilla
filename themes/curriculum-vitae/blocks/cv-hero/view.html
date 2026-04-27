@@ -1,0 +1,33 @@
+{{- /* Curriculum Vitae — hero (top section). Three columns: yellow star mark, name + lede, side k/v list. */ -}}
+<section class="hero">
+  <div class="hero-grid">
+    <div class="hero-meta">
+      <svg class="hero-star-big" viewBox="0 0 32 32" width="120" height="120" aria-hidden="true">
+        <polygon points="16,2 19.6,12.2 30,12.2 21.5,18.6 25,29 16,22.5 7,29 10.5,18.6 2,12.2 12.4,12.2" fill="#F4D06F"/>
+      </svg>
+    </div>
+    <div class="hero-name">
+      {{ with .name_tag }}<span class="mono name-tag">{{ . }}</span>{{ end }}
+      {{ with .name }}<h1>{{ . }}<span class="dot"></span></h1>{{ end }}
+      {{ with .sub }}<p class="hero-sub">{{ . }}</p>{{ end }}
+    </div>
+    {{ with .side_items }}
+    <div class="hero-side">
+      {{- range . -}}
+      <div class="kv">
+        {{ with .label }}<span class="mono">{{ . }}</span>{{ end }}
+        {{ if .url }}<a href="{{ .url }}">{{ .value }}</a>{{ else }}<span>{{ .value }}</span>{{ end }}
+      </div>
+      {{- end -}}
+    </div>
+    {{ end }}
+  </div>
+
+  {{ with .strip_items }}
+  <div class="hero-strip">
+    {{- range . -}}
+    <span><b>{{ .count }}</b>{{ .label }}</span>
+    {{- end -}}
+  </div>
+  {{ end }}
+</section>

@@ -1,0 +1,35 @@
+{{- /* Curriculum Vitae — experience (section 04). Click rows to expand. */ -}}
+{{- $sid := or .section_id "xp" -}}
+<section class="block xp" id="{{ $sid }}">
+  <header class="block-head">
+    {{ with .eyebrow }}<span class="mono">{{ . }}</span>{{ end }}
+    {{ with .heading }}<h2>{{ . }}</h2>{{ end }}
+  </header>
+
+  {{ with .items }}
+  <ol class="xp-list" data-xp-list>
+    {{- range $i, $e := . -}}
+    <li data-xp-item class="{{ if eq $i 0 }}on{{ end }}">
+      <div class="xp-row">
+        <span class="mono xp-range">{{ $e.range }}</span>
+        <div class="xp-main">
+          {{ with $e.role }}<h3>{{ . }}</h3>{{ end }}
+          {{ with $e.org }}<p class="xp-org">{{ . }}</p>{{ end }}
+        </div>
+        <span class="xp-toggle"></span>
+      </div>
+      <div class="xp-body">
+        {{ with $e.body }}<p>{{ . }}</p>{{ end }}
+        {{ with $e.bullets }}
+        <div class="xp-bullets">
+          {{- range $b := split "\n" . -}}
+            {{- if $b -}}<span>{{ $b }}</span>{{- end -}}
+          {{- end -}}
+        </div>
+        {{ end }}
+      </div>
+    </li>
+    {{- end -}}
+  </ol>
+  {{ end }}
+</section>

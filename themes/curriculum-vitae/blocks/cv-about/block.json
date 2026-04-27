@@ -1,0 +1,41 @@
+{
+  "slug": "cv-about",
+  "name": "CV About",
+  "description": "Section 01 — about. Big eyebrow + heading, lede paragraph, then a 3-column grid: day-job copy, client note, and an off-hours list with little SVG icon tiles.",
+  "category": "curriculum-vitae",
+  "field_schema": [
+    { "key": "section_id", "label": "Anchor id", "type": "text", "help": "HTML id used for nav anchors (default: about)." },
+    { "key": "eyebrow", "label": "Eyebrow",  "type": "text", "help": "Mono label above the heading (e.g. 01 · about)." },
+    { "key": "heading", "label": "Heading",  "type": "text", "help": "Big section H2." },
+    { "key": "lede",    "label": "Lede",     "type": "textarea", "help": "Lead paragraph at top of the grid." },
+    { "key": "day_job_label", "label": "Day-job label",   "type": "text" },
+    { "key": "day_job_text",  "label": "Day-job body",    "type": "textarea" },
+    { "key": "client_label",  "label": "Client-note label","type": "text" },
+    { "key": "client_text",   "label": "Client-note body","type": "textarea" },
+    { "key": "off_label",     "label": "Off-hours label", "type": "text" },
+    { "key": "off_items", "label": "Off-hours list", "type": "repeater",
+      "sub_fields": [
+        { "key": "icon", "label": "Icon", "type": "select",
+          "options": ["laptop", "beer", "tv"],
+          "help": "laptop = vibecoding, beer = bia hà nội, tv = anime / star trek." },
+        { "key": "text", "label": "Line", "type": "text", "help": "One-liner shown beside the icon tile." }
+      ]
+    }
+  ],
+  "test_data": {
+    "section_id": "about",
+    "eyebrow": "01 · about",
+    "heading": "Builds things that don't fall over six months later.",
+    "lede": "Ten-plus years of writing the kind of code you can come back to. PHP / Symfony / WordPress at the core, React and Next.js on top, and for the last while: a serious push into AI — MCP servers, agent workflows, retrieval, the works.",
+    "day_job_label": "day job",
+    "day_job_text": "Bridging real business stuff with real engineering. I came out of commerce, so I get why the deadline matters and why the invoice has to be right. Then I write the API.",
+    "client_label": "note for clients",
+    "client_text": "Based in Vietnam, but a fully registered Slovak (EU) freelance contractor with EU tax residency. Standard B2B invoicing, no weirdness. Available across SEA and EU hours.",
+    "off_label": "off-hours",
+    "off_items": [
+      { "icon": "laptop", "text": "Vibecoding until 4 a.m. — me, the cursor, and one too many tabs open." },
+      { "icon": "beer",   "text": "Bia Hà Nội on the little blue stool, watching scooters honk past." },
+      { "icon": "tv",     "text": "Anime, Star Trek, and arguing about which Captain is best (it's Picard)." }
+    ]
+  }
+}

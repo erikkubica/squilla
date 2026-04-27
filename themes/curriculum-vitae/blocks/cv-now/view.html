@@ -1,0 +1,51 @@
+{{- /* Curriculum Vitae — now / AI (section 02). Tabs + panels + side aside. */ -}}
+{{- $sid := or .section_id "now" -}}
+<section class="block now" id="{{ $sid }}" data-now-root>
+  <header class="block-head">
+    {{ with .eyebrow }}<span class="mono">{{ . }}</span>{{ end }}
+    {{ with .heading }}<h2>{{ . }}</h2>{{ end }}
+    {{ with .sub }}<p class="block-sub">{{ safeHTML . }}</p>{{ end }}
+  </header>
+
+  <div class="now-wrap">
+    {{ with .items }}
+    <ul class="now-tabs" role="tablist">
+      {{- range $i, $item := . -}}
+      {{- $key := printf "%d" (add $i 1) -}}
+      <li>
+        <button type="button" role="tab" data-now-tab="{{ $key }}" class="{{ if eq $i 0 }}on{{ end }}">
+          <span class="mono">{{ printf "%02d" (add $i 1) }}</span>
+          <span>{{ $item.label }}</span>
+          <i></i>
+        </button>
+      </li>
+      {{- end -}}
+    </ul>
+
+    <div class="now-panels">
+      {{- range $i, $item := . -}}
+      {{- $key := printf "%d" (add $i 1) -}}
+      <div class="now-panel{{ if eq $i 0 }} on{{ end }}" data-now-panel="{{ $key }}">
+        {{ with $item.body }}<p>{{ . }}</p>{{ end }}
+        {{ with $item.tags }}
+        <div class="chips">
+          {{- range $t := split ", " . -}}
+            {{- if $t -}}<span class="chip">{{ $t }}</span>{{- end -}}
+          {{- end -}}
+        </div>
+        {{ end }}
+      </div>
+      {{- end -}}
+    </div>
+    {{ end }}
+
+    <aside class="now-side">
+      {{ with .side_intro }}<span class="mono">{{ . }}</span>{{ end }}
+      {{ with .side_items }}
+      <ul>
+        {{- range . -}}<li>{{ .text }}</li>{{- end -}}
+      </ul>
+      {{ end }}
+    </aside>
+  </div>
+</section>
