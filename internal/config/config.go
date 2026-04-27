@@ -1,12 +1,17 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 )
+
+// ErrUnsafeProduction is returned by Validate when the loaded config has
+// development defaults that are unsafe to run in production.
+var ErrUnsafeProduction = errors.New("refusing to start in production with unsafe defaults")
 
 // Config holds all application configuration values loaded from environment variables.
 type Config struct {
@@ -23,6 +28,11 @@ type Config struct {
 	MonitorBearerToken string
 	StorageDriver      string
 	StoragePath        string
+	// SecretKey holds the base64-encoded master key (32 raw bytes) for
+	// at-rest encryption of secret-shaped settings and theme git
+	// tokens. Empty in dev means "store plaintext"; production startup
+	// rejects an empty value via Validate().
+	SecretKey string
 }
 
 // Load reads configuration from environment variables with sensible defaults.
@@ -43,11 +53,49 @@ func Load() *Config {
 		MonitorBearerToken: envOrDefault("MONITOR_BEARER_TOKEN", ""),
 		StorageDriver:      envOrDefault("STORAGE_DRIVER", "local"),
 		StoragePath:        envOrDefault("STORAGE_PATH", "./storage"),
+		SecretKey:          envOrDefault("VIBECMS_SECRET_KEY", ""),
 	}
 	if dburl := os.Getenv("DATABASE_URL"); dburl != "" {
 		applyDatabaseURL(cfg, dburl)
 	}
 	return cfg
+}
+
+// Validate checks the configuration for production safety. When AppEnv is
+// "production", the kernel must NOT boot with development defaults — empty
+// session secret, missing monitor bearer, the seeded `vibecms_secret` DB
+// password, disabled TLS to the database, or unset CORS allowlist. The
+// returned error wraps ErrUnsafeProduction with a list of every violation.
+func (c *Config) Validate() error {
+	if !strings.EqualFold(c.AppEnv, "production") {
+		return nil
+	}
+	var problems []string
+	if c.SessionSecret == "" {
+		problems = append(problems, "SESSION_SECRET is unset")
+	}
+	if c.MonitorBearerToken == "" {
+		problems = append(problems, "MONITOR_BEARER_TOKEN is unset")
+	}
+	if c.DBPassword == "" || c.DBPassword == "vibecms_secret" {
+		problems = append(problems, "DB_PASSWORD is empty or the seed default 'vibecms_secret'")
+	}
+	if c.DBSSLMode == "disable" {
+		problems = append(problems, "DB_SSLMODE=disable (use require/verify-ca/verify-full)")
+	}
+	if os.Getenv("CORS_ORIGINS") == "" {
+		problems = append(problems, "CORS_ORIGINS is unset (would default to localhost:8099)")
+	}
+	if c.SecretKey == "" {
+		// Without a master key we'd silently store theme git PATs and
+		// other credentials as plaintext, defeating the at-rest
+		// encryption story. Refuse production boot.
+		problems = append(problems, "VIBECMS_SECRET_KEY is unset (required for at-rest encryption of secrets)")
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%w: %s", ErrUnsafeProduction, strings.Join(problems, "; "))
 }
 
 // applyDatabaseURL parses a postgres:// URL and overrides individual DB_* fields.
