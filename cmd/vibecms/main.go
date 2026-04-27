@@ -1,14 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"vibecms/internal/api"
 	"vibecms/internal/auth"
@@ -18,11 +19,14 @@ import (
 	"vibecms/internal/db"
 	"vibecms/internal/email"
 	"vibecms/internal/events"
+	"vibecms/internal/logging"
 	"vibecms/internal/mcp"
+	"vibecms/internal/models"
 	"vibecms/internal/rbac"
 	"vibecms/internal/rendering"
 	"vibecms/internal/scripting"
 	"vibecms/internal/sdui"
+	"vibecms/internal/secrets"
 	pb "vibecms/pkg/plugin/coreapipb"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,8 +37,36 @@ import (
 )
 
 func main() {
+	// CLI subcommands that exit before normal startup.
+	if handlePreConfigCLI() {
+		return
+	}
+
 	cfg := config.Load()
+	logging.Init(strings.EqualFold(cfg.AppEnv, "development"))
+	logging.Default().Info("vibecms_starting", "env", cfg.AppEnv, "port", cfg.Port)
 	log.Printf("VibeCMS starting | env=%s port=%s", cfg.AppEnv, cfg.Port)
+
+	// In production, refuse to boot with development defaults — empty
+	// SESSION_SECRET, default DB password, disabled TLS, etc. Each is a
+	// real foot-gun for a deploy that just shipped without configuring envs.
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("config validation failed: %v", err)
+	}
+
+	// At-rest encryption service. NewFromEnv reads VIBECMS_SECRET_KEY;
+	// in dev it returns an inactive service that passes plaintext
+	// through, so deployments without the env var keep working.
+	// Production has already been gated by cfg.Validate above.
+	secretsSvc, err := secrets.NewFromEnv()
+	if err != nil {
+		log.Fatalf("secrets init failed: %v", err)
+	}
+	if secretsSvc.IsActive() {
+		log.Println("secrets: VIBECMS_SECRET_KEY loaded; at-rest encryption enabled")
+	} else {
+		log.Println("secrets: VIBECMS_SECRET_KEY unset; secret settings stored in plaintext (dev only)")
+	}
 
 	database, err := db.Connect(cfg.DSN())
 	if err != nil {
@@ -47,18 +79,8 @@ func main() {
 	}
 	log.Println("database migrations applied")
 
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "migrate":
-			log.Println("migrations complete, exiting")
-			return
-		case "seed":
-			if err := db.Seed(database); err != nil {
-				log.Fatalf("database seed failed: %v", err)
-			}
-			log.Println("database seeded, exiting")
-			return
-		}
+	if handlePostMigrationCLI(database) {
+		return
 	}
 
 	// Auto-seed on first boot when the DB has no users yet. Idempotent —
@@ -83,6 +105,12 @@ func main() {
 		ReadBufferSize:        16 * 1024,        // 16 KB — handles large cookies without 431
 	})
 
+	// Request-ID middleware MUST come first so every downstream
+	// handler/middleware sees a stable correlation ID (logs, errors,
+	// access entries, panic recovery). The fiberlogger access entry
+	// stays as a backup; logging.RequestID emits its own structured
+	// access log too.
+	app.Use(logging.RequestID())
 	app.Use(fiberlogger.New())
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
@@ -93,7 +121,20 @@ func main() {
 	}))
 
 	// Services.
+	// Background lifetimes (session cleanup, retention crons, etc.) hang
+	// off this context — cancelled on graceful shutdown.
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	defer bgCancel()
+
 	sessionSvc := auth.NewSessionService(database, cfg.SessionExpiryHours)
+	// Sweep expired sessions hourly. Without this the sessions table grows
+	// linearly and stale token_hashes accumulate forever.
+	sessionSvc.StartCleanupLoop(bgCtx, time.Hour)
+
+	// Same retention treatment for password reset tokens — they're already
+	// short-lived (1h expiry) but get marked used rather than deleted on
+	// successful reset, so without a sweep they pile up over time.
+	auth.NewPasswordResetService(database).StartCleanupLoop(bgCtx, time.Hour)
 	contentSvc := cms.NewContentService(database, eventBus)
 	nodeTypeSvc := cms.NewNodeTypeService(database, eventBus)
 	langSvc := cms.NewLanguageService(database)
@@ -109,11 +150,28 @@ func main() {
 	isDev := cfg.AppEnv == "development"
 	renderer := rendering.NewTemplateRenderer("ui/templates", isDev)
 
+	// Allow operators (or the media-manager extension on activation)
+	// to override the URL convention used by image_url / image_srcset
+	// template helpers via a site setting. Empty disables the
+	// transform — see internal/rendering/media_funcs.go for rationale.
+	var imgPrefixSetting models.SiteSetting
+	if err := database.Where("\"key\" = ?", "image_cache_url_prefix").Limit(1).Find(&imgPrefixSetting).Error; err == nil && imgPrefixSetting.Value != nil && *imgPrefixSetting.Value != "" {
+		renderer.SetImageURLPrefix(*imgPrefixSetting.Value)
+	}
+
 	// Email services.
 	emailRuleSvc := email.NewRuleService(database)
 	emailLogSvc := email.NewLogService(database)
 	emailDispatcher := email.NewDispatcher(database, emailRuleSvc, emailLogSvc)
 	eventBus.SubscribeAll(emailDispatcher.HandleEvent)
+	// Daily sweep of email_logs older than email_log_retention_days
+	// (default 30). Stops the table from growing unbounded.
+	emailLogSvc.StartCleanupLoop(bgCtx, 24*time.Hour)
+
+	// Daily sweep of content_node_revisions, keeping the most recent N
+	// per node (default 50). Without this, chatty editors fill the table
+	// indefinitely.
+	contentSvc.StartRevisionCleanupLoop(bgCtx, 24*time.Hour)
 
 	// Handlers.
 	authHandler := auth.NewAuthHandler(database, sessionSvc)
@@ -132,7 +190,7 @@ func main() {
 	termHandler := cms.NewTermHandler(database)
 	healthHandler := api.NewHealthHandler(database)
 	roleHandler := rbac.NewRoleHandler(database)
-	settingsHandler := cms.NewSettingsHandler(database, eventBus)
+	settingsHandler := cms.NewSettingsHandler(database, eventBus, secretsSvc)
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, eventBus)
 
 	// SDUI handlers — boot manifest, layout trees, and SSE events.
@@ -155,17 +213,27 @@ func main() {
 		}
 	}
 
-	// Theme management.
-	themeMgmtSvc := cms.NewThemeMgmtService(database, themeLoader, "themes")
+	// Theme management. The mgmt service encrypts user-supplied git
+	// tokens before persisting and decrypts before passing to git
+	// operations; the handler does the same for direct token edits via
+	// the admin API and for the webhook secret read at request time.
+	themeMgmtSvc := cms.NewThemeMgmtService(database, themeLoader, "themes", secretsSvc)
 	themeMgmtSvc.ScanAndRegister()
-	themeHandler := cms.NewThemeHandler(database, themeMgmtSvc)
+	themeHandler := cms.NewThemeHandler(database, themeMgmtSvc, secretsSvc)
 
 	// CoreAPI — unified API facade for extensions.
-	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, nil, nodeTypeSvc, emailDispatcher, app)
+	// `coreAPI` is unguarded — used internally and by MCP (which enforces
+	// access via scope×class on token classes, not capability strings).
+	// `guardedAPI` wraps coreAPI with the capability guard and is what
+	// extension plugins (gRPC) and theme/extension scripts (Tengo) see.
+	// The guard reads CallerInfo from context and denies any non-internal
+	// caller that lacks the required capability declared in extension.json.
+	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, nil, nodeTypeSvc, emailDispatcher, app, secretsSvc)
+	guardedAPI := coreapi.NewCapabilityGuard(coreAPI)
 
 	// Theme scripting engine (theme .tgo scripts are loaded later, after
 	// extensions have subscribed and after the theme is activated).
-	scriptEngine := scripting.NewScriptEngine(eventBus, coreAPI)
+	scriptEngine := scripting.NewScriptEngine(eventBus, guardedAPI)
 	// Wire script engine into theme management so runtime activation loads Tengo scripts.
 	themeMgmtSvc.SetScriptLoader(scriptEngine.LoadThemeScripts, scriptEngine.UnloadThemeScripts)
 
@@ -209,7 +277,10 @@ func main() {
 	nodeHandler.RegisterPublicRoutes(publicAPI)
 
 	// --- Admin API routes (session auth required) ---
-	adminAPI := app.Group("/admin/api", auth.AuthRequired(sessionSvc))
+	// AuthRequired runs first so the request has a user context; the JSON-only
+	// CSRF guard runs second on every mutation method (POST/PUT/PATCH/DELETE)
+	// to stop cross-origin form submissions even if a stale session leaks.
+	adminAPI := app.Group("/admin/api", auth.AuthRequired(sessionSvc), auth.JSONOnlyMutations())
 	userHandler.RegisterRoutes(adminAPI)
 	nodeHandler.RegisterRoutes(adminAPI)
 	nodeTypeHandler.RegisterRoutes(adminAPI)
@@ -249,16 +320,27 @@ func main() {
 		PublicHandler:    publicHandler,
 	})
 	mcpServer.Mount(app)
+	// Daily sweep of mcp_audit_log older than mcp_audit_retention_days
+	// (default 90). Each MCP tool call writes a row, so this can grow fast.
+	mcpServer.StartAuditCleanupLoop(bgCtx, 24*time.Hour)
 
 	// Plugin manager for gRPC extension plugins.
-	hostRegistrar := cms.HostServerRegistrar(func(slug string, capabilities map[string]bool) func(s *grpc.Server) {
-		caller := coreapi.CallerInfo{Slug: slug, Type: "grpc", Capabilities: capabilities}
-		hostServer := coreapi.NewGRPCHostServer(coreAPI, caller)
+	// Plugins receive the capability-guarded CoreAPI — every method call from
+	// the plugin is checked against the capabilities declared in its
+	// extension.json manifest.
+	hostRegistrar := cms.HostServerRegistrar(func(slug string, capabilities map[string]bool, ownedTables map[string]bool) func(s *grpc.Server) {
+		caller := coreapi.CallerInfo{
+			Slug:         slug,
+			Type:         "grpc",
+			Capabilities: capabilities,
+			OwnedTables:  ownedTables,
+		}
+		hostServer := coreapi.NewGRPCHostServer(guardedAPI, caller)
 		return func(s *grpc.Server) {
 			pb.RegisterVibeCMSHostServer(s, hostServer)
 		}
 	})
-	pluginManager := cms.NewPluginManager(eventBus, hostRegistrar)
+	pluginManager := cms.NewPluginManager(eventBus, hostRegistrar, database)
 	defer pluginManager.StopAll()
 
 	// Start plugins for already-active extensions.
@@ -266,7 +348,8 @@ func main() {
 		var manifest cms.ExtensionManifest
 		_ = json.Unmarshal(ext.Manifest, &manifest)
 		caps := manifest.CapabilityMap()
-		if err := pluginManager.StartPlugins(ext.Path, ext.Slug, json.RawMessage(ext.Manifest), caps); err != nil {
+		owned := manifest.OwnedTablesMap()
+		if err := pluginManager.StartPlugins(ext.Path, ext.Slug, json.RawMessage(ext.Manifest), caps, owned); err != nil {
 			log.Printf("WARN: extension %s plugin start failed: %v", ext.Slug, err)
 		}
 		// Announce the extension is active so other extensions can react —
@@ -342,70 +425,11 @@ func main() {
 	// Fallback static handler for when extension is not active.
 	app.Static("/media", "./storage/media")
 
-	// --- Public block assets ---
-	// Serves /extensions/<slug>/blocks/<dir>/<file> from extensions/<slug>/blocks/<dir>/
-	// for public-facing block CSS/JS shipped alongside view.html. Only serves
-	// files inside the block directory (path-traversal rejected) and only for
-	// known static extensions (.css, .js, .map, .woff2, images).
-	app.Get("/extensions/:slug/blocks/:dir/*", func(c *fiber.Ctx) error {
-		slug := c.Params("slug")
-		dir := c.Params("dir")
-		rel := c.Params("*")
-		if slug == "" || dir == "" || rel == "" {
-			return c.SendStatus(fiber.StatusNotFound)
-		}
-		// Whitelist file extensions to avoid leaking sources / configs.
-		allowed := map[string]bool{
-			".css": true, ".js": true, ".map": true, ".woff": true, ".woff2": true,
-			".ttf": true, ".otf": true, ".svg": true, ".png": true, ".jpg": true,
-			".jpeg": true, ".webp": true, ".gif": true, ".ico": true,
-		}
-		if !allowed[strings.ToLower(filepath.Ext(rel))] {
-			return c.SendStatus(fiber.StatusForbidden)
-		}
-		base := filepath.Clean(filepath.Join("extensions", slug, "blocks", dir))
-		full := filepath.Clean(filepath.Join(base, rel))
-		if !strings.HasPrefix(full, base+string(filepath.Separator)) && full != base {
-			return c.SendStatus(fiber.StatusBadRequest)
-		}
-		return c.SendFile(full, true)
-	})
-
-	// --- Theme static assets ---
-	// Dynamic: the active theme can change at runtime via
-	// /admin/api/themes/:id/activate. We resolve the active theme's assets
-	// directory per request (with an atomic-pointer cache refreshed on
-	// theme.activated events) so asset URLs always point at the live theme.
+	// --- Public block + theme assets + admin SPA static mounts ---
+	registerBlockAssets(app)
 	themeAssetsDir := newThemeAssetsResolver(database, eventBus, themePath)
-	app.Get("/theme/assets/*", func(c *fiber.Ctx) error {
-		rel := c.Params("*")
-		// Reject any path that tries to escape via "..".
-		clean := filepath.Clean("/" + rel)
-		if clean == "/" || clean == "." {
-			return c.SendStatus(fiber.StatusNotFound)
-		}
-		full := filepath.Join(themeAssetsDir.Get(), clean)
-		return c.SendFile(full, true)
-	})
-
-	// --- Admin SPA ---
-	// Hashed assets: cache forever
-	app.Static("/admin/assets", "./admin-ui/dist/assets", fiber.Static{
-		MaxAge: 31536000, // 1 year — filenames are hashed by Vite
-	})
-	// Shims, previews, extension UIs: no cache — unhashed filenames
-	noCache := func(c *fiber.Ctx) error {
-		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		return c.Next()
-	}
-	app.Use("/admin/shims", noCache)
-	app.Static("/admin/shims", "./admin-ui/dist/shims")
-	app.Use("/admin/previews", noCache)
-	app.Static("/admin/previews", "./admin-ui/dist/previews")
-	app.Get("/admin/*", func(c *fiber.Ctx) error {
-		c.Set("Cache-Control", "no-cache")
-		return c.SendFile("./admin-ui/dist/index.html")
-	})
+	registerThemeAssets(app, themeAssetsDir)
+	registerAdminSPA(app)
 
 	// --- Theme script API routes ---
 	scriptEngine.MountHTTPRoutes(app)
@@ -432,8 +456,15 @@ func main() {
 	<-quit
 
 	log.Println("shutting down gracefully...")
-	if err := app.Shutdown(); err != nil {
-		log.Fatalf("server shutdown error: %v", err)
+	// Bounded shutdown — without a timeout, in-flight SSE streams or hung
+	// MCP calls would block forever. Cancel the background context first
+	// so cleanup loops exit before app.Shutdown waits on connections.
+	bgCancel()
+	if err := app.ShutdownWithTimeout(30 * time.Second); err != nil {
+		// Don't log.Fatalf here — that calls os.Exit(1) which skips the
+		// `defer pluginManager.StopAll()` above. Returning normally lets
+		// every defer run.
+		log.Printf("server shutdown error: %v", err)
 	}
 	log.Println("VibeCMS stopped")
 }

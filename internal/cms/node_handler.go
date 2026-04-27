@@ -2,9 +2,7 @@ package cms
 
 import (
 	"encoding/json"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -37,189 +35,6 @@ func (h *NodeHandler) RegisterRoutes(router fiber.Router) {
 	router.Delete("/nodes/:id", h.Delete)
 	router.Get("/nodes/:id/translations", h.GetTranslations)
 	router.Post("/nodes/:id/translations", h.CreateTranslation)
-}
-
-// ListTaxonomies handles GET /taxonomies.
-func (h *NodeHandler) ListTaxonomies(c *fiber.Ctx) error {
-	var list []models.Taxonomy
-	if err := h.db.Order("label ASC").Find(&list).Error; err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch taxonomies")
-	}
-	return api.Success(c, list)
-}
-
-// GetTaxonomy handles GET /taxonomies/:slug.
-func (h *NodeHandler) GetTaxonomy(c *fiber.Ctx) error {
-	slug := c.Params("slug")
-	var t models.Taxonomy
-	if err := h.db.Where("slug = ?", slug).First(&t).Error; err != nil {
-		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Taxonomy not found")
-	}
-	return api.Success(c, t)
-}
-
-// CreateTaxonomy handles POST /taxonomies.
-func (h *NodeHandler) CreateTaxonomy(c *fiber.Ctx) error {
-	var t models.Taxonomy
-	if err := c.BodyParser(&t); err != nil {
-		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
-	}
-
-	if t.Slug == "" {
-		t.Slug = slugify(t.Label)
-	}
-
-	if err := h.db.Create(&t).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key") {
-			return api.Error(c, fiber.StatusConflict, "SLUG_CONFLICT", "Taxonomy slug already exists")
-		}
-		return api.Error(c, fiber.StatusInternalServerError, "CREATE_FAILED", "Failed to create taxonomy")
-	}
-
-	return api.Created(c, t)
-}
-
-// UpdateTaxonomy handles PATCH /taxonomies/:slug.
-func (h *NodeHandler) UpdateTaxonomy(c *fiber.Ctx) error {
-	slug := c.Params("slug")
-	var updates map[string]interface{}
-	if err := c.BodyParser(&updates); err != nil {
-		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
-	}
-
-	delete(updates, "id")
-	delete(updates, "slug")
-	delete(updates, "created_at")
-	delete(updates, "updated_at")
-
-	// Marshal JSONB fields if present
-	if fs, ok := updates["field_schema"]; ok && fs != nil {
-		b, _ := json.Marshal(fs)
-		updates["field_schema"] = models.JSONB(b)
-	}
-
-	if err := h.db.Model(&models.Taxonomy{}).Where("slug = ?", slug).Updates(updates).Error; err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to update taxonomy")
-	}
-
-	var t models.Taxonomy
-	h.db.Where("slug = ?", slug).First(&t)
-	return api.Success(c, t)
-}
-
-// DeleteTaxonomy handles DELETE /taxonomies/:slug.
-func (h *NodeHandler) DeleteTaxonomy(c *fiber.Ctx) error {
-	slug := c.Params("slug")
-	if err := h.db.Where("slug = ?", slug).Delete(&models.Taxonomy{}).Error; err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", "Failed to delete taxonomy")
-	}
-	return c.SendStatus(fiber.StatusNoContent)
-}
-
-// ListTerms handles GET /terms/:node_type/:taxonomy.
-func (h *NodeHandler) ListTerms(c *fiber.Ctx) error {
-	nodeType := c.Params("node_type")
-	taxonomy := c.Params("taxonomy")
-
-	var terms []models.TaxonomyTerm
-	err := h.db.Where("node_type = ? AND taxonomy = ?", nodeType, taxonomy).
-		Order("name ASC").Find(&terms).Error
-	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch terms")
-	}
-
-	return api.Success(c, terms)
-}
-
-// GetTerm handles GET /terms/:id.
-func (h *NodeHandler) GetTerm(c *fiber.Ctx) error {
-	id, _ := strconv.Atoi(c.Params("id"))
-	var term models.TaxonomyTerm
-	if err := h.db.First(&term, id).Error; err != nil {
-		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Term not found")
-	}
-	return api.Success(c, term)
-}
-
-// CreateTerm handles POST /terms/:node_type/:taxonomy.
-func (h *NodeHandler) CreateTerm(c *fiber.Ctx) error {
-	nodeType := c.Params("node_type")
-	taxonomy := c.Params("taxonomy")
-
-	var term models.TaxonomyTerm
-	if err := c.BodyParser(&term); err != nil {
-		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
-	}
-
-	term.NodeType = nodeType
-	term.Taxonomy = taxonomy
-	if term.Slug == "" {
-		term.Slug = slugify(term.Name)
-	}
-
-	if err := h.db.Create(&term).Error; err != nil {
-		if strings.Contains(err.Error(), "duplicate key") {
-			return api.Error(c, fiber.StatusConflict, "SLUG_CONFLICT", "Term slug already exists")
-		}
-		return api.Error(c, fiber.StatusInternalServerError, "CREATE_FAILED", "Failed to create term")
-	}
-
-	return api.Created(c, term)
-}
-
-// UpdateTerm handles PATCH /terms/:id.
-func (h *NodeHandler) UpdateTerm(c *fiber.Ctx) error {
-	id, _ := strconv.Atoi(c.Params("id"))
-	var updates map[string]interface{}
-	if err := c.BodyParser(&updates); err != nil {
-		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
-	}
-
-	delete(updates, "id")
-	delete(updates, "created_at")
-	delete(updates, "updated_at")
-
-	if err := h.db.Model(&models.TaxonomyTerm{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to update term")
-	}
-
-	var term models.TaxonomyTerm
-	h.db.First(&term, id)
-	return api.Success(c, term)
-}
-
-// DeleteTerm handles DELETE /terms/:id.
-func (h *NodeHandler) DeleteTerm(c *fiber.Ctx) error {
-	id, _ := strconv.Atoi(c.Params("id"))
-	if err := h.db.Delete(&models.TaxonomyTerm{}, id).Error; err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", "Failed to delete term")
-	}
-	return c.SendStatus(fiber.StatusNoContent)
-}
-
-// ListTaxonomyTerms handles GET /taxonomies/:node_type/:taxonomy/terms.
-func (h *NodeHandler) ListTaxonomyTerms(c *fiber.Ctx) error {
-	nodeType := c.Params("node_type")
-	taxonomy := c.Params("taxonomy")
-
-	if nodeType == "" || taxonomy == "" {
-		return api.Error(c, fiber.StatusBadRequest, "INVALID_PARAMS", "Node type and taxonomy are required")
-	}
-
-	terms := []string{}
-	err := h.db.Table("(?) as t",
-		h.db.Table("content_nodes").
-			Select("jsonb_array_elements_text(taxonomies->?) as term", taxonomy).
-			Where("node_type = ? AND deleted_at IS NULL", nodeType)).
-		Select("DISTINCT term").
-		Order("term ASC").
-		Scan(&terms).Error
-
-	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch taxonomy terms")
-	}
-
-	return api.Success(c, terms)
 }
 
 // RegisterPublicRoutes registers read-only public API routes (no auth required).
@@ -279,33 +94,6 @@ func (h *NodeHandler) CreateTranslation(c *fiber.Ctx) error {
 	return api.Created(c, node)
 }
 
-// SetHomepage sets a node as the site homepage.
-func (h *NodeHandler) SetHomepage(c *fiber.Ctx) error {
-	id := c.Params("id")
-	result := h.db.Exec(
-		`INSERT INTO site_settings (key, value, updated_at) VALUES ('homepage_node_id', ?, NOW())
-		 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`, id,
-	)
-	if result.Error != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to set homepage")
-	}
-	if h.eventBus != nil {
-		go h.eventBus.Publish("setting.updated", events.Payload{
-			"key":   "homepage_node_id",
-			"value": id,
-		})
-	}
-	return api.Success(c, fiber.Map{"message": "Homepage set", "node_id": id})
-}
-
-// GetHomepage returns the current homepage node ID.
-func (h *NodeHandler) GetHomepage(c *fiber.Ctx) error {
-	var value string
-	h.db.Raw("SELECT value FROM site_settings WHERE key = 'homepage_node_id'").Scan(&value)
-	id, _ := strconv.Atoi(value)
-	return api.Success(c, fiber.Map{"homepage_node_id": id})
-}
-
 // Search handles GET /nodes/search for lightweight node lookup.
 // Query params: q (search term), node_type (filter by type), limit (max results, default 20)
 func (h *NodeHandler) Search(c *fiber.Ctx) error {
@@ -319,8 +107,23 @@ func (h *NodeHandler) Search(c *fiber.Ctx) error {
 		limit = 100
 	}
 
+	user := auth.GetCurrentUser(c)
+	userID := 0
+	if user != nil {
+		userID = user.ID
+	}
+
+	// Reject the lookup early when the user filtered by a node_type they
+	// can't read — symmetric with List's behaviour.
+	if nodeType != "" {
+		access := auth.GetNodeAccess(user, nodeType)
+		if !access.CanRead() {
+			return api.Success(c, []struct{}{})
+		}
+	}
+
 	query := h.db.Model(&models.ContentNode{}).
-		Select("id, title, slug, node_type, status, language_code").
+		Select("id, title, slug, node_type, status, language_code, author_id").
 		Where("deleted_at IS NULL").
 		Where("node_type IN (?)", h.db.Model(&models.NodeType{}).Select("slug"))
 
@@ -347,16 +150,26 @@ func (h *NodeHandler) Search(c *fiber.Ctx) error {
 		LanguageCode string `json:"language_code"`
 	}
 
-	results := make([]searchResult, len(nodes))
-	for i, n := range nodes {
-		results[i] = searchResult{
+	// Apply per-node-type read access (and scope='own' if applicable). This
+	// matches the filter that List applies — without it, a user who cannot
+	// see `post` in List could still discover post titles via Search.
+	results := make([]searchResult, 0, len(nodes))
+	for _, n := range nodes {
+		access := auth.GetNodeAccess(user, n.NodeType)
+		if !access.CanRead() {
+			continue
+		}
+		if !access.CanAccessNode(userID, n.AuthorID) {
+			continue
+		}
+		results = append(results, searchResult{
 			ID:           n.ID,
 			Title:        n.Title,
 			Slug:         n.Slug,
 			NodeType:     n.NodeType,
 			Status:       n.Status,
 			LanguageCode: n.LanguageCode,
-		}
+		})
 	}
 
 	return api.Success(c, results)
@@ -576,6 +389,21 @@ func (h *NodeHandler) Update(c *fiber.Ctx) error {
 	delete(body, "created_at")
 	delete(body, "updated_at")
 	delete(body, "deleted_at")
+	delete(body, "author_id")  // protected: scope='own' RBAC depends on it.
+	delete(body, "node_type")  // node type is set on Create only — switching it would bypass per-type ACL.
+	delete(body, "full_url")   // computed by buildFullURL on every Create/Update.
+
+	// Validate status against the canonical set. The DB column is a plain
+	// text column without a CHECK constraint (per migrations review), so a
+	// rogue client could otherwise persist arbitrary status strings.
+	if rawStatus, ok := body["status"]; ok {
+		s, _ := rawStatus.(string)
+		if s != "draft" && s != "published" && s != "archived" {
+			return api.ValidationError(c, map[string]string{
+				"status": "Status must be one of: draft, published, archived",
+			})
+		}
+	}
 
 	if len(body) == 0 {
 		return api.Error(c, fiber.StatusBadRequest, "NO_UPDATES", "No valid fields to update")
@@ -661,117 +489,3 @@ func (h *NodeHandler) Delete(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// isSlugConflict checks if an error is a slug/full_url conflict.
-func isSlugConflict(err error) bool {
-	return err != nil && contains(err.Error(), "slug conflict")
-}
-
-// isValidationError checks if an error is a validation error.
-func isValidationError(err error) bool {
-	return err != nil && contains(err.Error(), "invalid slug")
-}
-
-// contains checks if s contains substr (case-insensitive not needed here,
-// since our error messages are controlled).
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func slugify(s string) string {
-	var re = regexp.MustCompile("[^a-z0-9]+")
-	return strings.Trim(re.ReplaceAllString(strings.ToLower(s), "-"), "-")
-}
-
-// PublicList handles GET /api/v1/nodes — public read-only endpoint for published nodes.
-func (h *NodeHandler) PublicList(c *fiber.Ctx) error {
-	nodeType := c.Query("node_type")
-	if nodeType == "" {
-		return api.Error(c, fiber.StatusBadRequest, "MISSING_PARAM", "node_type is required")
-	}
-
-	limit, _ := strconv.Atoi(c.Query("limit", "10"))
-	if limit < 1 {
-		limit = 10
-	}
-	if limit > 50 {
-		limit = 50
-	}
-
-	sort := c.Query("sort", "-published_at")
-	orderClause := "published_at DESC"
-	if sort == "published_at" {
-		orderClause = "published_at ASC"
-	} else if sort == "title" {
-		orderClause = "title ASC"
-	} else if sort == "-title" {
-		orderClause = "title DESC"
-	}
-
-	type publicNode struct {
-		ID          int              `json:"id"`
-		Title       string           `json:"title"`
-		Slug        string           `json:"slug"`
-		FullURL     string           `json:"full_url"`
-		NodeType    string           `json:"node_type"`
-		Excerpt     string           `json:"excerpt"`
-		PublishedAt *string          `json:"published_at"`
-		FieldsData  json.RawMessage  `json:"fields_data"`
-	}
-
-	search := c.Query("search")
-
-	var nodes []models.ContentNode
-	query := h.db.
-		Where("node_type = ? AND status = 'published' AND deleted_at IS NULL", nodeType)
-
-	if search != "" {
-		searchTerm := "%" + search + "%"
-		query = query.Where("title ILIKE ? OR slug ILIKE ?", searchTerm, searchTerm)
-	}
-
-	query = query.Order(orderClause).Limit(limit)
-
-	if err := query.Find(&nodes).Error; err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "QUERY_FAILED", "Failed to query nodes")
-	}
-
-	results := make([]publicNode, len(nodes))
-	for i, n := range nodes {
-		var pubAt *string
-		if n.PublishedAt != nil {
-			s := n.PublishedAt.Format("2006-01-02T15:04:05Z")
-			pubAt = &s
-		}
-		// Extract excerpt from fields_data if available
-		excerpt := ""
-		if len(n.FieldsData) > 0 {
-			var fd map[string]any
-			if json.Unmarshal(n.FieldsData, &fd) == nil {
-				if ex, ok := fd["excerpt"].(string); ok {
-					excerpt = ex
-				}
-			}
-		}
-		results[i] = publicNode{
-			ID:          n.ID,
-			Title:       n.Title,
-			Slug:        n.Slug,
-			FullURL:     n.FullURL,
-			NodeType:    n.NodeType,
-			Excerpt:     excerpt,
-			PublishedAt: pubAt,
-			FieldsData:  json.RawMessage(n.FieldsData),
-		}
-	}
-
-	return api.Success(c, results)
-}
