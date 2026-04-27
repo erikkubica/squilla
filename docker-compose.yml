@@ -18,6 +18,11 @@ services:
       MONITOR_BEARER_TOKEN: change-me-to-a-random-token
       STORAGE_DRIVER: local
       STORAGE_PATH: /app/storage
+      # Dev defaults so smoke tests / local login keep working.
+      # In production (coolify-compose.yml) ADMIN_PASSWORD is unset, so
+      # a random one is generated and printed to logs on first boot.
+      ADMIN_EMAIL: admin@vibecms.local
+      ADMIN_PASSWORD: admin123
     volumes:
       - ./storage:/app/storage
     depends_on:

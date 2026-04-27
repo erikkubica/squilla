@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config holds all application configuration values loaded from environment variables.
@@ -24,8 +26,10 @@ type Config struct {
 }
 
 // Load reads configuration from environment variables with sensible defaults.
+// If DATABASE_URL is set (postgres://user:pass@host:port/dbname?sslmode=...),
+// it takes precedence over individual DB_* variables.
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		Port:               envOrDefault("PORT", "8080"),
 		AppEnv:             envOrDefault("APP_ENV", "development"),
 		DBHost:             envOrDefault("DB_HOST", "localhost"),
@@ -39,6 +43,37 @@ func Load() *Config {
 		MonitorBearerToken: envOrDefault("MONITOR_BEARER_TOKEN", ""),
 		StorageDriver:      envOrDefault("STORAGE_DRIVER", "local"),
 		StoragePath:        envOrDefault("STORAGE_PATH", "./storage"),
+	}
+	if dburl := os.Getenv("DATABASE_URL"); dburl != "" {
+		applyDatabaseURL(cfg, dburl)
+	}
+	return cfg
+}
+
+// applyDatabaseURL parses a postgres:// URL and overrides individual DB_* fields.
+// Invalid URLs are silently ignored so DB_* fallback remains usable.
+func applyDatabaseURL(cfg *Config, dburl string) {
+	u, err := url.Parse(dburl)
+	if err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") {
+		return
+	}
+	if u.Hostname() != "" {
+		cfg.DBHost = u.Hostname()
+	}
+	if u.Port() != "" {
+		cfg.DBPort = u.Port()
+	}
+	if u.User != nil {
+		cfg.DBUser = u.User.Username()
+		if pw, ok := u.User.Password(); ok {
+			cfg.DBPassword = pw
+		}
+	}
+	if name := strings.TrimPrefix(u.Path, "/"); name != "" {
+		cfg.DBName = name
+	}
+	if ssl := u.Query().Get("sslmode"); ssl != "" {
+		cfg.DBSSLMode = ssl
 	}
 }
 

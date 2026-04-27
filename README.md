@@ -51,6 +51,22 @@ docker compose up --build
 | `THEME_PATH` | `themes/default` | Path to active theme |
 | `APP_ENV` | `production` | `development` disables template caching |
 | `PORT` | `3000` | HTTP port |
+| `DATABASE_URL` | _(unset)_ | Optional: `postgres://user:pass@host:port/db?sslmode=disable`. Overrides individual `DB_*` vars when set. |
+| `ADMIN_EMAIL` | `admin@vibecms.local` | Email for the auto-seeded admin user (first boot only). |
+| `ADMIN_PASSWORD` | _(unset)_ | If unset, a random password is generated on first boot and printed to the app logs **once**. Set this to skip the random one. |
+
+## Deploy on Coolify
+
+VibeCMS ships a `coolify-compose.yml` for zero-config deployment:
+
+1. In Coolify, create a new **Resource → Public Repository** and point it at this repo.
+2. Build pack: **Docker Compose**. Compose file: **`coolify-compose.yml`**.
+3. Set the **Domain** for the `app` service (Coolify fills `SERVICE_FQDN_APP` and provisions TLS).
+4. Click **Deploy**.
+
+Coolify auto-generates the database credentials, session secret, and monitor token via its `SERVICE_*` magic variables — nothing for you to fill in. The first admin password is generated on first boot and printed to the `app` container logs **once** (search the logs for `first-boot admin credentials`). To pre-set credentials, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars to the `app` service before the first deploy.
+
+The pre-built image is published to `ghcr.io/erikkubica/vibecms:latest` (multi-arch, amd64 + arm64).
 
 ## Architecture
 

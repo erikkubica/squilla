@@ -838,14 +838,14 @@ func grpcError(err error) error {
 	if errors.As(err, &apiErr) {
 		switch {
 		case errors.Is(apiErr.Code, ErrNotFound):
-			return status.Errorf(codes.NotFound, apiErr.Message)
+			return status.Error(codes.NotFound, apiErr.Message)
 		case errors.Is(apiErr.Code, ErrCapabilityDenied):
-			return status.Errorf(codes.PermissionDenied, apiErr.Message)
+			return status.Error(codes.PermissionDenied, apiErr.Message)
 		case errors.Is(apiErr.Code, ErrValidation):
-			return status.Errorf(codes.InvalidArgument, apiErr.Message)
+			return status.Error(codes.InvalidArgument, apiErr.Message)
 		case errors.Is(apiErr.Code, ErrInternal):
-			return status.Errorf(codes.Internal, apiErr.Message)
+			return status.Error(codes.Internal, apiErr.Message)
 		}
 	}
-	return status.Errorf(codes.Internal, err.Error())
+	return status.Error(codes.Internal, err.Error())
 }

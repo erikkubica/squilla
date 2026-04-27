@@ -1,6 +1,7 @@
 package email
 
 import (
+	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -117,7 +118,7 @@ func (s *LogService) Resend(id int) error {
 		newLog.Status = "failed"
 		newLog.ErrorMessage = &errMsg
 		s.Create(newLog)
-		return fmt.Errorf(errMsg)
+		return errors.New(errMsg)
 	}
 
 	pName := provider.Name()

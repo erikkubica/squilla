@@ -1,8 +1,13 @@
 package db
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -225,29 +230,74 @@ func seedRoles(db *gorm.DB) error {
 }
 
 func seedAdminUser(db *gorm.DB) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("failed to hash admin password: %w", err)
-	}
-
 	var adminRole models.Role
 	if err := db.Where("slug = ?", "admin").First(&adminRole).Error; err != nil {
 		return fmt.Errorf("failed to find admin role: %w", err)
 	}
 
+	email := envOr("ADMIN_EMAIL", "admin@vibecms.local")
+
+	var existing models.User
+	err := db.Where("email = ?", email).First(&existing).Error
+	if err == nil {
+		return nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return fmt.Errorf("failed to check existing admin: %w", err)
+	}
+
+	password := os.Getenv("ADMIN_PASSWORD")
+	generated := false
+	if password == "" {
+		password, err = generateRandomPassword(24)
+		if err != nil {
+			return fmt.Errorf("failed to generate admin password: %w", err)
+		}
+		generated = true
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash admin password: %w", err)
+	}
+
 	fullName := "Admin"
 	admin := models.User{
-		Email:        "admin@vibecms.local",
+		Email:        email,
 		PasswordHash: string(hash),
 		RoleID:       adminRole.ID,
 		FullName:     &fullName,
 	}
+	if err := db.Create(&admin).Error; err != nil {
+		return fmt.Errorf("failed to create admin user: %w", err)
+	}
 
-	result := db.Where("email = ?", admin.Email).FirstOrCreate(&admin)
-	if result.Error != nil {
-		return fmt.Errorf("failed to seed admin user: %w", result.Error)
+	if generated {
+		banner := strings.Repeat("=", 72)
+		log.Printf("\n%s\n VibeCMS first-boot admin credentials (shown ONCE — change immediately)\n   Email:    %s\n   Password: %s\n%s\n", banner, email, password, banner)
 	}
 	return nil
+}
+
+// generateRandomPassword returns a URL-safe base64 string of approximately the
+// requested length, derived from crypto/rand.
+func generateRandomPassword(length int) (string, error) {
+	n := length * 3 / 4
+	if n < 12 {
+		n = 12
+	}
+	buf := make([]byte, n)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf)[:length], nil
+}
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func seedContentNode(db *gorm.DB) error {
