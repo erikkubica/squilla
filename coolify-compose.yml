@@ -21,10 +21,16 @@ services:
       - PORT=8099
       - APP_ENV=production
       # Magic-var declarations: Coolify auto-generates the SERVICE_*
-      # values (FQDN from the bound domain, BASE64/PASSWORD from random
+      # values (URL from the bound domain, BASE64/PASSWORD from random
       # bytes) and exports them into the deploy shell, where the
       # ${VAR:-default} substitutions below pick them up.
-      - SERVICE_FQDN_APP_8099
+      #
+      # SERVICE_FQDN_APP_8099 is intentionally NOT used: Coolify fills
+      # it with the auto-generated internal subdomain (something like
+      # app-xxx.example.com:8099), not the user-bound domain — wrong
+      # for CORS. SERVICE_URL_APP carries the actual public origin
+      # ("https://your-domain.tld") whenever a domain is bound.
+      - SERVICE_URL_APP
       - SERVICE_BASE64_SECRETKEY
       - SERVICE_BASE64_64_SESSION
       - SERVICE_BASE64_64_MONITOR
@@ -34,7 +40,7 @@ services:
       # Coolify dashboard's Environment Variables tab wins, falling back
       # to the magic-generated value otherwise. Without the override
       # form, compose's environment: block would clobber UI overrides.
-      - CORS_ORIGINS=${CORS_ORIGINS:-https://$SERVICE_FQDN_APP_8099}
+      - CORS_ORIGINS=${CORS_ORIGINS:-$SERVICE_URL_APP}
       # AES-256 master key (32 raw bytes after base64 decode). Override
       # in the UI by pasting `openssl rand -base64 32`.
       - VIBECMS_SECRET_KEY=${VIBECMS_SECRET_KEY:-$SERVICE_BASE64_SECRETKEY}
