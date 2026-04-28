@@ -351,10 +351,38 @@ func parseNodeID(idVal interface{}) int {
 	return 0
 }
 
+// isMediaLikeMap reports whether m looks like a media-file or asset object
+// rather than a node reference. The hydrator must NOT treat its `id` as a
+// content-node id, otherwise a feature card with `{image: {id: 2, url: ...}}`
+// gets its image silently replaced by node #2's data and the rendered <img>
+// tag ends up with src="" (because the swapped node has no url field).
+//
+// Heuristic: media objects always carry url/mime_type/width/height. Node
+// references at this stage carry only `id` (or id + slug placeholder).
+// Presence of any of these media-only keys is a hard signal to skip hydration.
+func isMediaLikeMap(m map[string]interface{}) bool {
+	if _, ok := m["url"]; ok {
+		return true
+	}
+	if _, ok := m["mime_type"]; ok {
+		return true
+	}
+	if _, ok := m["width"]; ok {
+		return true
+	}
+	if _, ok := m["height"]; ok {
+		return true
+	}
+	return false
+}
+
 func collectNodeIDs(fields map[string]interface{}, nodeIDs map[int]bool) {
 	for _, val := range fields {
 		switch v := val.(type) {
 		case map[string]interface{}:
+			if isMediaLikeMap(v) {
+				continue
+			}
 			if idVal, hasID := v["id"]; hasID {
 				if id := parseNodeID(idVal); id > 0 {
 					nodeIDs[id] = true
@@ -363,9 +391,13 @@ func collectNodeIDs(fields map[string]interface{}, nodeIDs map[int]bool) {
 		case []interface{}:
 			if len(v) > 0 {
 				if first, ok := v[0].(map[string]interface{}); ok {
-					if _, hasID := first["id"]; hasID {
+					_, firstHasID := first["id"]
+					if firstHasID && !isMediaLikeMap(first) {
 						for _, item := range v {
 							if m, ok := item.(map[string]interface{}); ok {
+								if isMediaLikeMap(m) {
+									continue
+								}
 								if idVal, hasID := m["id"]; hasID {
 									if id := parseNodeID(idVal); id > 0 {
 										nodeIDs[id] = true
@@ -390,6 +422,9 @@ func applyHydratedNodes(fields map[string]interface{}, nodeMap map[int]map[strin
 	for key, val := range fields {
 		switch v := val.(type) {
 		case map[string]interface{}:
+			if isMediaLikeMap(v) {
+				continue
+			}
 			if idVal, hasID := v["id"]; hasID {
 				if id := parseNodeID(idVal); id > 0 {
 					if hydrated, ok := nodeMap[id]; ok {
@@ -400,9 +435,13 @@ func applyHydratedNodes(fields map[string]interface{}, nodeMap map[int]map[strin
 		case []interface{}:
 			if len(v) > 0 {
 				if first, ok := v[0].(map[string]interface{}); ok {
-					if _, hasID := first["id"]; hasID {
+					_, firstHasID := first["id"]
+					if firstHasID && !isMediaLikeMap(first) {
 						for i, item := range v {
 							if m, ok := item.(map[string]interface{}); ok {
+								if isMediaLikeMap(m) {
+									continue
+								}
 								if idVal, hasID := m["id"]; hasID {
 									if id := parseNodeID(idVal); id > 0 {
 										if hydrated, ok := nodeMap[id]; ok {
