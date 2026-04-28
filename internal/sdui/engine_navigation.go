@@ -7,6 +7,36 @@ import (
 	"vibecms/internal/models"
 )
 
+// canReadNodeType mirrors auth.GetNodeAccess(...).CanRead() but is duplicated
+// here to avoid an import cycle (sdui ← api ← auth → api). Resolution order:
+// per-type override in `nodes.<slug>` → `default_node_access` → "none".
+//
+// Keep in sync with auth/rbac_middleware.go's GetNodeAccess.
+func canReadNodeType(user *models.User, slug string) bool {
+	if user == nil {
+		return false
+	}
+	var caps map[string]interface{}
+	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
+		return false
+	}
+	access := "none"
+	if nodes, ok := caps["nodes"].(map[string]interface{}); ok {
+		if override, ok := nodes[slug].(map[string]interface{}); ok {
+			if a, ok := override["access"].(string); ok {
+				access = a
+			}
+			return access == "read" || access == "write"
+		}
+	}
+	if def, ok := caps["default_node_access"].(map[string]interface{}); ok {
+		if a, ok := def["access"].(string); ok {
+			access = a
+		}
+	}
+	return access == "read" || access == "write"
+}
+
 // buildNavigation assembles the admin sidebar tree returned by
 // GenerateBootManifest. Lives in its own file because it's the
 // largest non-page-layout method on Engine and conceptually
@@ -17,7 +47,12 @@ import (
 // Development / Settings) each with kernel items followed by any
 // extension items routed to that section via
 // admin_ui.menu.section in the extension manifest.
-func (e *Engine) buildNavigation(nodeTypes []models.NodeType, taxonomies []models.Taxonomy, exts []models.Extension) []NavItem {
+//
+// Per-user filtering: node-type entries are dropped when the user's
+// effective access for that type resolves to "none". Defense in depth —
+// API capability guards still reject direct calls — but hiding the link
+// is what the user sees, so this is where capability edits visibly land.
+func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType, taxonomies []models.Taxonomy, exts []models.Extension) []NavItem {
 	var nav []NavItem
 
 	// Helper: resolve display label with fallback.
@@ -160,6 +195,14 @@ func (e *Engine) buildNavigation(nodeTypes []models.NodeType, taxonomies []model
 	nav = append(nav, NavItem{ID: "section-content", Label: "Content", IsSection: true})
 
 	for _, nt := range nodeTypes {
+		// Capability gate: skip types the current user has no read access to.
+		// Resolves per-type override first then default_node_access — same
+		// rules as the API guards, so the sidebar is exactly the set of types
+		// the user could actually open.
+		if !canReadNodeType(user, nt.Slug) {
+			continue
+		}
+
 		// Build sub-items for this node type: main listing + any taxonomies.
 		basePath := pathForType(nt.Slug)
 		displayLabel := labelFor(nt)

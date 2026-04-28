@@ -9,18 +9,23 @@ import (
 
 	"vibecms/internal/api"
 	"vibecms/internal/auth"
+	"vibecms/internal/events"
 	"vibecms/internal/models"
 )
 
 // RoleHandler provides admin API endpoints for role management.
 // All endpoints require "manage_roles" capability.
 type RoleHandler struct {
-	db *gorm.DB
+	db       *gorm.DB
+	eventBus *events.EventBus
 }
 
-// NewRoleHandler creates a new RoleHandler with the given database connection.
-func NewRoleHandler(db *gorm.DB) *RoleHandler {
-	return &RoleHandler{db: db}
+// NewRoleHandler creates a new RoleHandler. The eventBus is used to publish
+// role.{created,updated,deleted} so the SDUI broadcaster can fan them out
+// over SSE — every connected admin client refetches its boot manifest, which
+// is how capability changes propagate to the sidebar without a page reload.
+func NewRoleHandler(db *gorm.DB, eventBus *events.EventBus) *RoleHandler {
+	return &RoleHandler{db: db, eventBus: eventBus}
 }
 
 // RegisterRoutes registers all role and system-action routes on the provided router group.
@@ -104,6 +109,8 @@ func (h *RoleHandler) Create(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "CREATE_FAILED", "Failed to create role")
 	}
 
+	h.publish("role.created", role.ID, role.Slug)
+
 	return api.Created(c, role)
 }
 
@@ -148,6 +155,9 @@ func (h *RoleHandler) Update(c *fiber.Ctx) error {
 
 	// Reload to return fresh data.
 	h.db.First(&role, id)
+
+	h.publish("role.updated", role.ID, role.Slug)
+
 	return api.Success(c, role)
 }
 
@@ -183,7 +193,27 @@ func (h *RoleHandler) Delete(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", "Failed to delete role")
 	}
 
+	h.publish("role.deleted", role.ID, role.Slug)
+
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// publish emits a role lifecycle event onto the bus. The SDUI broadcaster
+// translates "role.*" actions into ENTITY_CHANGED SSE messages with
+// entity="role"; the admin shell maps that to a boot-manifest invalidation,
+// which is how capability edits flip the sidebar in real time.
+//
+// Best-effort: if the bus is nil (test wiring) we silently no-op rather than
+// failing the HTTP request — the role write already succeeded.
+func (h *RoleHandler) publish(action string, id int, slug string) {
+	if h.eventBus == nil {
+		return
+	}
+	go h.eventBus.Publish(action, events.Payload{
+		"id":      id,
+		"role_id": id,
+		"slug":    slug,
+	})
 }
 
 // ListSystemActions handles GET /system-actions to retrieve all system actions.

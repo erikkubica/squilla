@@ -189,7 +189,7 @@ func main() {
 	taxonomyHandler := cms.NewTaxonomyHandler(database, eventBus)
 	termHandler := cms.NewTermHandler(database)
 	healthHandler := api.NewHealthHandler(database)
-	roleHandler := rbac.NewRoleHandler(database)
+	roleHandler := rbac.NewRoleHandler(database, eventBus)
 	settingsHandler := cms.NewSettingsHandler(database, eventBus, secretsSvc)
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, eventBus)
 

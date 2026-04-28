@@ -36,11 +36,15 @@ function routeEvent(event: SSEEventData): QueryKey[] {
       if (event.id !== undefined && event.id !== null) {
         keys.push(qk.entity(event.entity, event.id));
       }
-      // These entities are embedded in the boot manifest.
+      // These entities are embedded in the boot manifest. `role` is here
+      // because user.capabilities are derived from the assigned role on every
+      // boot fetch — when an admin edits a role's capabilities, every client
+      // whose user has that role needs the sidebar regenerated server-side.
       if (
         event.entity === "user" ||
         event.entity === "node_type" ||
-        event.entity === "menu"
+        event.entity === "menu" ||
+        event.entity === "role"
       ) {
         keys.push(qk.boot());
       }

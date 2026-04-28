@@ -98,8 +98,10 @@ func (e *Engine) GenerateBootManifest(user *models.User) (*BootManifest, error) 
 		return nil, err
 	}
 
-	// Build navigation
-	nav := e.buildNavigation(nodeTypes, taxonomies, exts)
+	// Build navigation. The user is passed so node-type entries can be
+	// filtered out for roles whose effective access for that type is "none"
+	// — that's how a capability change makes sidebar items disappear.
+	nav := e.buildNavigation(user, nodeTypes, taxonomies, exts)
 
 	// Build boot node types
 	bootNodeTypes := make([]BootNodeType, 0, len(nodeTypes))
@@ -374,7 +376,6 @@ func isBuiltinNodeType(slug string) bool {
 	return slug == "page" || slug == "post"
 }
 
-
 func (e *Engine) themesLayout() *LayoutNode {
 	var themes []models.Theme
 	e.db.Order("is_active DESC, name ASC").Find(&themes)
@@ -453,4 +454,3 @@ func (e *Engine) defaultLayout(pageSlug string) *LayoutNode {
 		},
 	}
 }
-
