@@ -3,11 +3,40 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 )
+
+// validSSLModes is the closed set of values libpq (and therefore lib/pq +
+// pgx) accepts for the sslmode connection parameter. Anything else fails
+// at connect time with a confusing error, so we normalize early.
+var validSSLModes = map[string]struct{}{
+	"disable":     {},
+	"allow":       {},
+	"prefer":      {},
+	"require":     {},
+	"verify-ca":   {},
+	"verify-full": {},
+}
+
+// sslModeAliases maps user-friendly values to canonical Postgres sslmode.
+// Lets operators write DB_SSLMODE=enabled instead of having to look up
+// the libpq vocabulary; we still write a Postgres-legal value into the DSN.
+var sslModeAliases = map[string]string{
+	"":         "disable",
+	"on":       "require",
+	"true":     "require",
+	"yes":      "require",
+	"enable":   "require",
+	"enabled":  "require",
+	"off":      "disable",
+	"false":    "disable",
+	"no":       "disable",
+	"disabled": "disable",
+}
 
 // ErrUnsafeProduction is returned by Validate when the loaded config has
 // development defaults that are unsafe to run in production.
@@ -58,7 +87,43 @@ func Load() *Config {
 	if dburl := os.Getenv("DATABASE_URL"); dburl != "" {
 		applyDatabaseURL(cfg, dburl)
 	}
+	cfg.DBSSLMode = normalizeSSLMode(cfg.DBSSLMode)
 	return cfg
+}
+
+// normalizeSSLMode maps friendly aliases (enabled/disabled/on/off/...)
+// to libpq-canonical values. Unknown values are returned unchanged so
+// Validate can emit a precise error listing the accepted set.
+func normalizeSSLMode(v string) string {
+	canonical := strings.ToLower(strings.TrimSpace(v))
+	if alias, ok := sslModeAliases[canonical]; ok {
+		return alias
+	}
+	return canonical
+}
+
+// isInternalDBHost reports whether the configured DB host is plausibly on
+// a private network where TLS is impractical and disable is acceptable —
+// docker-compose service names (no dots), localhost, and RFC1918 / link-
+// local / loopback IPs. Public hostnames must still use TLS.
+func isInternalDBHost(host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if host == "" || host == "localhost" {
+		return true
+	}
+	// Single-token hostnames are docker-compose service names — by
+	// construction they only resolve on the compose network.
+	if !strings.Contains(host, ".") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsPrivate() {
+		return true
+	}
+	return false
 }
 
 // Validate checks the configuration for production safety. When AppEnv is
@@ -80,8 +145,17 @@ func (c *Config) Validate() error {
 	if c.DBPassword == "" || c.DBPassword == "vibecms_secret" {
 		problems = append(problems, "DB_PASSWORD is empty or the seed default 'vibecms_secret'")
 	}
-	if c.DBSSLMode == "disable" {
-		problems = append(problems, "DB_SSLMODE=disable (use require/verify-ca/verify-full)")
+	// Reject unknown sslmode values regardless of host — better to fail
+	// loudly here than at connect time with a generic libpq error.
+	if _, ok := validSSLModes[c.DBSSLMode]; !ok {
+		problems = append(problems,
+			fmt.Sprintf("DB_SSLMODE=%q is not a valid Postgres sslmode (use one of: disable, allow, prefer, require, verify-ca, verify-full; or aliases enabled/disabled)", c.DBSSLMode))
+	} else if c.DBSSLMode == "disable" && !isInternalDBHost(c.DBHost) {
+		// disable is only acceptable when the database is on a private
+		// network — docker-compose service name, localhost, or RFC1918.
+		// Public hostnames must use TLS.
+		problems = append(problems,
+			fmt.Sprintf("DB_SSLMODE=disable with public DB host %q (use require/verify-ca/verify-full, or run the DB on the compose private network)", c.DBHost))
 	}
 	if os.Getenv("CORS_ORIGINS") == "" {
 		problems = append(problems, "CORS_ORIGINS is unset (would default to localhost:8099)")

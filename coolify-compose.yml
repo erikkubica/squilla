@@ -21,6 +21,18 @@ services:
       - PORT=8099
       - APP_ENV=production
       - SERVICE_FQDN_APP_8099
+      # Public origin used for CORS allowlist. SERVICE_FQDN_APP_8099 is
+      # filled by Coolify with the user-set domain; falling back to the
+      # raw FQDN keeps single-domain deployments working out of the box.
+      - CORS_ORIGINS=https://$SERVICE_FQDN_APP_8099
+      # AES-256 master key for at-rest encryption of theme git tokens
+      # and secret-shaped settings. SERVICE_BASE64_32 generates a random
+      # 32-byte value base64-encoded — exactly what internal/secrets
+      # expects (32 raw bytes after decode).
+      - VIBECMS_SECRET_KEY=$SERVICE_BASE64_32_SECRETKEY
+      # DB lives on the compose private network (`db` is the service
+      # name, no public DNS). sslmode=disable is acceptable here; the
+      # config validator allows it for non-public DB hosts.
       - DATABASE_URL=postgres://$SERVICE_USER_POSTGRES:$SERVICE_PASSWORD_POSTGRES@db:5432/vibecms?sslmode=disable
       - SESSION_SECRET=$SERVICE_BASE64_64_SESSION
       - SESSION_EXPIRY_HOURS=24
