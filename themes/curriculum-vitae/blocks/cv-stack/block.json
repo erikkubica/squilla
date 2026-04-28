@@ -1,0 +1,47 @@
+{
+  "slug": "cv-stack",
+  "name": "CV Stack",
+  "description": "Section 03 — stack. Pill-style tabs switch between groups; each group lists key/value rows with a dashed bottom border. Languages row appears below.",
+  "category": "curriculum-vitae",
+  "field_schema": [
+    { "key": "section_id", "label": "Anchor id", "type": "text" },
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading", "type": "text" },
+    { "key": "sub",     "label": "Subhead", "type": "textarea" },
+    { "key": "groups", "label": "Tech groups", "type": "repeater",
+      "sub_fields": [
+        { "key": "name", "label": "Group name", "type": "text", "help": "e.g. AI / Agents, Backend, Frontend." },
+        { "key": "rows", "label": "Rows (one per line, format: 'Name || Value')", "type": "textarea",
+          "help": "Each line becomes a stack-row. Separator is ' || ' (space, double-pipe, space)." }
+      ]
+    },
+    { "key": "lang_label", "label": "Languages eyebrow", "type": "text", "help": "Mono label before language list." },
+    { "key": "languages", "label": "Languages", "type": "repeater",
+      "sub_fields": [
+        { "key": "code",  "label": "Code", "type": "text", "help": "e.g. SK, EN, HU." },
+        { "key": "level", "label": "Level", "type": "text", "help": "e.g. native, fluent." }
+      ]
+    }
+  ],
+  "test_data": {
+    "section_id": "stack",
+    "eyebrow": "03 · stack",
+    "heading": "What I actually use.",
+    "sub": "Not every logo in existence — just the things I reach for on a Tuesday.",
+    "groups": [
+      { "name": "AI / Agents",     "rows": "MCP || Building servers + clients\nClaude / GPT / Gemini || Production\nLangGraph / custom orchestration || Production\npgvector / Qdrant || Production\nCursor / Claude Code || Daily driver" },
+      { "name": "Backend",         "rows": "PHP || 13+ yrs · Expert\nSymfony || 8+ yrs · Advanced\nNode.js || Intermediate\nJava / Spring Boot || Intermediate" },
+      { "name": "Frontend",        "rows": "JavaScript || 10+ yrs · Expert\nReact || 5+ yrs · Advanced\nNext.js || 3+ yrs · Advanced\nTypeScript || Advanced" },
+      { "name": "CMS / Commerce",  "rows": "WordPress || 130+ sites · Expert\nWooCommerce || Advanced\nMagento 1.9 & 2 || 3 stores" },
+      { "name": "Data / DevOps",   "rows": "MySQL || 10+ yrs\nPostgreSQL || Advanced\nDocker || Daily\nKubernetes || Intermediate" },
+      { "name": "Testing / QA",    "rows": "Jest || Advanced\nPHPUnit || Advanced\nStorybook || Intermediate\nTDD || Advanced" }
+    ],
+    "lang_label": "languages",
+    "languages": [
+      { "code": "SK", "level": "native" },
+      { "code": "EN", "level": "fluent" },
+      { "code": "HU", "level": "fluent" },
+      { "code": "CZ", "level": "fluent" }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{{- /* Curriculum Vitae — stack (section 03). Tab pills + grouped k/v rows. */ -}}
+{{- $sid := or .section_id "stack" -}}
+<section class="block stack" id="{{ $sid }}" data-stack-root>
+  <header class="block-head">
+    {{ with .eyebrow }}<span class="mono">{{ . }}</span>{{ end }}
+    {{ with .heading }}<h2>{{ . }}</h2>{{ end }}
+    {{ with .sub }}<p class="block-sub">{{ . }}</p>{{ end }}
+  </header>
+
+  {{ with .groups }}
+  <div class="stack-tabs">
+    {{- range $i, $g := . -}}
+    {{- $key := printf "%d" (add $i 1) -}}
+    <button type="button" data-stack-tab="{{ $key }}" class="{{ if eq $i 0 }}on{{ end }}">{{ $g.name }}</button>
+    {{- end -}}
+  </div>
+
+  <div class="stack-list">
+    {{- range $i, $g := . -}}
+    {{- $key := printf "%d" (add $i 1) -}}
+    <div class="stack-group{{ if eq $i 0 }} on{{ end }}" data-stack-group="{{ $key }}">
+      {{- range $line := split "\n" $g.rows -}}
+        {{- if $line -}}
+          {{- $parts := split " || " $line -}}
+          {{- if eq (len $parts) 2 -}}
+            <div class="stack-row">
+              <span class="k">{{ index $parts 0 }}</span>
+              <span class="dotline"></span>
+              <span class="mono v">{{ index $parts 1 }}</span>
+            </div>
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    </div>
+    {{- end -}}
+  </div>
+  {{ end }}
+
+  {{ with .languages }}
+  <div class="lang-row">
+    {{ with $.lang_label }}<span class="mono">{{ . }}</span>{{ end }}
+    <div>
+      {{- range . -}}
+      <span><b>{{ .code }}</b>{{ .level }}</span>
+      {{- end -}}
+    </div>
+  </div>
+  {{ end }}
+</section>

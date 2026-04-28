@@ -1,0 +1,26 @@
+{
+  "slug": "cv-contact",
+  "name": "CV Contact",
+  "description": "Section 06 — contact. Full-bleed dark (ink) block with cream text, a hero heading, two pill CTAs (primary uses theme accent), and a mono fineprint line.",
+  "category": "curriculum-vitae",
+  "field_schema": [
+    { "key": "section_id", "label": "Anchor id", "type": "text" },
+    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
+    { "key": "heading", "label": "Heading (HTML allowed for <br>)", "type": "textarea" },
+    { "key": "primary_label", "label": "Primary CTA label", "type": "text" },
+    { "key": "primary_url",   "label": "Primary CTA URL",   "type": "text" },
+    { "key": "secondary_label","label": "Secondary CTA label","type": "text" },
+    { "key": "secondary_url",  "label": "Secondary CTA URL", "type": "text" },
+    { "key": "fineprint",     "label": "Fineprint",         "type": "text", "help": "Rendered in mono below the buttons." }
+  ],
+  "test_data": {
+    "section_id": "contact",
+    "eyebrow": "06 · contact",
+    "heading": "Need someone who'll write it once,<br/>write it well, and not ghost you?",
+    "primary_label": "erik.kubica@gmail.com",
+    "primary_url":   "mailto:erik.kubica@gmail.com",
+    "secondary_label": "WhatsApp · +421 908 766 133",
+    "secondary_url":   "https://wa.me/421908766133",
+    "fineprint": "EU B2B · 25 €/h · SEA & EU hours · usually replies within a day"
+  }
+}
