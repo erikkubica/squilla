@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -417,15 +418,13 @@ export default function RoleEditorPage() {
               {CAPABILITY_KEYS.map(({ key, label }) => (
                 <label
                   key={key}
-                  className="flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
+                  className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
                 >
-                  <input
-                    type="checkbox"
+                  <span className="text-sm font-medium text-slate-700 truncate">{label}</span>
+                  <Switch
                     checked={!!formCaps[key]}
-                    onChange={() => toggleCap(key)}
-                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    onCheckedChange={() => toggleCap(key)}
                   />
-                  <span className="text-sm font-medium text-slate-700">{label}</span>
                 </label>
               ))}
             </div>
@@ -564,22 +563,20 @@ export default function RoleEditorPage() {
                     {actions.map((action) => (
                       <label
                         key={action.slug}
-                        className="flex items-start gap-2 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
+                        className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
                       >
-                        <input
-                          type="checkbox"
-                          checked={formEmailSubs.has(action.slug)}
-                          onChange={() => toggleEmailSub(action.slug)}
-                          className="h-4 w-4 mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <div>
-                          <span className="text-sm font-medium text-slate-700">
+                        <div className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-slate-700 truncate">
                             {action.label}
                           </span>
                           {action.description && (
-                            <p className="text-xs text-slate-400">{action.description}</p>
+                            <span className="block text-xs text-slate-400 truncate">{action.description}</span>
                           )}
                         </div>
+                        <Switch
+                          checked={formEmailSubs.has(action.slug)}
+                          onCheckedChange={() => toggleEmailSub(action.slug)}
+                        />
                       </label>
                     ))}
                   </div>

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import {
   X,
@@ -62,15 +63,13 @@ function LinkFieldInput({
         </div>
         <div className="space-y-1">
           <Label className="text-xs font-medium text-slate-600">&nbsp;</Label>
-          <div className="flex items-center gap-2 h-9">
-            <input
-              type="checkbox"
+          <label className="flex items-center gap-2 h-9 cursor-pointer">
+            <Switch
               checked={link.target === "_blank"}
-              onChange={(e) => update("target", e.target.checked ? "_blank" : "")}
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              onCheckedChange={(c) => update("target", c ? "_blank" : "")}
             />
             <span className="text-sm text-slate-600">Open in new tab</span>
-          </div>
+          </label>
         </div>
       </div>
     </div>
@@ -454,16 +453,17 @@ function TermSelectorInput({
   if (!isMultiple) {
     const currentId = selected[0]?.id ?? "";
     return (
-      <select
-        value={String(currentId)}
-        onChange={(e) => handleSelectSingle(e.target.value)}
-        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-      >
-        <option value="">— Select {field.label || "term"} —</option>
-        {terms.map((t) => (
-          <option key={t.id} value={String(t.id)}>{t.name}</option>
-        ))}
-      </select>
+      <Select value={String(currentId) || "__none"} onValueChange={(v) => handleSelectSingle(v === "__none" ? "" : v)}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={`— Select ${field.label || "term"} —`} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">— Select {field.label || "term"} —</SelectItem>
+          {terms.map((t) => (
+            <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
   return (

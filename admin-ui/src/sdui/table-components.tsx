@@ -27,6 +27,7 @@ import {
   EmptyState,
   LoadingRow,
 } from "@/components/ui/list-page";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -212,32 +213,33 @@ export function PageHeader({
             </button>
           ))}
         {languages && languages.length > 0 && (
-          <div className="relative">
-            <select
-              value={activeLanguage || "all"}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSearchParams((prev) => {
-                  if (val === "all") prev.delete("language");
-                  else prev.set("language", val);
-                  prev.delete("page");
-                  return prev;
-                });
-              }}
-              className="h-[26px] w-[160px] text-[12px] bg-white border border-slate-300 rounded pl-7 pr-3 appearance-none cursor-pointer"
-            >
-              <option value="all">All languages</option>
+          <Select
+            value={activeLanguage || "all"}
+            onValueChange={(val) => {
+              setSearchParams((prev) => {
+                if (val === "all") prev.delete("language");
+                else prev.set("language", val);
+                prev.delete("page");
+                return prev;
+              });
+            }}
+          >
+            <SelectTrigger size="sm" className="w-[160px]">
+              <Globe className="w-3.5 h-3.5 text-slate-400 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All languages</SelectItem>
               {languages.map((lang) => (
-                <option
+                <SelectItem
                   key={lang.code}
                   value={lang.id != null ? String(lang.id) : lang.code}
                 >
                   {lang.flag} {lang.name}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-            <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-          </div>
+            </SelectContent>
+          </Select>
         )}
       </div>
     </div>
@@ -296,32 +298,33 @@ export const SearchToolbar = memo(
           placeholder={searchPlaceholder ?? "Search…"}
         />
         {languages && languages.length > 0 && (
-          <div className="relative">
-            <select
-              value={activeLanguage || "all"}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSearchParams((prev) => {
-                  if (val === "all") prev.delete("language");
-                  else prev.set("language", val);
-                  prev.delete("page");
-                  return prev;
-                });
-              }}
-              className="h-[30px] w-[160px] text-[13px] bg-white border border-slate-300 rounded pl-7 pr-3 appearance-none cursor-pointer"
-            >
-              <option value="all">All languages</option>
+          <Select
+            value={activeLanguage || "all"}
+            onValueChange={(val) => {
+              setSearchParams((prev) => {
+                if (val === "all") prev.delete("language");
+                else prev.set("language", val);
+                prev.delete("page");
+                return prev;
+              });
+            }}
+          >
+            <SelectTrigger className="w-[160px]">
+              <Globe className="w-3.5 h-3.5 text-slate-400 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All languages</SelectItem>
               {languages.map((lang) => (
-                <option
+                <SelectItem
                   key={lang.code}
                   value={lang.id != null ? String(lang.id) : lang.code}
                 >
                   {lang.flag} {lang.name}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-            <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-          </div>
+            </SelectContent>
+          </Select>
         )}
       </div>
     );

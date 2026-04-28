@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -141,7 +142,6 @@ export default function UsersPage() {
     return true;
   });
 
-  const selectCls = "h-[30px] pl-2 pr-7 bg-white border border-slate-300 rounded text-[13px] text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none appearance-none cursor-pointer";
 
   return (
     <ListPageShell>
@@ -155,15 +155,21 @@ export default function UsersPage() {
 
       <ListToolbar>
         <ListSearch value={search} onChange={setSearch} placeholder="Search users…" />
-        <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className={selectCls}>
-          <option value="">All roles</option>
-          {uniqueRoles.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectCls}>
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <Select value={filterRole || "all"} onValueChange={(v) => setFilterRole(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All roles</SelectItem>
+            {uniqueRoles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus || "all"} onValueChange={(v) => setFilterStatus(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </ListToolbar>
 
       <ListCard>

@@ -14,6 +14,7 @@ import {
 import { AccordionRow } from "@/components/ui/accordion-row";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getNodes, type MenuItem, type ContentNode } from "@/api/client";
 
 function NodeSearchInput({
@@ -413,14 +414,16 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-600">Type</label>
-                    <select
-                      className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    <Select
                       value={fi.item.item_type}
-                      onChange={(e) => updateItemField(fi.path, "item_type", e.target.value)}
+                      onValueChange={(v) => updateItemField(fi.path, "item_type", v)}
                     >
-                      <option value="node">Page (Node)</option>
-                      <option value="custom">Custom URL</option>
-                    </select>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="node">Page (Node)</SelectItem>
+                        <SelectItem value="custom">Custom URL</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   {fi.item.item_type === "custom" && (
                     <div>
@@ -453,14 +456,16 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                   )}
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-600">Target</label>
-                    <select
-                      className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    <Select
                       value={fi.item.target}
-                      onChange={(e) => updateItemField(fi.path, "target", e.target.value)}
+                      onValueChange={(v) => updateItemField(fi.path, "target", v)}
                     >
-                      <option value="_self">Same Window (_self)</option>
-                      <option value="_blank">New Window (_blank)</option>
-                    </select>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_self">Same Window (_self)</SelectItem>
+                        <SelectItem value="_blank">New Window (_blank)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-600">CSS Class</label>

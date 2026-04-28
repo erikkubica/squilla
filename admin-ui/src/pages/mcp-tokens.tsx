@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Key, Loader2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -262,15 +263,14 @@ export default function McpTokensPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700">Scope</label>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-                value={scope}
-                onChange={(e) => setScope(e.target.value as "full" | "content" | "read")}
-              >
-                <option value="full">Full access — every tool (incl. settings, themes, raw SQL if enabled)</option>
-                <option value="content">Content only — nodes, taxonomies, menus, media, files</option>
-                <option value="read">Read-only — no mutations</option>
-              </select>
+              <Select value={scope} onValueChange={(v) => setScope(v as "full" | "content" | "read")}>
+                <SelectTrigger className="mt-1 w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Full access — every tool (incl. settings, themes, raw SQL if enabled)</SelectItem>
+                  <SelectItem value="content">Content only — nodes, taxonomies, menus, media, files</SelectItem>
+                  <SelectItem value="read">Read-only — no mutations</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700">

@@ -3,6 +3,7 @@ import { Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -347,32 +348,17 @@ export default function LanguagesPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formIsDefault}
-                  onChange={(e) => setFormIsDefault(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
+                <Switch checked={formIsDefault} onCheckedChange={setFormIsDefault} />
                 <span className="text-sm font-medium text-slate-700">Default language</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formIsActive}
-                  onChange={(e) => setFormIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
+                <Switch checked={formIsActive} onCheckedChange={setFormIsActive} />
                 <span className="text-sm font-medium text-slate-700">Active</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formHidePrefix}
-                  onChange={(e) => setFormHidePrefix(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
+                <Switch checked={formHidePrefix} onCheckedChange={setFormHidePrefix} />
                 <span className="text-sm font-medium text-slate-700">Hide URL prefix</span>
               </label>
             </div>

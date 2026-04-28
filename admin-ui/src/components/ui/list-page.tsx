@@ -1,6 +1,7 @@
 import type { ReactNode, MouseEvent as ReactMouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Pencil, Trash2, Eye, ExternalLink } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ListPageShell({ children }: { children: ReactNode }) {
   return <div className="w-full pb-8">{children}</div>;
@@ -388,18 +389,19 @@ export function ListFooter({
           <span className="text-slate-900 font-medium">{total}</span> {label}
         </span>
         {onPerPage && (
-          <label className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
             <span className="text-slate-400">Per page</span>
-            <select
-              value={perPage}
-              onChange={(e) => onPerPage(Number(e.target.value))}
-              className="h-[24px] pl-1.5 pr-5 text-[12px] text-slate-700 bg-white border border-slate-200 rounded appearance-none cursor-pointer focus:outline-none focus:border-indigo-400"
-            >
-              {PER_PAGE_OPTIONS.map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </label>
+            <Select value={String(perPage)} onValueChange={(v) => onPerPage(Number(v))}>
+              <SelectTrigger size="sm" className="w-[68px] h-[26px] text-[12px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PER_PAGE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
       <div className="flex items-center gap-1.5">

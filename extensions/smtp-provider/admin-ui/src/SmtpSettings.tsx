@@ -6,7 +6,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@vibecms/ui";
-import { Input, Label, Button } from "@vibecms/ui";
+import { Input, Label, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@vibecms/ui";
 import { toast } from "sonner";
 import { getExtensionSettings, updateExtensionSettings } from "@vibecms/api";
 import { Loader2, Server } from "@vibecms/icons";
@@ -113,15 +113,14 @@ export default function SmtpSettings() {
         </div>
         <div className="space-y-2 max-w-xs">
           <Label className="text-sm font-medium text-slate-700">Encryption</Label>
-          <select
-            value={encryption}
-            onChange={(e) => setEncryption(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="tls">TLS</option>
-            <option value="starttls">STARTTLS</option>
-            <option value="none">None</option>
-          </select>
+          <Select value={encryption} onValueChange={setEncryption}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tls">TLS</SelectItem>
+              <SelectItem value="starttls">STARTTLS</SelectItem>
+              <SelectItem value="none">None</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Button
           onClick={handleSave}

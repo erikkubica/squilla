@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @source "../src/**/*.{ts,tsx}";
 @source "../node_modules/@radix-ui/**/*.{js,jsx}";
+
+/* VibeCMS is a light-themed admin. Disable Tailwind v4's auto
+   prefers-color-scheme:dark so shadcn's `dark:` variants don't bleed
+   in (Button outline -> grey bg, Switch thumb -> black, etc.). */
+@variant dark (&:where(.dark, .dark *));
 /* Extension micro-frontends ship their own compiled JS but share the
    admin's Tailwind CSS. Including their sources here ensures any class
    used in an extension (e.g. pt-5 in the image optimizer) gets picked
@@ -269,6 +274,49 @@
   [data-slot="select-item"][data-highlighted] {
     background-color: color-mix(in oklab, var(--accent) 14%, transparent) !important;
     color: var(--accent-strong) !important;
+  }
+
+  /* Tabs — accent-aware segmented control */
+  [data-slot="tabs-list"] {
+    background-color: var(--sub-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 3px !important;
+    height: auto !important;
+    min-height: 34px !important;
+    gap: 2px !important;
+  }
+  [data-slot="tabs-trigger"] {
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: var(--fg-muted) !important;
+    border-radius: var(--radius) !important;
+    padding: 5px 12px !important;
+    height: auto !important;
+    border: 1px solid transparent !important;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease,
+      box-shadow 150ms ease !important;
+    cursor: pointer !important;
+  }
+  [data-slot="tabs-trigger"]:hover:not([data-state="active"]) {
+    background-color: color-mix(in oklab, var(--card-bg) 55%, transparent) !important;
+    color: var(--fg) !important;
+  }
+  [data-slot="tabs-trigger"][data-state="active"] {
+    background-color: var(--card-bg) !important;
+    color: var(--accent-strong) !important;
+    font-weight: 600 !important;
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.06),
+      0 0 0 1px color-mix(in oklab, var(--accent) 18%, transparent) !important;
+  }
+  [data-slot="tabs-trigger"] svg {
+    transition: transform 150ms ease, color 150ms ease !important;
+  }
+  [data-slot="tabs-trigger"][data-state="active"] svg {
+    color: var(--accent) !important;
   }
 
   /* Admin page headings — compact, token-colored.

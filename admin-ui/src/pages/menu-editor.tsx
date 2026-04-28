@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { usePageMeta } from "@/components/layout/page-meta";
 import {
@@ -313,18 +314,20 @@ export default function MenuEditorPage() {
           <CardContent className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Language</label>
-              <select
-                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                value={languageId === null ? "" : String(languageId)}
-                onChange={(e) => setLanguageId(e.target.value === "" ? null : Number(e.target.value))}
+              <Select
+                value={languageId === null ? "all" : String(languageId)}
+                onValueChange={(v) => setLanguageId(v === "all" ? null : Number(v))}
               >
-                <option value="">All Languages</option>
-                {languages.map((lang) => (
-                  <option key={lang.id} value={String(lang.id)}>
-                    {lang.flag} {lang.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Languages</SelectItem>
+                  {languages.map((lang) => (
+                    <SelectItem key={lang.id} value={String(lang.id)}>
+                      {lang.flag} {lang.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button
               onClick={handleSave}
