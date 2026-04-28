@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // nodeListLayout renders /admin/{pages|posts|content/<type>}.

@@ -10,7 +10,7 @@ import {
   Zap,
   RotateCcw,
   Sparkles,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 import {
   Button,
   Input,
@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
 
 // ---------- Types ----------

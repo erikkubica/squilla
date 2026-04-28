@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // This file owns the block-rendering side of the public handler:

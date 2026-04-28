@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   RotateCw,
   Check,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 import { humanFileSize } from "./helpers";
 
 type Status = "uploading" | "processing" | "done" | "error";

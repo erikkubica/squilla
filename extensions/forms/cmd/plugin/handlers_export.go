@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"vibecms/internal/coreapi"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // --- CSV Export ---

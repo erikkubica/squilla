@@ -1,6 +1,6 @@
 # Forms Extension — Developer Reference
 
-The Forms extension (`extensions/forms/`) is a production-grade form builder that ships as part of VibeCMS. This document covers everything an extension author needs to integrate with it or build on top of it.
+The Forms extension (`extensions/forms/`) is a production-grade form builder that ships as part of Squilla. This document covers everything an extension author needs to integrate with it or build on top of it.
 
 ---
 

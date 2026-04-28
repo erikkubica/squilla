@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	pb "vibecms/pkg/plugin/proto"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // This file owns the small response/parsing/mime helpers used across

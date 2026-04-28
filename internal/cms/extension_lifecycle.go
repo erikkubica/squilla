@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	"vibecms/internal/events"
+	"squilla/internal/events"
 )
 
 // extensionAssetsPayload mirrors themeAssetsPayload but for extensions.

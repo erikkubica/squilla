@@ -1,6 +1,6 @@
 import React from "react";
 
-const { Label, Textarea } = (window as any).__VIBECMS_SHARED__.ui;
+const { Label, Textarea } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface FieldGDPROptionsProps {
   field: any;

@@ -4,11 +4,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
-	"vibecms/internal/events"
-	"vibecms/internal/models"
-	"vibecms/internal/secrets"
+	"squilla/internal/api"
+	"squilla/internal/auth"
+	"squilla/internal/events"
+	"squilla/internal/models"
+	"squilla/internal/secrets"
 )
 
 // SettingsHandler provides admin API endpoints for site settings management.

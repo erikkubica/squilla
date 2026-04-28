@@ -12,8 +12,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/auth"
-	"vibecms/internal/models"
+	"squilla/internal/auth"
+	"squilla/internal/models"
 )
 
 // Primary navigation — renders "main-nav" menu with dropdown support.
@@ -130,7 +130,7 @@ const defaultLayoutTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{or (index .node.seo "meta_title") .node.title "VibeCMS"}}</title>
+    <title>{{or (index .node.seo "meta_title") .node.title "Squilla"}}</title>
     {{- with index .node.seo "meta_description" -}}
     <meta name="description" content="{{.}}">
     {{- end -}}
@@ -207,7 +207,7 @@ func Seed(db *gorm.DB) error {
 		return err
 	}
 	// Seed default site name setting
-	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_name', 'VibeCMS', NOW()) ON CONFLICT (key) DO NOTHING`)
+	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_name', 'Squilla', NOW()) ON CONFLICT (key) DO NOTHING`)
 	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_url', 'http://localhost:8099', NOW()) ON CONFLICT (key) DO NOTHING`)
 	// Public registration is closed by default. Operators flip this to "true"
 	// in the admin to allow self-registration (creates `member` role users).
@@ -254,7 +254,7 @@ func seedAdminUser(db *gorm.DB) error {
 		return fmt.Errorf("failed to find admin role: %w", err)
 	}
 
-	email := envOr("ADMIN_EMAIL", "admin@vibecms.local")
+	email := envOr("ADMIN_EMAIL", "admin@squilla.local")
 
 	var existing models.User
 	err := db.Where("email = ?", email).First(&existing).Error
@@ -293,7 +293,7 @@ func seedAdminUser(db *gorm.DB) error {
 
 	if generated {
 		banner := strings.Repeat("=", 72)
-		log.Printf("\n%s\n VibeCMS first-boot admin credentials (shown ONCE — change immediately)\n   Email:    %s\n   Password: %s\n%s\n", banner, email, password, banner)
+		log.Printf("\n%s\n Squilla first-boot admin credentials (shown ONCE — change immediately)\n   Email:    %s\n   Password: %s\n%s\n", banner, email, password, banner)
 	}
 	return nil
 }
@@ -320,7 +320,7 @@ func envOr(key, fallback string) string {
 }
 
 func seedContentNode(db *gorm.DB) error {
-	seoSettings := json.RawMessage(`{"meta_title":"Welcome to VibeCMS","meta_description":"A high-performance, AI-native CMS."}`)
+	seoSettings := json.RawMessage(`{"meta_title":"Welcome to Squilla","meta_description":"A high-performance, AI-native CMS."}`)
 	now := time.Now()
 
 	node := models.ContentNode{
@@ -329,7 +329,7 @@ func seedContentNode(db *gorm.DB) error {
 		LanguageCode: "en",
 		Slug:         "home",
 		FullURL:      "/",
-		Title:        "Welcome to VibeCMS",
+		Title:        "Welcome to Squilla",
 		BlocksData:   models.JSONB(json.RawMessage(`[]`)),
 		SeoSettings:  models.JSONB(seoSettings),
 		Version:      1,

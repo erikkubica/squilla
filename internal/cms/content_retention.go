@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // CleanOldRevisions prunes content_node_revisions, keeping the most

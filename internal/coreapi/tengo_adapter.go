@@ -18,14 +18,14 @@ type ScriptCallbacks struct {
 	OnWellKnown func(path, scriptPath string)
 }
 
-// BuildTengoModules creates a new ModuleMap and registers all VibeCMS modules.
+// BuildTengoModules creates a new ModuleMap and registers all Squilla modules.
 func BuildTengoModules(api CoreAPI, caller CallerInfo, renderCtx interface{}, scriptsDir string, cb *ScriptCallbacks) *tengo.ModuleMap {
 	modules := tengo.NewModuleMap()
 	RegisterModules(modules, api, caller, renderCtx, scriptsDir, cb)
 	return modules
 }
 
-// RegisterModules adds all VibeCMS core modules to the Tengo module map.
+// RegisterModules adds all Squilla core modules to the Tengo module map.
 func RegisterModules(modules *tengo.ModuleMap, api CoreAPI, caller CallerInfo, renderCtx interface{}, scriptsDir string, cb *ScriptCallbacks) {
 	// Use WithCaller to associate the script caller with the context
 	ctx := WithCaller(context.Background(), caller)
@@ -35,7 +35,7 @@ func RegisterModules(modules *tengo.ModuleMap, api CoreAPI, caller CallerInfo, r
 		modules.AddBuiltinModule(name, mod)
 	}
 
-	// VibeCMS Core modules
+	// Squilla Core modules
 	modules.AddBuiltinModule("core/nodes", nodesModule(api, ctx))
 	modules.AddBuiltinModule("core/menus", menusModule(api, ctx))
 	modules.AddBuiltinModule("core/routes", routesModule(cb))

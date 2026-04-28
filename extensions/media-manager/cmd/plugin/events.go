@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 // This file owns the event-handling path: dispatching theme.activated /

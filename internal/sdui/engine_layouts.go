@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // layoutsLayout renders /admin/layouts. Like templatesLayout, it

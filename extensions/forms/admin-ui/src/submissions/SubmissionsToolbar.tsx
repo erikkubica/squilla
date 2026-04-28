@@ -4,7 +4,7 @@ const {
   ListToolbar,
   ListSearch,
   Input,
-} = (window as any).__VIBECMS_SHARED__.ui;
+} = (window as any).__SQUILLA_SHARED__.ui;
 
 export interface ToolbarFilters {
   search: string;

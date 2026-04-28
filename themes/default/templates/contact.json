@@ -8,15 +8,15 @@
       "fields": {
         "eyebrow": "Contact",
         "heading": "Let's start a conversation.",
-        "body": "<p>Have a question, a partnership idea, or just want to see if VibeCMS is right for your team? We read every message. Whether you're a solo creator, an agency scaling to dozens of sites, or an enterprise evaluating a migration, our curators will respond within one business day.</p><blockquote>Every great project begins with a well-framed question. We're listening.</blockquote><p>For urgent or commercial inquiries, reach our team directly using any of the channels below.</p>"
+        "body": "<p>Have a question, a partnership idea, or just want to see if Squilla is right for your team? We read every message. Whether you're a solo creator, an agency scaling to dozens of sites, or an enterprise evaluating a migration, our curators will respond within one business day.</p><blockquote>Every great project begins with a well-framed question. We're listening.</blockquote><p>For urgent or commercial inquiries, reach our team directly using any of the channels below.</p>"
       }
     },
     {
       "type": "contact-form",
       "fields": {
         "heading": "Let's talk.",
-        "subheading": "Ready to elevate your content experience? Our team of curators is here to guide your transition to VibeCMS.",
-        "contact_email": "hello@vibecms.com",
+        "subheading": "Ready to elevate your content experience? Our team of curators is here to guide your transition to Squilla.",
+        "contact_email": "hello@squilla.com",
         "contact_phone": "+1 (555) 890-VIBE",
         "contact_office": "San Francisco, CA",
         "name_label": "Your Name",

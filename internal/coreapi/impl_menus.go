@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 func (c *coreImpl) GetMenu(ctx context.Context, slug string) (*Menu, error) {

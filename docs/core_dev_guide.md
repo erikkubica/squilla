@@ -1,4 +1,4 @@
-# VibeCMS Core — Development Guide
+# Squilla Core — Development Guide
 
 A practical reference for engineers working **on the kernel** (not on extensions; for that see `extension_api.md`). Originally distilled from a complete code review of `internal/`; updated 2026-04-28 to reflect the security/refactor pass that resolved most of the §12 roadmap. Read alongside [`core_features.md`](./core_features.md) and [`architecture.md`](./architecture.md).
 
@@ -100,7 +100,7 @@ internal/
 ├── scripting/       # Tengo VM wrapper, script callbacks, HTTP route mounting
 └── sdui/            # SDUI engine + SSE broadcaster + types
 
-cmd/vibecms/         # main.go (boot wiring, route registration)
+cmd/squilla/         # main.go (boot wiring, route registration)
 pkg/plugin/          # HashiCorp go-plugin contract + proto
 proto/               # .proto files for plugin and CoreAPI
 ```
@@ -134,7 +134,7 @@ Steps:
    }
    ```
    **Use `c.db.WithContext(ctx)`** — most existing impls fail to do this. Fix as you write new ones.
-4. **Add proto** (`proto/coreapi/vibecms_coreapi.proto`):
+4. **Add proto** (`proto/coreapi/squilla_coreapi.proto`):
    ```proto
    rpc GetSomething(GetSomethingRequest) returns (SomethingResponse);
    message GetSomethingRequest { uint64 id = 1; }
@@ -253,7 +253,7 @@ Then call `s.registerWidgetTools()` from `New(deps)`.
 
 ## 4. Boot sequence
 
-`cmd/vibecms/main.go` orchestrates startup. Order matters; keep it documented when you add to it.
+`cmd/squilla/main.go` orchestrates startup. Order matters; keep it documented when you add to it.
 
 ```
 1. Load config.
@@ -301,7 +301,7 @@ Then call `s.registerWidgetTools()` from `New(deps)`.
 | `POST /auth/reset-password` | Single-use token consumption; replays detected via `used_at`. |
 | `GET /logout` | Now POST-only (commit `76f6124`). |
 
-Sessions: 32-byte random hex, SHA-256 hashed at rest. Cookie `vibecms_session`, HttpOnly, SameSite=Lax, Secure when TLS. `SessionService.CleanExpired` runs hourly via the cleanup loop wired in `cmd/vibecms/main.go`.
+Sessions: 32-byte random hex, SHA-256 hashed at rest. Cookie `squilla_session`, HttpOnly, SameSite=Lax, Secure when TLS. `SessionService.CleanExpired` runs hourly via the cleanup loop wired in `cmd/squilla/main.go`.
 
 ### 5.2 Capability check flow
 
@@ -316,7 +316,7 @@ HTTP request → AuthRequired middleware → user in c.Locals
                     → else → ErrCapabilityDenied
 ```
 
-The capability guard wraps the inner CoreAPI when constructed via `NewCapabilityGuard(inner)`. As of commit `54f573a`, this wrapping is in place at `cmd/vibecms/main.go:252` (`guardedAPI := coreapi.NewCapabilityGuard(coreAPI)`). The unguarded `coreAPI` is passed only to internal kernel code (which sets `caller.Type = "internal"` for fail-open). Plugin and Tengo callers always go through `guardedAPI`.
+The capability guard wraps the inner CoreAPI when constructed via `NewCapabilityGuard(inner)`. As of commit `54f573a`, this wrapping is in place at `cmd/squilla/main.go:252` (`guardedAPI := coreapi.NewCapabilityGuard(coreAPI)`). The unguarded `coreAPI` is passed only to internal kernel code (which sets `caller.Type = "internal"` for fail-open). Plugin and Tengo callers always go through `guardedAPI`.
 
 ### 5.3 Render pipeline
 
@@ -364,14 +364,14 @@ Plugin processes: spawned via `exec.Command(binaryPath)` with HashiCorp `go-plug
 The kernel and plugin talk over two gRPC services that share a single connection:
 
 ```
-Kernel ←─ ExtensionPlugin (proto/plugin/vibecms_plugin.proto) ──→ Plugin
+Kernel ←─ ExtensionPlugin (proto/plugin/squilla_plugin.proto) ──→ Plugin
        (HandleEvent, HandleHTTPRequest, GetSubscriptions, Shutdown, Initialize)
 
-Kernel ──→ VibeCMSHost (proto/coreapi/vibecms_coreapi.proto) ←── Plugin
+Kernel ──→ SquillaHost (proto/coreapi/squilla_coreapi.proto) ←── Plugin
         (60 CoreAPI methods)
 ```
 
-`Initialize` is what wires up the bidirectional path: kernel passes the plugin a broker ID, plugin dials back to call `VibeCMSHost`.
+`Initialize` is what wires up the bidirectional path: kernel passes the plugin a broker ID, plugin dials back to call `SquillaHost`.
 
 When adding plugin-side calls into the kernel, the plugin must use the connection from `Initialize` — this is the only path that gets the per-extension `CallerInfo` in the kernel's context.
 
@@ -409,9 +409,9 @@ Implemented in `internal/config/config.go::Validate()` (commit `7e29de1`). The k
 if cfg.AppEnv == "production" {
     var problems []string
     if cfg.SessionSecret == "" { problems = append(problems, "SESSION_SECRET unset") }
-    if cfg.SecretKey == "" { problems = append(problems, "VIBECMS_SECRET_KEY unset; secret-bearing settings cannot be encrypted") }
+    if cfg.SecretKey == "" { problems = append(problems, "SQUILLA_SECRET_KEY unset; secret-bearing settings cannot be encrypted") }
     if cfg.MonitorBearerToken == "" { problems = append(problems, "MONITOR_BEARER_TOKEN unset") }
-    if cfg.DBPassword == "vibecms_secret" { problems = append(problems, "DB_PASSWORD is the project default") }
+    if cfg.DBPassword == "squilla_secret" { problems = append(problems, "DB_PASSWORD is the project default") }
     if cfg.DBSSLMode == "disable" && !isInternalHost(cfg.DBHost) { problems = append(problems, "DB_SSLMODE=disable on a public host") }
     if cfg.CORSOrigins == "" { problems = append(problems, "CORS_ORIGINS unset; admin would be open to any origin") }
     if len(problems) > 0 {
@@ -517,8 +517,8 @@ Each request re-compiles the handler script from disk. Acceptable for low-traffi
 
 | I want to... | Look at |
 |---|---|
-| See full request/response wire format | `proto/coreapi/vibecms_coreapi.proto`, `proto/plugin/vibecms_plugin.proto` |
-| Understand the boot order | `cmd/vibecms/main.go` (top to bottom is the order) |
+| See full request/response wire format | `proto/coreapi/squilla_coreapi.proto`, `proto/plugin/squilla_plugin.proto` |
+| Understand the boot order | `cmd/squilla/main.go` (top to bottom is the order) |
 | Find the capability for a method | `internal/coreapi/capability.go` |
 | Find where an action is published | `grep -rn '\.Publish(' internal/` |
 | Find an admin endpoint's handler | Each handler's `RegisterRoutes` is mounted in `main.go:212-237` |
@@ -527,7 +527,7 @@ Each request re-compiles the handler script from disk. Acceptable for low-traffi
 | See MCP tool definitions | `internal/mcp/tools_<domain>.go` |
 | See built-in field types | `internal/cms/field_types/registry.go` |
 | Trace public request rendering | `PublicHandler.PageByFullURL` → `RenderContext.BuildNodeData` → block render loop → `RenderLayout` |
-| See the kernel's atomic-update pattern | `cmd/vibecms/theme_assets_resolver.go` (only `atomic` use) |
+| See the kernel's atomic-update pattern | `cmd/squilla/theme_assets_resolver.go` (only `atomic` use) |
 
 ---
 

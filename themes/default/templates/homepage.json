@@ -1,6 +1,6 @@
 {
   "name": "Homepage",
-  "description": "VibeCMS 2026 Bento homepage matching the Stitch design 1:1",
+  "description": "Squilla 2026 Bento homepage matching the Stitch design 1:1",
   "thumbnail": "",
   "blocks": [
     {
@@ -67,7 +67,7 @@
       "fields": {
         "heading": "Loved by the world's most creative teams.",
         "testimonials": [
-          { "quote": "VibeCMS changed how we ship. The edge performance is unparalleled.", "author_name": "Marcus Chen", "author_role": "Lead Eng, Zenith", "avatar": {} },
+          { "quote": "Squilla changed how we ship. The edge performance is unparalleled.", "author_name": "Marcus Chen", "author_role": "Lead Eng, Zenith", "avatar": {} },
           { "quote": "The aesthetic of the dashboard alone improved our team's morale.", "author_name": "Sarah Jenkins", "author_role": "Creative Director, Flow", "avatar": {} },
           { "quote": "Finally, a headless CMS that doesn't feel like a spreadsheet.", "author_name": "David Roh", "author_role": "Founder, Curate AI", "avatar": {} }
         ]
@@ -79,9 +79,9 @@
         "heading": "Frequently Asked",
         "subheading": "",
         "items": [
-          { "question": "How is VibeCMS different from Contentful or Sanity?", "answer": "<p>VibeCMS is built with a focus on editorial aesthetic and edge-native performance. While others provide generic blocks, we provide curated intelligence that helps you model data faster and more reliably.</p>" },
+          { "question": "How is Squilla different from Contentful or Sanity?", "answer": "<p>Squilla is built with a focus on editorial aesthetic and edge-native performance. While others provide generic blocks, we provide curated intelligence that helps you model data faster and more reliably.</p>" },
           { "question": "Do you offer a free plan for developers?", "answer": "<p>Yes! Our Spark plan is free forever for personal projects and includes up to 5,000 records and 10GB of bandwidth.</p>" },
-          { "question": "Is VibeCMS SOC2 compliant?", "answer": "<p>We are fully SOC2 Type II and GDPR compliant. Security is a first-class citizen in our architecture.</p>" }
+          { "question": "Is Squilla SOC2 compliant?", "answer": "<p>We are fully SOC2 Type II and GDPR compliant. Security is a first-class citizen in our architecture.</p>" }
         ]
       }
     },

@@ -10,8 +10,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 )
 
 // LayoutBlockService provides business logic for managing layout blocks (partials).

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Pencil, Trash2, Loader2, Settings } from "@vibecms/icons";
+import { Pencil, Trash2, Loader2, Settings } from "@squilla/icons";
 import {
   ListHeader,
   ListToolbar,
@@ -19,7 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
 import {
   getEmailRules,
@@ -27,7 +27,7 @@ import {
   deleteEmailRule,
   getEmailTemplates,
   getSystemActions,
-} from "@vibecms/api";
+} from "@squilla/api";
 
 interface EmailTemplate {
   id: number;

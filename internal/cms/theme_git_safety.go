@@ -108,7 +108,7 @@ func buildSafeGitPull(path, branch, token string) (*exec.Cmd, func(), error) {
 	return cmd, cleanup, nil
 }
 
-// installAskpass writes a temp script that prints $VIBECMS_GIT_TOKEN, sets
+// installAskpass writes a temp script that prints $SQUILLA_GIT_TOKEN, sets
 // GIT_ASKPASS to point at it, and exposes the token via env. Git invokes
 // the script when it needs credentials, so the token is read from env at
 // the askpass step — never appearing in the parent process's argv.
@@ -124,7 +124,7 @@ func installAskpass(cmd *exec.Cmd, token string) (func(), error) {
 		)
 		return noop, nil
 	}
-	tmp, err := os.MkdirTemp("", "vibecms-askpass-*")
+	tmp, err := os.MkdirTemp("", "squilla-askpass-*")
 	if err != nil {
 		return noop, fmt.Errorf("creating askpass dir: %w", err)
 	}
@@ -134,7 +134,7 @@ func installAskpass(cmd *exec.Cmd, token string) (func(), error) {
 	// so for a PAT we just print the token both times. Some hosts
 	// (GitLab) expect "oauth2" as the username, but most accept the
 	// token in either slot.
-	const script = "#!/bin/sh\nprintf '%s\\n' \"$VIBECMS_GIT_TOKEN\"\n"
+	const script = "#!/bin/sh\nprintf '%s\\n' \"$SQUILLA_GIT_TOKEN\"\n"
 	if err := os.WriteFile(scriptPath, []byte(script), 0700); err != nil {
 		cleanup()
 		return noop, fmt.Errorf("writing askpass script: %w", err)
@@ -142,7 +142,7 @@ func installAskpass(cmd *exec.Cmd, token string) (func(), error) {
 	cmd.Env = append(os.Environ(),
 		"GIT_ASKPASS="+scriptPath,
 		"GIT_TERMINAL_PROMPT=0",
-		"VIBECMS_GIT_TOKEN="+token,
+		"SQUILLA_GIT_TOKEN="+token,
 	)
 	return cleanup, nil
 }

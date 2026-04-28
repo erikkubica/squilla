@@ -90,7 +90,7 @@ SELECT 'default', 'Default Layout', 'Default page layout', NULL,
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{or (index .node.seo "title") .node.title "VibeCMS"}}</title>
+    <title>{{or (index .node.seo "title") .node.title "Squilla"}}</title>
     {{range .app.head_styles}}<link rel="stylesheet" href="{{.}}">{{end}}
     {{range .app.head_scripts}}<script src="{{.}}"></script>{{end}}
     {{.app.block_styles}}

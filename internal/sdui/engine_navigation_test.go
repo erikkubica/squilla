@@ -3,7 +3,7 @@ package sdui
 import (
 	"testing"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // userWithCaps builds a minimal user whose role carries the given capabilities

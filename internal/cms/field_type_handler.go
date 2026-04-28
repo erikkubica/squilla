@@ -3,8 +3,8 @@ package cms
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"vibecms/internal/api"
-	"vibecms/internal/cms/field_types"
+	"squilla/internal/api"
+	"squilla/internal/cms/field_types"
 )
 
 // FieldTypeHandler exposes the built-in core field type registry.

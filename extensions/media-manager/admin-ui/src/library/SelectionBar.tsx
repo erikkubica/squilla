@@ -1,4 +1,4 @@
-import { Zap, Download, Trash2, X, Loader2 } from "@vibecms/icons";
+import { Zap, Download, Trash2, X, Loader2 } from "@squilla/icons";
 
 interface SelectionBarProps {
   count: number;

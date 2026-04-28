@@ -8,7 +8,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // MCP-facing render helpers. These let the MCP core.render.* tools preview

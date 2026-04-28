@@ -1,4 +1,4 @@
-const RRD = window.__VIBECMS_SHARED__.ReactRouterDOM;
+const RRD = window.__SQUILLA_SHARED__.ReactRouterDOM;
 export default RRD;
 export const {
   useNavigate, useParams, useLocation, useSearchParams,

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 // FakeHost implements coreapi.CoreAPI in-memory for plugin unit tests.

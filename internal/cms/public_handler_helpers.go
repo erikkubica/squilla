@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // This file collects the small helpers that don't belong to the

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // menusLayout renders /admin/menus. Item counts come from a separate

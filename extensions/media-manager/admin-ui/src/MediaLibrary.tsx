@@ -8,7 +8,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   Check,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 import {
   Button,
   Dialog,
@@ -17,11 +17,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
 
 const SHARED = (window as unknown as {
-  __VIBECMS_SHARED__: {
+  __SQUILLA_SHARED__: {
     ReactRouterDOM: {
       useSearchParams: () => [
         URLSearchParams,
@@ -56,7 +56,7 @@ const SHARED = (window as unknown as {
       }>;
     };
   };
-}).__VIBECMS_SHARED__;
+}).__SQUILLA_SHARED__;
 const { useSearchParams } = SHARED.ReactRouterDOM;
 const { ListPageShell, ListHeader, ListSearch, ListFooter } = SHARED.ui;
 

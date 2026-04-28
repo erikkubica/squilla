@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-// McpToken is a bearer token granting an MCP client access to VibeCMS.
+// McpToken is a bearer token granting an MCP client access to Squilla.
 // Raw tokens are shown once at creation; only the SHA-256 hex hash is stored.
 type McpToken struct {
 	ID           int        `gorm:"column:id;primaryKey;autoIncrement" json:"id"`

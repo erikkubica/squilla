@@ -15,7 +15,7 @@ const AdminLanguageContext = createContext<AdminLanguageContextType>({
   setCurrentCode: () => {},
 });
 
-const STORAGE_KEY = "vibecms_admin_lang";
+const STORAGE_KEY = "squilla_admin_lang";
 
 export function AdminLanguageProvider({ children }: { children: ReactNode }) {
   const [languages, setLanguages] = useState<Language[]>([]);

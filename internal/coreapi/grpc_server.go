@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 
-	pb "vibecms/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/coreapipb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// GRPCHostServer implements VibeCMSHostServer by wrapping a CoreAPI instance.
+// GRPCHostServer implements SquillaHostServer by wrapping a CoreAPI instance.
 type GRPCHostServer struct {
-	pb.UnimplementedVibeCMSHostServer
+	pb.UnimplementedSquillaHostServer
 	api    CoreAPI
 	caller CallerInfo
 }

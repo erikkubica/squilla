@@ -222,7 +222,7 @@ function AdminLayoutInner() {
 
   useEffect(() => {
     const last = breadcrumbs[breadcrumbs.length - 1];
-    document.title = last ? `${last} — VibeCMS` : "VibeCMS Admin";
+    document.title = last ? `${last} — Squilla` : "Squilla Admin";
   }, [breadcrumbs]);
 
   useEffect(() => {
@@ -529,7 +529,7 @@ function AdminLayoutInner() {
                 className="font-semibold"
                 style={{ fontSize: 13, color: "var(--sb-fg-active)", letterSpacing: "-0.01em" }}
               >
-                VibeCMS
+                Squilla
               </span>
             )}
           </div>

@@ -2,7 +2,7 @@
 @source "../src/**/*.{ts,tsx}";
 @source "../node_modules/@radix-ui/**/*.{js,jsx}";
 
-/* VibeCMS is a light-themed admin. Disable Tailwind v4's auto
+/* Squilla is a light-themed admin. Disable Tailwind v4's auto
    prefers-color-scheme:dark so shadcn's `dark:` variants don't bleed
    in (Button outline -> grey bg, Switch thumb -> black, etc.). */
 @variant dark (&:where(.dark, .dark *));

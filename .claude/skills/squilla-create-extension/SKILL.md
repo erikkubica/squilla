@@ -1,7 +1,7 @@
 ---
-name: vibecms-create-extension
+name: squilla-create-extension
 description: |
-  Use when building a new VibeCMS extension from scratch — adding a feature
+  Use when building a new Squilla extension from scratch — adding a feature
   package that owns its own database tables, HTTP routes, business logic,
   admin UI, or event handlers. Triggers: "add an extension that does X",
   "build a Y manager", "this should be an extension, not core",
@@ -9,10 +9,10 @@ description: |
   and a Tengo-only extension, declaring capabilities, wiring an admin
   micro-frontend into the SPA shell, registering custom field types or
   content blocks owned by an extension, or seeding initial data via SQL
-  migrations. Pairs with `vibecms-extension-frontend` for the React side.
+  migrations. Pairs with `squilla-extension-frontend` for the React side.
 ---
 
-# Creating a VibeCMS Extension
+# Creating a Squilla Extension
 
 ## When to use this skill
 
@@ -23,7 +23,7 @@ The HARD RULE from `CLAUDE.md` and `README.md`: *if disabling/removing the exten
 **Don't** use this skill when:
 - You're touching `internal/` (kernel work — different rules apply)
 - You only need an event hook + an outbound HTTP call (a Tengo script in a theme can be enough)
-- You're styling an existing admin page (use `vibecms-extension-frontend`)
+- You're styling an existing admin page (use `squilla-extension-frontend`)
 
 ## Source of truth
 
@@ -42,7 +42,7 @@ The HARD RULE from `CLAUDE.md` and `README.md`: *if disabling/removing the exten
 | CoreAPI reference | §9 |
 | SQL migrations (idempotency, JSONB normalization) | §10 |
 | Tengo scripts | §11 |
-| Admin UI authoring | §12 (use `vibecms-extension-frontend`) |
+| Admin UI authoring | §12 (use `squilla-extension-frontend`) |
 | Custom field types | §13 |
 | Content blocks owned by extensions | §14 |
 | Settings schema + slot pattern | §15 |
@@ -128,10 +128,10 @@ import (
     goplugin "github.com/hashicorp/go-plugin"
     "google.golang.org/grpc"
 
-    "vibecms/internal/coreapi"
-    vibeplugin "vibecms/pkg/plugin"
-    coreapipb "vibecms/pkg/plugin/coreapipb"
-    pb "vibecms/pkg/plugin/proto"
+    "squilla/internal/coreapi"
+    vibeplugin "squilla/pkg/plugin"
+    coreapipb "squilla/pkg/plugin/coreapipb"
+    pb "squilla/pkg/plugin/proto"
 )
 
 type MyPlugin struct {
@@ -139,7 +139,7 @@ type MyPlugin struct {
 }
 
 func (p *MyPlugin) Initialize(hostConn *grpc.ClientConn) error {
-    p.host = coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))
+    p.host = coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
     return nil
 }
 
@@ -184,7 +184,7 @@ docker compose restart app
 
 Then activate in the admin extension picker and visit `/admin/ext/my-extension/`.
 
-For the React side (`admin-ui/`), use the **`vibecms-extension-frontend`** skill — Tailwind setup, externalize list, `dist/index.css` requirement, `__VIBECMS_SHARED__` shim, etc.
+For the React side (`admin-ui/`), use the **`squilla-extension-frontend`** skill — Tailwind setup, externalize list, `dist/index.css` requirement, `__SQUILLA_SHARED__` shim, etc.
 
 ## The 12 Mandalorian rules (summary)
 
@@ -209,7 +209,7 @@ Memorize these. Full text in `extensions/README.md` §18.
 |---|---|---|
 | `403 / capability denied` at runtime | Missing entry in `capabilities[]` | Check `extensions/README.md` §5 capability table; add the missing one. |
 | Public route returns `404 Not Found` | Assumed it was under `/api/...` | The path you declare is the path users hit. `/forms/submit/contact`, not `/api/ext/forms/submit/contact`. |
-| Admin UI loads JS but no styles | Per-extension Tailwind not configured | Add `@tailwindcss/vite` + `cssFileName: "index"`. See `vibecms-extension-frontend`. |
+| Admin UI loads JS but no styles | Per-extension Tailwind not configured | Add `@tailwindcss/vite` + `cssFileName: "index"`. See `squilla-extension-frontend`. |
 | `[object Object]` in admin UI | JSONB column not normalized | Add `normalizeJSONBFields(row, "fields", "settings", ...)` to the read path. |
 | Plugin starts but doesn't get events | `GetSubscriptions()` returns wrong names, OR you wrote them in the manifest's `plugins[].events` (which is informational only) | Subscriptions come from the RPC, not the manifest. |
 
@@ -250,7 +250,7 @@ docker compose logs app --tail=200 | grep -E '\[extensions\]|\[plugins\]|my-exte
 
 # Hot-deploy a recompiled binary into the running container
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/my-extension ./cmd/plugin/
-docker cp bin/my-extension vibecms-app-1:/app/extensions/my-extension/bin/my-extension
+docker cp bin/my-extension squilla-app-1:/app/extensions/my-extension/bin/my-extension
 docker compose restart app   # required to bounce the plugin process
 ```
 

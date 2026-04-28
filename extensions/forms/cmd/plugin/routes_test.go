@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	pb "vibecms/pkg/plugin/proto"
+	pb "squilla/pkg/plugin/proto"
 )
 
 func routeReq(method, path string, body []byte, params map[string]string) *pb.PluginHTTPRequest {

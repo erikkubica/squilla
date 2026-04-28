@@ -1,11 +1,11 @@
 // UI component shim for extension micro-frontends.
-// Each export is a thin wrapper that forwards to __VIBECMS_SHARED__.ui at call time.
+// Each export is a thin wrapper that forwards to __SQUILLA_SHARED__.ui at call time.
 // This avoids timing issues where the shim module evaluates before the SPA initializes.
 
 function getUI(name) {
-  const c = window.__VIBECMS_SHARED__?.ui?.[name];
+  const c = window.__SQUILLA_SHARED__?.ui?.[name];
   if (!c) {
-    console.warn(`@vibecms/ui: component "${name}" not found in shared UI`);
+    console.warn(`@squilla/ui: component "${name}" not found in shared UI`);
     return (props) => null;
   }
   return c;
@@ -16,7 +16,7 @@ function getUI(name) {
 function wrap(name) {
   const Component = function (props) {
     const Real = getUI(name);
-    const React = window.__VIBECMS_SHARED__?.React;
+    const React = window.__SQUILLA_SHARED__?.React;
     return React ? React.createElement(Real, props) : null;
   };
   Component.displayName = name;

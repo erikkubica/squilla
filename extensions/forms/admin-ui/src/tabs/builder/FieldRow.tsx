@@ -1,10 +1,10 @@
 import React, { useRef, useState } from "react";
-import { GripVertical, Copy, Trash2 } from "@vibecms/icons";
+import { GripVertical, Copy, Trash2 } from "@squilla/icons";
 import { typeLabelMap } from "./types";
 import { normalizeOptions } from "./key-utils";
 import FieldEditor from "./FieldEditor";
 
-const { AccordionRow, Chip, Button } = (window as any).__VIBECMS_SHARED__.ui;
+const { AccordionRow, Chip, Button } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface FieldRowProps {
   field: any;

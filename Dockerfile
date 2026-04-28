@@ -28,7 +28,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 # Build core
-RUN CGO_ENABLED=0 go build -o vibecms ./cmd/vibecms
+RUN CGO_ENABLED=0 go build -o squilla ./cmd/squilla
 # Build all extension plugins. Fail the build if any plugin fails to compile,
 # and list the resulting binaries so CI logs make missing builds obvious.
 RUN set -eux; \
@@ -48,7 +48,7 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates \
     jpegoptim optipng pngquant imagemagick ffmpeg
 WORKDIR /app
-COPY --from=builder /app/vibecms .
+COPY --from=builder /app/squilla .
 COPY --from=builder /app/ui/templates ./ui/templates
 COPY --from=builder /app/themes ./themes
 COPY --from=builder /app/extensions ./extensions
@@ -60,4 +60,4 @@ COPY --from=ext-frontend /app/extensions/ ./extensions/
 # at startup and every plugin-routed endpoint will 404.
 RUN ls -la extensions/*/bin/ 2>&1 | head -40
 EXPOSE 8099
-CMD ["./vibecms"]
+CMD ["./squilla"]

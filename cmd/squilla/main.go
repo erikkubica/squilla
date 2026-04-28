@@ -11,23 +11,23 @@ import (
 	"syscall"
 	"time"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
-	"vibecms/internal/cms"
-	"vibecms/internal/config"
-	"vibecms/internal/coreapi"
-	"vibecms/internal/db"
-	"vibecms/internal/email"
-	"vibecms/internal/events"
-	"vibecms/internal/logging"
-	"vibecms/internal/mcp"
-	"vibecms/internal/models"
-	"vibecms/internal/rbac"
-	"vibecms/internal/rendering"
-	"vibecms/internal/scripting"
-	"vibecms/internal/sdui"
-	"vibecms/internal/secrets"
-	pb "vibecms/pkg/plugin/coreapipb"
+	"squilla/internal/api"
+	"squilla/internal/auth"
+	"squilla/internal/cms"
+	"squilla/internal/config"
+	"squilla/internal/coreapi"
+	"squilla/internal/db"
+	"squilla/internal/email"
+	"squilla/internal/events"
+	"squilla/internal/logging"
+	"squilla/internal/mcp"
+	"squilla/internal/models"
+	"squilla/internal/rbac"
+	"squilla/internal/rendering"
+	"squilla/internal/scripting"
+	"squilla/internal/sdui"
+	"squilla/internal/secrets"
+	pb "squilla/pkg/plugin/coreapipb"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -44,8 +44,8 @@ func main() {
 
 	cfg := config.Load()
 	logging.Init(strings.EqualFold(cfg.AppEnv, "development"))
-	logging.Default().Info("vibecms_starting", "env", cfg.AppEnv, "port", cfg.Port)
-	log.Printf("VibeCMS starting | env=%s port=%s", cfg.AppEnv, cfg.Port)
+	logging.Default().Info("squilla_starting", "env", cfg.AppEnv, "port", cfg.Port)
+	log.Printf("Squilla starting | env=%s port=%s", cfg.AppEnv, cfg.Port)
 
 	// In production, refuse to boot with development defaults — empty
 	// SESSION_SECRET, default DB password, disabled TLS, etc. Each is a
@@ -54,7 +54,7 @@ func main() {
 		log.Fatalf("config validation failed: %v", err)
 	}
 
-	// At-rest encryption service. NewFromEnv reads VIBECMS_SECRET_KEY;
+	// At-rest encryption service. NewFromEnv reads SQUILLA_SECRET_KEY;
 	// in dev it returns an inactive service that passes plaintext
 	// through, so deployments without the env var keep working.
 	// Production has already been gated by cfg.Validate above.
@@ -63,9 +63,9 @@ func main() {
 		log.Fatalf("secrets init failed: %v", err)
 	}
 	if secretsSvc.IsActive() {
-		log.Println("secrets: VIBECMS_SECRET_KEY loaded; at-rest encryption enabled")
+		log.Println("secrets: SQUILLA_SECRET_KEY loaded; at-rest encryption enabled")
 	} else {
-		log.Println("secrets: VIBECMS_SECRET_KEY unset; secret settings stored in plaintext (dev only)")
+		log.Println("secrets: SQUILLA_SECRET_KEY unset; secret settings stored in plaintext (dev only)")
 	}
 
 	database, err := db.Connect(cfg.DSN())
@@ -99,7 +99,7 @@ func main() {
 
 	// Fiber app.
 	app := fiber.New(fiber.Config{
-		AppName:               "VibeCMS",
+		AppName:               "Squilla",
 		DisableStartupMessage: false,
 		BodyLimit:             50 * 1024 * 1024, // 50 MB — theme/extension uploads
 		ReadBufferSize:        16 * 1024,        // 16 KB — handles large cookies without 431
@@ -357,7 +357,7 @@ func main() {
 		}
 		hostServer := coreapi.NewGRPCHostServer(guardedAPI, caller)
 		return func(s *grpc.Server) {
-			pb.RegisterVibeCMSHostServer(s, hostServer)
+			pb.RegisterSquillaHostServer(s, hostServer)
 		}
 	})
 	pluginManager := cms.NewPluginManager(eventBus, hostRegistrar, database)
@@ -469,7 +469,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("VibeCMS ready | http://localhost:%s | env=%s", cfg.Port, cfg.AppEnv)
+	log.Printf("Squilla ready | http://localhost:%s | env=%s", cfg.Port, cfg.AppEnv)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -486,7 +486,7 @@ func main() {
 		// every defer run.
 		log.Printf("server shutdown error: %v", err)
 	}
-	log.Println("VibeCMS stopped")
+	log.Println("Squilla stopped")
 }
 
 func corsOrigins(env string) string {

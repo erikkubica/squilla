@@ -9,7 +9,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // defaultLogRetentionDays is the fallback retention if the setting is unset

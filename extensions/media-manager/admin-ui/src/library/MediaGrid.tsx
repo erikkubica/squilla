@@ -1,4 +1,4 @@
-import { Zap, Copy, Download, Trash2, Check, AlertTriangle } from "@vibecms/icons";
+import { Zap, Copy, Download, Trash2, Check, AlertTriangle } from "@squilla/icons";
 import {
   MediaFile,
   isImage,

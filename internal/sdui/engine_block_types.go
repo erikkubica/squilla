@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // blockTypesLayout renders /admin/block-types.

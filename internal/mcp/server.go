@@ -1,4 +1,4 @@
-// Package mcp exposes VibeCMS as a Model Context Protocol server. AI clients
+// Package mcp exposes Squilla as a Model Context Protocol server. AI clients
 // authenticated with a bearer token can CRUD every CMS entity, render blocks
 // and layouts, manage themes and extensions, and query the underlying CoreAPI.
 package mcp
@@ -15,9 +15,9 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"gorm.io/gorm"
 
-	"vibecms/internal/cms"
-	"vibecms/internal/coreapi"
-	"vibecms/internal/rendering"
+	"squilla/internal/cms"
+	"squilla/internal/coreapi"
+	"squilla/internal/rendering"
 )
 
 // Deps holds the dependencies MCP tools need. Assembled once at boot.
@@ -66,11 +66,11 @@ func New(deps Deps) *Server {
 		limiter:     newPerTokenLimiter(60, 10),
 		auditor:     newAuditor(deps.DB),
 		logger:      log.New(os.Stderr, "[mcp] ", log.LstdFlags),
-		allowRawSQL: strings.EqualFold(os.Getenv("VIBECMS_MCP_ALLOW_RAW_SQL"), "true"),
+		allowRawSQL: strings.EqualFold(os.Getenv("SQUILLA_MCP_ALLOW_RAW_SQL"), "true"),
 	}
 
 	s.mcp = server.NewMCPServer(
-		"vibecms",
+		"squilla",
 		"0.1.0",
 		server.WithInstructions(instructionText),
 		server.WithToolCapabilities(true),
@@ -139,7 +139,7 @@ func (s *Server) registerCoreTools() {
 	s.registerEmailTools()
 }
 
-const instructionText = `VibeCMS — an AI-native CMS exposed via MCP.
+const instructionText = `Squilla — an AI-native CMS exposed via MCP.
 
 # Naming
 All tools are namespaced core.<domain>.<verb>. The verb reveals intent:

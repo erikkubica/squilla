@@ -1,4 +1,4 @@
-# VibeCMS Security
+# Squilla Security
 
 This document describes the **current** security posture: what's implemented, where, and how a kernel or extension developer is expected to use it. For threat-model history and the per-issue audit trail, see commits prefixed `feat(security):`, `feat(auth):`, `feat(secrets):`, and `feat(themes):`.
 
@@ -30,7 +30,7 @@ This document describes the **current** security posture: what's implemented, wh
 | Problem | Error | Remediation |
 |---|---|---|
 | Empty `SESSION_SECRET` | `SESSION_SECRET unset in production` | Set a random 32+ byte hex string |
-| Empty `VIBECMS_SECRET_KEY` | `VIBECMS_SECRET_KEY unset; secret-bearing settings cannot be encrypted` | Generate via `openssl rand -hex 32` |
+| Empty `SQUILLA_SECRET_KEY` | `SQUILLA_SECRET_KEY unset; secret-bearing settings cannot be encrypted` | Generate via `openssl rand -hex 32` |
 | Default DB password | `DB_PASSWORD is the project default; refusing to start` | Use Coolify magic vars or a real secret |
 | `DB_SSLMODE=disable` on a non-internal hostname | `DB_SSLMODE=disable on a public host` | `require` or `verify-full` |
 | Empty `CORS_ORIGINS` | `CORS_ORIGINS unset; admin would be open to any origin` | Set the public admin URL list |
@@ -44,7 +44,7 @@ Coolify's `coolify-compose.yml` populates all of these via `SERVICE_*` magic var
 
 ### 3.1 Sessions
 - 32-byte cryptographic random token, hex-encoded; only the SHA-256 hash stored (`token_hash` column).
-- Cookie `vibecms_session`: `HttpOnly=true`, `SameSite=Lax`, `Secure` when behind TLS (honors `X-Forwarded-Proto` from the trusted proxy).
+- Cookie `squilla_session`: `HttpOnly=true`, `SameSite=Lax`, `Secure` when behind TLS (honors `X-Forwarded-Proto` from the trusted proxy).
 - Stored fields: `user_id`, `token_hash`, `ip_address`, `user_agent`, `expires_at`.
 - Hourly cleanup loop (`SessionService.CleanExpired`) removes expired rows.
 - File: `internal/auth/session_svc.go`.
@@ -83,7 +83,7 @@ Coolify's `coolify-compose.yml` populates all of these via `SERVICE_*` magic var
 1. **Per-handler middleware** at the HTTP edge: `auth.CapabilityRequired("manage_users")`, `auth.AdminRequired()`, `auth.JSONOnlyMutations()`.
 2. **CoreAPI capability guard** at the API surface: every method wrapped in `capabilityGuard.<Method>` checks `caller.Capabilities[cap]`. See `internal/coreapi/capability.go`.
 
-The guard is wired in `cmd/vibecms/main.go:252`:
+The guard is wired in `cmd/squilla/main.go:252`:
 ```go
 guardedAPI := coreapi.NewCapabilityGuard(coreAPI)
 ```
@@ -132,7 +132,7 @@ The Go `html/template` engine auto-escapes by default; `safeHTML` and `safeURL` 
 
 `internal/secrets/secrets.go` provides AES-256-GCM envelope encryption.
 
-- Master key: `VIBECMS_SECRET_KEY` env, 32 bytes hex.
+- Master key: `SQUILLA_SECRET_KEY` env, 32 bytes hex.
 - Envelope format: `enc:v1:<base64(nonce || ciphertext || tag)>`.
 - Fresh random 12-byte nonce per call.
 - Encrypted columns:
@@ -149,19 +149,19 @@ _password   _key   _token   _apikey   _api_key   _credentials   _secret
 
 Reads via `GET /admin/api/settings` redact secret keys (commit `54f573a`) — they return `"<redacted>"` regardless of stored value, unless the caller has explicit elevated capability.
 
-Dev mode (no `VIBECMS_SECRET_KEY`) passes plaintext through and logs a warning; production refuses to boot.
+Dev mode (no `SQUILLA_SECRET_KEY`) passes plaintext through and logs a warning; production refuses to boot.
 
 ---
 
 ## 8. Plugin Trust
 
-- HashiCorp `go-plugin` v2 protocol with magic cookie `VIBECMS_PLUGIN=vibecms`.
+- HashiCorp `go-plugin` v2 protocol with magic cookie `SQUILLA_PLUGIN=squilla`.
 - gRPC-only (no NetRPC).
 - **Binaries are signed** (commit `654dae5`). The handshake validates the embedded signature against the kernel's public key before allowing the plugin to register.
 - Plugin processes are crash-isolated: a panic inside a plugin never kills the kernel.
 - Plugin shutdown has a 30-second timeout (`pluginManager.StopAll()` runs `app.ShutdownWithTimeout(30*time.Second)`).
 
-Each plugin receives a per-instance `VibeCMSHost` gRPC server backed by the **guarded** `CoreAPI`. The plugin's `CallerInfo` is constructed from its manifest's declared capabilities and `data_owned_tables`.
+Each plugin receives a per-instance `SquillaHost` gRPC server backed by the **guarded** `CoreAPI`. The plugin's `CallerInfo` is constructed from its manifest's declared capabilities and `data_owned_tables`.
 
 ---
 
@@ -175,7 +175,7 @@ Each plugin receives a per-instance `VibeCMSHost` gRPC server backed by the **gu
 - **Body cap**: 10 MB default, configurable per call.
 - **Timeout**: 30 s default, configurable per call.
 
-Override the blocklist by setting `VIBECMS_ALLOW_PRIVATE_HTTP=true` (development only).
+Override the blocklist by setting `SQUILLA_ALLOW_PRIVATE_HTTP=true` (development only).
 
 ---
 
@@ -226,7 +226,7 @@ Two policies are mounted in parallel (commit `ace0066`):
 | `content` | read, content |
 | `full` | read, content, full |
 
-`tools_data.go` `core.data.exec` (raw SQL) requires both `full` scope and `VIBECMS_MCP_ALLOW_RAW_SQL=true` env.
+`tools_data.go` `core.data.exec` (raw SQL) requires both `full` scope and `SQUILLA_MCP_ALLOW_RAW_SQL=true` env.
 
 ### Audit Log
 Every tool call writes `(token_id, tool, args_hash, status, error_code, duration_ms)` to `mcp_audit_log`. Raw args are not stored (only SHA-256 hash) so PII does not leak. Daily retention sweep keeps the table bounded.
@@ -302,4 +302,4 @@ Before merging any change touching kernel code:
 
 ## 16. Reporting Vulnerabilities
 
-Email `security@vibecms.local` (placeholder — set in your fork). Disclose privately first; we aim for 7-day acknowledgement and 30-day fix turnaround for critical issues.
+Email `security@squilla.local` (placeholder — set in your fork). Disclose privately first; we aim for 7-day acknowledgement and 30-day fix turnaround for critical issues.

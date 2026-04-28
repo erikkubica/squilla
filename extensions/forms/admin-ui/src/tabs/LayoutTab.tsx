@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { RotateCcw } from "@vibecms/icons";
+import { RotateCcw } from "@squilla/icons";
 
 const {
   Button,
@@ -9,7 +9,7 @@ const {
   SelectTrigger,
   SelectValue,
   CodeWindow,
-} = (window as any).__VIBECMS_SHARED__.ui;
+} = (window as any).__SQUILLA_SHARED__.ui;
 
 const STARTER_TEMPLATES = [
   { value: "simple", label: "Simple (default)" },

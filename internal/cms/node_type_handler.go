@@ -7,9 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
-	"vibecms/internal/models"
+	"squilla/internal/api"
+	"squilla/internal/auth"
+	"squilla/internal/models"
 )
 
 // NodeTypeHandler provides HTTP handlers for node type CRUD operations.

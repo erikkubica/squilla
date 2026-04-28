@@ -10,7 +10,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 var (

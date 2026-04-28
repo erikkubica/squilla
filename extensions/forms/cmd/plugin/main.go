@@ -11,10 +11,10 @@ import (
 	goplugin "github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 
-	"vibecms/internal/coreapi"
-	vibeplugin "vibecms/pkg/plugin"
-	coreapipb "vibecms/pkg/plugin/coreapipb"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	vibeplugin "squilla/pkg/plugin"
+	coreapipb "squilla/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/proto"
 )
 
 const formsTable = "forms"
@@ -194,7 +194,7 @@ func toUint(v any) (uint, bool) {
 }
 
 func (p *FormsPlugin) Initialize(hostConn *grpc.ClientConn) error {
-	p.host = coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))
+	p.host = coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
 	p.rateLimiter = NewRateLimiter(10000)
 	ctx, cancel := context.WithCancel(context.Background())
 	p.shutdownCancel = cancel

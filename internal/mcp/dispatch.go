@@ -11,7 +11,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 // scopeAllows reports whether the given scope may invoke a tool classified as

@@ -2,9 +2,9 @@
 // Uses lazy accessors to avoid timing issues where the shim evaluates before main.tsx.
 
 function getAPI(name) {
-  const api = window.__VIBECMS_SHARED__?.api;
+  const api = window.__SQUILLA_SHARED__?.api;
   if (!api || !api[name]) {
-    console.warn(`@vibecms/api: function "${name}" not found in shared API`);
+    console.warn(`@squilla/api: function "${name}" not found in shared API`);
     return () => Promise.reject(new Error(`API function ${name} not available`));
   }
   return api[name];

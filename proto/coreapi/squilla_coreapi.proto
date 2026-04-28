@@ -1,8 +1,8 @@
 syntax = "proto3";
-package vibecms.coreapi;
-option go_package = "vibecms/pkg/plugin/coreapipb";
+package squilla.coreapi;
+option go_package = "squilla/pkg/plugin/coreapipb";
 
-service VibeCMSHost {
+service SquillaHost {
   rpc GetNode(GetNodeRequest) returns (NodeResponse);
   rpc QueryNodes(QueryNodesRequest) returns (QueryNodesResponse);
   rpc ListTaxonomyTerms(ListTaxonomyTermsRequest) returns (ListTaxonomyTermsResponse);

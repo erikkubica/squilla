@@ -6,7 +6,7 @@ import {
   Users,
   Send,
   ChevronDown,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 import NotificationDisplayWhen from "./NotificationDisplayWhen";
 
 const {
@@ -27,8 +27,8 @@ const {
   PopoverContent,
   PopoverTrigger,
   AccordionRow,
-} = (window as any).__VIBECMS_SHARED__.ui;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+} = (window as any).__SQUILLA_SHARED__.ui;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 interface NotificationCardProps {
   notif: any;

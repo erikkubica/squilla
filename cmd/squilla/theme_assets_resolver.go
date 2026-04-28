@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"vibecms/internal/events"
+	"squilla/internal/events"
 
 	"gorm.io/gorm"
 )

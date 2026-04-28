@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Image as ImageIcon, FileText, Film, Music, File } from "@vibecms/icons";
+import { AlertCircle, Image as ImageIcon, FileText, Film, Music, File } from "@squilla/icons";
 
 export interface MediaFile {
   id: number;

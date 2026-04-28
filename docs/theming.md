@@ -1,6 +1,6 @@
-# VibeCMS Theming Guide
+# Squilla Theming Guide
 
-The complete reference for building, customizing, and deploying VibeCMS themes.
+The complete reference for building, customizing, and deploying Squilla themes.
 
 ---
 
@@ -25,11 +25,11 @@ The complete reference for building, customizing, and deploying VibeCMS themes.
 
 ## 1. Overview
 
-A VibeCMS **theme** is a self-contained package that controls every aspect of how a site looks and behaves on the public-facing side. Themes are loaded at startup from disk, registered into the database, and rendered at runtime through Go's `html/template` engine.
+A Squilla **theme** is a self-contained package that controls every aspect of how a site looks and behaves on the public-facing side. Themes are loaded at startup from disk, registered into the database, and rendered at runtime through Go's `html/template` engine.
 
 ### Key Concepts
 
-- **Single-binary, single-site model** -- VibeCMS runs as one Go binary serving one site. The active theme is loaded from a directory on disk (configured via the `THEME_PATH` environment variable).
+- **Single-binary, single-site model** -- Squilla runs as one Go binary serving one site. The active theme is loaded from a directory on disk (configured via the `THEME_PATH` environment variable).
 - **A theme is the sum of its parts** -- layouts, partials (layout blocks), content blocks, page templates, static assets, and optional Tengo scripts.
 - **Zero-rebuild architecture** -- Themes are hot-loaded from disk and registered into the database. Changing the active theme does not require recompiling the binary or restarting the server.
 - **Database-backed rendering** -- Layouts, partials, and block types are stored in the database after being loaded from theme files. This enables the admin UI to display and override them per-language.
@@ -101,7 +101,7 @@ The only **required** file is `theme.json`. Everything else is optional -- inclu
 
 ## 3. theme.json Manifest
 
-The `theme.json` file is the heart of every theme. It declares metadata, assets, layouts, partials, blocks, and templates. VibeCMS reads this file at theme load time and registers everything into the database.
+The `theme.json` file is the heart of every theme. It declares metadata, assets, layouts, partials, blocks, and templates. Squilla reads this file at theme load time and registers everything into the database.
 
 ### Full Schema
 
@@ -252,7 +252,7 @@ Layouts define the **full HTML page structure** -- from `<!DOCTYPE html>` throug
 1. If a content node has a specific `layout_id` assigned, that layout is used.
 2. Otherwise, the system looks for a language-specific default layout (matching the node's language).
 3. If no language-specific layout exists, the universal default layout (`language_id = NULL`) is used.
-4. If no layout is found at all, VibeCMS falls back to legacy file-based template rendering.
+4. If no layout is found at all, Squilla falls back to legacy file-based template rendering.
 
 ### Template Data Context
 
@@ -340,7 +340,7 @@ Every layout receives a flat map with three top-level namespaces: `.app`, `.node
 
 ## 5. Template Functions
 
-VibeCMS extends Go's `html/template` with custom functions available in all layouts and partials.
+Squilla extends Go's `html/template` with custom functions available in all layouts and partials.
 
 ### `renderLayoutBlock`
 
@@ -455,12 +455,12 @@ All built-in Go template functions are also available:
 
 ## 6. Partials (Layout Blocks)
 
-Partials are reusable template fragments included in layouts via `{{renderLayoutBlock "slug"}}`. In VibeCMS, they are stored as **layout blocks** in the `layout_blocks` database table.
+Partials are reusable template fragments included in layouts via `{{renderLayoutBlock "slug"}}`. In Squilla, they are stored as **layout blocks** in the `layout_blocks` database table.
 
 ### How Partials Work
 
 1. Theme partials are declared in `theme.json` under the `"partials"` array.
-2. At theme load time, VibeCMS reads each partial's `.html` file and upserts it into the `layout_blocks` table with `source = "theme"`.
+2. At theme load time, Squilla reads each partial's `.html` file and upserts it into the `layout_blocks` table with `source = "theme"`.
 3. When a layout calls `{{renderLayoutBlock "site-header"}}`, the renderer:
    - Looks up the layout block by slug, preferring a language-specific version matching the current node's language.
    - Falls back to the universal version (`language_id = NULL`) if no language-specific version exists.
@@ -786,7 +786,7 @@ All asset `src` paths are relative to the `assets/` directory. They are resolved
 
 ### Dependency Resolution
 
-Scripts support dependency ordering via the `deps` array. VibeCMS uses **topological sorting** (Kahn's algorithm) to ensure dependencies load before their dependents.
+Scripts support dependency ordering via the `deps` array. Squilla uses **topological sorting** (Kahn's algorithm) to ensure dependencies load before their dependents.
 
 ```json
 {
@@ -835,7 +835,7 @@ In addition to registered assets, you can reference any file in the `assets/` di
 
 ## 10. Scripting Integration
 
-VibeCMS includes an embedded **Tengo** scripting engine that allows themes to add custom logic without modifying Go code or restarting the server. Scripts run in a sandboxed VM with restricted I/O.
+Squilla includes an embedded **Tengo** scripting engine that allows themes to add custom logic without modifying Go code or restarting the server. Scripts run in a sandboxed VM with restricted I/O.
 
 ### Entry Point
 
@@ -1019,7 +1019,7 @@ Show different content based on login state:
 
 ### Loading at Startup
 
-VibeCMS loads the active theme from the directory specified by the `THEME_PATH` environment variable:
+Squilla loads the active theme from the directory specified by the `THEME_PATH` environment variable:
 
 ```bash
 export THEME_PATH=/path/to/themes/my-theme
@@ -1136,7 +1136,7 @@ Here is a minimal but complete theme demonstrating all the major features workin
   "name": "Agency Starter",
   "version": "1.0.0",
   "description": "A clean, minimal theme for agency websites",
-  "author": "VibeCMS",
+  "author": "Squilla",
   "styles": [
     { "handle": "theme-css", "src": "styles/main.css", "position": "head" }
   ],
@@ -1340,4 +1340,4 @@ log.info("Agency Starter theme loaded!")
 
 ---
 
-This completes the VibeCMS theming reference. For questions about the Tengo scripting API, see `docs/scripting_api.md`. For admin UI customization, see `docs/admin_ui.md`.
+This completes the Squilla theming reference. For questions about the Tengo scripting API, see `docs/scripting_api.md`. For admin UI customization, see `docs/admin_ui.md`.

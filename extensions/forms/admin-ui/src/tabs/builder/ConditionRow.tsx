@@ -1,9 +1,9 @@
 import React from "react";
-import { X } from "@vibecms/icons";
+import { X } from "@squilla/icons";
 import ConditionValueInput from "./ConditionValueInput";
 
 const { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } =
-  (window as any).__VIBECMS_SHARED__.ui;
+  (window as any).__SQUILLA_SHARED__.ui;
 
 export interface Condition {
   field: string;

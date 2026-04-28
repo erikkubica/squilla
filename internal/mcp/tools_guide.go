@@ -5,7 +5,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 // registerGuideTools exposes meta-tools that teach an AI client how to use the
@@ -14,20 +14,20 @@ import (
 // does not burn 10 discovery calls before it does useful work.
 func (s *Server) registerGuideTools() {
 	s.addTool(mcp.NewTool("core.guide",
-		mcp.WithDescription("META. Call this first when you're new to VibeCMS or unsure which tool to reach for. Returns a goal→tool decision tree (recipes for common journeys) plus a live snapshot of CMS state (active theme, counts, node types, recent nodes). Replaces ~10 discovery calls. Optional topic narrows the response: 'pages' | 'blocks' | 'themes' | 'taxonomies' | 'media' | 'extensions'."),
+		mcp.WithDescription("META. Call this first when you're new to Squilla or unsure which tool to reach for. Returns a goal→tool decision tree (recipes for common journeys) plus a live snapshot of CMS state (active theme, counts, node types, recent nodes). Replaces ~10 discovery calls. Optional topic narrows the response: 'pages' | 'blocks' | 'themes' | 'taxonomies' | 'media' | 'extensions'."),
 		mcp.WithString("topic", mcp.Description("Optional: narrow the response to one domain.")),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		return s.buildGuide(ctx, stringArg(args, "topic"))
 	})
 
 	s.addTool(mcp.NewTool("core.theme.standards",
-		mcp.WithDescription("Returns the official VibeCMS theme development standards. Use this to validate theme structure, block definitions (Rule 1.5), and field schemas (Rule 1.6). Always call this before creating or refactoring theme components."),
+		mcp.WithDescription("Returns the official Squilla theme development standards. Use this to validate theme structure, block definitions (Rule 1.5), and field schemas (Rule 1.6). Always call this before creating or refactoring theme components."),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		return themeStandards(), nil
 	})
 
 	s.addTool(mcp.NewTool("core.extension.standards",
-		mcp.WithDescription("Returns the official VibeCMS extension development standards (manifest schema, capabilities, gRPC plugin lifecycle, admin-UI micro-frontend rules, list-page primitives, SDUI sidebar wiring, lifecycle events). Always call this before creating or refactoring an extension."),
+		mcp.WithDescription("Returns the official Squilla extension development standards (manifest schema, capabilities, gRPC plugin lifecycle, admin-UI micro-frontend rules, list-page primitives, SDUI sidebar wiring, lifecycle events). Always call this before creating or refactoring an extension."),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		return extensionStandards(), nil
 	})
@@ -359,7 +359,7 @@ menus.upsert({
 			"Admin edit forms show all fields (no [object Object]).",
 			"Templates render identically to seeded pages.",
 		},
-		"authoritative_resource": "vibecms://guidelines/themes",
+		"authoritative_resource": "squilla://guidelines/themes",
 	}
 }
 
@@ -420,13 +420,13 @@ func extensionStandards() map[string]any {
 			"Reference impl: extensions/media-manager/admin-ui/src/MediaLibrary.tsx and extensions/forms/admin-ui/src/FormsList.tsx.",
 		},
 		"shared_window_globals": []string{
-			"window.__VIBECMS_SHARED__.ReactRouterDOM { useNavigate, useSearchParams, ... }",
-			"window.__VIBECMS_SHARED__.Sonner { toast }",
-			"window.__VIBECMS_SHARED__.ui (list-page primitives, AccordionRow, SectionHeader, CodeWindow, ...)",
-			"@vibecms/ui, @vibecms/api, @vibecms/icons resolve via vite externalize config — import normally.",
+			"window.__SQUILLA_SHARED__.ReactRouterDOM { useNavigate, useSearchParams, ... }",
+			"window.__SQUILLA_SHARED__.Sonner { toast }",
+			"window.__SQUILLA_SHARED__.ui (list-page primitives, AccordionRow, SectionHeader, CodeWindow, ...)",
+			"@squilla/ui, @squilla/api, @squilla/icons resolve via vite externalize config — import normally.",
 		},
 		"plugin_interface": []string{
-			"Initialize(hostConn) — get VibeCMSHost client; seed defaults idempotently.",
+			"Initialize(hostConn) — get SquillaHost client; seed defaults idempotently.",
 			"GetSubscriptions() — return events to subscribe to.",
 			"HandleEvent(action, payload) — handle a fired event.",
 			"HandleHTTPRequest(req) — handle proxied admin (/admin/api/ext/<slug>/*) and public route requests.",
@@ -490,8 +490,8 @@ func extensionStandards() map[string]any {
 			"build_flags": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/<slug> ./cmd/plugin/ — required for the Alpine runtime image.",
 		},
 		"hot_deploy": map[string]string{
-			"admin_ui":      "After `npm run build`, copy dist into the running container: `docker cp dist/. vibecms-app-1:/app/extensions/<slug>/admin-ui/dist/`. The Go binary serves these as static files — no container restart needed. Hard-refresh (Cmd+Shift+R) to bypass cached index.html.",
-			"plugin_binary": "After `go build`, `docker cp bin/<slug> vibecms-app-1:/app/extensions/<slug>/bin/<slug>` then `docker compose restart app` (required to bounce the plugin process).",
+			"admin_ui":      "After `npm run build`, copy dist into the running container: `docker cp dist/. squilla-app-1:/app/extensions/<slug>/admin-ui/dist/`. The Go binary serves these as static files — no container restart needed. Hard-refresh (Cmd+Shift+R) to bypass cached index.html.",
+			"plugin_binary": "After `go build`, `docker cp bin/<slug> squilla-app-1:/app/extensions/<slug>/bin/<slug>` then `docker compose restart app` (required to bounce the plugin process).",
 		},
 		"sdui_reactivity": []string{
 			"Typed SSE events route to specific TanStack query keys via a central qk factory (qk.boot, qk.layout, qk.list, qk.entity, qk.settings).",
@@ -516,20 +516,20 @@ func extensionStandards() map[string]any {
 			"Lifecycle subscriptions clean up on extension.deactivated when needed.",
 			"Public routes are listed in public_routes — admin routes are auto-mounted at /admin/api/ext/<slug>/*.",
 		},
-		"authoritative_resource": "vibecms://guidelines/extensions",
+		"authoritative_resource": "squilla://guidelines/extensions",
 	}
 }
 
 func onboardingGuide() string {
-	return `# VibeCMS Onboarding for AI Agents
+	return `# Squilla Onboarding for AI Agents
 
-Welcome! Your task is to build or modify a VibeCMS theme or extension. To
+Welcome! Your task is to build or modify a Squilla theme or extension. To
 succeed without human intervention, follow the path that matches your task.
 
 ## A. Building a Theme
 
 ### 1. Discovery
-- **Read the Guide**: 'read_resource' on 'vibecms://guidelines/themes'.
+- **Read the Guide**: 'read_resource' on 'squilla://guidelines/themes'.
 - **Tool**: Call 'core.theme.standards' for the structured ruleset.
 
 ### 2. Implementation
@@ -554,7 +554,7 @@ succeed without human intervention, follow the path that matches your task.
 ## B. Building an Extension
 
 ### 1. Discovery
-- **Read the Guide**: 'read_resource' on 'vibecms://guidelines/extensions'.
+- **Read the Guide**: 'read_resource' on 'squilla://guidelines/extensions'.
 - **Tool**: Call 'core.extension.standards' for the structured ruleset.
 
 ### 2. Manifest ('extension.json')
@@ -595,6 +595,6 @@ succeed without human intervention, follow the path that matches your task.
 - Always prefer typed tools (e.g. 'core.menu.upsert') over raw SQL.
 - Reference media/layouts/pages by slug — IDs rotate on theme reactivation.
 
-Everything you need is in 'vibecms://guidelines/themes' and
-'vibecms://guidelines/extensions'.`
+Everything you need is in 'squilla://guidelines/themes' and
+'squilla://guidelines/extensions'.`
 }

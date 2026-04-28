@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"vibecms/internal/auth"
-	"vibecms/internal/models"
+	"squilla/internal/auth"
+	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 )

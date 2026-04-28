@@ -7,9 +7,9 @@ allowed-tools: Read, Glob, Grep
 ---
 ```
 
-# Code Review Guide: VibeCMS
+# Code Review Guide: Squilla
 
-Use this guide to review code in the `VibeCMS` repository. Ensure all contributions adhere to the architecture defined in the project documentation.
+Use this guide to review code in the `Squilla` repository. Ensure all contributions adhere to the architecture defined in the project documentation.
 
 ## 1. Review Scope
 When reviewing `$ARGUMENTS`, execute the following checks based on the specific intent of the code.
@@ -49,4 +49,4 @@ When reviewing `$ARGUMENTS`, execute the following checks based on the specific 
     - Passed consistency checks.
     - Potential performance bottlenecks.
     - Security vulnerabilities regarding the Sandbox or RBAC.
-    - Suggested refactors for better alignment with VibeCMS architecture.
+    - Suggested refactors for better alignment with Squilla architecture.

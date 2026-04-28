@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"vibecms/internal/cms"
-	"vibecms/internal/email"
-	"vibecms/internal/events"
+	"squilla/internal/cms"
+	"squilla/internal/email"
+	"squilla/internal/events"
 
 	"github.com/gofiber/fiber/v2"
 )

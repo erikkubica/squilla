@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // This file collects the small, stateless helpers used across the

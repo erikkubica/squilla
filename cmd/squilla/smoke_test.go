@@ -32,7 +32,7 @@ func TestSmokeHealthCheck(t *testing.T) {
 func TestSmokeAuthFlow(t *testing.T) {
 	// Login
 	loginBody, _ := json.Marshal(map[string]string{
-		"email":    "admin@vibecms.local",
+		"email":    "admin@squilla.local",
 		"password": "admin123",
 	})
 	resp, err := http.Post(baseURL+"/auth/login", "application/json", bytes.NewReader(loginBody))
@@ -48,7 +48,7 @@ func TestSmokeAuthFlow(t *testing.T) {
 	// Extract cookie
 	var sessionCookie *http.Cookie
 	for _, c := range resp.Cookies() {
-		if c.Name == "vibecms_session" {
+		if c.Name == "squilla_session" {
 			sessionCookie = c
 			break
 		}
@@ -106,7 +106,7 @@ func TestSmokeAuthFlow(t *testing.T) {
 func loginAndGetCookie(t *testing.T) *http.Cookie {
 	t.Helper()
 	loginBody, _ := json.Marshal(map[string]string{
-		"email":    "admin@vibecms.local",
+		"email":    "admin@squilla.local",
 		"password": "admin123",
 	})
 	resp, err := http.Post(baseURL+"/auth/login", "application/json", bytes.NewReader(loginBody))
@@ -115,7 +115,7 @@ func loginAndGetCookie(t *testing.T) *http.Cookie {
 	}
 	defer resp.Body.Close()
 	for _, c := range resp.Cookies() {
-		if c.Name == "vibecms_session" {
+		if c.Name == "squilla_session" {
 			return c
 		}
 	}
@@ -131,7 +131,7 @@ func TestSmokeNodeCRUD(t *testing.T) {
 		"title":     "About Us",
 		"node_type": "page",
 		"blocks_data": []map[string]interface{}{
-			{"type": "text", "content": map[string]string{"body": "Welcome to VibeCMS"}},
+			{"type": "text", "content": map[string]string{"body": "Welcome to Squilla"}},
 		},
 	})
 	req, _ := http.NewRequest("POST", baseURL+"/admin/api/nodes", bytes.NewReader(createBody))
@@ -188,7 +188,7 @@ func TestSmokeNodeCRUD(t *testing.T) {
 
 	// Update node
 	updateBody, _ := json.Marshal(map[string]interface{}{
-		"title":  "About VibeCMS",
+		"title":  "About Squilla",
 		"status": "published",
 	})
 	req4, _ := http.NewRequest("PATCH", fmt.Sprintf("%s/admin/api/nodes/%d", baseURL, nodeID), bytes.NewReader(updateBody))

@@ -73,16 +73,16 @@ func Load() *Config {
 		AppEnv:             envOrDefault("APP_ENV", "development"),
 		DBHost:             envOrDefault("DB_HOST", "localhost"),
 		DBPort:             envOrDefault("DB_PORT", "5432"),
-		DBUser:             envOrDefault("DB_USER", "vibecms"),
-		DBPassword:         envOrDefault("DB_PASSWORD", "vibecms_secret"),
-		DBName:             envOrDefault("DB_NAME", "vibecms"),
+		DBUser:             envOrDefault("DB_USER", "squilla"),
+		DBPassword:         envOrDefault("DB_PASSWORD", "squilla_secret"),
+		DBName:             envOrDefault("DB_NAME", "squilla"),
 		DBSSLMode:          envOrDefault("DB_SSLMODE", "disable"),
 		SessionSecret:      envOrDefault("SESSION_SECRET", ""),
 		SessionExpiryHours: envOrDefaultInt("SESSION_EXPIRY_HOURS", 24),
 		MonitorBearerToken: envOrDefault("MONITOR_BEARER_TOKEN", ""),
 		StorageDriver:      envOrDefault("STORAGE_DRIVER", "local"),
 		StoragePath:        envOrDefault("STORAGE_PATH", "./storage"),
-		SecretKey:          envOrDefault("VIBECMS_SECRET_KEY", ""),
+		SecretKey:          envOrDefault("SQUILLA_SECRET_KEY", ""),
 	}
 	if dburl := os.Getenv("DATABASE_URL"); dburl != "" {
 		applyDatabaseURL(cfg, dburl)
@@ -128,7 +128,7 @@ func isInternalDBHost(host string) bool {
 
 // Validate checks the configuration for production safety. When AppEnv is
 // "production", the kernel must NOT boot with development defaults — empty
-// session secret, missing monitor bearer, the seeded `vibecms_secret` DB
+// session secret, missing monitor bearer, the seeded `squilla_secret` DB
 // password, disabled TLS to the database, or unset CORS allowlist. The
 // returned error wraps ErrUnsafeProduction with a list of every violation.
 func (c *Config) Validate() error {
@@ -142,8 +142,8 @@ func (c *Config) Validate() error {
 	if c.MonitorBearerToken == "" {
 		problems = append(problems, "MONITOR_BEARER_TOKEN is unset")
 	}
-	if c.DBPassword == "" || c.DBPassword == "vibecms_secret" {
-		problems = append(problems, "DB_PASSWORD is empty or the seed default 'vibecms_secret'")
+	if c.DBPassword == "" || c.DBPassword == "squilla_secret" {
+		problems = append(problems, "DB_PASSWORD is empty or the seed default 'squilla_secret'")
 	}
 	// Reject unknown sslmode values regardless of host — better to fail
 	// loudly here than at connect time with a generic libpq error.
@@ -164,7 +164,7 @@ func (c *Config) Validate() error {
 		// Without a master key we'd silently store theme git PATs and
 		// other credentials as plaintext, defeating the at-rest
 		// encryption story. Refuse production boot.
-		problems = append(problems, "VIBECMS_SECRET_KEY is unset (required for at-rest encryption of secrets)")
+		problems = append(problems, "SQUILLA_SECRET_KEY is unset (required for at-rest encryption of secrets)")
 	}
 	if len(problems) == 0 {
 		return nil

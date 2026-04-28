@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // templatesLayout renders /admin/templates. Theme- and extension-scoped

@@ -11,7 +11,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 import {
   Button,
   Input,
@@ -26,7 +26,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
 
 // ---------- Types ----------

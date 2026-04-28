@@ -3,7 +3,7 @@ package coreapi
 import (
 	"context"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 func userFromModel(u *models.User) *User {

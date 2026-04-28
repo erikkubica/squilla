@@ -6,8 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"vibecms/internal/auth"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/auth"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // ExtensionProxy proxies admin API requests to extension gRPC plugins.

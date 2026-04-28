@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	pb "vibecms/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/coreapipb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

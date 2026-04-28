@@ -40,7 +40,7 @@ export default function LoginPage() {
             <span className="text-lg font-bold text-white">V</span>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
-            VibeCMS
+            Squilla
           </CardTitle>
           <CardDescription className="text-slate-500">
             Sign in to your account

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // taxonomiesLayout renders /admin/taxonomies. Tabs are populated per

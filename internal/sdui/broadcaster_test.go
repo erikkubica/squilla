@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"vibecms/internal/events"
+	"squilla/internal/events"
 )
 
 // drainOne waits for a single event from the broadcaster client channel,

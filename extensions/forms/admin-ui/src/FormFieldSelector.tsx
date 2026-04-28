@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { List } from "@vibecms/icons";
+import { List } from "@squilla/icons";
 
 const { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Label } =
-  (window as any).__VIBECMS_SHARED__.ui;
+  (window as any).__SQUILLA_SHARED__.ui;
 
 export default function FormFieldSelector({ value, onChange }: any) {
   const [forms, setForms] = useState<any[]>([]);

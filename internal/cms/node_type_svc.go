@@ -7,8 +7,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 )
 
 // NodeTypeService provides business logic for managing custom node types.

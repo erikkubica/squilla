@@ -1,8 +1,8 @@
-# VibeCMS Extension API
+# Squilla Extension API
 
-VibeCMS uses a "Kernel + Extensions" architecture. The core CMS provides the basic infrastructure (Node CRUD, Auth, Database, Event Bus), while everything else—even built-in features like Media Management or Email Delivery—is implemented as an extension.
+Squilla uses a "Kernel + Extensions" architecture. The core CMS provides the basic infrastructure (Node CRUD, Auth, Database, Event Bus), while everything else—even built-in features like Media Management or Email Delivery—is implemented as an extension.
 
-This document serves as the complete handoff guide for developers building VibeCMS extensions.
+This document serves as the complete handoff guide for developers building Squilla extensions.
 
 ---
 
@@ -23,7 +23,7 @@ An extension lives in its own directory under `extensions/<slug>/`. It can conta
   "slug": "my-cool-ext",
   "version": "1.0.0",
   "author": "Acme Corp",
-  "description": "Adds cool features to VibeCMS",
+  "description": "Adds cool features to Squilla",
   "priority": 50,
   "capabilities": ["nodes:read", "data:write", "files:write", "log:write"],
   "plugins": {
@@ -76,7 +76,7 @@ For robust backend features (complex logic, custom APIs, third-party library int
 
 ### The Plugin Interface
 
-The CMS core and the extension communicate over gRPC. Your plugin implements the `VibeCMSPlugin` interface and is served using HashiCorp's `go-plugin`.
+The CMS core and the extension communicate over gRPC. Your plugin implements the `SquillaPlugin` interface and is served using HashiCorp's `go-plugin`.
 
 When your plugin starts, it receives a generic `CoreAPI` client from the host.
 
@@ -88,11 +88,11 @@ package main
 import (
 	"context"
 	"github.com/hashicorp/go-plugin"
-	shared "vibecms/pkg/plugin"
-	pb "vibecms/pkg/plugin/coreapipb"
+	shared "squilla/pkg/plugin"
+	pb "squilla/pkg/plugin/coreapipb"
 )
 
-// MyExt implements the VibeCMSPlugin plugin interface
+// MyExt implements the SquillaPlugin plugin interface
 type MyExt struct {
 	coreAPI shared.CoreAPI
 }
@@ -124,7 +124,7 @@ func main() {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: shared.HandshakeConfig,
 		Plugins: map[string]plugin.Plugin{
-			"grpc": &shared.VibeCMSGRPCPlugin{
+			"grpc": &shared.SquillaGRPCPlugin{
 				Impl: &MyExt{},
 			},
 		},
@@ -259,7 +259,7 @@ Instead of bundling React, they import it dynamically from the global scope defi
 
 1. **Setup Vite**: Use standard React + Vite setup.
 2. **Build Settings**: Configure `vite.config.ts` to output standard ES modules without hashing.
-3. **Include Shims**: The CMS shell injects dependencies via `window.__VIBECMS_SHARED__`. Your Vite build uses this.
+3. **Include Shims**: The CMS shell injects dependencies via `window.__SQUILLA_SHARED__`. Your Vite build uses this.
 4. **Deploy**: Build your React app into the extension's `/admin-ui/dist` folder. The CMS auto-mounts it when an admin visits `/admin/extensions/<your-slug>`.
 
 ### CSS / Tailwind
@@ -280,28 +280,28 @@ Extensions ship their own compiled CSS — the admin shell does **not** scan ext
    ```
 4. Import it once from your entry: `import "./index.css";` in `src/index.tsx`.
 
-The build emits `dist/index.css` next to `dist/index.js`. The extension loader auto-injects a `<link rel="stylesheet">` for the sibling CSS when loading the JS entry, so you only need to declare the JS entry in your manifest. Design tokens, base styles, and `@vibecms/ui` component overrides come from the admin shell's stylesheet — your extension CSS only needs to contain the utility classes it actually uses.
+The build emits `dist/index.css` next to `dist/index.js`. The extension loader auto-injects a `<link rel="stylesheet">` for the sibling CSS when loading the JS entry, so you only need to declare the JS entry in your manifest. Design tokens, base styles, and `@squilla/ui` component overrides come from the admin shell's stylesheet — your extension CSS only needs to contain the utility classes it actually uses.
 
 **Cascade ordering note:** the loader inserts the extension `<link>` *before* admin-ui's stylesheet in `<head>`, not after. This is critical: both stylesheets put utilities in the same `@layer utilities`, and within a merged layer source order wins. If the extension stylesheet loaded later, its `.fixed` (used by drawers/modals in many extensions) would beat admin-ui's `.lg:relative` on `<aside class="fixed ... lg:relative">`, the desktop sidebar would stay `position: fixed`, main content would have no left offset, and the shell layout would collapse on every admin page. Don't change this insertion order.
 
 ### Shared libraries inside extensions
 
-`react`, `react-dom`, `react-router-dom`, `sonner`, `@vibecms/ui`, `@vibecms/icons`, `@vibecms/api` are externalized in your `vite.config.ts`. The admin shell exposes them on `window.__VIBECMS_SHARED__`:
+`react`, `react-dom`, `react-router-dom`, `sonner`, `@squilla/ui`, `@squilla/icons`, `@squilla/api` are externalized in your `vite.config.ts`. The admin shell exposes them on `window.__SQUILLA_SHARED__`:
 
 ```tsx
-const { useSearchParams } = (window as any).__VIBECMS_SHARED__.ReactRouterDOM;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
-import { Button } from "@vibecms/ui";              // resolves via shim
-import { Upload } from "@vibecms/icons";           // → lucide-react
+const { useSearchParams } = (window as any).__SQUILLA_SHARED__.ReactRouterDOM;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
+import { Button } from "@squilla/ui";              // resolves via shim
+import { Upload } from "@squilla/icons";           // → lucide-react
 ```
 
-`__VIBECMS_SHARED__.ui` exposes the design-system list-page primitives (`ListPageShell`, `ListHeader`, `ListSearch`, `ListFooter`, `EmptyState`, `Chip`, `StatusPill`, `TitleCell`, `RowActions`, `Th`, `Td`, `Tr`, etc.) used by every list page in the CMS. Use them so your extension visually matches nodes/forms/media — see `extensions/media-manager/admin-ui/src/MediaLibrary.tsx` for a full reference (URL-synced filters/view/sort, per-tab counts via parallel `per_page=1` fetches, sortable column headers backed by the same `?sort=` URL param as the dropdown).
+`__SQUILLA_SHARED__.ui` exposes the design-system list-page primitives (`ListPageShell`, `ListHeader`, `ListSearch`, `ListFooter`, `EmptyState`, `Chip`, `StatusPill`, `TitleCell`, `RowActions`, `Th`, `Td`, `Tr`, etc.) used by every list page in the CMS. Use them so your extension visually matches nodes/forms/media — see `extensions/media-manager/admin-ui/src/MediaLibrary.tsx` for a full reference (URL-synced filters/view/sort, per-tab counts via parallel `per_page=1` fetches, sortable column headers backed by the same `?sort=` URL param as the dropdown).
 
 ---
 
 ## 7. Reference Implementation: Forms Extension
 
-The Forms extension (`extensions/forms/`) is the canonical example of a production-grade VibeCMS extension. It exercises every major CoreAPI surface area and is the recommended starting point for developers building complex extensions.
+The Forms extension (`extensions/forms/`) is the canonical example of a production-grade Squilla extension. It exercises every major CoreAPI surface area and is the recommended starting point for developers building complex extensions.
 
 ### Capability Coverage
 

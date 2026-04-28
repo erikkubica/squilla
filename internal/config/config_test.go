@@ -36,7 +36,7 @@ func TestNormalizeSSLMode(t *testing.T) {
 
 func TestIsInternalDBHost(t *testing.T) {
 	internal := []string{
-		"", "localhost", "db", "postgres", "vibecms-db",
+		"", "localhost", "db", "postgres", "squilla-db",
 		"127.0.0.1", "10.0.0.5", "172.16.5.5", "192.168.1.10", "::1",
 	}
 	for _, h := range internal {

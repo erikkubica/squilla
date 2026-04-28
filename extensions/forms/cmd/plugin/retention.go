@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 // startRetentionWorker spawns a goroutine that runs every hour.

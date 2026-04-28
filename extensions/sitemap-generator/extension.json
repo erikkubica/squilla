@@ -2,7 +2,7 @@
   "name": "Sitemap Generator",
   "slug": "sitemap-generator",
   "version": "1.0.0",
-  "author": "VibeCMS",
+  "author": "Squilla",
   "description": "Automatic XML sitemap generation. Rebuilds when content changes.",
   "provides": ["sitemap"],
   "capabilities": [

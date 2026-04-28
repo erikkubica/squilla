@@ -65,7 +65,7 @@ jobs:
       - name: Run E2E tests
         run: npx playwright test
         env:
-          BASE_URL: ${{ secrets.VIBECMS_BASE_URL || 'http://localhost:3000' }}
+          BASE_URL: ${{ secrets.SQUILLA_BASE_URL || 'http://localhost:3000' }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL || 'admin@test.local' }}
           ADMIN_PASS: ${{ secrets.ADMIN_PASS || 'admin123' }}
       - uses: actions/upload-artifact@v4

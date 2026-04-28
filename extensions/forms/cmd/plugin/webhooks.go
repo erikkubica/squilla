@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"vibecms/internal/coreapi"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // fireWebhook sends an HTTP POST to the configured webhook URL and logs the result.

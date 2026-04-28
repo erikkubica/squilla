@@ -4,19 +4,19 @@ import (
 	"context"
 	"encoding/json"
 
-	pb "vibecms/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/coreapipb"
 )
 
 // Compile-time check that GRPCHostClient implements CoreAPI.
 var _ CoreAPI = (*GRPCHostClient)(nil)
 
-// GRPCHostClient implements CoreAPI by calling VibeCMSHost over gRPC.
+// GRPCHostClient implements CoreAPI by calling SquillaHost over gRPC.
 type GRPCHostClient struct {
-	client pb.VibeCMSHostClient
+	client pb.SquillaHostClient
 }
 
 // NewGRPCHostClient creates a new CoreAPI client that delegates to a gRPC connection.
-func NewGRPCHostClient(client pb.VibeCMSHostClient) *GRPCHostClient {
+func NewGRPCHostClient(client pb.SquillaHostClient) *GRPCHostClient {
 	return &GRPCHostClient{client: client}
 }
 

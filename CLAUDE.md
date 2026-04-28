@@ -1,4 +1,4 @@
-# VibeCMS
+# Squilla
 
 A high-performance, AI-native Go-based CMS with a kernel + extension architecture. The core is a minimal kernel providing content nodes, rendering, auth, and a powerful CoreAPI. All features (media, email, SEO, etc.) are extensions — gRPC plugins with their own data, logic, and admin UI.
 
@@ -60,7 +60,7 @@ Single Go interface providing all CMS capabilities to extensions:
 
 Three adapters:
 1. **Tengo** (`core/*` modules) — for `.tgo` scripts
-2. **gRPC** (VibeCMSHost service via GRPCBroker) — for compiled plugins
+2. **gRPC** (SquillaHost service via GRPCBroker) — for compiled plugins
 3. **Internal** (direct Go calls) — for core code
 
 ### Capability System
@@ -76,7 +76,7 @@ CoreAPI enforces at every call. Internal callers bypass checks.
 Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plugin receives method, path, headers, body, query/path params, user ID. Returns status, headers, body.
 
 ## Folder Structure
-- `cmd/vibecms/`: Application entry point
+- `cmd/squilla/`: Application entry point
 - `internal/`: Core kernel:
     - `coreapi/`: CoreAPI interface, implementations, adapters (Tengo, gRPC, capability guard)
     - `cms/`: Content service, plugin manager, extension loader/proxy/migrations
@@ -106,7 +106,7 @@ Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plu
 - **Extensions First:** New features should be extensions, not core code. Built-in extensions are the reference implementation for third-party developers.
 - **Node-Based Content:** All pages, posts, and entities are `content_nodes` with `blocks_data` JSONB storage.
 - **Admin SPA is a Shell:** Only auth, sidebar, dashboard, and extension loader live in the core SPA. Feature pages are extension micro-frontends.
-- **Extension Micro-Frontends:** Isolated Vite builds outputting ES modules. Import shared deps (`react`, `@vibecms/ui`, `@vibecms/api`, `@vibecms/icons`) via import map shims from `window.__VIBECMS_SHARED__`.
+- **Extension Micro-Frontends:** Isolated Vite builds outputting ES modules. Import shared deps (`react`, `@squilla/ui`, `@squilla/api`, `@squilla/icons`) via import map shims from `window.__SQUILLA_SHARED__`.
 - **Tengo Modules:** Use `core/*` namespace (core/nodes, core/settings, core/events, etc.). ScriptCallbacks wire events.on, routes.register, filters.add to the engine.
 - **Hard-Fail vs. Soft-Fail:**
     - Database connectivity failures → fatal server halt
@@ -120,7 +120,7 @@ Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plu
 
 - **[Extension API](docs/extension_api.md)**: Comprehensive handoff guide for building extensions (gRPC and Tengo).
 - **[Scripting API](docs/scripting_api.md)**: Detailed reference for the embedded Tengo scripting engine.
-- **[VDUS](docs/vdus.md)**: VibeCMS Dynamic UI System — how the SDUI layer works (boot manifest, layout trees, SSE, action handler, component registry).
+- **[VDUS](docs/vdus.md)**: Squilla Dynamic UI System — how the SDUI layer works (boot manifest, layout trees, SSE, action handler, component registry).
 - **[Architecture](docs/architecture.md)**: Kernel + extension architecture reference.
 
 ### Plans

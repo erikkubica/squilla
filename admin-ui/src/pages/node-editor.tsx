@@ -184,7 +184,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const [creatingTranslation, setCreatingTranslation] = useState(false);
 
   // Block editor state — persisted to localStorage per node
-  const storageKey = id ? `vibecms:collapsed-blocks:${id}` : "";
+  const storageKey = id ? `squilla:collapsed-blocks:${id}` : "";
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<number>>(() => {
     if (!storageKey) return new Set();
     try {

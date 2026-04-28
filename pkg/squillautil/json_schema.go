@@ -1,4 +1,4 @@
-package vibeutil
+package squillautil
 
 import "encoding/json"
 

@@ -2,7 +2,7 @@
     "name": "Email Manager",
     "slug": "email-manager",
     "version": "1.0.0",
-    "author": "VibeCMS",
+    "author": "Squilla",
     "description": "Manage email templates, rules, delivery logs, and provider settings.",
     "provides": ["email-management"],
     "capabilities": [

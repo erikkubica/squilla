@@ -1,10 +1,10 @@
-# VibeCMS
+# Squilla
 
 > High-performance, AI-native CMS built in Go. Kernel + extension architecture. MCP-first.
 
 ## What Is This
 
-VibeCMS is a content management system designed around one idea: **an AI should be able to build and manage an entire website without human intervention.** The kernel provides content nodes, rendering, auth, and a powerful CoreAPI. Everything else (media, email, SEO, forms) is an extension — gRPC plugins with their own data, logic, and admin UI.
+Squilla is a content management system designed around one idea: **an AI should be able to build and manage an entire website without human intervention.** The kernel provides content nodes, rendering, auth, and a powerful CoreAPI. Everything else (media, email, SEO, forms) is an extension — gRPC plugins with their own data, logic, and admin UI.
 
 The key differentiator: every CMS operation is exposed as an MCP tool. An AI agent can create node types, seed content, activate themes, and manage extensions through a structured API — no filesystem access, no shell commands, no HTML scraping.
 
@@ -31,7 +31,7 @@ The key differentiator: every CMS operation is exposed as an MCP tool. An AI age
 
 ```bash
 # Clone and run with Docker
-git clone <repo-url> && cd vibecms
+git clone <repo-url> && cd squilla
 docker compose up --build
 
 # App runs at http://localhost:3000
@@ -45,19 +45,19 @@ docker compose up --build
 |----------|---------|-------------|
 | `DB_HOST` | `localhost` | PostgreSQL host |
 | `DB_PORT` | `5432` | PostgreSQL port |
-| `DB_USER` | `vibecms` | Database user |
-| `DB_PASSWORD` | `vibecms` | Database password |
-| `DB_NAME` | `vibecms` | Database name |
+| `DB_USER` | `squilla` | Database user |
+| `DB_PASSWORD` | `squilla` | Database password |
+| `DB_NAME` | `squilla` | Database name |
 | `THEME_PATH` | `themes/default` | Path to active theme |
 | `APP_ENV` | `production` | `development` disables template caching |
 | `PORT` | `3000` | HTTP port |
 | `DATABASE_URL` | _(unset)_ | Optional: `postgres://user:pass@host:port/db?sslmode=disable`. Overrides individual `DB_*` vars when set. |
-| `ADMIN_EMAIL` | `admin@vibecms.local` | Email for the auto-seeded admin user (first boot only). |
+| `ADMIN_EMAIL` | `admin@squilla.local` | Email for the auto-seeded admin user (first boot only). |
 | `ADMIN_PASSWORD` | _(unset)_ | If unset, a random password is generated on first boot and printed to the app logs **once**. Set this to skip the random one. |
 
 ## Deploy on Coolify
 
-VibeCMS ships a `coolify-compose.yml` for zero-config deployment:
+Squilla ships a `coolify-compose.yml` for zero-config deployment:
 
 1. In Coolify, create a new **Resource → Public Repository** and point it at this repo.
 2. Build pack: **Docker Compose**. Compose file: **`coolify-compose.yml`**.
@@ -66,7 +66,7 @@ VibeCMS ships a `coolify-compose.yml` for zero-config deployment:
 
 Coolify auto-generates the database credentials, session secret, and monitor token via its `SERVICE_*` magic variables — nothing for you to fill in. The first admin password is generated on first boot and printed to the `app` container logs **once** (search the logs for `first-boot admin credentials`). To pre-set credentials, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars to the `app` service before the first deploy.
 
-The pre-built image is published to `ghcr.io/erikkubica/vibecms:latest` (multi-arch, amd64 + arm64).
+The pre-built image is published to `ghcr.io/erikkubica/squilla:latest` (multi-arch, amd64 + arm64).
 
 ## Architecture
 
@@ -94,14 +94,14 @@ Extensions own:
 
 Single Go interface providing all CMS capabilities. Three adapters:
 1. **Tengo** (`core/*` modules) — for `.tgo` scripts
-2. **gRPC** (VibeCMSHost service via GRPCBroker) — for compiled plugins
+2. **gRPC** (SquillaHost service via GRPCBroker) — for compiled plugins
 3. **Internal** (direct Go calls) — for core code
 
 See `docs/extension_api.md` for the full reference.
 
 ## MCP Tools (AI Interface)
 
-VibeCMS exposes ~50 MCP tools organized by domain. This is how AI agents interact with the CMS.
+Squilla exposes ~50 MCP tools organized by domain. This is how AI agents interact with the CMS.
 
 ### Content Management
 
@@ -156,7 +156,7 @@ VibeCMS exposes ~50 MCP tools organized by domain. This is how AI agents interac
 ## Folder Structure
 
 ```
-cmd/vibecms/           Application entry point
+cmd/squilla/           Application entry point
 internal/              Core kernel
   coreapi/             CoreAPI interface + adapters (Tengo, gRPC, internal)
   cms/                 Content service, theme loader, extension loader

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"vibecms/internal/api"
+	"squilla/internal/api"
 
 	"github.com/gofiber/fiber/v2"
 )

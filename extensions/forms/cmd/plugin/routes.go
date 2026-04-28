@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	pb "vibecms/pkg/plugin/proto"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // routeRequest dispatches an incoming HTTP request to the appropriate handler.

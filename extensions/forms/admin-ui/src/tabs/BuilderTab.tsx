@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Plus, ListPlus } from "@vibecms/icons";
+import { Plus, ListPlus } from "@squilla/icons";
 import FieldList from "./builder/FieldList";
 import AddFieldForm from "./builder/AddFieldForm";
 
 const { Button, EmptyState } =
-  (window as any).__VIBECMS_SHARED__.ui;
+  (window as any).__SQUILLA_SHARED__.ui;
 
 export default function BuilderTab({ form, setForm }: any) {
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);

@@ -1,7 +1,7 @@
 ---
-name: vibecms-create-theme
+name: squilla-create-theme
 description: |
-  Use when building a new VibeCMS theme from scratch — a self-bootstrapping
+  Use when building a new Squilla theme from scratch — a self-bootstrapping
   marketing site that drops into `themes/<name>/` and seeds its own pages,
   layouts, blocks, partials, taxonomies, settings, and demo content on
   activation. Triggers: "make a marketing site for X", "build a theme for
@@ -12,16 +12,16 @@ description: |
   `theme-asset:<key>` resolution, or seeding pages with `blocks_data`.
 ---
 
-# Creating a VibeCMS Theme
+# Creating a Squilla Theme
 
 ## When to use this skill
 
 Reach for this skill when **the answer to "where does this UI live?" is "in a theme."** Themes own everything a visitor sees on the public site: page chrome, blocks, partials, demo content, on-brand forms.
 
 **Don't** use this skill when:
-- You're building a feature that should work across themes (that's an extension — see `vibecms-create-extension`)
+- You're building a feature that should work across themes (that's an extension — see `squilla-create-extension`)
 - You need a database table (themes don't own tables; extensions do)
-- You're styling the admin (admin is a React SPA — see `vibecms-extension-frontend`)
+- You're styling the admin (admin is a React SPA — see `squilla-extension-frontend`)
 
 ## Source of truth
 

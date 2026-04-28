@@ -8,10 +8,10 @@ import {
   Smartphone,
   Moon,
   Sun,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 
 const { Button, Card, CardContent, SectionHeader } =
-  (window as any).__VIBECMS_SHARED__.ui;
+  (window as any).__SQUILLA_SHARED__.ui;
 
 type DeviceMode = "desktop" | "tablet" | "phone";
 

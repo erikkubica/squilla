@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Save, Loader2 } from "@vibecms/icons";
+import { ArrowLeft, Save, Loader2 } from "@squilla/icons";
 import {
   Button,
   Input,
@@ -14,7 +14,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
 import {
   getEmailRule,
@@ -24,7 +24,7 @@ import {
   getSystemActions,
   getNodeTypes,
   getRoles,
-} from "@vibecms/api";
+} from "@squilla/api";
 
 interface EmailTemplate {
   id: number;

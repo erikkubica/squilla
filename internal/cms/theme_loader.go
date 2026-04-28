@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 
 	"gorm.io/gorm"
 )

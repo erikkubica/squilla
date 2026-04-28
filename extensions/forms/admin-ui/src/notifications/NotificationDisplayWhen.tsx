@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import ConditionBuilder, { ConditionGroup } from "../tabs/builder/ConditionBuilder";
 
-const { AccordionRow } = (window as any).__VIBECMS_SHARED__.ui;
+const { AccordionRow } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface NotificationDisplayWhenProps {
   routeWhen: ConditionGroup;

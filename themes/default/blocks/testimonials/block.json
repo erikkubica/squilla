@@ -20,7 +20,7 @@
   "test_data": {
     "heading": "Loved by the world's most creative teams.",
     "testimonials": [
-      { "quote": "VibeCMS changed how we ship. The edge performance is unparalleled.", "author_name": "Marcus Chen", "author_role": "Lead Eng, Zenith", "avatar": "" },
+      { "quote": "Squilla changed how we ship. The edge performance is unparalleled.", "author_name": "Marcus Chen", "author_role": "Lead Eng, Zenith", "avatar": "" },
       { "quote": "The aesthetic of the dashboard alone improved our team's morale.", "author_name": "Sarah Jenkins", "author_role": "Creative Director, Flow", "avatar": "" },
       { "quote": "Finally, a headless CMS that doesn't feel like a spreadsheet.", "author_name": "David Roh", "author_role": "Founder, Curate AI", "avatar": "" }
     ]

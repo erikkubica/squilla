@@ -7,7 +7,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"vibecms/internal/cms"
+	"squilla/internal/cms"
 )
 
 func (s *Server) registerRenderTools() {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"vibecms/internal/models"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/models"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // PublicExtensionProxy registers public (no auth) routes declared by extensions

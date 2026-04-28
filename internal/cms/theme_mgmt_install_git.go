@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // This file owns InstallFromGit and PullUpdate. Both rely on the
@@ -26,7 +26,7 @@ func (s *ThemeMgmtService) InstallFromGit(gitURL, branch, token string) (*models
 	}
 
 	// Clone to a temp directory first to parse theme.json for the slug.
-	tmpDir, err := os.MkdirTemp("", "vibecms-git-theme-*")
+	tmpDir, err := os.MkdirTemp("", "squilla-git-theme-*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}

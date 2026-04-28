@@ -2,7 +2,7 @@
   "slug": "cb-search",
   "label": "Live Search",
   "icon": "search",
-  "description": "A live search block that searches content in real-time as the user types. Uses AJAX to query the VibeCMS API and displays matching content nodes with title, excerpt, and link. Use for search pages or inline search widgets. Layout: search input with icon, results dropdown below showing matching pages with titles and excerpts.",
+  "description": "A live search block that searches content in real-time as the user types. Uses AJAX to query the Squilla API and displays matching content nodes with title, excerpt, and link. Use for search pages or inline search widgets. Layout: search input with icon, results dropdown below showing matching pages with titles and excerpts.",
   "field_schema": [
     {
       "label": "Heading",

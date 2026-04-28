@@ -5,11 +5,11 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@vibecms/ui";
-import { Input, Label, Button } from "@vibecms/ui";
+} from "@squilla/ui";
+import { Input, Label, Button } from "@squilla/ui";
 import { toast } from "sonner";
-import { getExtensionSettings, updateExtensionSettings } from "@vibecms/api";
-import { Loader2, Key } from "@vibecms/icons";
+import { getExtensionSettings, updateExtensionSettings } from "@squilla/api";
+import { Loader2, Key } from "@squilla/icons";
 
 const SLUG = "resend-provider";
 

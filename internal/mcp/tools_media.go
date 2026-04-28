@@ -12,7 +12,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 func (s *Server) registerMediaTools() {
@@ -71,7 +71,7 @@ func (s *Server) registerMediaTools() {
 		if err != nil {
 			return nil, fmt.Errorf("build request: %w", err)
 		}
-		req.Header.Set("User-Agent", "VibeCMS-MCP/1.0")
+		req.Header.Set("User-Agent", "Squilla-MCP/1.0")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("fetch: %w", err)

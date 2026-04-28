@@ -12,7 +12,7 @@ import {
   Loader2,
   ExternalLink,
   Sparkles,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 import {
   MediaFile,
   isImage,

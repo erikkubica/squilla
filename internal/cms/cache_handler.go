@@ -3,9 +3,9 @@ package cms
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
-	"vibecms/internal/events"
+	"squilla/internal/api"
+	"squilla/internal/auth"
+	"squilla/internal/events"
 )
 
 // CacheHandler provides admin API endpoints for cache management.

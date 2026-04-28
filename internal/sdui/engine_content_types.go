@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // contentTypesLayout renders /admin/content-types — extracted from

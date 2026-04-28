@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // RuleService provides CRUD operations for email rules.

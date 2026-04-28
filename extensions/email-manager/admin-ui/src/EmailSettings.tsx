@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Send, Loader2, Puzzle, Check, Power } from "@vibecms/icons";
+import { Settings, Send, Loader2, Puzzle, Check, Power } from "@squilla/icons";
 import {
   Button,
   Card,
@@ -8,9 +8,9 @@ import {
   CardTitle,
   CardDescription,
   Badge,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
-import { getEmailSettings, saveEmailSettings, sendTestEmail } from "@vibecms/api";
+import { getEmailSettings, saveEmailSettings, sendTestEmail } from "@squilla/api";
 
 interface ExtensionManifest {
   slug: string;
@@ -21,7 +21,7 @@ interface ExtensionManifest {
 }
 
 function getShared() {
-  return (window as any).__VIBECMS_SHARED__;
+  return (window as any).__SQUILLA_SHARED__;
 }
 
 function ProviderSettingsInner({ providerSlug, useExtensions }: { providerSlug: string; useExtensions: () => any }) {

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"vibecms/internal/models"
+	"squilla/internal/models"
 
 	"github.com/lib/pq"
 	"gorm.io/gorm"

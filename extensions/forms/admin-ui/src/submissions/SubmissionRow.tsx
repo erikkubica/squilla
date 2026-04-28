@@ -1,8 +1,8 @@
 import React from "react";
-import { Eye, Calendar } from "@vibecms/icons";
+import { Eye, Calendar } from "@squilla/icons";
 
 const { Tr, Td, StatusPill, Chip, Checkbox, Button } =
-  (window as any).__VIBECMS_SHARED__.ui;
+  (window as any).__SQUILLA_SHARED__.ui;
 
 export type SubmissionStatus = "unread" | "read" | "archived";
 

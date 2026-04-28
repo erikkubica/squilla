@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"

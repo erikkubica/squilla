@@ -1,7 +1,7 @@
 .PHONY: build run dev test clean db-up db-down migrate seed deploy-local ui
 
-BINARY=vibecms
-CMD=./cmd/vibecms
+BINARY=squilla
+CMD=./cmd/squilla
 
 build:
 	go build -o bin/$(BINARY) $(CMD)
@@ -35,7 +35,7 @@ lint:
 
 ui:
 	cd admin-ui && npm run build --silent
-	docker cp admin-ui/dist/. vibecms-app-1:/app/admin-ui/dist/
+	docker cp admin-ui/dist/. squilla-app-1:/app/admin-ui/dist/
 	@echo "==> UI hot-copied into container"
 
 deploy-local:
@@ -49,7 +49,7 @@ deploy-local:
 		cd $$dir && npm install --silent && npm run build && cd ../../..; \
 	done
 	@echo "==> Building Go binary (linux/arm64)..."
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o vibecms ./cmd/vibecms
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o squilla ./cmd/squilla
 	@echo "==> Building extension plugins (linux/arm64)..."
 	@for dir in extensions/*/cmd/plugin; do \
 		[ -f "$$dir/main.go" ] || continue; \
@@ -59,7 +59,7 @@ deploy-local:
 		GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o extensions/$$slug/bin/$$slug ./$$dir/; \
 	done
 	@echo "==> Building Docker image..."
-	docker build -f Dockerfile.local -t vibecms:local .
+	docker build -f Dockerfile.local -t squilla:local .
 	@echo "==> Starting containers..."
 	docker compose up -d --no-build
 	@echo "==> Done. App running at http://localhost:8099"

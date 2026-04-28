@@ -1,4 +1,4 @@
-import { UploadCloud } from "@vibecms/icons";
+import { UploadCloud } from "@squilla/icons";
 
 export default function DragOverlay({ active }: { active: boolean }) {
   if (!active) return null;

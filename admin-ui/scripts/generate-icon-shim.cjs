@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates the vibecms-icons.js shim with ALL lucide-react icon exports.
+ * Generates the squilla-icons.js shim with ALL lucide-react icon exports.
  * Run: node scripts/generate-icon-shim.js
  *
  * This ensures any extension can import any lucide icon without
@@ -22,9 +22,9 @@ const lines = [
   `// Provides all ${iconNames.length} lucide-react icons to extension micro-frontends.`,
   ``,
   `function getIcon(name) {`,
-  `  const icons = window.__VIBECMS_SHARED__?.icons;`,
+  `  const icons = window.__SQUILLA_SHARED__?.icons;`,
   `  if (icons && icons[name]) return icons[name];`,
-  `  const React = window.__VIBECMS_SHARED__?.React;`,
+  `  const React = window.__SQUILLA_SHARED__?.React;`,
   `  const Fallback = function(props) {`,
   `    if (!React) return null;`,
   `    return React.createElement("span", {`,
@@ -39,7 +39,7 @@ const lines = [
   `function lazyIcon(name) {`,
   `  const Component = function(props) {`,
   `    const Real = getIcon(name);`,
-  `    const React = window.__VIBECMS_SHARED__?.React;`,
+  `    const React = window.__SQUILLA_SHARED__?.React;`,
   `    return React ? React.createElement(Real, props) : null;`,
   `  };`,
   `  Component.displayName = name;`,
@@ -61,6 +61,6 @@ for (const name of iconNames) {
 
 lines.push("");
 
-const outPath = path.join(__dirname, "../public/shims/vibecms-icons.js");
+const outPath = path.join(__dirname, "../public/shims/squilla-icons.js");
 fs.writeFileSync(outPath, lines.join("\n"), "utf8");
 console.log(`Generated ${outPath} with ${iconNames.length} icon exports.`);

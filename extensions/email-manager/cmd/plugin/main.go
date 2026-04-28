@@ -9,10 +9,10 @@ import (
 	goplugin "github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 
-	"vibecms/internal/coreapi"
-	vibeplugin "vibecms/pkg/plugin"
-	coreapipb "vibecms/pkg/plugin/coreapipb"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	vibeplugin "squilla/pkg/plugin"
+	coreapipb "squilla/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // EmailManagerPlugin implements the ExtensionPlugin interface for email admin management.
@@ -33,7 +33,7 @@ func (p *EmailManagerPlugin) Shutdown() error {
 }
 
 func (p *EmailManagerPlugin) Initialize(hostConn *grpc.ClientConn) error {
-	p.host = coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))
+	p.host = coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
 	return nil
 }
 

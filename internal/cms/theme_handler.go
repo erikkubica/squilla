@@ -11,10 +11,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
-	"vibecms/internal/models"
-	"vibecms/internal/secrets"
+	"squilla/internal/api"
+	"squilla/internal/auth"
+	"squilla/internal/models"
+	"squilla/internal/secrets"
 )
 
 // themeResponse is the API representation of a theme, hiding the git_token.
@@ -390,7 +390,7 @@ func (h *ThemeHandler) webhookDeploy(c *fiber.Ctx) error {
 	// 1. Validate webhook secret. Stored values may be plaintext
 	// (legacy) or AES-GCM envelopes (current); decrypt is a passthrough
 	// for the former so existing deployments aren't broken by enabling
-	// VIBECMS_SECRET_KEY.
+	// SQUILLA_SECRET_KEY.
 	var setting models.SiteSetting
 	err := h.db.Where("`key` = ?", "theme_webhook_secret").First(&setting).Error
 	if err != nil || setting.Value == nil || *setting.Value == "" {

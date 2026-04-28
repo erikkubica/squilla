@@ -1,6 +1,6 @@
 services:
   app:
-    image: vibecms:local
+    image: squilla:local
     build: .
     ports:
       - "8099:8099"
@@ -9,9 +9,9 @@ services:
       APP_ENV: development
       DB_HOST: db
       DB_PORT: "5432"
-      DB_USER: vibecms
-      DB_PASSWORD: vibecms_secret
-      DB_NAME: vibecms
+      DB_USER: squilla
+      DB_PASSWORD: squilla_secret
+      DB_NAME: squilla
       DB_SSLMODE: disable
       SESSION_SECRET: change-me-to-a-random-64-char-string
       SESSION_EXPIRY_HOURS: "24"
@@ -21,7 +21,7 @@ services:
       # Dev defaults so smoke tests / local login keep working.
       # In production (coolify-compose.yml) ADMIN_PASSWORD is unset, so
       # a random one is generated and printed to logs on first boot.
-      ADMIN_EMAIL: admin@vibecms.local
+      ADMIN_EMAIL: admin@squilla.local
       ADMIN_PASSWORD: admin123
     volumes:
       - ./storage:/app/storage
@@ -35,13 +35,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: vibecms
-      POSTGRES_PASSWORD: vibecms_secret
-      POSTGRES_DB: vibecms
+      POSTGRES_USER: squilla
+      POSTGRES_PASSWORD: squilla_secret
+      POSTGRES_DB: squilla
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vibecms"]
+      test: ["CMD-SHELL", "pg_isready -U squilla"]
       interval: 5s
       timeout: 3s
       retries: 5

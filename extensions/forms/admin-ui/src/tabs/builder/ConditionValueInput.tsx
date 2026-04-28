@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const { Input, Badge } = (window as any).__VIBECMS_SHARED__.ui;
+const { Input, Badge } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface ConditionValueInputProps {
   operator: string;

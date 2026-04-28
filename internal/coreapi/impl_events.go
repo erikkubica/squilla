@@ -2,7 +2,7 @@ package coreapi
 
 import (
 	"context"
-	"vibecms/internal/events"
+	"squilla/internal/events"
 )
 
 func (c *coreImpl) Emit(ctx context.Context, action string, payload map[string]any) error {

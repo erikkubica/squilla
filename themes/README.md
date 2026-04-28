@@ -1,8 +1,8 @@
-# VibeCMS Themes — The Builder's Guide
+# Squilla Themes — The Builder's Guide
 
 > A theme is a **self-bootstrapping marketing site**: drop a folder under `themes/`, restart the app, and a complete demo site appears — pages, layouts, blocks, taxonomies, custom node types, menus, settings, forms, and seeded content. Nothing in the database, no manual admin clicks. The theme owns its full experience.
 >
-> This document is the contract between **you** (the theme author) and **VibeCMS** (the engine). Read it once, ship a production-grade theme. Pair it with [`hello-vietnam/`](./hello-vietnam) — the gold-standard reference.
+> This document is the contract between **you** (the theme author) and **Squilla** (the engine). Read it once, ship a production-grade theme. Pair it with [`hello-vietnam/`](./hello-vietnam) — the gold-standard reference.
 
 ---
 

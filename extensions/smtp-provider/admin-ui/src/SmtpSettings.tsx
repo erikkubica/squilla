@@ -5,11 +5,11 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@vibecms/ui";
-import { Input, Label, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@vibecms/ui";
+} from "@squilla/ui";
+import { Input, Label, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@squilla/ui";
 import { toast } from "sonner";
-import { getExtensionSettings, updateExtensionSettings } from "@vibecms/api";
-import { Loader2, Server } from "@vibecms/icons";
+import { getExtensionSettings, updateExtensionSettings } from "@squilla/api";
+import { Loader2, Server } from "@squilla/icons";
 
 const SLUG = "smtp-provider";
 

@@ -3,7 +3,7 @@
 // matching the secret-key heuristic (passwords, API keys, OAuth tokens),
 // theme git tokens, webhook secrets, etc.
 //
-// The service reads a single master key from the VIBECMS_SECRET_KEY env
+// The service reads a single master key from the SQUILLA_SECRET_KEY env
 // var (32 raw bytes, base64-encoded). When the env var is unset the
 // service runs in pass-through mode: Encrypt is a no-op and Decrypt
 // accepts plaintext. This keeps dev frictionless; production is gated
@@ -24,7 +24,7 @@ import (
 
 const (
 	// EnvKey is the env var holding the base64-encoded master key.
-	EnvKey = "VIBECMS_SECRET_KEY"
+	EnvKey = "SQUILLA_SECRET_KEY"
 	// envelopePrefix tags ciphertext so plaintext rows from the
 	// pre-encryption era still pass through Decrypt unchanged.
 	envelopePrefix = "enc:v1:"
@@ -34,8 +34,8 @@ const (
 
 // Sentinel errors callers can match against.
 var (
-	ErrNoKey      = errors.New("secrets: VIBECMS_SECRET_KEY not configured")
-	ErrInvalidKey = errors.New("secrets: VIBECMS_SECRET_KEY must be 32 raw bytes (base64-encoded)")
+	ErrNoKey      = errors.New("secrets: SQUILLA_SECRET_KEY not configured")
+	ErrInvalidKey = errors.New("secrets: SQUILLA_SECRET_KEY must be 32 raw bytes (base64-encoded)")
 	ErrCorrupt    = errors.New("secrets: ciphertext corrupt or wrong key")
 )
 
@@ -46,7 +46,7 @@ type Service struct {
 	aead cipher.AEAD // nil → encryption disabled (dev pass-through).
 }
 
-// NewFromEnv constructs a Service from VIBECMS_SECRET_KEY. When the env
+// NewFromEnv constructs a Service from SQUILLA_SECRET_KEY. When the env
 // var is absent, the returned Service is in pass-through mode and
 // IsActive reports false; callers that require encryption (production
 // startup, theme token storage in hardened mode) must check this and
@@ -186,7 +186,7 @@ func IsSecretKey(key string) bool {
 
 // GenerateKey returns a fresh base64-encoded 32-byte key, suitable for
 // a one-shot CLI helper that prints a value the operator pastes into
-// VIBECMS_SECRET_KEY.
+// SQUILLA_SECRET_KEY.
 func GenerateKey() (string, error) {
 	k := make([]byte, keySize)
 	if _, err := io.ReadFull(rand.Reader, k); err != nil {

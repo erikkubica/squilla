@@ -2,10 +2,10 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates \
     jpegoptim optipng pngquant imagemagick ffmpeg
 WORKDIR /app
-COPY vibecms .
+COPY squilla .
 COPY ui/templates ./ui/templates
 COPY themes ./themes
 COPY extensions ./extensions
 COPY admin-ui/dist ./admin-ui/dist
 EXPOSE 8099
-CMD ["./vibecms"]
+CMD ["./squilla"]

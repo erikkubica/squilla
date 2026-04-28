@@ -7,7 +7,7 @@ import {
   Database,
   Lock,
   Send,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 
 const {
   Card,
@@ -21,7 +21,7 @@ const {
   SelectTrigger,
   SelectValue,
   Switch,
-} = (window as any).__VIBECMS_SHARED__.ui;
+} = (window as any).__SQUILLA_SHARED__.ui;
 
 export default function SettingsTab({ form, setForm }: any) {
   const settings = form.settings || {};

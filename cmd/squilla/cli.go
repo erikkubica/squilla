@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"vibecms/internal/cms"
-	"vibecms/internal/db"
-	"vibecms/internal/secrets"
+	"squilla/internal/cms"
+	"squilla/internal/db"
+	"squilla/internal/secrets"
 
 	"gorm.io/gorm"
 )
@@ -27,8 +27,8 @@ func handlePreConfigCLI() bool {
 	}
 	switch os.Args[1] {
 	case "genkey":
-		// `vibecms genkey` prints a fresh base64-encoded master key the
-		// operator pastes into VIBECMS_SECRET_KEY before first boot.
+		// `squilla genkey` prints a fresh base64-encoded master key the
+		// operator pastes into SQUILLA_SECRET_KEY before first boot.
 		k, err := secrets.GenerateKey()
 		if err != nil {
 			log.Fatalf("genkey failed: %v", err)
@@ -36,12 +36,12 @@ func handlePreConfigCLI() bool {
 		fmt.Println(k)
 		return true
 	case "verify-plugin":
-		// `vibecms verify-plugin <slug> <binary-path>` prints the SHA-256
+		// `squilla verify-plugin <slug> <binary-path>` prints the SHA-256
 		// digest and the matching site_setting key the operator should
 		// pin. Useful before promoting an extension to production: pin
 		// the digest, then any future swapped binary fails to load.
 		if len(os.Args) < 4 {
-			log.Fatalf("usage: vibecms verify-plugin <slug> <binary-path>")
+			log.Fatalf("usage: squilla verify-plugin <slug> <binary-path>")
 		}
 		digest, err := cms.HashPluginBinary(os.Args[3])
 		if err != nil {

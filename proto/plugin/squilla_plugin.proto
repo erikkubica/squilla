@@ -1,7 +1,7 @@
 syntax = "proto3";
-package vibecmsplugin;
+package squillaplugin;
 
-option go_package = "vibecms/pkg/plugin/proto";
+option go_package = "squilla/pkg/plugin/proto";
 
 service ExtensionPlugin {
   // GetSubscriptions returns the list of events this plugin wants to handle.

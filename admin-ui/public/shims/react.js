@@ -1,4 +1,4 @@
-const R = window.__VIBECMS_SHARED__.React;
+const R = window.__SQUILLA_SHARED__.React;
 export default R;
 export const {
   useState, useEffect, useCallback, useRef, useMemo, useContext,

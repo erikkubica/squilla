@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"vibecms/internal/models"
-	"vibecms/internal/secrets"
+	"squilla/internal/models"
+	"squilla/internal/secrets"
 
 	"gorm.io/gorm"
 )
@@ -210,7 +210,7 @@ func (s *ThemeMgmtService) InstallFromZip(file io.Reader, filename string) (*mod
 	}
 
 	// Create a temp directory for extraction.
-	tmpDir, err := os.MkdirTemp("", "vibecms-theme-*")
+	tmpDir, err := os.MkdirTemp("", "squilla-theme-*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}

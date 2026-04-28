@@ -15,10 +15,10 @@ import (
 
 	// Pure Go WebP encoder via WebAssembly (no CGO required).
 
-	"vibecms/internal/coreapi"
-	vibeplugin "vibecms/pkg/plugin"
-	coreapipb "vibecms/pkg/plugin/coreapipb"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	vibeplugin "squilla/pkg/plugin"
+	coreapipb "squilla/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/proto"
 )
 
 const tableName = "media_files"
@@ -188,7 +188,7 @@ func (p *MediaManagerPlugin) Shutdown() error {
 }
 
 func (p *MediaManagerPlugin) Initialize(hostConn *grpc.ClientConn) error {
-	p.host = coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))
+	p.host = coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
 	p.storageDir = "storage"
 	if dir := os.Getenv("STORAGE_DIR"); dir != "" {
 		p.storageDir = dir

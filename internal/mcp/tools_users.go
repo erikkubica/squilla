@@ -5,7 +5,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 func (s *Server) registerUserTools() {

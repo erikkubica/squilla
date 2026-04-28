@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // themeAssetRefRegexp matches "theme-asset:<key>" — references the active

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Download, ArrowLeft, Inbox } from "@vibecms/icons";
+import { Download, ArrowLeft, Inbox } from "@squilla/icons";
 import { Submission } from "./submissions/SubmissionRow";
 import SubmissionRow from "./submissions/SubmissionRow";
 import SubmissionsToolbar, { ToolbarFilters } from "./submissions/SubmissionsToolbar";
@@ -16,10 +16,10 @@ const {
   EmptyState,
   LoadingRow,
   Checkbox,
-} = (window as any).__VIBECMS_SHARED__.ui;
-const { useSearchParams, useNavigate } = (window as any).__VIBECMS_SHARED__
+} = (window as any).__SQUILLA_SHARED__.ui;
+const { useSearchParams, useNavigate } = (window as any).__SQUILLA_SHARED__
   .ReactRouterDOM;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 interface PaginatedResult {
   rows: Submission[];

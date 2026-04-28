@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, X } from "@vibecms/icons";
+import { Plus, X } from "@squilla/icons";
 import { FIELD_TYPES, OptionPair } from "./types";
 import { keyify } from "./key-utils";
 
@@ -16,7 +16,7 @@ const {
   SelectTrigger,
   SelectValue,
   Switch,
-} = (window as any).__VIBECMS_SHARED__.ui;
+} = (window as any).__SQUILLA_SHARED__.ui;
 
 interface AddFieldFormProps {
   existingKeys: string[];

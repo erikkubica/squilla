@@ -9,7 +9,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 
 ## Bug Diagnosis and Fix Workflow
 
-To fix a bug in VibeCMS, follow this structured process. Ensure you are working on a clean branch and verifying all changes locally.
+To fix a bug in Squilla, follow this structured process. Ensure you are working on a clean branch and verifying all changes locally.
 
 ### 1. Reproduce the Issue
 Before applying any fix, create a reproduction case to ensure the bug is isolated.
@@ -47,7 +47,7 @@ Apply changes according to the project's architectural constraints:
 *   **UI Verification**: If the fix involves the Admin UI, ensure formatting is consistent with `tailwind.config.js`.
 *   **Build Check**: Verify the binary still compiles:
     ```bash
-    go build -o bin/vibecms cmd/vibecms/main.go
+    go build -o bin/squilla cmd/squilla/main.go
     ```
 
 ### 5. Finalize

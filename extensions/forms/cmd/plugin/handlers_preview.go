@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"vibecms/internal/coreapi"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	pb "squilla/pkg/plugin/proto"
 )
 
 func (p *FormsPlugin) handleRender(ctx context.Context, identifier string) (*pb.PluginHTTPResponse, error) {

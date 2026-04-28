@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Webhook, RefreshCw, CheckCircle2, XCircle } from "@vibecms/icons";
+import { Webhook, RefreshCw, CheckCircle2, XCircle } from "@squilla/icons";
 
 const {
   Card,
@@ -16,7 +16,7 @@ const {
   ListTable,
   LoadingRow,
   EmptyState,
-} = (window as any).__VIBECMS_SHARED__.ui;
+} = (window as any).__SQUILLA_SHARED__.ui;
 
 interface WebhookLog {
   id: number;

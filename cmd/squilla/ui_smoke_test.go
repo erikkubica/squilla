@@ -14,7 +14,7 @@ func TestUIPages(t *testing.T) {
 		wantStatus int
 		wantText   string
 	}{
-		{"Homepage", baseURL + "/", 200, "VibeCMS"},
+		{"Homepage", baseURL + "/", 200, "Squilla"},
 		{"Login", baseURL + "/login", 200, "Sign In"},
 		{"Register", baseURL + "/register", 200, "Create Account"},
 		{"Forgot Password", baseURL + "/auth/forgot-password", 200, "Reset"},
@@ -89,7 +89,7 @@ func TestUILoginFlow(t *testing.T) {
 	// POST login form
 	resp, err := client.Post(baseURL+"/auth/login-page",
 		"application/x-www-form-urlencoded",
-		strings.NewReader("email=admin@vibecms.local&password=admin123"))
+		strings.NewReader("email=admin@squilla.local&password=admin123"))
 	if err != nil {
 		t.Fatalf("POST /auth/login-page failed: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestUILoginFlow(t *testing.T) {
 	// Check session cookie was set
 	var hasCookie bool
 	for _, c := range resp.Cookies() {
-		if c.Name == "vibecms_session" {
+		if c.Name == "squilla_session" {
 			hasCookie = true
 			break
 		}

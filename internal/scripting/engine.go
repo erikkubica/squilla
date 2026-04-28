@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"vibecms/internal/coreapi"
-	"vibecms/internal/events"
+	"squilla/internal/coreapi"
+	"squilla/internal/events"
 
 	"github.com/d5/tengo/v2"
 	"github.com/gofiber/fiber/v2"

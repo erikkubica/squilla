@@ -11,22 +11,22 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// registerResources exposes CMS entities as MCP resources under the vibecms://
+// registerResources exposes CMS entities as MCP resources under the squilla://
 // URI scheme. Clients can list and read these for discovery; mutations always
 // go through tools.
 func (s *Server) registerResources() {
 	api := s.deps.CoreAPI
 
-	// Node resource — dynamic URI template vibecms://nodes/{id}
+	// Node resource — dynamic URI template squilla://nodes/{id}
 	s.mcp.AddResourceTemplate(
 		mcp.NewResourceTemplate(
-			"vibecms://nodes/{id}",
-			"VibeCMS node",
-			mcp.WithTemplateDescription("A content node (page, post, etc.) by numeric ID. URI form: vibecms://nodes/{id}"),
+			"squilla://nodes/{id}",
+			"Squilla node",
+			mcp.WithTemplateDescription("A content node (page, post, etc.) by numeric ID. URI form: squilla://nodes/{id}"),
 			mcp.WithTemplateMIMEType("application/json"),
 		),
 		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-			id, err := parseResourceID(req.Params.URI, "vibecms://nodes/")
+			id, err := parseResourceID(req.Params.URI, "squilla://nodes/")
 			if err != nil {
 				return nil, err
 			}
@@ -38,11 +38,11 @@ func (s *Server) registerResources() {
 		},
 	)
 
-	// Theme resource — vibecms://themes/{slug}
+	// Theme resource — squilla://themes/{slug}
 	s.mcp.AddResourceTemplate(
 		mcp.NewResourceTemplate(
-			"vibecms://themes/{slug}",
-			"VibeCMS theme",
+			"squilla://themes/{slug}",
+			"Squilla theme",
 			mcp.WithTemplateDescription("A theme by slug."),
 			mcp.WithTemplateMIMEType("application/json"),
 		),
@@ -50,7 +50,7 @@ func (s *Server) registerResources() {
 			if s.deps.ThemeMgmtSvc == nil {
 				return nil, fmt.Errorf("theme management service not wired")
 			}
-			slug := strings.TrimPrefix(req.Params.URI, "vibecms://themes/")
+			slug := strings.TrimPrefix(req.Params.URI, "squilla://themes/")
 			themes, err := s.deps.ThemeMgmtSvc.List()
 			if err != nil {
 				return nil, err
@@ -64,11 +64,11 @@ func (s *Server) registerResources() {
 		},
 	)
 
-	// Extension resource — vibecms://extensions/{slug}
+	// Extension resource — squilla://extensions/{slug}
 	s.mcp.AddResourceTemplate(
 		mcp.NewResourceTemplate(
-			"vibecms://extensions/{slug}",
-			"VibeCMS extension",
+			"squilla://extensions/{slug}",
+			"Squilla extension",
 			mcp.WithTemplateDescription("An extension by slug."),
 			mcp.WithTemplateMIMEType("application/json"),
 		),
@@ -76,7 +76,7 @@ func (s *Server) registerResources() {
 			if s.deps.ExtensionLoader == nil {
 				return nil, fmt.Errorf("extension loader not wired")
 			}
-			slug := strings.TrimPrefix(req.Params.URI, "vibecms://extensions/")
+			slug := strings.TrimPrefix(req.Params.URI, "squilla://extensions/")
 			ext, err := s.deps.ExtensionLoader.GetBySlug(slug)
 			if err != nil {
 				return nil, err
@@ -85,12 +85,12 @@ func (s *Server) registerResources() {
 		},
 	)
 
-	// Theme Guidelines resource — vibecms://guidelines/themes
+	// Theme Guidelines resource — squilla://guidelines/themes
 	s.mcp.AddResource(
 		mcp.NewResource(
-			"vibecms://guidelines/themes",
+			"squilla://guidelines/themes",
 			"Theme Development Standards",
-			mcp.WithResourceDescription("Official VibeCMS theme development guidelines (Rules 1.1 - 1.6)."),
+			mcp.WithResourceDescription("Official Squilla theme development guidelines (Rules 1.1 - 1.6)."),
 		),
 		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			// Return both structured JSON and raw Markdown
@@ -123,12 +123,12 @@ func (s *Server) registerResources() {
 		},
 	)
 
-	// Extension Guidelines resource — vibecms://guidelines/extensions
+	// Extension Guidelines resource — squilla://guidelines/extensions
 	s.mcp.AddResource(
 		mcp.NewResource(
-			"vibecms://guidelines/extensions",
+			"squilla://guidelines/extensions",
 			"Extension Development Standards",
-			mcp.WithResourceDescription("Official VibeCMS extension development guidelines (manifest, capabilities, gRPC plugin lifecycle, admin-UI micro-frontend, list-page primitives, lifecycle events)."),
+			mcp.WithResourceDescription("Official Squilla extension development guidelines (manifest, capabilities, gRPC plugin lifecycle, admin-UI micro-frontend, list-page primitives, lifecycle events)."),
 		),
 		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			jsonContent, err := json.Marshal(extensionStandards())
@@ -154,12 +154,12 @@ func (s *Server) registerResources() {
 		},
 	)
 
-	// AI Onboarding resource — vibecms://guidelines/onboarding
+	// AI Onboarding resource — squilla://guidelines/onboarding
 	s.mcp.AddResource(
 		mcp.NewResource(
-			"vibecms://guidelines/onboarding",
+			"squilla://guidelines/onboarding",
 			"AI Agent Onboarding Guide",
-			mcp.WithResourceDescription("Mandatory protocol for AI agents building VibeCMS themes."),
+			mcp.WithResourceDescription("Mandatory protocol for AI agents building Squilla themes."),
 		),
 		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			return []mcp.ResourceContents{

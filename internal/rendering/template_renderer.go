@@ -18,11 +18,11 @@ import (
 
 // defaultCacheSize bounds each LRU cache. 1024 templates is generous —
 // most sites don't have more than a few hundred distinct ones. Operators
-// with massive content can override via VIBECMS_TEMPLATE_CACHE_SIZE.
+// with massive content can override via SQUILLA_TEMPLATE_CACHE_SIZE.
 const defaultCacheSize = 1024
 
 func cacheSize() int {
-	if v := os.Getenv("VIBECMS_TEMPLATE_CACHE_SIZE"); v != "" {
+	if v := os.Getenv("SQUILLA_TEMPLATE_CACHE_SIZE"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			return n
 		}

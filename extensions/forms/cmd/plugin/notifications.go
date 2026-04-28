@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 // notificationTemplateData holds the data available to notification templates.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // guardKernelTable is the only piece of tools_data.go we can exercise

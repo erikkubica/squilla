@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 const (

@@ -9,8 +9,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 )
 
 // BlockTypeService provides business logic for managing block types.

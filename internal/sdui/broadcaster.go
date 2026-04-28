@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"vibecms/internal/events"
+	"squilla/internal/events"
 
 	"github.com/gofiber/fiber/v2"
 )

@@ -8,8 +8,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"vibecms/internal/api"
-	"vibecms/internal/models"
+	"squilla/internal/api"
+	"squilla/internal/models"
 )
 
 // This file owns the public read-only listing endpoint for nodes

@@ -381,7 +381,7 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
             </div>
             {!collapsed && (
               <span className="text-sm font-semibold text-white tracking-tight">
-                VibeCMS
+                Squilla
               </span>
             )}
           </div>

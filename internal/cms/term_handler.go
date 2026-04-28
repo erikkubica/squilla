@@ -8,9 +8,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
-	"vibecms/internal/models"
+	"squilla/internal/api"
+	"squilla/internal/auth"
+	"squilla/internal/models"
 )
 
 // TermHandler provides HTTP handlers for taxonomy term CRUD.

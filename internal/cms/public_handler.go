@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"vibecms/internal/auth"
-	"vibecms/internal/events"
-	"vibecms/internal/models"
-	"vibecms/internal/rendering"
+	"squilla/internal/auth"
+	"squilla/internal/events"
+	"squilla/internal/models"
+	"squilla/internal/rendering"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"

@@ -7,10 +7,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/api"
+	"squilla/internal/auth"
+	"squilla/internal/events"
+	"squilla/internal/models"
 )
 
 // RoleHandler provides admin API endpoints for role management.

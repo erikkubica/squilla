@@ -2,7 +2,7 @@
     "name": "Media Manager",
     "slug": "media-manager",
     "version": "1.0.0",
-    "author": "VibeCMS",
+    "author": "Squilla",
     "description": "Upload, organize, and manage media files. Supports images, documents, and other file types.",
     "provides": ["media"],
     "capabilities": [

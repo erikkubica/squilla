@@ -1,4 +1,4 @@
-module vibecms
+module squilla
 
 go 1.24.4
 

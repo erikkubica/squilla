@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -94,7 +94,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 
 // layoutErrorPage returns a user-friendly error page when layout rendering fails.
 // This is always shown (not just in dev) — silently falling back to a bare
-// "VibeCMS" branded page would be worse for the site owner's visitors.
+// "Squilla" branded page would be worse for the site owner's visitors.
 func (h *PublicHandler) layoutErrorPage(err error, url string) string {
 	siteName := "This site"
 	if settings := h.loadSiteSettings(); settings != nil {

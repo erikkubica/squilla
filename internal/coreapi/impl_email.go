@@ -3,8 +3,8 @@ package coreapi
 import (
 	"context"
 	"strings"
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 )
 
 func (c *coreImpl) SendEmail(ctx context.Context, req EmailRequest) error {

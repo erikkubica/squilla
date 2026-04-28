@@ -178,7 +178,7 @@ export default function McpTokensPage() {
       />
 
       <p className="mb-3 text-[12px] text-slate-500 max-w-3xl">
-        Bearer tokens that let AI clients control this VibeCMS instance via the Model Context
+        Bearer tokens that let AI clients control this Squilla instance via the Model Context
         Protocol. Each token is shown once at creation — store it somewhere safe.
       </p>
 
@@ -315,7 +315,7 @@ export default function McpTokensPage() {
           <div className="mt-3 rounded-md bg-indigo-50 p-3 text-xs text-indigo-900">
             <p className="font-medium mb-1">Claude Code setup</p>
             <pre className="whitespace-pre-wrap break-all">
-              {`claude mcp add vibecms ${window.location.origin}/mcp \\
+              {`claude mcp add squilla ${window.location.origin}/mcp \\
   --header "Authorization: Bearer ${revealed?.token || "<token>"}"`}
             </pre>
           </div>

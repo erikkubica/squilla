@@ -3,8 +3,8 @@ package auth
 import (
 	"time"
 
-	"vibecms/internal/api"
-	"vibecms/internal/models"
+	"squilla/internal/api"
+	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"

@@ -3,7 +3,7 @@ package mcp
 import (
 	"context"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 type ctxKey int

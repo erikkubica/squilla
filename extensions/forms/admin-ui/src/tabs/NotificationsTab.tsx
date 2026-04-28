@@ -1,10 +1,10 @@
 import React from "react";
-import { Plus, Mail } from "@vibecms/icons";
+import { Plus, Mail } from "@squilla/icons";
 import NotificationVariablesPanel from "../notifications/NotificationVariablesPanel";
 import NotificationCard from "../notifications/NotificationCard";
 
 const { Button, Card, CardContent, SectionHeader, EmptyState } =
-  (window as any).__VIBECMS_SHARED__.ui;
+  (window as any).__SQUILLA_SHARED__.ui;
 
 function getEmailFields(fields: any[]): any[] {
   return (fields || []).filter((f: any) => f.type === "email");

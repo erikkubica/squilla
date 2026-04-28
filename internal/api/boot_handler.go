@@ -1,8 +1,8 @@
 package api
 
 import (
-	"vibecms/internal/models"
-	"vibecms/internal/sdui"
+	"squilla/internal/models"
+	"squilla/internal/sdui"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"

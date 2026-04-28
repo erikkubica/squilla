@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"vibecms/internal/models"
-	"vibecms/internal/secrets"
+	"squilla/internal/models"
+	"squilla/internal/secrets"
 )
 
 // readSetting fetches the raw stored value for key. Returns ("", nil)

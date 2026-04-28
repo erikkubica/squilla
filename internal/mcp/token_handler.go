@@ -6,8 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"vibecms/internal/api"
-	"vibecms/internal/auth"
+	"squilla/internal/api"
+	"squilla/internal/auth"
 )
 
 // TokenHandler exposes MCP token CRUD at /admin/api/mcp-tokens. Session auth

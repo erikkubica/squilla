@@ -17,7 +17,7 @@ const {
   SelectValue,
   Switch,
   AccordionRow,
-} = (window as any).__VIBECMS_SHARED__.ui;
+} = (window as any).__SQUILLA_SHARED__.ui;
 
 interface FieldEditorProps {
   field: any;

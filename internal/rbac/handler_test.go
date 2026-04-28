@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"vibecms/internal/events"
+	"squilla/internal/events"
 )
 
 // TestPublish_EmitsRoleLifecycleEvents covers the contract the SDUI broadcaster

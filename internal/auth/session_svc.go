@@ -10,7 +10,7 @@ import (
 	"log"
 	"time"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 
 	"gorm.io/gorm"
 )

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, RefreshCw, Loader2 } from "@vibecms/icons";
+import { Eye, RefreshCw, Loader2 } from "@squilla/icons";
 import {
   ListHeader,
   Button,
@@ -23,9 +23,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
-import { getEmailLogs, resendEmail, getSystemActions } from "@vibecms/api";
+import { getEmailLogs, resendEmail, getSystemActions } from "@squilla/api";
 
 interface EmailLog {
   id: number;

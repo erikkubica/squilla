@@ -1,4 +1,4 @@
-import { Copy, Download, Trash2, AlertTriangle, ChevronUp, ChevronDown } from "@vibecms/icons";
+import { Copy, Download, Trash2, AlertTriangle, ChevronUp, ChevronDown } from "@squilla/icons";
 import {
   MediaFile,
   isImage,

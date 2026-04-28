@@ -1,6 +1,6 @@
-# VibeCMS Core — Complete Feature List
+# Squilla Core — Complete Feature List
 
-This document is an exhaustive catalog of what the VibeCMS kernel does today, originally derived from a line-by-line review of `internal/`. Each feature is labeled with its current status:
+This document is an exhaustive catalog of what the Squilla kernel does today, originally derived from a line-by-line review of `internal/`. Each feature is labeled with its current status:
 
 - ✅ **Working** — implemented and exercised on the public/admin surface.
 - 🟡 **Partial** — works but has known gaps or incomplete edge cases.
@@ -13,11 +13,11 @@ This document is an exhaustive catalog of what the VibeCMS kernel does today, or
 
 ## 1. Architectural foundations
 
-VibeCMS is a **kernel + extensions** CMS. The kernel ships infrastructure only; every user-visible feature is delivered either by a built-in extension (in `extensions/`) or by the active theme.
+Squilla is a **kernel + extensions** CMS. The kernel ships infrastructure only; every user-visible feature is delivered either by a built-in extension (in `extensions/`) or by the active theme.
 
 | Boundary | What lives there |
 |---|---|
-| **Kernel** (`internal/`, `cmd/vibecms/`, `pkg/`) | Content nodes, auth, sessions, RBAC, CoreAPI, event bus, scripting (Tengo), template renderer, theme loader, extension loader/proxy, MCP server, SDUI engine, well-known registry, plugin contract |
+| **Kernel** (`internal/`, `cmd/squilla/`, `pkg/`) | Content nodes, auth, sessions, RBAC, CoreAPI, event bus, scripting (Tengo), template renderer, theme loader, extension loader/proxy, MCP server, SDUI engine, well-known registry, plugin contract |
 | **Extensions** (`extensions/*/`) | Media uploads/optimization, email providers (SMTP/Resend), SEO/sitemap, forms, anything domain-specific |
 | **Themes** (`themes/*/`) | Layouts, partials (layout blocks), templates, assets, optional Tengo scripts |
 | **Admin SPA shell** (`admin-ui/`) | Auth UI, dashboard, sidebar; every feature page is an extension micro-frontend loaded via SDUI manifest |
@@ -119,7 +119,7 @@ Known gap: `collectParentSlugs` recursion has no cycle/depth limit — admin err
 - 32-byte cryptographic random token, hex-encoded, only SHA-256 hash stored.
 - UUID primary key.
 - Stored: `user_id`, `token_hash`, `ip_address`, `user_agent`, `expires_at`.
-- Cookie: `vibecms_session`, `HttpOnly=true`, `SameSite=Lax`, `Secure` when `c.Protocol()=="https"`.
+- Cookie: `squilla_session`, `HttpOnly=true`, `SameSite=Lax`, `Secure` when `c.Protocol()=="https"`.
 
 Files: `internal/auth/session_svc.go`.
 
@@ -225,7 +225,7 @@ Performance caveat: walking N nodes one by one is O(N) writes; not transactional
 
 ## 5. Content blocks, layouts, templates
 
-VibeCMS uses a Tailwind/Alpine-based composable block model. Four entity types collaborate to render a page.
+Squilla uses a Tailwind/Alpine-based composable block model. Four entity types collaborate to render a page.
 
 ### 5.1 Block types (`block_types` table)
 **Status:** ✅ working
@@ -346,7 +346,7 @@ Language fallback: language-specific → universal NULL.
 **Status:** ✅ working
 
 Flow:
-1. `eventBus.SubscribeAll(emailDispatcher.HandleEvent)` in `cmd/vibecms/main.go`.
+1. `eventBus.SubscribeAll(emailDispatcher.HandleEvent)` in `cmd/squilla/main.go`.
 2. On any event, `HandleEvent` finds matching rules (filtered by action + optional node_type).
 3. For each rule, resolves recipients with their preferred language.
 4. Renders subject + body, optionally wrapped in a layout.
@@ -443,7 +443,7 @@ Public references:
 - Resolved to `{url, alt, width, height}` at render time via `resolveAssetRefsIn`.
 - Both regexes strict: `^[a-z0-9_-]+$` (no path traversal).
 
-Static path: `/theme/assets/*` served by `cmd/vibecms/theme_assets_resolver.go` — uses `atomic.Pointer[string]` for hot-swap on `theme.activated` events. (This is the kernel's only `atomic` usage.)
+Static path: `/theme/assets/*` served by `cmd/squilla/theme_assets_resolver.go` — uses `atomic.Pointer[string]` for hot-swap on `theme.activated` events. (This is the kernel's only `atomic` usage.)
 
 ### 7.7 Theme browser & file editing
 **Status:** ✅ working
@@ -500,11 +500,11 @@ Each extension can ship `migrations/*.sql` files. On activate, the loader runs u
 Built on HashiCorp `go-plugin` v2 protocol. For each declared plugin in the manifest:
 1. Verify binary exists at `<extPath>/<binary>`.
 2. Spawn via `exec.Command(binaryPath)`.
-3. Handshake: magic cookie `vibecms`.
-4. Bidirectional gRPC: kernel registers `VibeCMSHost` service via `GRPCBroker`; plugin connects back to call CoreAPI methods.
+3. Handshake: magic cookie `squilla`.
+4. Bidirectional gRPC: kernel registers `SquillaHost` service via `GRPCBroker`; plugin connects back to call CoreAPI methods.
 5. Plugin implements: `GetSubscriptions`, `HandleEvent(action, payload bytes)`, `HandleHTTPRequest`, `Shutdown`, `Initialize`.
 
-Files: `internal/cms/plugin_manager.go`, `pkg/plugin/plugin.go`, `proto/plugin/vibecms_plugin.proto`.
+Files: `internal/cms/plugin_manager.go`, `pkg/plugin/plugin.go`, `proto/plugin/squilla_plugin.proto`.
 
 Hardening:
 - ✅ Plugin binaries signed; gRPC handshake validates the signature against the kernel's public key (commit `654dae5`).
@@ -873,7 +873,7 @@ Tools are tagged with their class on registration:
 - **content** — content mutations (nodes, taxonomies, terms, menus, media, files).
 - **full** — settings, users, extensions/themes, `data.exec`, `http.fetch`.
 
-`data.exec` (raw SQL) additionally requires `VIBECMS_MCP_ALLOW_RAW_SQL=true` env, then is gated by the kernel's internal-only check at `impl_datastore.go`.
+`data.exec` (raw SQL) additionally requires `SQUILLA_MCP_ALLOW_RAW_SQL=true` env, then is gated by the kernel's internal-only check at `impl_datastore.go`.
 
 ### 16.4 Per-token rate limiter
 **Status:** ✅ working
@@ -924,10 +924,10 @@ The `internal/mcp/resources.go` exposes browsable resources (theme files, extens
 **Status:** ✅ working
 
 - Protocol version: 2.
-- Magic cookie: `VIBECMS_PLUGIN=vibecms`.
+- Magic cookie: `SQUILLA_PLUGIN=squilla`.
 - gRPC-only (no NetRPC).
 
-### 17.2 Plugin protocol (`pkg/plugin/proto/vibecms_plugin.proto`)
+### 17.2 Plugin protocol (`pkg/plugin/proto/squilla_plugin.proto`)
 **Status:** ✅ working — minimal surface
 
 The plugin must implement:
@@ -935,7 +935,7 @@ The plugin must implement:
 - `HandleEvent(action, payload bytes) → EventResponse` — invoked when subscribed event fires.
 - `HandleHTTPRequest(req) → resp` — invoked when a kernel route proxies to this plugin.
 - `Shutdown() → Empty` — graceful shutdown.
-- `Initialize(req)` — receives the broker ID for the kernel's `VibeCMSHost` service.
+- `Initialize(req)` — receives the broker ID for the kernel's `SquillaHost` service.
 
 Known gaps:
 - All gRPC calls from kernel → plugin use `context.Background()` (no cancellation propagation).
@@ -944,9 +944,9 @@ Known gaps:
 ### 17.3 Host service (kernel exposes CoreAPI to plugin)
 **Status:** ⚠️ working but ungated
 
-The `proto/coreapi/vibecms_coreapi.proto` defines the `VibeCMSHost` service. When a plugin starts, the kernel:
+The `proto/coreapi/squilla_coreapi.proto` defines the `SquillaHost` service. When a plugin starts, the kernel:
 1. Allocates a broker ID.
-2. Starts a gRPC host server on that ID, registering `VibeCMSHost` backed by an unguarded `coreImpl`.
+2. Starts a gRPC host server on that ID, registering `SquillaHost` backed by an unguarded `coreImpl`.
 3. Tells the plugin the broker ID via `Initialize`.
 4. Plugin connects back and can call any CoreAPI method.
 
@@ -1011,7 +1011,7 @@ The `proto/coreapi/vibecms_coreapi.proto` defines the `VibeCMSHost` service. Whe
 
 `CallerInfo.Type == "internal"` short-circuits all checks (`capability.go:19`). `InternalCaller()` is the default returned by `CallerFromContext` when no caller is set in ctx. This is fail-open by design — internal kernel code (admin handlers, render pipeline) operates without capability gating, since enforcement happens at the HTTP edge via `auth.CapabilityRequired`.
 
-The risk is forgetting to call `WithCaller` from a path that should be gated. Per commit `54f573a`, plugin and Tengo callers are always wrapped via `NewCapabilityGuard` at construction time (`cmd/vibecms/main.go:252`), so the only fail-open paths are kernel-internal where capability gating happens earlier in the request flow.
+The risk is forgetting to call `WithCaller` from a path that should be gated. Per commit `54f573a`, plugin and Tengo callers are always wrapped via `NewCapabilityGuard` at construction time (`cmd/squilla/main.go:252`), so the only fail-open paths are kernel-internal where capability gating happens earlier in the request flow.
 
 ---
 
@@ -1061,7 +1061,7 @@ Plugin build is **fail-loud** (Dockerfile:42-45) — kernel rejects images with 
 ### 20.2 Docker Compose
 **Status:** 🟡 partial
 
-`docker-compose.yml` ships with default credentials (`vibecms_secret`, `admin123`) for dev. Comment notes prod config differs (`coolify-compose.yml`).
+`docker-compose.yml` ships with default credentials (`squilla_secret`, `admin123`) for dev. Comment notes prod config differs (`coolify-compose.yml`).
 
 ### 20.3 Makefile
 **Status:** ✅ working
@@ -1071,9 +1071,9 @@ Targets: `build`, `run`, `dev`, `test`, `clean`, `db-up`, `db-down`, `migrate`, 
 ### 20.4 CLI subcommands
 **Status:** ✅ working
 
-- `vibecms` — start the server.
-- `vibecms migrate` — run migrations and exit.
-- `vibecms seed` — run full seed and exit.
+- `squilla` — start the server.
+- `squilla migrate` — run migrations and exit.
+- `squilla seed` — run full seed and exit.
 
 ---
 

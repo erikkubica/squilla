@@ -1,4 +1,4 @@
--- VibeCMS Phase 1 Initial Schema
+-- Squilla Phase 1 Initial Schema
 
 -- users
 CREATE TABLE IF NOT EXISTS users (

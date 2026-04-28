@@ -1,8 +1,8 @@
 {
-  "name": "VibeCMS Default",
+  "name": "Squilla Default",
   "version": "1.0.0",
   "description": "A polished, neutral starter theme with rebrandable CSS custom properties",
-  "author": "VibeCMS",
+  "author": "Squilla",
   "styles": [
     { "handle": "theme-css", "src": "styles/theme.css", "position": "head" }
   ],

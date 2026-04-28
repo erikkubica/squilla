@@ -1,6 +1,6 @@
 ```yaml
 ---
-description: VibeCMS is a high-performance, AI-native Go-based CMS optimized for sub-50ms TTFB, utilizing a block-based JSON editor and a zero-rebuild extension architecture for independent site deployments.
+description: Squilla is a high-performance, AI-native Go-based CMS optimized for sub-50ms TTFB, utilizing a block-based JSON editor and a zero-rebuild extension architecture for independent site deployments.
 globs: []
 alwaysApply: true
 ---
@@ -24,7 +24,7 @@ alwaysApply: true
 - **Resilient Rendering:** If a template or script fails, the system must perform a "soft-fail" rather than crashing the page request.
 
 ## File Organization
-- `/cmd/vibecms/`: Application entry point.
+- `/cmd/squilla/`: Application entry point.
 - `/internal/core/`: Core engine logic (ContentSvc, Router, Auth).
 - `/internal/service/`: Domain-specific services (MailSvc, AISvc, MediaPipe).
 - `/internal/tengo/`: Embedded scripting engine definitions and runtime hooks.

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Code } from "@vibecms/icons";
+import { Code } from "@squilla/icons";
 
-const { AccordionRow } = (window as any).__VIBECMS_SHARED__.ui;
+const { AccordionRow } = (window as any).__SQUILLA_SHARED__.ui;
 
 const TEMPLATE_VARS = [
   { syntax: "{{.FormName}}", desc: "Form display name" },

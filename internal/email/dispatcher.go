@@ -10,8 +10,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 )
 
 // SendRequest contains everything needed to send an email.

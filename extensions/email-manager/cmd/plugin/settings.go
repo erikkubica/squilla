@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"vibecms/internal/coreapi"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // This file owns the settings get/save endpoints plus the test-email
@@ -67,9 +67,9 @@ func (p *EmailManagerPlugin) testEmail(ctx context.Context, req *pb.PluginHTTPRe
 		return jsonError(400, "NO_EMAIL", "Cannot determine user email for test"), nil
 	}
 
-	subject := "VibeCMS Test Email"
+	subject := "Squilla Test Email"
 	body := fmt.Sprintf(`<html><body>
-<h2>VibeCMS Test Email</h2>
+<h2>Squilla Test Email</h2>
 <p>This is a test email confirming that your email configuration is working correctly.</p>
 <p>Sent at: <strong>%s</strong></p>
 </body></html>`, time.Now().Format(time.RFC1123))

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Filter, Inbox } from "@vibecms/icons";
+import { ArrowLeft, Filter, Inbox } from "@squilla/icons";
 import {
   Submission,
   STATUS_BADGE_VARIANTS,
@@ -14,9 +14,9 @@ const {
   ListCard,
   EmptyState,
   LoadingRow,
-} = (window as any).__VIBECMS_SHARED__.ui;
-const { useParams, useNavigate } = (window as any).__VIBECMS_SHARED__.ReactRouterDOM;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+} = (window as any).__SQUILLA_SHARED__.ui;
+const { useParams, useNavigate } = (window as any).__SQUILLA_SHARED__.ReactRouterDOM;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 interface EnrichedSubmission extends Submission {
   form_fields?: Array<Record<string, unknown>>;

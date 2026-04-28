@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"vibecms/internal/api"
+	"squilla/internal/api"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/time/rate"

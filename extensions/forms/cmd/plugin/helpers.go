@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 
-	pb "vibecms/pkg/plugin/proto"
+	pb "squilla/pkg/plugin/proto"
 )
 
 func jsonResponse(status int, data any) *pb.PluginHTTPResponse {

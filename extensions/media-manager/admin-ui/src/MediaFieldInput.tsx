@@ -10,8 +10,8 @@ import {
   ImagePlus,
   Pencil,
   GripVertical,
-} from "@vibecms/icons";
-import { Button, Input } from "@vibecms/ui";
+} from "@squilla/icons";
+import { Button, Input } from "@squilla/ui";
 import MediaPickerModal, { type MediaFile } from "./MediaPickerModal";
 
 // ---------- Types ----------

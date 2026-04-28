@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, PlusSquare, X } from "@vibecms/icons";
+import { Plus, PlusSquare, X } from "@squilla/icons";
 import ConditionRow, { Condition } from "./ConditionRow";
 
 export interface ConditionGroup {

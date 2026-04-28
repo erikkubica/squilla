@@ -6,7 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 func (s *Server) registerSystemTools() {

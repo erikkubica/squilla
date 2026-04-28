@@ -1,10 +1,10 @@
 import "@testing-library/jest-dom";
 import React from "react";
 
-// @vibecms/icons is aliased to src/__tests__/__mocks__/@vibecms/icons.ts in vitest.config.ts.
+// @squilla/icons is aliased to src/__tests__/__mocks__/@squilla/icons.ts in vitest.config.ts.
 // All named exports are provided there as static no-op span components.
 
-// Minimal React shims for shadcn/ui primitives consumed via window.__VIBECMS_SHARED__.ui
+// Minimal React shims for shadcn/ui primitives consumed via window.__SQUILLA_SHARED__.ui
 
 function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return React.createElement("input", props);
@@ -429,4 +429,4 @@ const Sonner = {
   },
 };
 
-(window as any).__VIBECMS_SHARED__ = { ui, Sonner };
+(window as any).__SQUILLA_SHARED__ = { ui, Sonner };

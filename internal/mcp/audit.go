@@ -11,7 +11,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // defaultAuditRetentionDays caps audit log growth. 90 days is enough for

@@ -9,7 +9,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // TemplateService provides business logic for managing templates.

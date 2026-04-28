@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // This file owns the content seeders: auth-page block types,
@@ -126,7 +126,7 @@ func seedEmailTemplates(db *gorm.DB) error {
 <p>Your account has been created on <strong>{{.site_name}}</strong>.</p>
 <p>You can log in at: <a href="{{.site_url}}/login">{{.site_url}}/login</a></p>
 </div>`,
-			TestData: models.JSONB(`{"site_name":"VibeCMS","site_url":"http://localhost:8099","user_full_name":"Jane Doe","user_email":"jane@example.com"}`),
+			TestData: models.JSONB(`{"site_name":"Squilla","site_url":"http://localhost:8099","user_full_name":"Jane Doe","user_email":"jane@example.com"}`),
 		},
 		{
 			Slug:            "user-registered-admin",
@@ -140,7 +140,7 @@ func seedEmailTemplates(db *gorm.DB) error {
 <tr><td style="padding: 4px 12px 4px 0; color: #666;">Email:</td><td>{{.user_email}}</td></tr>
 </table>
 </div>`,
-			TestData: models.JSONB(`{"site_name":"VibeCMS","user_full_name":"Jane Doe","user_email":"jane@example.com"}`),
+			TestData: models.JSONB(`{"site_name":"Squilla","user_full_name":"Jane Doe","user_email":"jane@example.com"}`),
 		},
 		{
 			Slug:            "password-reset",
@@ -153,7 +153,7 @@ func seedEmailTemplates(db *gorm.DB) error {
 <p><a href="{{.reset_url}}" style="display: inline-block; padding: 10px 24px; background: #4f46e5; color: #fff; text-decoration: none; border-radius: 6px;">Reset Password</a></p>
 <p style="color: #666; font-size: 14px;">If you didn't request this, you can safely ignore this email.</p>
 </div>`,
-			TestData: models.JSONB(`{"site_name":"VibeCMS","user_full_name":"Jane Doe","reset_url":"http://localhost:8099/reset-password?token=abc123"}`),
+			TestData: models.JSONB(`{"site_name":"Squilla","user_full_name":"Jane Doe","reset_url":"http://localhost:8099/reset-password?token=abc123"}`),
 		},
 		{
 			Slug:            "node-published",
@@ -164,7 +164,7 @@ func seedEmailTemplates(db *gorm.DB) error {
 <p>"<strong>{{.node_title}}</strong>" ({{.node_type}}) has been published on <strong>{{.site_name}}</strong>.</p>
 <p><a href="{{.site_url}}{{.full_url}}">View it here</a></p>
 </div>`,
-			TestData: models.JSONB(`{"site_name":"VibeCMS","site_url":"http://localhost:8099","node_title":"Hello World","node_type":"post","full_url":"/hello-world"}`),
+			TestData: models.JSONB(`{"site_name":"Squilla","site_url":"http://localhost:8099","node_title":"Hello World","node_type":"post","full_url":"/hello-world"}`),
 		},
 		{
 			Slug:            "node-created-admin",
@@ -178,7 +178,7 @@ func seedEmailTemplates(db *gorm.DB) error {
 <tr><td style="padding: 4px 12px 4px 0; color: #666;">URL:</td><td>{{.site_url}}{{.full_url}}</td></tr>
 </table>
 </div>`,
-			TestData: models.JSONB(`{"site_name":"VibeCMS","site_url":"http://localhost:8099","node_title":"Hello World","node_type":"post","full_url":"/hello-world"}`),
+			TestData: models.JSONB(`{"site_name":"Squilla","site_url":"http://localhost:8099","node_title":"Hello World","node_type":"post","full_url":"/hello-world"}`),
 		},
 	}
 

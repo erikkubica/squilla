@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Save, Loader2, Eye, Plus, Trash2, Globe, RotateCcw, Pencil } from "@vibecms/icons";
+import { ArrowLeft, Save, Loader2, Eye, Plus, Trash2, Globe, RotateCcw, Pencil } from "@squilla/icons";
 import {
   Button,
   Input,
@@ -16,9 +16,9 @@ import {
   SelectValue,
   Textarea,
   Badge,
-} from "@vibecms/ui";
+} from "@squilla/ui";
 import { toast } from "sonner";
-import { getLanguages } from "@vibecms/api";
+import { getLanguages } from "@squilla/api";
 
 interface EmailLayout {
   id: number;

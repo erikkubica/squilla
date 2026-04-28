@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 func makeFormWithWebhook(webhookURL string) map[string]any {

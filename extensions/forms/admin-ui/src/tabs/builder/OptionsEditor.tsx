@@ -1,8 +1,8 @@
 import React from "react";
-import { Plus, X } from "@vibecms/icons";
+import { Plus, X } from "@squilla/icons";
 import { OptionPair } from "./types";
 
-const { Button, Input, Label } = (window as any).__VIBECMS_SHARED__.ui;
+const { Button, Input, Label } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface OptionsEditorProps {
   options: OptionPair[];

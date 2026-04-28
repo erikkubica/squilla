@@ -1,6 +1,6 @@
 import React from "react";
 
-const { Input, Label, Switch } = (window as any).__VIBECMS_SHARED__.ui;
+const { Input, Label, Switch } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface FieldFileOptionsProps {
   field: any;

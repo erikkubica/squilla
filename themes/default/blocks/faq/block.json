@@ -20,9 +20,9 @@
     "heading": "Frequently Asked",
     "subheading": "",
     "items": [
-      { "question": "How is VibeCMS different from Contentful or Sanity?", "answer": "<p>VibeCMS is built with a focus on editorial aesthetic and edge-native performance. While others provide generic blocks, we provide curated intelligence that helps you model data faster and more reliably.</p>" },
+      { "question": "How is Squilla different from Contentful or Sanity?", "answer": "<p>Squilla is built with a focus on editorial aesthetic and edge-native performance. While others provide generic blocks, we provide curated intelligence that helps you model data faster and more reliably.</p>" },
       { "question": "Do you offer a free plan for developers?", "answer": "<p>Yes! Our 'Spark' plan is free forever for personal projects and includes up to 5,000 records and 10GB of bandwidth.</p>" },
-      { "question": "Is VibeCMS SOC2 compliant?", "answer": "<p>We are fully SOC2 Type II and GDPR compliant. Security is a first-class citizen in our architecture.</p>" }
+      { "question": "Is Squilla SOC2 compliant?", "answer": "<p>We are fully SOC2 Type II and GDPR compliant. Security is a first-class citizen in our architecture.</p>" }
     ]
   }
 }

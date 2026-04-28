@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	pb "vibecms/pkg/plugin/proto"
+	pb "squilla/pkg/plugin/proto"
 )
 
 func seedSubmission(h *FakeHost, formID uint, data map[string]any, status string) map[string]any {

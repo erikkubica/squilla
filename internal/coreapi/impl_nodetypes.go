@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*NodeType, error) {

@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"vibecms/internal/coreapi"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // This file owns the public asset-serving endpoints — the resize-on-demand

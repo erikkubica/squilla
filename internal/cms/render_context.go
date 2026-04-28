@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // AppData holds the .App namespace for layout templates.

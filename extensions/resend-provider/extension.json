@@ -2,7 +2,7 @@
   "name": "Resend Provider",
   "slug": "resend-provider",
   "version": "1.0.0",
-  "author": "VibeCMS",
+  "author": "Squilla",
   "description": "Send emails via Resend.com API",
   "priority": 50,
   "capabilities": ["settings:read", "events:subscribe", "http:fetch", "log:write"],

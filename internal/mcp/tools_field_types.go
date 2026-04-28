@@ -5,7 +5,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"vibecms/internal/cms/field_types"
+	"squilla/internal/cms/field_types"
 )
 
 func (s *Server) registerFieldTypeTools() {

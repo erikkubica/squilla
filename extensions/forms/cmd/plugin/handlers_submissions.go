@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"vibecms/internal/coreapi"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // --- Submission Handlers ---

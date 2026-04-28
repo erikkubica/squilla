@@ -110,7 +110,7 @@ export function ExtensionsProvider({ children }: { children: ReactNode }) {
 
   function getFieldTypes(): ResolvedFieldType[] {
     const results: ResolvedFieldType[] = [];
-    const icons = (window as any).__VIBECMS_SHARED__?.icons || {};
+    const icons = (window as any).__SQUILLA_SHARED__?.icons || {};
 
     for (const [slug, ext] of loaded) {
       const fieldTypes = ext.entry.manifest.admin_ui?.field_types;

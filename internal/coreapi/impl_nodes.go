@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // nodeFromModel converts a GORM ContentNode model to a CoreAPI Node.

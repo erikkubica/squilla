@@ -27,7 +27,7 @@ func ensureDummyBcryptHash() {
 		// If hashing itself fails (out of memory, unlikely), fall back
 		// to a static hash that's still bcrypt-shaped — the compare
 		// will still take cost-bound time and always fail.
-		h, err := bcrypt.GenerateFromPassword([]byte("::vibecms-dummy::"), passwordCost())
+		h, err := bcrypt.GenerateFromPassword([]byte("::squilla-dummy::"), passwordCost())
 		if err != nil {
 			h = []byte("$2a$12$" + "X" /* 53 chars total */)
 		}

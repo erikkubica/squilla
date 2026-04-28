@@ -7,7 +7,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"vibecms/internal/coreapi"
+	"squilla/internal/coreapi"
 )
 
 // guardKernelTable refuses access to kernel-private tables for tokens
@@ -116,7 +116,7 @@ func (s *Server) registerDataTools() {
 	// Raw SQL is gated: scope=full AND the env flag must be set.
 	if s.allowRawSQL {
 		s.addTool(mcp.NewTool("core.data.exec",
-			mcp.WithDescription("Execute a raw parameterized SQL statement. Gated behind scope=full and VIBECMS_MCP_ALLOW_RAW_SQL=true. Returns rows_affected. Use with extreme care — this bypasses all model-level validation and events."),
+			mcp.WithDescription("Execute a raw parameterized SQL statement. Gated behind scope=full and SQUILLA_MCP_ALLOW_RAW_SQL=true. Returns rows_affected. Use with extreme care — this bypasses all model-level validation and events."),
 			mcp.WithString("sql", mcp.Required()),
 			mcp.WithArray("args"),
 		), "full", func(ctx context.Context, args map[string]any) (any, error) {

@@ -10,7 +10,7 @@ import {
   Webhook,
   Download,
   Trash2,
-} from "@vibecms/icons";
+} from "@squilla/icons";
 import { typeLabelMap } from "./tabs/builder/types";
 
 const {
@@ -31,10 +31,10 @@ const {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} = (window as any).__VIBECMS_SHARED__.ui;
-const { useParams, useNavigate } = (window as any).__VIBECMS_SHARED__
+} = (window as any).__SQUILLA_SHARED__.ui;
+const { useParams, useNavigate } = (window as any).__SQUILLA_SHARED__
   .ReactRouterDOM;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 import BuilderTab from "./tabs/BuilderTab";
 import LayoutTab from "./tabs/LayoutTab";

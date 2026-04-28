@@ -1,6 +1,6 @@
-# VibeCMS Architecture
+# Squilla Architecture
 
-VibeCMS is a Go-based, AI-native CMS built on a **kernel + extension** model. The core is a minimal Go binary that provides infrastructure only (content nodes, rendering, auth, CoreAPI, MCP server, VDUS engine). Every user-visible feature — media, email, sitemaps, forms — ships as an independent extension with its own gRPC plugin, admin micro-frontend, database tables, and SQL migrations.
+Squilla is a Go-based, AI-native CMS built on a **kernel + extension** model. The core is a minimal Go binary that provides infrastructure only (content nodes, rendering, auth, CoreAPI, MCP server, VDUS engine). Every user-visible feature — media, email, sitemaps, forms — ships as an independent extension with its own gRPC plugin, admin micro-frontend, database tables, and SQL migrations.
 
 This document is the canonical architectural reference. Companion docs:
 
@@ -99,7 +99,7 @@ Core code that violates this rule is a bug. The recent kernel refactors (commit 
 | `db/` | PostgreSQL connection, embedded migrations (38 files: `0001_initial_schema.sql` … `0037_password_reset_tokens.sql`), idempotent seed-on-empty. |
 | `email/` | Dispatcher, rules, templates, layouts, logs. Provider implementations live in `extensions/smtp-provider` and `extensions/resend-provider`. |
 | `rbac/` | Role admin handler, per-node-type access checks (`NodeAccess.CanRead/CanWrite`). |
-| `secrets/` | AES-256-GCM at-rest encryption for sensitive settings (commit `7e29de1`). Master key from `VIBECMS_SECRET_KEY` env. |
+| `secrets/` | AES-256-GCM at-rest encryption for sensitive settings (commit `7e29de1`). Master key from `SQUILLA_SECRET_KEY` env. |
 | `sanitize/` | bluemonday-based XSS sanitization for richtext fields, applied at render time (commit `55653e5`). |
 | `logging/` | Structured `slog` with request-id correlation (commit `dcde556`). Development = human-readable, production = JSON. |
 | `config/` | Env-driven `Config` struct with production safety gates (refuses to boot on default credentials, missing `SESSION_SECRET`, etc.). |
@@ -125,7 +125,7 @@ Eight bundled extensions ship in-tree as the reference implementation:
 
 A pure shell: auth, sidebar, dashboard, extension loader. **Every feature page is rendered from a Server-Driven UI layout tree** returned by `GET /admin/api/layout/:page`. Complex interactions (rich text editors, drag-and-drop trees, code editors) ship as React components — VDUS controls layout orchestration, not interaction.
 
-Built with React 19, Vite, TypeScript, Tailwind v4, shadcn/ui. Extension micro-frontends are loaded as ES modules via import-map shims that share `react`, `react-dom`, `react-router-dom`, `sonner`, `@vibecms/ui`, `@vibecms/icons`, `@vibecms/api` from `window.__VIBECMS_SHARED__`.
+Built with React 19, Vite, TypeScript, Tailwind v4, shadcn/ui. Extension micro-frontends are loaded as ES modules via import-map shims that share `react`, `react-dom`, `react-router-dom`, `sonner`, `@squilla/ui`, `@squilla/icons`, `@squilla/api` from `window.__SQUILLA_SHARED__`.
 
 ### 3.4 Themes (`themes/`)
 
@@ -174,7 +174,7 @@ File Storage       StoreFile, DeleteFile
    ┌──────────────────┐  ┌────────────────────┐  ┌──────────────────────┐
    │ Tengo adapter    │  │ gRPC server        │  │ Internal direct call │
    │ (theme/ext .tgo) │  │ (compiled plugins) │  │ (kernel code)        │
-   │ core/* modules   │  │ VibeCMSHost RPC    │  │ no wrapping          │
+   │ core/* modules   │  │ SquillaHost RPC    │  │ no wrapping          │
    └──────────────────┘  └────────────────────┘  └──────────────────────┘
                           │          │
                           ▼          ▼
@@ -226,7 +226,7 @@ Mounted at `/mcp` with permissive CORS (no cookies — bearer-token auth only). 
 | Taxonomies | `tools_taxonomies.go` | `core.taxonomy.*`, `core.term.*` |
 | Menus | `tools_menus.go` | `core.menu.*` |
 | Media | `tools_media.go` | `core.media.upload`, `.optimize_image` |
-| Data | `tools_data.go` | `core.data.*` (extension-scoped tables; `data.exec` requires `VIBECMS_MCP_ALLOW_RAW_SQL=true`) |
+| Data | `tools_data.go` | `core.data.*` (extension-scoped tables; `data.exec` requires `SQUILLA_MCP_ALLOW_RAW_SQL=true`) |
 | Files | `tools_files.go` | `core.files.*` (theme/extension editing) |
 | HTTP | `tools_http.go` | `core.http.fetch` |
 | Field types | `tools_field_types.go` | `core.field_types.list` |
@@ -311,7 +311,7 @@ POST /admin/api/extensions/:slug/activate
   ↓ Run pending SQL migrations (extensions/<slug>/migrations/*.sql)
   ↓ Register block_types from manifest into theme asset registry
   ↓ Spawn plugin binary via HashiCorp go-plugin (gRPC handshake)
-  ↓ Allocate broker ID; plugin dials back to call VibeCMSHost
+  ↓ Allocate broker ID; plugin dials back to call SquillaHost
   ↓ Load extension Tengo scripts with manifest-declared capabilities
   ↓ Publish extension.activated event
   ↓ Replay theme.activated for the extension's benefit
@@ -359,19 +359,19 @@ This section gives a topology-level view; see [`security.md`](./security.md) for
 | **Production safety gates** | `config.Validate()` refuses to boot in `APP_ENV=production` with default DB password, empty `SESSION_SECRET`, `DB_SSLMODE=disable` on non-internal networks, etc. |
 | **Theme git install hardening** | HMAC-validated webhooks, scheme allowlist, encrypted git tokens (commit `f4ac40f`) |
 | **Network/proxy hardening** | SSRF defense on outbound `http.Fetch`, scheme allowlist (commit `2344aa1`) |
-| **Strict admin CORS, permissive /mcp** | `cmd/vibecms/main.go` (commit `ace0066`) |
+| **Strict admin CORS, permissive /mcp** | `cmd/squilla/main.go` (commit `ace0066`) |
 
 ---
 
 ## 10. Boot Sequence
 
-`cmd/vibecms/main.go` orchestrates startup. Order matters because extensions must be subscribed to lifecycle events before themes activate.
+`cmd/squilla/main.go` orchestrates startup. Order matters because extensions must be subscribed to lifecycle events before themes activate.
 
 ```
-1.  Pre-config CLI (catches subcommands like `vibecms migrate` that exit early)
+1.  Pre-config CLI (catches subcommands like `squilla migrate` that exit early)
 2.  Load config; validate production safety
 3.  Init slog (development: text, production: JSON)
-4.  Init secrets service (AES-256-GCM master key from VIBECMS_SECRET_KEY)
+4.  Init secrets service (AES-256-GCM master key from SQUILLA_SECRET_KEY)
 5.  Connect DB → run migrations → SeedIfEmpty (first-boot admin user)
 6.  Create event bus
 7.  Create SDUI engine + broadcaster (broadcaster subscribes to bus)
@@ -422,7 +422,7 @@ Themes need lightweight hooks: register a node type on activation, modify a page
 
 ### Why gRPC plugins for full-fledged extensions?
 
-Crash isolation. A panic inside a Go plugin's HTTP handler kills the plugin process, not the kernel. HashiCorp's `go-plugin` gives us bidirectional gRPC for free, so plugins call back into `VibeCMSHost` (a guarded `CoreAPI` server) without inventing a custom protocol.
+Crash isolation. A panic inside a Go plugin's HTTP handler kills the plugin process, not the kernel. HashiCorp's `go-plugin` gives us bidirectional gRPC for free, so plugins call back into `SquillaHost` (a guarded `CoreAPI` server) without inventing a custom protocol.
 
 ---
 
@@ -436,8 +436,8 @@ Crash isolation. A panic inside a Go plugin's HTTP handler kills the plugin proc
 | Add a model + migration | `internal/models/` + `internal/db/migrations/00NN_*.sql` |
 | Trace a public request | `PublicHandler.PageByFullURL` → `RenderContext.BuildNodeData` → block render → `RenderLayout` |
 | Find the capability for a method | `internal/coreapi/capability.go` |
-| See full plugin/CoreAPI proto | `proto/plugin/vibecms_plugin.proto`, `proto/coreapi/vibecms_coreapi.proto` |
-| Understand the boot order | `cmd/vibecms/main.go` (top to bottom) |
+| See full plugin/CoreAPI proto | `proto/plugin/squilla_plugin.proto`, `proto/coreapi/squilla_coreapi.proto` |
+| Understand the boot order | `cmd/squilla/main.go` (top to bottom) |
 | Check what's been seeded on first boot | `internal/db/seed.go` |
 | See built-in field types | `internal/cms/field_types/registry.go` |
 | Inspect SSE event types | `internal/sdui/broadcaster.go` |

@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // LanguageService provides business logic for managing languages.

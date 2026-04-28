@@ -1,6 +1,6 @@
 import React from "react";
 
-const { Input, Label } = (window as any).__VIBECMS_SHARED__.ui;
+const { Input, Label } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface FieldValidationRulesProps {
   field: any;

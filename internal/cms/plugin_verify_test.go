@@ -77,7 +77,7 @@ func TestVerifyPluginBinary_NilDB_Skips(t *testing.T) {
 // behavior of the early-return-on-nil-db short circuit.
 
 // HashPluginBinary is the exported entry point used by the
-// `vibecms verify-plugin` CLI helper. Make sure it returns the same
+// `squilla verify-plugin` CLI helper. Make sure it returns the same
 // value as the internal helper so the printed digest matches what
 // the kernel will compute at load time.
 func TestHashPluginBinary_MatchesInternal(t *testing.T) {

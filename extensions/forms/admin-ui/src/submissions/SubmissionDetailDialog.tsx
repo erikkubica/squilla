@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Filter } from "@vibecms/icons";
+import { Filter } from "@squilla/icons";
 import { Submission, STATUS_BADGE_VARIANTS, SubmissionStatus } from "./SubmissionRow";
 
 const {
@@ -11,8 +11,8 @@ const {
   DialogHeader,
   DialogTitle,
   StatusPill,
-} = (window as any).__VIBECMS_SHARED__.ui;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+} = (window as any).__SQUILLA_SHARED__.ui;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 interface EnrichedSubmission extends Submission {
   form_fields?: Array<Record<string, unknown>>;

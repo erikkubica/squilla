@@ -1,4 +1,4 @@
-# VibeCMS — Coolify deployment
+# Squilla — Coolify deployment
 #
 # Zero-config deploy:
 #   1. In Coolify, create a new Resource → Public Repository → point at this repo.
@@ -16,7 +16,7 @@
 
 services:
   app:
-    image: ghcr.io/erikkubica/vibecms:latest
+    image: ghcr.io/erikkubica/squilla:latest
     environment:
       - PORT=8099
       - APP_ENV=production
@@ -43,7 +43,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-$SERVICE_URL_APP}
       # AES-256 master key (32 raw bytes after base64 decode). Override
       # in the UI by pasting `openssl rand -base64 32`.
-      - VIBECMS_SECRET_KEY=${VIBECMS_SECRET_KEY:-$SERVICE_BASE64_SECRETKEY}
+      - SQUILLA_SECRET_KEY=${SQUILLA_SECRET_KEY:-$SERVICE_BASE64_SECRETKEY}
       # DB credentials passed as discrete vars rather than crammed into
       # DATABASE_URL — SERVICE_PASSWORD_POSTGRES can contain '+/=' and
       # other URL-meaningful chars that break libpq parsing.
@@ -51,7 +51,7 @@ services:
       - DB_PORT=5432
       - DB_USER=${DB_USER:-$SERVICE_USER_POSTGRES}
       - DB_PASSWORD=${DB_PASSWORD:-$SERVICE_PASSWORD_POSTGRES}
-      - DB_NAME=vibecms
+      - DB_NAME=squilla
       # `db` is on the compose private network; config.Validate allows
       # sslmode=disable for non-public DB hosts.
       - DB_SSLMODE=disable
@@ -63,7 +63,7 @@ services:
     expose:
       - "8099"
     volumes:
-      - vibecms-storage:/app/storage
+      - squilla-storage:/app/storage
     depends_on:
       db:
         condition: service_healthy
@@ -83,16 +83,16 @@ services:
       # used here so the credentials match.
       - POSTGRES_USER=${DB_USER:-$SERVICE_USER_POSTGRES}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-$SERVICE_PASSWORD_POSTGRES}
-      - POSTGRES_DB=vibecms
+      - POSTGRES_DB=squilla
     volumes:
-      - vibecms-pgdata:/var/lib/postgresql/data
+      - squilla-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d vibecms"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d squilla"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
 volumes:
-  vibecms-storage:
-  vibecms-pgdata:
+  squilla-storage:
+  squilla-pgdata:

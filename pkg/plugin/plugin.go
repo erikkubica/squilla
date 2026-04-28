@@ -4,15 +4,15 @@ import (
 	"context"
 
 	"github.com/hashicorp/go-plugin"
-	pb "vibecms/pkg/plugin/proto"
+	pb "squilla/pkg/plugin/proto"
 	"google.golang.org/grpc"
 )
 
 // Handshake is used to ensure the plugin and host are compatible.
 var Handshake = plugin.HandshakeConfig{
 	ProtocolVersion:  2,
-	MagicCookieKey:   "VIBECMS_PLUGIN",
-	MagicCookieValue: "vibecms",
+	MagicCookieKey:   "SQUILLA_PLUGIN",
+	MagicCookieValue: "squilla",
 }
 
 // PluginMap is the map of plugins we can dispense.
@@ -85,7 +85,7 @@ func (c *GRPCClient) Initialize(hostConn *grpc.ClientConn) error {
 
 // InitializeHost starts a gRPC host service on the broker and tells the plugin
 // where to connect back. registerServer is called with the *grpc.Server so
-// the caller can register the VibeCMSHost service implementation.
+// the caller can register the SquillaHost service implementation.
 func (c *GRPCClient) InitializeHost(registerServer func(s *grpc.Server)) error {
 	hostServiceID := c.broker.NextId()
 	go c.broker.AcceptAndServe(hostServiceID, func(opts []grpc.ServerOption) *grpc.Server {

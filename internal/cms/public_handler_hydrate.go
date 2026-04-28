@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"html/template"
 
-	"vibecms/internal/models"
-	"vibecms/internal/sanitize"
+	"squilla/internal/models"
+	"squilla/internal/sanitize"
 )
 
 // This file owns "field hydration": expanding stored block field

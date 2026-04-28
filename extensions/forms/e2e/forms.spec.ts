@@ -2,7 +2,7 @@
  * Forms Extension — End-to-End Test Matrix
  *
  * Pre-requisites:
- *   - VibeCMS dev server running on BASE_URL (default: http://localhost:3000)
+ *   - Squilla dev server running on BASE_URL (default: http://localhost:3000)
  *   - An admin account with email admin@test.local / password admin123
  *   - SMTP / mailpit available at http://localhost:8025 for spec 5
  *   - A publicly-reachable webhook.site bin URL in env WEBHOOK_BIN for spec 10

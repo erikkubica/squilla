@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 
 	"gorm.io/gorm"
 )
@@ -131,7 +131,7 @@ func (tl *ThemeLoader) upsertThemeRecord(manifest ThemeManifest, themeDir string
 
 	// Look up by path first — the scanner creates records using the
 	// directory name as slug (e.g. "default"), but the manifest name
-	// may produce a different slug (e.g. "vibecms-default").  Path is
+	// may produce a different slug (e.g. "squilla-default").  Path is
 	// the stable identifier across both registration paths.
 	result := tl.db.Where("path = ?", themeDir).First(&existing)
 	if result.Error != nil {

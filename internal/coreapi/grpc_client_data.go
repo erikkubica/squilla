@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	pb "vibecms/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/coreapipb"
 )
 
 // This file holds the data-store, fetch, log, node-type, and file

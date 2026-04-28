@@ -61,7 +61,7 @@ func TestBuild_ProdDefaultsJSON(t *testing.T) {
 	}
 	// "service" attribute is added by build() so kernel logs are
 	// distinguishable from anything else on the same stream.
-	if record["service"] != "vibecms" {
+	if record["service"] != "squilla" {
 		t.Fatalf("missing service tag: %v", record)
 	}
 }

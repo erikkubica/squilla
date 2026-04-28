@@ -1,6 +1,6 @@
-# VibeCMS Scripting API
+# Squilla Scripting API
 
-Complete developer reference for VibeCMS's embedded Tengo scripting system. Tengo scripts power **theme behavior** (`themes/<slug>/scripts/theme.tengo`) and **lightweight extensions** (`extensions/<slug>/scripts/extension.tengo`). Both contexts share the same `core/*` module set; the differences are which capabilities are granted on load.
+Complete developer reference for Squilla's embedded Tengo scripting system. Tengo scripts power **theme behavior** (`themes/<slug>/scripts/theme.tengo`) and **lightweight extensions** (`extensions/<slug>/scripts/extension.tengo`). Both contexts share the same `core/*` module set; the differences are which capabilities are granted on load.
 
 ---
 
@@ -33,7 +33,7 @@ Complete developer reference for VibeCMS's embedded Tengo scripting system. Teng
 
 ## 1. Overview
 
-VibeCMS includes a sandboxed scripting engine that lets theme developers add custom logic without modifying the Go core. Scripts are written in **[Tengo](https://github.com/d5/tengo)**, a fast, secure, embeddable scripting language with Go-like syntax.
+Squilla includes a sandboxed scripting engine that lets theme developers add custom logic without modifying the Go core. Scripts are written in **[Tengo](https://github.com/d5/tengo)**, a fast, secure, embeddable scripting language with Go-like syntax.
 
 ### What You Can Do
 
@@ -117,7 +117,7 @@ log.info("My theme is ready!")
 
 ## 3. Module Import System
 
-Tengo uses `import()` to load modules. VibeCMS provides three categories of importable modules:
+Tengo uses `import()` to load modules. Squilla provides three categories of importable modules:
 
 ### CMS API Modules (`core/*`)
 
@@ -187,7 +187,7 @@ enum   := import("enum")    // Enumeration helpers (map, filter, etc.)
 
 ## 4. core/events
 
-The event system is the primary way scripts interact with VibeCMS's rendering pipeline and lifecycle. Events are used for two distinct purposes: **template hooks** (injecting HTML during page renders) and **lifecycle events** (reacting to CMS actions like publishing a node).
+The event system is the primary way scripts interact with Squilla's rendering pipeline and lifecycle. Events are used for two distinct purposes: **template hooks** (injecting HTML during page renders) and **lifecycle events** (reacting to CMS actions like publishing a node).
 
 ### API
 
@@ -1059,13 +1059,13 @@ http.post("https://hooks.example.com/notify", {
 - **Timeout:** 30 s default, configurable per call.
 - **Capability:** requires `http:fetch`.
 
-Override the blocklist in development with `VIBECMS_ALLOW_PRIVATE_HTTP=true`.
+Override the blocklist in development with `SQUILLA_ALLOW_PRIVATE_HTTP=true`.
 
 ---
 
 ## 11. Triggering emails from scripts
 
-VibeCMS does not expose a `core/email` module. Email delivery is wired through the event bus + email rule engine:
+Squilla does not expose a `core/email` module. Email delivery is wired through the event bus + email rule engine:
 
 1. The script publishes an event via `events.emit("<action>", payload)`.
 2. The kernel's email dispatcher matches the action against `email_rules` rows.
@@ -1584,7 +1584,7 @@ log.info(fmt.sprintf("Found %d nodes of type %s", count, node_type))
 
 ## 19. Standard Library
 
-VibeCMS exposes a safe subset of the [Tengo standard library](https://github.com/d5/tengo/blob/master/docs/stdlib.md). The following modules are available:
+Squilla exposes a safe subset of the [Tengo standard library](https://github.com/d5/tengo/blob/master/docs/stdlib.md). The following modules are available:
 
 ### `fmt` -- String Formatting
 

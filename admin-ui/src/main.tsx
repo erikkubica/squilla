@@ -149,11 +149,11 @@ import { useExtensions } from "@/hooks/use-extensions";
 
 declare global {
   interface Window {
-    __VIBECMS_SHARED__: Record<string, unknown>;
+    __SQUILLA_SHARED__: Record<string, unknown>;
   }
 }
 
-window.__VIBECMS_SHARED__ = {
+window.__SQUILLA_SHARED__ = {
   React,
   ReactDOM,
   ReactRouterDOM,

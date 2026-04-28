@@ -1,4 +1,4 @@
-# VibeCMS Database Schema
+# Squilla Database Schema
 
 Authoritative reference for the PostgreSQL schema, derived directly from the GORM models in `internal/models/`. The schema is managed by 38 embedded SQL migrations in `internal/db/migrations/` (`0001_initial_schema.sql` … `0037_password_reset_tokens.sql`); GORM is **not** used for auto-migrate. To add or modify a table, write a new migration file — see `core_dev_guide.md` §3.4.
 
@@ -103,7 +103,7 @@ Capability shape:
 ```
 
 ### `sessions`
-Active admin sessions. Cookie `vibecms_session` carries the raw token; only the SHA-256 hash is stored.
+Active admin sessions. Cookie `squilla_session` carries the raw token; only the SHA-256 hash is stored.
 
 | Column | Type | Notes |
 |---|---|---|

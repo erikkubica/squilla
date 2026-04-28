@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { FileText, Copy, ExternalLink, Trash2, Edit2, Upload } from "@vibecms/icons";
+import { FileText, Copy, ExternalLink, Trash2, Edit2, Upload } from "@squilla/icons";
 
 const {
   ListPageShell,
@@ -23,9 +23,9 @@ const {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} = (window as any).__VIBECMS_SHARED__.ui;
-const { useNavigate } = (window as any).__VIBECMS_SHARED__.ReactRouterDOM;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+} = (window as any).__SQUILLA_SHARED__.ui;
+const { useNavigate } = (window as any).__SQUILLA_SHARED__.ReactRouterDOM;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 interface Form {
   id: number;

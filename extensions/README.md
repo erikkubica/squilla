@@ -1,8 +1,8 @@
-# VibeCMS Extensions — The Builder's Guide
+# Squilla Extensions — The Builder's Guide
 
 > An extension is a **self-contained feature package**: drop a folder under `extensions/`, restart the app, and the whole thing — admin UI, public routes, database tables, custom field types, content blocks, event hooks — wires itself into the kernel without you editing a single core file. The extension owns its full vertical slice.
 >
-> This document is the contract between **you** (the extension author) and **VibeCMS** (the kernel). Read it once, ship a production-grade extension. Pair it with `extensions/media-manager/` and `extensions/forms/` — the two reference implementations that exercise every surface area of the platform.
+> This document is the contract between **you** (the extension author) and **Squilla** (the kernel). Read it once, ship a production-grade extension. Pair it with `extensions/media-manager/` and `extensions/forms/` — the two reference implementations that exercise every surface area of the platform.
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## 1. Mental model in 60 seconds
 
-VibeCMS is a **kernel + extensions** system. The kernel only ships:
+Squilla is a **kernel + extensions** system. The kernel only ships:
 
 - Content nodes (pages, posts, custom node types) with JSONB block storage
 - Authentication, sessions, RBAC
@@ -66,7 +66,7 @@ extensions/
 
 **Boot sequence:**
 
-1. **Scan** — `extensions/*/extension.json` is parsed at startup. Every extension is upserted into the `extensions` table. Built-in extensions (the seven that ship with VibeCMS) auto-activate; everything else stays inactive until a user enables it in the admin.
+1. **Scan** — `extensions/*/extension.json` is parsed at startup. Every extension is upserted into the `extensions` table. Built-in extensions (the seven that ship with Squilla) auto-activate; everything else stays inactive until a user enables it in the admin.
 2. **Activate** — for every active extension:
    - SQL migrations in `migrations/*.sql` run once each (tracked in `extension_migrations`).
    - The Tengo entry script `scripts/extension.tengo` executes.
@@ -82,7 +82,7 @@ extensions/
    - **Admin HTTP**: browser → `/admin/api/ext/{slug}/*` → admin proxy (auth) → `HandleHTTPRequest` RPC.
    - **Public HTTP**: browser → `<your declared path>` → public proxy (no auth) → `HandleHTTPRequest` RPC.
    - **Events**: kernel event bus → `HandleEvent(action, payload)` RPC. Templates that call `{{event "name" ...}}` use the same path with a result-collecting variant.
-   - The plugin can call back into CoreAPI (Nodes, Settings, Email, Files, Data Store, Log, …) via the bidirectional `VibeCMSHost` gRPC service. Every call passes the capability guard.
+   - The plugin can call back into CoreAPI (Nodes, Settings, Email, Files, Data Store, Log, …) via the bidirectional `SquillaHost` gRPC service. Every call passes the capability guard.
 4. **Deactivation** — `extension.deactivated` fires (so other extensions can clean up); Tengo scripts unload; the plugin's `Shutdown()` is called and the process exits; block/template/layout/partial rows are removed; public and admin routes go cold (return `503` until reactivation).
 5. **Crash isolation** — if your plugin panics, only your extension is affected. The kernel and other extensions keep running. You'll see the crash in `docker compose logs app` with the plugin's slug prefix.
 
@@ -112,7 +112,7 @@ extensions/my-extension/
 ├── admin-ui/
 │   ├── package.json                 # devDeps only — vite, react, tailwind plugin.
 │   ├── tsconfig.json
-│   ├── vite.config.ts               # Externalizes react/sonner/@vibecms/* shims.
+│   ├── vite.config.ts               # Externalizes react/sonner/@squilla/* shims.
 │   ├── src/
 │   │   ├── index.tsx                # Entry: import "./index.css"; export every routed component.
 │   │   ├── index.css                # @import "tailwindcss"; @source "./**/*.{ts,tsx}"
@@ -175,7 +175,7 @@ The manifest is the contract. Every binary, route, capability, block, custom fie
   "name":        "Media Manager",          // Human-readable. Shown in the admin extension picker.
   "slug":        "media-manager",          // kebab-case; must match the folder name.
   "version":     "1.0.0",                  // Semver. Bump on schema/migration changes.
-  "author":      "VibeCMS",
+  "author":      "Squilla",
   "description": "Upload, organize, and manage media files.",
 
   // Loading
@@ -377,7 +377,7 @@ When the extension deactivates, media-manager removes those rows and deletes the
 
 ## 4. The three authoring surfaces
 
-VibeCMS extensions can write code at three layers, each with a different runtime model:
+Squilla extensions can write code at three layers, each with a different runtime model:
 
 | Surface | Language | Where it runs | Best for |
 |---|---|---|---|
@@ -493,10 +493,10 @@ import (
     goplugin "github.com/hashicorp/go-plugin"
     "google.golang.org/grpc"
 
-    "vibecms/internal/coreapi"
-    vibeplugin "vibecms/pkg/plugin"
-    coreapipb "vibecms/pkg/plugin/coreapipb"
-    pb "vibecms/pkg/plugin/proto"
+    "squilla/internal/coreapi"
+    vibeplugin "squilla/pkg/plugin"
+    coreapipb "squilla/pkg/plugin/coreapipb"
+    pb "squilla/pkg/plugin/proto"
 )
 
 type MyPlugin struct {
@@ -505,7 +505,7 @@ type MyPlugin struct {
 }
 
 func (p *MyPlugin) Initialize(hostConn *grpc.ClientConn) error {
-    p.host = coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))
+    p.host = coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
     ctx, cancel := context.WithCancel(context.Background())
     p.shutdownCancel = cancel
     p.startBackgroundWorker(ctx)  // optional
@@ -556,7 +556,7 @@ The `media-manager` plugin uses a slightly different boot path (`VersionedPlugin
 
 ### The host client
 
-`coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))` is the magic that gives your plugin access to **everything** the kernel can do — content nodes, file storage, settings, email, events, the whole `CoreAPI` interface — over gRPC. Every method takes a `context.Context` first. Every method is capability-guarded.
+`coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))` is the magic that gives your plugin access to **everything** the kernel can do — content nodes, file storage, settings, email, events, the whole `CoreAPI` interface — over gRPC. Every method takes a `context.Context` first. Every method is capability-guarded.
 
 The `host` field on your plugin struct is your single source of truth. Pass it everywhere; never make a second one.
 
@@ -1249,7 +1249,7 @@ export default defineConfig({
         "react-dom", "react-dom/client",
         "react-router-dom",
         "sonner",
-        "@vibecms/ui", "@vibecms/api", "@vibecms/icons",
+        "@squilla/ui", "@squilla/api", "@squilla/icons",
       ],
     },
     cssCodeSplit: false,
@@ -1276,23 +1276,23 @@ export { default as ImageOptimizerSettings }  from "./ImageOptimizerSettings";
 @source "./**/*.{ts,tsx}";
 ```
 
-That's the entire file. Design tokens, base styles, and `@vibecms/ui` overrides come from the admin shell's own stylesheet — your extension only needs the utility classes it actually uses.
+That's the entire file. Design tokens, base styles, and `@squilla/ui` overrides come from the admin shell's own stylesheet — your extension only needs the utility classes it actually uses.
 
 > **Why per-extension Tailwind builds.** The admin shell's stylesheet declares a fallback `@source "../../extensions/*/admin-ui/src/**"` so simple class usage works during local development. **Inside Docker, only `admin-ui/` is copied during the frontend build stage** — the fallback `@source` finds nothing, so any class you didn't compile per-extension silently disappears. Always ship your own CSS.
 
 ### Where shared dependencies come from
 
-The admin shell exposes shared modules via `window.__VIBECMS_SHARED__` and an import map. Your code imports them as if they were normal NPM packages:
+The admin shell exposes shared modules via `window.__SQUILLA_SHARED__` and an import map. Your code imports them as if they were normal NPM packages:
 
 ```tsx
 // These resolve through the import map; no shim access needed.
-import { Button, Card, Input } from "@vibecms/ui";
-import { Upload, Image, Trash2 } from "@vibecms/icons";
+import { Button, Card, Input } from "@squilla/ui";
+import { Upload, Image, Trash2 } from "@squilla/icons";
 import { toast } from "sonner";
 
 // These don't have a typed package wrapper — pull them from the shim.
 const { useSearchParams, useNavigate } =
-  (window as unknown as { __VIBECMS_SHARED__: any }).__VIBECMS_SHARED__.ReactRouterDOM;
+  (window as unknown as { __SQUILLA_SHARED__: any }).__SQUILLA_SHARED__.ReactRouterDOM;
 ```
 
 The full list:
@@ -1302,27 +1302,27 @@ The full list:
 | `react`, `react-dom`, `react/jsx-runtime` | React 19 | Pinned by the shell |
 | `react-router-dom` | Routing primitives | Access via shim — no typed re-export |
 | `sonner` | Toast library | `import { toast } from "sonner"` works |
-| `@vibecms/ui` | The design system primitives — see below | Direct import works |
-| `@vibecms/icons` | Lucide icon components, lazy-loaded | `import { Upload } from "@vibecms/icons"` |
-| `@vibecms/api` | API client helpers (admin auth, fetch wrappers) | Direct import |
+| `@squilla/ui` | The design system primitives — see below | Direct import works |
+| `@squilla/icons` | Lucide icon components, lazy-loaded | `import { Upload } from "@squilla/icons"` |
+| `@squilla/api` | API client helpers (admin auth, fetch wrappers) | Direct import |
 
 **Reference for `media-manager`** (`MediaLibrary.tsx`) — uses both styles:
 
 ```tsx
-import { Button, Dialog, DialogContent, DialogTitle, /* … */ } from "@vibecms/ui";
-import { Upload, Loader2, Image as ImageIcon } from "@vibecms/icons";
+import { Button, Dialog, DialogContent, DialogTitle, /* … */ } from "@squilla/ui";
+import { Upload, Loader2, Image as ImageIcon } from "@squilla/icons";
 import { toast } from "sonner";
 
-const SHARED = (window as any).__VIBECMS_SHARED__;
+const SHARED = (window as any).__SQUILLA_SHARED__;
 const { useSearchParams } = SHARED.ReactRouterDOM;
 const { ListPageShell, ListHeader, ListSearch, ListFooter } = SHARED.ui;
 ```
 
-The `__VIBECMS_SHARED__.ui` namespace exposes the same components as `@vibecms/ui` (it's the same module), but accessing it via the shim is convenient when destructuring many primitives at once and saves re-listing them in the externalize array. **Both styles work; pick one and be consistent within a file.**
+The `__SQUILLA_SHARED__.ui` namespace exposes the same components as `@squilla/ui` (it's the same module), but accessing it via the shim is convenient when destructuring many primitives at once and saves re-listing them in the externalize array. **Both styles work; pick one and be consistent within a file.**
 
 ### The design system primitives
 
-`@vibecms/ui` ships the full shadcn-derived component library plus list-page primitives that the entire CMS is built on. Reach for these before rolling your own — they're what makes pages look like the rest of the admin.
+`@squilla/ui` ships the full shadcn-derived component library plus list-page primitives that the entire CMS is built on. Reach for these before rolling your own — they're what makes pages look like the rest of the admin.
 
 **Layout primitives:**
 - `ListPageShell` — outer wrapper (handles padding, max-width).
@@ -1415,8 +1415,8 @@ For tight iteration during development, copy built assets directly into the runn
 
 ```bash
 # After npm run build in both admin-ui and your extension
-docker cp admin-ui/dist/. vibecms-app-1:/app/admin-ui/dist/
-docker cp extensions/<slug>/admin-ui/dist/. vibecms-app-1:/app/extensions/<slug>/admin-ui/dist/
+docker cp admin-ui/dist/. squilla-app-1:/app/admin-ui/dist/
+docker cp extensions/<slug>/admin-ui/dist/. squilla-app-1:/app/extensions/<slug>/admin-ui/dist/
 ```
 
 The Go binary serves these as static files — no container restart needed. Hard-refresh the browser (Cmd+Shift+R) to bypass cached `index.html`.
@@ -1867,10 +1867,10 @@ import (
     goplugin "github.com/hashicorp/go-plugin"
     "google.golang.org/grpc"
 
-    "vibecms/internal/coreapi"
-    vibeplugin "vibecms/pkg/plugin"
-    coreapipb "vibecms/pkg/plugin/coreapipb"
-    pb "vibecms/pkg/plugin/proto"
+    "squilla/internal/coreapi"
+    vibeplugin "squilla/pkg/plugin"
+    coreapipb "squilla/pkg/plugin/coreapipb"
+    pb "squilla/pkg/plugin/proto"
 )
 
 type MyPlugin struct {
@@ -1878,7 +1878,7 @@ type MyPlugin struct {
 }
 
 func (p *MyPlugin) Initialize(hostConn *grpc.ClientConn) error {
-    p.host = coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))
+    p.host = coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
     return nil
 }
 
@@ -1986,7 +1986,7 @@ export default defineConfig({
         "react-dom", "react-dom/client",
         "react-router-dom",
         "sonner",
-        "@vibecms/ui", "@vibecms/api", "@vibecms/icons",
+        "@squilla/ui", "@squilla/api", "@squilla/icons",
       ],
     },
     cssCodeSplit: false,
@@ -2011,7 +2011,7 @@ export { default as HelloPage } from "./HelloPage";
 ### `admin-ui/src/HelloPage.tsx`
 
 ```tsx
-import { Card, CardContent, Button } from "@vibecms/ui";
+import { Card, CardContent, Button } from "@squilla/ui";
 
 export default function HelloPage() {
   return (
@@ -2364,12 +2364,12 @@ docker compose exec -T db psql -U $POSTGRES_USER -d $POSTGRES_DB \
 
 # Hot-deploy admin UI changes without rebuilding the Docker image
 cd extensions/<slug>/admin-ui && npm run build
-docker cp dist/. vibecms-app-1:/app/extensions/<slug>/admin-ui/dist/
+docker cp dist/. squilla-app-1:/app/extensions/<slug>/admin-ui/dist/
 
 # Hot-deploy plugin binary changes
 cd extensions/<slug>
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/<slug> ./cmd/plugin/
-docker cp bin/<slug> vibecms-app-1:/app/extensions/<slug>/bin/<slug>
+docker cp bin/<slug> squilla-app-1:/app/extensions/<slug>/bin/<slug>
 docker compose restart app  # restart needed to bounce the plugin process
 ```
 

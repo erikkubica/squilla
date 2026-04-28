@@ -1,4 +1,4 @@
-# VibeCMS Dynamic UI System (VDUS)
+# Squilla Dynamic UI System (VDUS)
 
 ## Overview
 
@@ -453,7 +453,7 @@ Extensions register components from their ESM bundles:
 
 ```typescript
 // In extension's index.js
-window.__VIBECMS_SHARED__.registerComponent("MediaLibrary", MediaLibrary);
+window.__SQUILLA_SHARED__.registerComponent("MediaLibrary", MediaLibrary);
 ```
 
 Or they can be loaded lazily via `RemoteComponent`:

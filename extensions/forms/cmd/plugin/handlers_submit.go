@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"vibecms/internal/coreapi"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	pb "squilla/pkg/plugin/proto"
 )
 
 func (p *FormsPlugin) handleSubmit(ctx context.Context, slug string, req *pb.PluginHTTPRequest) (*pb.PluginHTTPResponse, error) {

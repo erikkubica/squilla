@@ -1,4 +1,4 @@
-const R = window.__VIBECMS_SHARED__.React;
+const R = window.__SQUILLA_SHARED__.React;
 
 // jsx(type, props, key) — children live inside props.children.
 // createElement(type, props, ...children) — 3rd+ args OVERRIDE props.children.

@@ -1,13 +1,13 @@
 ---
-name: vibecms-extension-frontend
+name: squilla-extension-frontend
 description: |
-  How to build, style, and debug VibeCMS extension admin-UI micro-frontends.
+  How to build, style, and debug Squilla extension admin-UI micro-frontends.
   Use when: (1) building/editing files under `extensions/*/admin-ui/src/**`,
   (2) Tailwind classes silently have no effect in an extension UI (e.g. `pt-3`,
   `gap-x-6`, `sm:grid-cols-2`, `md:col-span-2` produce no visible style),
   (3) extension UI looks correct in `npm run dev` but broken after Docker rebuild,
   (4) hot-deploying a compiled extension into a running container without
-  rebuilding the image, (5) any change to shared `@vibecms/ui` primitives
+  rebuilding the image, (5) any change to shared `@squilla/ui` primitives
   (Switch, Select, Tabs, etc.) so changes get picked up CMS-wide,
   (6) shipping an extension that uses common Tailwind utilities like `.fixed`,
   `.absolute`, `.grid` and the admin-ui shell layout suddenly breaks
@@ -20,15 +20,15 @@ author: Claude Code
 version: 1.1.0
 ---
 
-# VibeCMS Extension Frontend Build & Styling
+# Squilla Extension Frontend Build & Styling
 
 ## Architecture (one paragraph)
 
 The admin SPA (`admin-ui/`) is a Vite+React+Tailwind v4 shell that loads
 extension micro-frontends (`extensions/<slug>/admin-ui/`) as ES modules at
 runtime. Extensions externalize `react`, `react-dom`, `react-router-dom`,
-`sonner`, `@vibecms/ui`, `@vibecms/api`, `@vibecms/icons` — these are
-provided at runtime via `window.__VIBECMS_SHARED__` (set up in
+`sonner`, `@squilla/ui`, `@squilla/api`, `@squilla/icons` — these are
+provided at runtime via `window.__SQUILLA_SHARED__` (set up in
 `admin-ui/src/main.tsx`). Extensions ship their own JS **and CSS** from
 `dist/`, served by the Go binary at `/admin/api/extensions/<slug>/assets/*`.
 
@@ -46,12 +46,12 @@ provided at runtime via `window.__VIBECMS_SHARED__` (set up in
      plugins: [react(), tailwindcss()],
      build: {
        lib: { entry: "src/index.tsx", formats: ["es"], fileName: "index", cssFileName: "index" },
-       rollupOptions: { external: ["react", "react/jsx-runtime", "react-dom", "react-dom/client", "react-router-dom", "sonner", "@vibecms/ui", "@vibecms/api", "@vibecms/icons"] },
+       rollupOptions: { external: ["react", "react/jsx-runtime", "react-dom", "react-dom/client", "react-router-dom", "sonner", "@squilla/ui", "@squilla/api", "@squilla/icons"] },
        cssCodeSplit: false,
      },
    });
    ```
-3. Have `src/index.css` with **only** scanner directives — admin-ui ships the design tokens, base styles, and `@vibecms/ui` `data-slot` overrides:
+3. Have `src/index.css` with **only** scanner directives — admin-ui ships the design tokens, base styles, and `@squilla/ui` `data-slot` overrides:
    ```css
    @import "tailwindcss";
    @source "./**/*.{ts,tsx}";
@@ -98,25 +98,25 @@ else document.head.insertBefore(link, document.head.firstChild);
 
 ## Accessing Externalized Libraries Inside Extensions
 
-`react-router-dom`, `sonner`, `@vibecms/ui`, `@vibecms/icons`, `@vibecms/api` are externalized in the extension's vite config. The admin-ui shell exposes them on `window.__VIBECMS_SHARED__`. Pattern:
+`react-router-dom`, `sonner`, `@squilla/ui`, `@squilla/icons`, `@squilla/api` are externalized in the extension's vite config. The admin-ui shell exposes them on `window.__SQUILLA_SHARED__`. Pattern:
 
 ```tsx
 const { useSearchParams, useNavigate } =
-  (window as any).__VIBECMS_SHARED__.ReactRouterDOM;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+  (window as any).__SQUILLA_SHARED__.ReactRouterDOM;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
-// @vibecms/ui and @vibecms/icons resolve via direct import (vite externalize).
-import { Button } from "@vibecms/ui";
-import { Upload } from "@vibecms/icons";  // resolves to lucide-react at runtime
+// @squilla/ui and @squilla/icons resolve via direct import (vite externalize).
+import { Button } from "@squilla/ui";
+import { Upload } from "@squilla/icons";  // resolves to lucide-react at runtime
 ```
 
-`__VIBECMS_SHARED__.ui` exposes admin-ui's design-system components: `ListPageShell`, `ListHeader`, `ListSearch`, `ListFooter`, `EmptyState`, `LoadingRow`, `Chip`, `StatusPill`, `Th`, `Td`, `Tr`, `TitleCell`, `RowActions`, `Checkbox`, etc. Always reach for these before rolling your own — they're what makes pages look consistent.
+`__SQUILLA_SHARED__.ui` exposes admin-ui's design-system components: `ListPageShell`, `ListHeader`, `ListSearch`, `ListFooter`, `EmptyState`, `LoadingRow`, `Chip`, `StatusPill`, `Th`, `Td`, `Tr`, `TitleCell`, `RowActions`, `Checkbox`, etc. Always reach for these before rolling your own — they're what makes pages look consistent.
 
 ## List Page Pattern (canonical, mirrors nodes/forms/media-library)
 
 ```tsx
 const { ListPageShell, ListHeader, ListSearch, ListFooter } =
-  (window as any).__VIBECMS_SHARED__.ui;
+  (window as any).__SQUILLA_SHARED__.ui;
 
 <ListPageShell>
   <ListHeader
@@ -204,7 +204,7 @@ If the page has both a "Sort by" dropdown (grid view) and clickable column heade
 
 ## Editing Shared UI Primitives
 
-Files under `admin-ui/src/components/ui/` (Switch, Select, Tabs, Button, etc.) are exposed to extensions via `__VIBECMS_SHARED__.ui`. Editing them changes behavior CMS-wide and across every extension. **Always rebuild admin-ui** after touching these:
+Files under `admin-ui/src/components/ui/` (Switch, Select, Tabs, Button, etc.) are exposed to extensions via `__SQUILLA_SHARED__.ui`. Editing them changes behavior CMS-wide and across every extension. **Always rebuild admin-ui** after touching these:
 
 ```bash
 cd admin-ui && npm run build
@@ -226,7 +226,7 @@ docker cp /path/to/extensions/<slug>/admin-ui/dist/. <container>:/app/extensions
 
 The Go binary serves these as static files — **no container restart needed**. User must hard-refresh (Cmd+Shift+R) to bypass cached `index.html`/JS/CSS.
 
-Find the container with `docker ps --format "table {{.Names}}\t{{.Image}}"` (typically `vibecms-app-1`).
+Find the container with `docker ps --format "table {{.Names}}\t{{.Image}}"` (typically `squilla-app-1`).
 
 ## Editor Layout Pattern (canonical, mirrors `admin-ui/src/pages/node-editor.tsx`)
 
@@ -264,6 +264,6 @@ After any extension UI change:
 
 - `docs/extension_api.md` §6 — Micro-frontend conventions (CSS section)
 - `admin-ui/src/lib/extension-loader.ts` — Module + CSS loader
-- `admin-ui/src/main.tsx` — `__VIBECMS_SHARED__` shim setup
+- `admin-ui/src/main.tsx` — `__SQUILLA_SHARED__` shim setup
 - `extensions/forms/admin-ui/` — Reference implementation
 - `Dockerfile` `frontend` and `ext-frontend` stages — why centralized Tailwind scan fails

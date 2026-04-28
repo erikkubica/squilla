@@ -7,8 +7,8 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 	"gorm.io/gorm"
 
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/events"
+	"squilla/internal/models"
 )
 
 // menuCacheSize bounds the menu service cache. 256 is plenty — most

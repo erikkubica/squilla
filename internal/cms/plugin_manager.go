@@ -9,17 +9,17 @@ import (
 	"path/filepath"
 	"sync"
 
-	vibeplugin "vibecms/pkg/plugin"
+	vibeplugin "squilla/pkg/plugin"
 
 	goplugin "github.com/hashicorp/go-plugin"
 
-	"vibecms/internal/events"
+	"squilla/internal/events"
 
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 )
 
-// HostServerRegistrar is a function that registers the VibeCMSHost
+// HostServerRegistrar is a function that registers the SquillaHost
 // gRPC service on a grpc.Server for a given extension slug with its
 // capabilities and owned-tables list. owned-tables is consumed by the
 // coreapi capability guard's data:* gate; capabilities feeds the
@@ -152,7 +152,7 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 			continue
 		}
 
-		// Initialize: start gRPC host service so plugin can call back into VibeCMS.
+		// Initialize: start gRPC host service so plugin can call back into Squilla.
 		if pm.hostRegistrar != nil {
 			if grpcClient, ok := impl.(*vibeplugin.GRPCClient); ok {
 				registerFn := pm.hostRegistrar(slug, capabilities, ownedTables)

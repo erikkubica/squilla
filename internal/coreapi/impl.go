@@ -1,10 +1,10 @@
 package coreapi
 
 import (
-	"vibecms/internal/cms"
-	"vibecms/internal/email"
-	"vibecms/internal/events"
-	"vibecms/internal/secrets"
+	"squilla/internal/cms"
+	"squilla/internal/email"
+	"squilla/internal/events"
+	"squilla/internal/secrets"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"

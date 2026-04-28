@@ -3,9 +3,9 @@ package auth
 import (
 	"strconv"
 
-	"vibecms/internal/api"
-	"vibecms/internal/events"
-	"vibecms/internal/models"
+	"squilla/internal/api"
+	"squilla/internal/events"
+	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"

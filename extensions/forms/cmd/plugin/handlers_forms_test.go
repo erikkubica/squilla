@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	pb "vibecms/pkg/plugin/proto"
+	pb "squilla/pkg/plugin/proto"
 )
 
 func makeReq(method, path string, body []byte) *pb.PluginHTTPRequest {

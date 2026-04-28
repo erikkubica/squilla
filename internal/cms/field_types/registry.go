@@ -1,4 +1,4 @@
-// Package field_types is the single source of truth for VibeCMS's built-in
+// Package field_types is the single source of truth for Squilla's built-in
 // content field types. Both the admin UI (via /admin/api/field-types) and the
 // MCP core.field_types.list tool read from this registry.
 package field_types
@@ -14,7 +14,7 @@ type FieldTypeDef struct {
 	Icon        string `json:"icon"`
 }
 
-// Builtin returns the 20 field types that ship with the VibeCMS kernel.
+// Builtin returns the 20 field types that ship with the Squilla kernel.
 // Extensions can contribute additional types through their admin_ui.field_types
 // manifest entry.
 func Builtin() []FieldTypeDef {

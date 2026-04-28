@@ -1,5 +1,5 @@
 // Package logging provides a thin wrapper around log/slog for the
-// VibeCMS kernel. Replaces ad-hoc log.Printf calls with structured,
+// Squilla kernel. Replaces ad-hoc log.Printf calls with structured,
 // JSON-able output that can be filtered by level and enriched with
 // per-request correlation IDs.
 //
@@ -20,11 +20,11 @@ import (
 
 // LevelEnv is the env var that controls log verbosity. Values:
 // "debug", "info" (default), "warn", "error".
-const LevelEnv = "VIBECMS_LOG_LEVEL"
+const LevelEnv = "SQUILLA_LOG_LEVEL"
 
 // FormatEnv selects the output format: "json" (default in production)
 // or "text" (more human-readable, default in development).
-const FormatEnv = "VIBECMS_LOG_FORMAT"
+const FormatEnv = "SQUILLA_LOG_FORMAT"
 
 // requestIDKey is the context key under which the per-request
 // correlation ID is stashed. Stays unexported so callers go through
@@ -47,8 +47,8 @@ func Init(isDev bool) {
 	})
 }
 
-// build constructs a logger writing to w. Honours VIBECMS_LOG_LEVEL
-// and VIBECMS_LOG_FORMAT. Pulled out for tests so a buffer can stand
+// build constructs a logger writing to w. Honours SQUILLA_LOG_LEVEL
+// and SQUILLA_LOG_FORMAT. Pulled out for tests so a buffer can stand
 // in for stderr.
 func build(w io.Writer, isDev bool) *slog.Logger {
 	lvl := parseLevel(os.Getenv(LevelEnv), slog.LevelInfo)
@@ -70,7 +70,7 @@ func build(w io.Writer, isDev bool) *slog.Logger {
 	// Attach a constant field so logs from the kernel are
 	// distinguishable from anything else sharing stderr (e.g. plugin
 	// stderr captured by go-plugin).
-	return slog.New(h).With("service", "vibecms")
+	return slog.New(h).With("service", "squilla")
 }
 
 func parseLevel(s string, fallback slog.Level) slog.Level {
@@ -92,7 +92,7 @@ func parseLevel(s string, fallback slog.Level) slog.Level {
 // logging during early startup don't panic.
 func Default() *slog.Logger {
 	if defaultLogger == nil {
-		return slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", "vibecms")
+		return slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})).With("service", "squilla")
 	}
 	return defaultLogger
 }

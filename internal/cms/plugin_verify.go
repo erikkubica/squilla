@@ -13,7 +13,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // pluginPinSettingKey is the site_settings key holding the trusted
@@ -103,7 +103,7 @@ func verifyPluginBinary(db *gorm.DB, slug, binary, path string) error {
 	return nil
 }
 
-// HashPluginBinary is exported so the `vibecms verify-plugin` CLI
+// HashPluginBinary is exported so the `squilla verify-plugin` CLI
 // helper can print the digest of a binary the operator wants to pin.
 func HashPluginBinary(path string) (string, error) {
 	return hashFile(path)

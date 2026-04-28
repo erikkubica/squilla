@@ -1,8 +1,8 @@
 import React from "react";
-import { Trash2, Archive, CheckCircle, Circle } from "@vibecms/icons";
+import { Trash2, Archive, CheckCircle, Circle } from "@squilla/icons";
 
-const { Button } = (window as any).__VIBECMS_SHARED__.ui;
-const { toast } = (window as any).__VIBECMS_SHARED__.Sonner;
+const { Button } = (window as any).__SQUILLA_SHARED__.ui;
+const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 type BulkAction = "mark_read" | "mark_unread" | "archive" | "delete";
 

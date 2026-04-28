@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // This file owns the URL-construction helpers used by ContentService:

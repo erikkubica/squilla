@@ -10,10 +10,10 @@ import (
 	goplugin "github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
 
-	"vibecms/internal/coreapi"
-	vibeplugin "vibecms/pkg/plugin"
-	coreapipb "vibecms/pkg/plugin/coreapipb"
-	pb "vibecms/pkg/plugin/proto"
+	"squilla/internal/coreapi"
+	vibeplugin "squilla/pkg/plugin"
+	coreapipb "squilla/pkg/plugin/coreapipb"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // --- XML sitemap structures ---
@@ -76,7 +76,7 @@ func (p *SitemapPlugin) HandleEvent(action string, payload []byte) (*pb.EventRes
 }
 
 func (p *SitemapPlugin) Initialize(hostConn *grpc.ClientConn) error {
-	p.host = coreapi.NewGRPCHostClient(coreapipb.NewVibeCMSHostClient(hostConn))
+	p.host = coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
 
 	if err := p.buildAllSitemaps(); err != nil {
 		ctx := context.Background()
@@ -222,7 +222,7 @@ func (p *SitemapPlugin) getLanguages(ctx context.Context, nodes []*coreapi.Node)
 	}
 
 	// Get language configuration from settings.
-	// Format stored by VibeCMS: default_language, and per-language settings.
+	// Format stored by Squilla: default_language, and per-language settings.
 	defaultLang, _ := p.host.GetSetting(ctx, "default_language")
 	if defaultLang == "" {
 		defaultLang = "en"

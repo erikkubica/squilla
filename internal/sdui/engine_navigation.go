@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"vibecms/internal/models"
+	"squilla/internal/models"
 )
 
 // canReadNodeType mirrors auth.GetNodeAccess(...).CanRead() but is duplicated
