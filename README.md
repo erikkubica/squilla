@@ -54,17 +54,44 @@ docker compose up --build
 | `DATABASE_URL` | _(unset)_ | Optional: `postgres://user:pass@host:port/db?sslmode=disable`. Overrides individual `DB_*` vars when set. |
 | `ADMIN_EMAIL` | `admin@squilla.local` | Email for the auto-seeded admin user (first boot only). |
 | `ADMIN_PASSWORD` | _(unset)_ | If unset, a random password is generated on first boot and printed to the app logs **once**. Set this to skip the random one. |
+| `SQUILLA_SECRET_KEY` | _(unset)_ | **AES-256 master key for at-rest encryption of secret settings.** Must be a base64 string that decodes to **exactly 32 raw bytes**. Generate with `openssl rand -base64 32`. If unset, secret settings are stored in plaintext (dev only); production startup refuses to boot. |
+| `SESSION_SECRET` | _(unset)_ | Session cookie signing key. Any sufficiently random string. Generate with `openssl rand -base64 48`. Required in production. |
+| `MONITOR_BEARER_TOKEN` | _(unset)_ | Bearer token for `/api/v1/stats` monitoring endpoint. Any opaque string. Required in production. |
+| `CORS_ORIGINS` | _(unset)_ | Comma-separated list of allowed origins for CORS. Defaults to the public domain in Coolify deployments. |
 
 ## Deploy on Coolify
 
-Squilla ships a `coolify-compose.yml` for zero-config deployment:
+Squilla ships a `coolify-compose.yml` for near-zero-config deployment:
 
 1. In Coolify, create a new **Resource → Public Repository** and point it at this repo.
 2. Build pack: **Docker Compose**. Compose file: **`coolify-compose.yml`**.
 3. Set the **Domain** for the `app` service (Coolify fills `SERVICE_FQDN_APP` and provisions TLS).
-4. Click **Deploy**.
+4. **Override `SQUILLA_SECRET_KEY`** in the Environment Variables tab — see the gotcha below.
+5. Click **Deploy**.
 
-Coolify auto-generates the database credentials, session secret, and monitor token via its `SERVICE_*` magic variables — nothing for you to fill in. The first admin password is generated on first boot and printed to the `app` container logs **once** (search the logs for `first-boot admin credentials`). To pre-set credentials, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars to the `app` service before the first deploy.
+Coolify auto-generates the database credentials, session secret, and monitor token via its `SERVICE_*` magic variables — those work out of the box. The first admin password is generated on first boot and printed to the `app` container logs **once** (search the logs for `first-boot admin credentials`). To pre-set credentials, add `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars to the `app` service before the first deploy.
+
+### Gotcha: `SQUILLA_SECRET_KEY` requires manual override
+
+Coolify's `SERVICE_BASE64_<NAME>` magic variable produces a **32-character base64 string**, which decodes to **24 raw bytes**. The Squilla secrets service requires **exactly 32 raw bytes** (AES-256 spec), so the auto-generated value is rejected on boot and the container crash-loops with:
+
+```
+secrets init failed: SQUILLA_SECRET_KEY must be 32 raw bytes (base64-encoded): got 24 bytes, want 32
+```
+
+**Fix:** before first deploy, in the Coolify Environment Variables tab, set:
+
+```bash
+SQUILLA_SECRET_KEY=<paste output of: openssl rand -base64 32>
+```
+
+That produces a 44-character base64 string (32 raw bytes after decode), which the secrets service accepts. Verify with:
+
+```bash
+echo -n "$SQUILLA_SECRET_KEY" | base64 -d | wc -c   # must print: 32
+```
+
+The `SESSION_SECRET` and `MONITOR_BEARER_TOKEN` env vars are *not* length-constrained — Coolify's `SERVICE_BASE64_64_*` (48 raw bytes) values work as-is.
 
 The pre-built image is published to `ghcr.io/erikkubica/squilla:latest` (multi-arch, amd64 + arm64).
 

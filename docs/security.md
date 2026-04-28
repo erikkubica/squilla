@@ -30,7 +30,8 @@ This document describes the **current** security posture: what's implemented, wh
 | Problem | Error | Remediation |
 |---|---|---|
 | Empty `SESSION_SECRET` | `SESSION_SECRET unset in production` | Set a random 32+ byte hex string |
-| Empty `SQUILLA_SECRET_KEY` | `SQUILLA_SECRET_KEY unset; secret-bearing settings cannot be encrypted` | Generate via `openssl rand -hex 32` |
+| Empty `SQUILLA_SECRET_KEY` | `SQUILLA_SECRET_KEY unset; secret-bearing settings cannot be encrypted` | Generate via `openssl rand -base64 32` |
+| Wrong `SQUILLA_SECRET_KEY` length | `secrets init failed: SQUILLA_SECRET_KEY must be 32 raw bytes (base64-encoded): got N bytes, want 32` | Value must base64-decode to **exactly 32 bytes**. Coolify's `SERVICE_BASE64_<NAME>` produces only 24 bytes — override manually with `openssl rand -base64 32`. |
 | Default DB password | `DB_PASSWORD is the project default; refusing to start` | Use Coolify magic vars or a real secret |
 | `DB_SSLMODE=disable` on a non-internal hostname | `DB_SSLMODE=disable on a public host` | `require` or `verify-full` |
 | Empty `CORS_ORIGINS` | `CORS_ORIGINS unset; admin would be open to any origin` | Set the public admin URL list |
@@ -132,7 +133,7 @@ The Go `html/template` engine auto-escapes by default; `safeHTML` and `safeURL` 
 
 `internal/secrets/secrets.go` provides AES-256-GCM envelope encryption.
 
-- Master key: `SQUILLA_SECRET_KEY` env, 32 bytes hex.
+- Master key: `SQUILLA_SECRET_KEY` env — a base64 string that decodes to **exactly 32 raw bytes**. Generate with `openssl rand -base64 32` (produces a 44-character string). Hex-encoded keys, 24-byte Coolify magic vars, and arbitrary-length passphrases are all rejected; the secrets service requires exactly 32 bytes after `base64.StdEncoding.DecodeString`.
 - Envelope format: `enc:v1:<base64(nonce || ciphertext || tag)>`.
 - Fresh random 12-byte nonce per call.
 - Encrypted columns:
@@ -150,6 +151,8 @@ _password   _key   _token   _apikey   _api_key   _credentials   _secret
 Reads via `GET /admin/api/settings` redact secret keys (commit `54f573a`) — they return `"<redacted>"` regardless of stored value, unless the caller has explicit elevated capability.
 
 Dev mode (no `SQUILLA_SECRET_KEY`) passes plaintext through and logs a warning; production refuses to boot.
+
+> **Coolify deployment note:** Coolify's `SERVICE_BASE64_<NAME>` magic variable generates a 32-character base64 string, which decodes to only 24 raw bytes — not enough for an AES-256 key. The `coolify-compose.yml` uses `SERVICE_BASE64_SECRETKEY` as the fallback for `SQUILLA_SECRET_KEY`, but the auto-generated value will be rejected on boot. Always override `SQUILLA_SECRET_KEY` manually in the Coolify Environment Variables tab with the output of `openssl rand -base64 32`. See README §Deploy on Coolify for the full procedure.
 
 ---
 
