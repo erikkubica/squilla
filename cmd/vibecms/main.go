@@ -474,7 +474,35 @@ func corsOrigins(env string) string {
 		return "http://localhost:3000,http://localhost:8080"
 	}
 	if origins := os.Getenv("CORS_ORIGINS"); origins != "" {
-		return origins
+		return normalizeCORSOrigins(origins)
 	}
 	return "http://localhost:8099"
+}
+
+// normalizeCORSOrigins makes the configured allowlist resilient to small
+// authoring mistakes that Fiber's CORS middleware would otherwise reject
+// with a startup panic: missing scheme on a bare hostname (Coolify's
+// SERVICE_FQDN_* variables, copy-pasted domain values), trailing slashes
+// (browsers send origins without one), and stray whitespace from
+// hand-edited env files. Wildcard "*" and the literal "null" origin
+// (used by sandboxed iframes / file:// pages) pass through unchanged.
+func normalizeCORSOrigins(raw string) string {
+	parts := strings.Split(raw, ",")
+	out := parts[:0]
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if p == "*" || p == "null" {
+			out = append(out, p)
+			continue
+		}
+		if !strings.Contains(p, "://") {
+			p = "https://" + p
+		}
+		p = strings.TrimRight(p, "/")
+		out = append(out, p)
+	}
+	return strings.Join(out, ",")
 }
