@@ -33,6 +33,12 @@ type CoreAPI interface {
 	GetSetting(ctx context.Context, key string) (string, error)
 	SetSetting(ctx context.Context, key, value string) error
 	GetSettings(ctx context.Context, prefix string) (map[string]string, error)
+	// Locale-aware variants. Pass "" for locale to read/write the fallback
+	// row that applies across all languages. GetSettingLoc / GetSettingsLoc
+	// fall back to "" when no per-locale row exists.
+	GetSettingLoc(ctx context.Context, key, locale string) (string, error)
+	SetSettingLoc(ctx context.Context, key, locale, value string) error
+	GetSettingsLoc(ctx context.Context, prefix, locale string) (map[string]string, error)
 
 	// Events
 	Emit(ctx context.Context, action string, payload map[string]any) error
@@ -401,15 +407,17 @@ type TaxonomyInput struct {
 }
 
 type TaxonomyTerm struct {
-	ID          uint                   `json:"id"`
-	NodeType    string                 `json:"node_type"`
-	Taxonomy    string                 `json:"taxonomy"`
-	Slug        string                 `json:"slug"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	ParentID    *uint                  `json:"parent_id,omitempty"`
-	Count       int                    `json:"count"`
-	FieldsData  map[string]interface{} `json:"fields_data,omitempty"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID                 uint                   `json:"id"`
+	NodeType           string                 `json:"node_type"`
+	Taxonomy           string                 `json:"taxonomy"`
+	LanguageCode       string                 `json:"language_code"`
+	TranslationGroupID *string                `json:"translation_group_id,omitempty"`
+	Slug               string                 `json:"slug"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description"`
+	ParentID           *uint                  `json:"parent_id,omitempty"`
+	Count              int                    `json:"count"`
+	FieldsData         map[string]interface{} `json:"fields_data,omitempty"`
+	CreatedAt          time.Time              `json:"created_at"`
+	UpdatedAt          time.Time              `json:"updated_at"`
 }

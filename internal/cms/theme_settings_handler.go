@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"squilla/internal/api"
 	"squilla/internal/auth"
@@ -23,6 +24,14 @@ type settingsAPI interface {
 	GetSetting(ctx context.Context, key string) (string, error)
 	GetSettings(ctx context.Context, prefix string) (map[string]string, error)
 	SetSetting(ctx context.Context, key, value string) error
+	GetSettingsLoc(ctx context.Context, prefix, locale string) (map[string]string, error)
+	SetSettingLoc(ctx context.Context, key, locale, value string) error
+}
+
+// adminLocale extracts the admin's currently-selected language from the
+// X-Admin-Language header. Empty string means "fallback / all languages".
+func adminLocale(c *fiber.Ctx) string {
+	return string(c.Request().Header.Peek("X-Admin-Language"))
 }
 
 // ThemeSettingsHandler exposes admin HTTP endpoints for the active theme's
@@ -158,9 +167,11 @@ func (h *ThemeSettingsHandler) Get(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusNotFound, "PAGE_NOT_FOUND", "Settings page not declared by active theme")
 	}
 
-	// Single bulk read for the whole theme — keys come back without the
-	// theme prefix, so map lookup is "<page>:<field>".
-	rawAll, err := h.coreAPI.GetSettings(c.Context(), ThemePrefix(themeSlug))
+	// Single bulk read scoped to the admin's current language. The Loc
+	// variant returns each key resolved for that locale, falling back to the
+	// default-language row when no per-locale value exists.
+	locale := adminLocale(c)
+	rawAll, err := h.coreAPI.GetSettingsLoc(c.Context(), ThemePrefix(themeSlug), locale)
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "READ_FAILED", "Failed to read theme settings")
 	}
@@ -203,6 +214,15 @@ func (h *ThemeSettingsHandler) Save(c *fiber.Ctx) error {
 	// which fans out to subscribers like sitemap-generator that fully rebuild
 	// on each event — N parallel rebuilds row-lock site_settings and time
 	// out at 25s, killing the process.
+	// Resolve the write locale once: the admin's selected language if set,
+	// otherwise the site's default language. Every settings field is now
+	// implicitly translatable, so each row carries a real language code.
+	fieldLoc := adminLocale(c)
+	if fieldLoc == "" && h.db != nil {
+		var def string
+		_ = h.db.Table("languages").Select("code").Where("is_default = ?", true).Limit(1).Scan(&def).Error
+		fieldLoc = def
+	}
 	for _, field := range page.Fields {
 		raw, present := body.Values[field.Key]
 		if !present {
@@ -225,12 +245,15 @@ func (h *ThemeSettingsHandler) Save(c *fiber.Ctx) error {
 				toStore = enc
 			}
 			v := toStore
-			setting := models.SiteSetting{Key: key, Value: &v}
-			if err := h.db.Where("\"key\" = ?", key).Assign(setting).FirstOrCreate(&setting).Error; err != nil {
+			row := models.SiteSetting{Key: key, LanguageCode: fieldLoc, Value: &v}
+			if err := h.db.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "key"}, {Name: "language_code"}},
+				DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+			}).Create(&row).Error; err != nil {
 				return api.Error(c, fiber.StatusInternalServerError, "WRITE_FAILED", "Failed to persist theme setting")
 			}
 		} else {
-			if err := h.coreAPI.SetSetting(c.Context(), key, stored); err != nil {
+			if err := h.coreAPI.SetSettingLoc(c.Context(), key, fieldLoc, stored); err != nil {
 				return api.Error(c, fiber.StatusInternalServerError, "WRITE_FAILED", "Failed to persist theme setting")
 			}
 		}

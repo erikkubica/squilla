@@ -68,12 +68,25 @@ class ApiClientError extends Error {
   }
 }
 
+// adminLangHeader reads the admin's currently-selected language code from
+// localStorage (mirrors AdminLanguageProvider's STORAGE_KEY) so every API
+// request carries it. Locale-aware backend handlers (theme-settings and any
+// future settings endpoints) use it to scope reads/writes. "all" or empty
+// becomes the empty string, which the backend treats as the fallback row.
+function adminLangHeader(): string {
+  if (typeof localStorage === "undefined") return "";
+  const code = localStorage.getItem("squilla_admin_lang") || "";
+  return code === "all" ? "" : code;
+}
+
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
+  const lang = adminLangHeader();
   const res = await fetch(path, {
     ...options,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(lang ? { "X-Admin-Language": lang } : {}),
       ...options?.headers,
     },
   });
@@ -336,6 +349,8 @@ export interface TaxonomyTerm {
   id: number;
   node_type: string;
   taxonomy: string;
+  language_code: string;
+  translation_group_id?: string;
   slug: string;
   name: string;
   description: string;
@@ -346,8 +361,20 @@ export interface TaxonomyTerm {
   updated_at: string;
 }
 
-export async function listTerms(nodeType: string, taxonomy: string): Promise<TaxonomyTerm[]> {
-  const res = await api<ApiResponse<TaxonomyTerm[]>>(`/admin/api/terms/${nodeType}/${taxonomy}`);
+export async function listTerms(
+  nodeType: string,
+  taxonomy: string,
+  opts?: { language_code?: string },
+): Promise<TaxonomyTerm[]> {
+  // Pass language as a query param so the call doesn't depend on the
+  // admin's current header language. Callers that want every locale (e.g.
+  // an audit view) pass language_code: "all".
+  const qs = opts?.language_code
+    ? `?language_code=${encodeURIComponent(opts.language_code)}`
+    : "";
+  const res = await api<ApiResponse<TaxonomyTerm[]>>(
+    `/admin/api/terms/${nodeType}/${taxonomy}${qs}`,
+  );
   return res.data;
 }
 
@@ -376,6 +403,22 @@ export async function deleteTerm(id: number): Promise<void> {
   await api(`/admin/api/terms/${id}`, {
     method: "DELETE",
   });
+}
+
+export async function getTermTranslations(id: number): Promise<TaxonomyTerm[]> {
+  const res = await api<ApiResponse<TaxonomyTerm[]>>(`/admin/api/terms/${id}/translations`);
+  return res.data;
+}
+
+export async function createTermTranslation(
+  id: number,
+  data: { language_code: string },
+): Promise<TaxonomyTerm> {
+  const res = await api<ApiResponse<TaxonomyTerm>>(`/admin/api/terms/${id}/translations`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.data;
 }
 
 export async function listTaxonomyTerms(nodeType: string, taxonomy: string): Promise<string[]> {
@@ -518,16 +561,33 @@ export async function reattachBlockType(id: number | string): Promise<BlockType>
   return res.data;
 }
 
-export async function getSiteSettings(): Promise<Record<string, string>> {
-  const res = await api<ApiResponse<Record<string, string>>>("/admin/api/settings");
+export async function getSiteSettings(
+  locale?: string,
+): Promise<Record<string, string>> {
+  const res = await api<ApiResponse<Record<string, string>>>(
+    "/admin/api/settings",
+    { headers: siteSettingsLocaleHeader(locale) },
+  );
   return res.data;
 }
 
-export async function updateSiteSettings(settings: Record<string, string>): Promise<void> {
+export async function updateSiteSettings(
+  settings: Record<string, string>,
+  locale?: string,
+): Promise<void> {
   await api<ApiResponse<{ message: string }>>("/admin/api/settings", {
     method: "PUT",
     body: JSON.stringify(settings),
+    headers: siteSettingsLocaleHeader(locale),
   });
+}
+
+// siteSettingsLocaleHeader is the same shape as localeHeader (defined further
+// down in this file). Re-declared here so this block doesn't depend on source
+// ordering — the helper is trivial.
+function siteSettingsLocaleHeader(locale?: string): Record<string, string> {
+  if (!locale || locale === "all") return {};
+  return { "X-Admin-Language": locale };
 }
 
 // ---------------------------------------------------------------------------
@@ -577,9 +637,22 @@ export async function getThemeSettingsPages(): Promise<ThemeSettingsListResponse
   return res.data;
 }
 
-export async function getThemeSettingsPage(slug: string): Promise<ThemeSettingsPageResponse> {
+// localeHeader builds the X-Admin-Language override header. An empty string
+// or "all" collapses to no header so the api wrapper falls back to the global
+// admin language. Used by editors that pin themselves to a specific locale
+// independent of the header default.
+function localeHeader(locale?: string): Record<string, string> {
+  if (!locale || locale === "all") return {};
+  return { "X-Admin-Language": locale };
+}
+
+export async function getThemeSettingsPage(
+  slug: string,
+  locale?: string,
+): Promise<ThemeSettingsPageResponse> {
   const res = await api<ApiResponse<ThemeSettingsPageResponse>>(
     `/admin/api/theme-settings/${encodeURIComponent(slug)}`,
+    { headers: localeHeader(locale) },
   );
   return res.data;
 }
@@ -587,10 +660,12 @@ export async function getThemeSettingsPage(slug: string): Promise<ThemeSettingsP
 export async function saveThemeSettingsPage(
   slug: string,
   values: Record<string, unknown>,
+  locale?: string,
 ): Promise<void> {
   await api(`/admin/api/theme-settings/${encodeURIComponent(slug)}`, {
     method: "PUT",
     body: JSON.stringify({ values }),
+    headers: localeHeader(locale),
   });
 }
 

@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { Save, Loader2, RefreshCw } from "lucide-react";
+import { useAdminLanguage } from "@/hooks/use-admin-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
+import { SidebarCard } from "@/components/ui/sidebar-card";
 import {
   Select,
   SelectContent,
@@ -84,13 +86,22 @@ export function SettingsForm({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const { languages, currentCode } = useAdminLanguage();
+  // Per-form language override. Defaults to and follows the admin header
+  // language; the in-form selector below pins a different value if the
+  // operator wants to edit a specific language without affecting the rest
+  // of the admin.
+  const [pageLocale, setPageLocale] = useState<string>(currentCode);
+  useEffect(() => {
+    setPageLocale(currentCode);
+  }, [currentCode]);
 
   const needsPages = schema.some((s) => s.fields.some((f) => f.type === "node_select"));
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const promises: Promise<unknown>[] = [getSiteSettings()];
+      const promises: Promise<unknown>[] = [getSiteSettings(pageLocale)];
       if (needsPages) {
         promises.push(getNodes({ page: 1, per_page: 200, status: "published" }));
       }
@@ -113,7 +124,7 @@ export function SettingsForm({
     } finally {
       setLoading(false);
     }
-  }, [schema, needsPages]);
+  }, [schema, needsPages, pageLocale]);
 
   useEffect(() => {
     fetchAll();
@@ -130,7 +141,7 @@ export function SettingsForm({
         toast.info("No changes to save");
         return;
       }
-      await updateSiteSettings(diff);
+      await updateSiteSettings(diff, pageLocale);
       setOriginal({ ...values });
       toast.success("Settings saved");
     } catch {
@@ -163,64 +174,93 @@ export function SettingsForm({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-          {description && (
-            <p className="text-sm text-slate-500 mt-0.5">{description}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {show_clear_cache && (
-            <Button
-              variant="outline"
-              onClick={handleClearCache}
-              disabled={clearing}
-              className="rounded-lg font-medium"
-            >
-              <RefreshCw className={`mr-2 h-4 w-4 ${clearing ? "animate-spin" : ""}`} />
-              {clearing ? "Clearing..." : "Clear Cache"}
-            </Button>
-          )}
-          <Button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
+    <div className="space-y-4">
+      {/* Title row — spans the full width above the 2-col grid. */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+        {description && (
+          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+        )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {schema.map((section, idx) => (
-          <Card
-            key={idx}
-            className={`rounded-xl border border-slate-200 shadow-sm ${
-              section.full_width ? "lg:col-span-2" : ""
-            }`}
-          >
-            <SectionHeader title={section.title} icon={renderIcon(section.icon)} />
-            <CardContent className="space-y-4">
-              {section.description && (
-                <p className="text-xs text-slate-500 -mt-1">{section.description}</p>
-              )}
-              <div className={section.full_width ? "grid gap-4 lg:grid-cols-2" : "space-y-4"}>
-                {section.fields.map((field) => (
-                  <SettingsField
-                    key={field.key}
-                    field={field}
-                    value={values[field.key] || ""}
-                    pages={pages}
-                    onChange={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}
-                  />
-                ))}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Main content — section cards */}
+        <div className="space-y-4 min-w-0">
+          {schema.map((section, idx) => (
+            <Card
+              key={idx}
+              className="rounded-xl border border-slate-200 shadow-sm"
+            >
+              <SectionHeader title={section.title} icon={renderIcon(section.icon)} />
+              <CardContent className="space-y-4">
+                {section.description && (
+                  <p className="text-xs text-slate-500 -mt-1">{section.description}</p>
+                )}
+                <div className="space-y-4">
+                  {section.fields.map((field) => (
+                    <SettingsField
+                      key={field.key}
+                      field={field}
+                      value={values[field.key] || ""}
+                      pages={pages}
+                      onChange={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Sidebar — Publish-style card matching the node editor */}
+        <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <SidebarCard title="Publish">
+            {languages.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-slate-500">
+                  Language
+                </Label>
+                <Select value={pageLocale} onValueChange={setPageLocale}>
+                  <SelectTrigger className="h-9 rounded-lg border-slate-300 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.name || lang.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-snug text-slate-500">
+                  Each setting stores a separate value per language. Languages
+                  without an override read from the default language.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            )}
+
+            <Button
+              onClick={handleSave}
+              disabled={saving || !hasChanges}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+
+            {show_clear_cache && (
+              <Button
+                variant="outline"
+                onClick={handleClearCache}
+                disabled={clearing}
+                className="w-full rounded-lg font-medium"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${clearing ? "animate-spin" : ""}`} />
+                {clearing ? "Clearing..." : "Clear Cache"}
+              </Button>
+            )}
+          </SidebarCard>
+        </aside>
       </div>
     </div>
   );
