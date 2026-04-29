@@ -34,3 +34,7 @@ extensions/*/admin-ui/dist/
 .playwright-cli/
 .idea
 preview-test
+
+# squilla theme lives in its own repo (github.com/erikkubica/squilla-app-theme).
+# Never commit it to vibecms.
+themes/squilla/
