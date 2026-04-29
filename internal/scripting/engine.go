@@ -59,6 +59,18 @@ type WellKnownRegistrar interface {
 	Register(path string, handler fiber.Handler)
 }
 
+// devMode reads SQUILLA_DEV_MODE and returns true when set to a truthy value
+// (1, true, yes, on — case-insensitive). Exposed to seed scripts via
+// `dev_mode` so themes can branch to overwrite-on-reseed in dev and stay
+// idempotent skip-if-exists in production.
+func devMode() bool {
+	switch v := os.Getenv("SQUILLA_DEV_MODE"); v {
+	case "1", "true", "TRUE", "True", "yes", "YES", "Yes", "on", "ON", "On":
+		return true
+	}
+	return false
+}
+
 // NewScriptEngine creates a new ScriptEngine.
 func NewScriptEngine(
 	eventBus *events.EventBus,
@@ -119,6 +131,12 @@ func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
 	script := tengo.NewScript(src)
 	caller := coreapi.CallerInfo{Slug: "theme", Type: "tengo", Capabilities: e.activeCapabilities}
 	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, nil, e.scriptsDir, e.scriptCallbacks()))
+	// Expose the dev-mode flag so seeds can branch to overwrite-on-reseed
+	// instead of skip-if-exists. Production stays safe (false); operators
+	// opt in via SQUILLA_DEV_MODE=true for autonomous AI dev/test loops.
+	if err := script.Add("dev_mode", devMode()); err != nil {
+		return fmt.Errorf("seeding dev_mode: %w", err)
+	}
 
 	// Set a max execution time for safety
 	script.SetMaxAllocs(50000)
@@ -258,6 +276,9 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string, capabili
 	caller := coreapi.CallerInfo{Slug: slug, Type: "tengo", Capabilities: caps}
 	script := tengo.NewScript(src)
 	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, nil, extScriptsDir, e.scriptCallbacks()))
+	if err := script.Add("dev_mode", devMode()); err != nil {
+		return fmt.Errorf("seeding dev_mode: %w", err)
+	}
 	script.SetMaxAllocs(50000)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
