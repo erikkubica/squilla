@@ -250,6 +250,7 @@ func main() {
 	// caller that lacks the required capability declared in extension.json.
 	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, nil, nodeTypeSvc, emailDispatcher, app, secretsSvc)
 	guardedAPI := coreapi.NewCapabilityGuard(coreAPI)
+	themeSettingsHandler := cms.NewThemeSettingsHandler(themeLoader.SettingsRegistry, coreAPI)
 
 	// Theme scripting engine (theme .tgo scripts are loaded later, after
 	// extensions have subscribed and after the theme is activated).
@@ -329,6 +330,7 @@ func main() {
 	cacheHandler := cms.NewCacheHandler(publicHandler, eventBus)
 	cacheHandler.RegisterRoutes(adminAPI)
 	themeHandler.RegisterRoutes(adminAPI)
+	themeSettingsHandler.RegisterRoutes(adminAPI)
 	cms.NewFieldTypeHandler().RegisterRoutes(adminAPI)
 
 	// SDUI endpoints — boot manifest, layout trees, and SSE event stream.
