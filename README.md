@@ -343,4 +343,4 @@ See `extensions/README.md` for the complete guide and `docs/extension_api.md` fo
 
 ## License
 
-Proprietary. All rights reserved.
+GNU General Public License v3.0 — see [`LICENSE`](./LICENSE).
