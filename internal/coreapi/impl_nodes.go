@@ -29,6 +29,9 @@ func nodeFromModel(m *models.ContentNode) *Node {
 		pid := uint(*m.ParentID)
 		n.ParentID = &pid
 	}
+	if m.LayoutSlug != nil {
+		n.LayoutSlug = *m.LayoutSlug
+	}
 
 	// Unmarshal JSONB fields into their CoreAPI representations.
 	if len(m.Taxonomies) > 0 {

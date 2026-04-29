@@ -92,6 +92,17 @@ func (s *Server) registerNodeTools() {
 		return wrapNodeResult(node, input), nil
 	})
 
+	s.addTool(mcp.NewTool("core.node.update_many",
+		mcp.WithDescription("Patch a column on every node matching a filter. Use for normalization sweeps — e.g. setting layout_slug='docs' on every documentation node missing one. Only safe top-level columns are accepted (status, layout_slug, language_code). Returns {matched, updated, ids}.\n\nUse when: you need to normalize a small set of fields across many nodes.\nDO NOT use when: patching fields_data / blocks_data / seo_settings — call core.node.update per node so per-node merge logic runs."),
+		mcp.WithString("node_type", mcp.Description("Filter: only nodes of this type. Strongly recommended.")),
+		mcp.WithString("language_code", mcp.Description("Filter: only nodes in this language.")),
+		mcp.WithString("status", mcp.Description("Filter: only nodes with this current status.")),
+		mcp.WithString("only_when_null_layout_slug", mcp.Description("Filter: when 'true', only nodes whose layout_slug IS NULL match. Lets you backfill without touching already-set values.")),
+		mcp.WithObject("set", mcp.Required(), mcp.Description("Patch payload. Allowed keys: status ('draft'|'published'), layout_slug (string), language_code (string).")),
+	), "content", func(ctx context.Context, args map[string]any) (any, error) {
+		return runUpdateMany(ctx, s.deps.CoreAPI, args)
+	})
+
 	s.addTool(mcp.NewTool("core.node.delete",
 		mcp.WithDescription("Permanently delete a node by ID. Use core.node.update with status='draft' if you want to unpublish without deleting."),
 		mcp.WithNumber("id", mcp.Required()),
@@ -157,6 +168,67 @@ func jsonFieldBytes(v any, fallback string) []byte {
 		return []byte(fallback)
 	}
 	return b
+}
+
+// runUpdateMany executes core.node.update_many: filter nodes, then patch a
+// small allowlist of top-level columns on each. Loops via UpdateNode rather
+// than a raw SQL UPDATE so events fire and capability checks apply.
+func runUpdateMany(ctx context.Context, api coreapi.CoreAPI, args map[string]any) (any, error) {
+	setRaw, ok := jsonFieldDecode(args["set"]).(map[string]any)
+	if !ok || len(setRaw) == 0 {
+		return nil, fmt.Errorf("set is required and must be a non-empty object")
+	}
+
+	allowed := map[string]bool{"status": true, "layout_slug": true, "language_code": true}
+	patch := coreapi.NodeInput{}
+	for k, v := range setRaw {
+		if !allowed[k] {
+			return nil, fmt.Errorf("set.%s is not a permitted column for update_many; use core.node.update", k)
+		}
+		s, _ := v.(string)
+		if s == "" {
+			return nil, fmt.Errorf("set.%s must be a non-empty string", k)
+		}
+		switch k {
+		case "status":
+			patch.Status = s
+		case "layout_slug":
+			patch.LayoutSlug = s
+		case "language_code":
+			patch.LanguageCode = s
+		}
+	}
+
+	q := coreapi.NodeQuery{
+		NodeType:     stringArg(args, "node_type"),
+		LanguageCode: stringArg(args, "language_code"),
+		Status:       stringArg(args, "status"),
+		Limit:        500,
+	}
+	list, err := api.QueryNodes(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+
+	onlyNullLayout := strings.EqualFold(stringArg(args, "only_when_null_layout_slug"), "true")
+	updated := 0
+	ids := make([]uint, 0, len(list.Nodes))
+	for _, n := range list.Nodes {
+		if onlyNullLayout && strings.TrimSpace(n.LayoutSlug) != "" {
+			continue
+		}
+		if _, err := api.UpdateNode(ctx, n.ID, patch); err != nil {
+			continue
+		}
+		updated++
+		ids = append(ids, n.ID)
+	}
+
+	return map[string]any{
+		"matched": len(list.Nodes),
+		"updated": updated,
+		"ids":     ids,
+	}, nil
 }
 
 // nodeWriteResult embeds a Node so all node fields stay top-level (existing

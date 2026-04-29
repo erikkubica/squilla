@@ -116,6 +116,7 @@ type Node struct {
 	LanguageCode string            `json:"language_code"`
 	Slug         string            `json:"slug"`
 	FullURL      string            `json:"full_url"`
+	LayoutSlug   string            `json:"layout_slug,omitempty"`
 	Title        string            `json:"title"`
 	FeaturedImage any               `json:"featured_image,omitempty"`
 	Excerpt       string            `json:"excerpt,omitempty"`
