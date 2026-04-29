@@ -563,6 +563,7 @@ export interface ThemeSettingsField {
   label: string;
   type: string;
   default?: unknown;
+  translatable?: boolean;
   config?: Record<string, unknown>;
 }
 
@@ -590,9 +591,22 @@ export async function getThemeSettingsPages(): Promise<ThemeSettingsListResponse
   return res.data;
 }
 
-export async function getThemeSettingsPage(slug: string): Promise<ThemeSettingsPageResponse> {
+// localeHeader builds the X-Admin-Language override header. An empty string
+// or "all" collapses to no header so the api wrapper falls back to the global
+// admin language. Used by editors that pin themselves to a specific locale
+// independent of the header default.
+function localeHeader(locale?: string): Record<string, string> {
+  if (!locale || locale === "all") return {};
+  return { "X-Admin-Language": locale };
+}
+
+export async function getThemeSettingsPage(
+  slug: string,
+  locale?: string,
+): Promise<ThemeSettingsPageResponse> {
   const res = await api<ApiResponse<ThemeSettingsPageResponse>>(
     `/admin/api/theme-settings/${encodeURIComponent(slug)}`,
+    { headers: localeHeader(locale) },
   );
   return res.data;
 }
@@ -600,10 +614,12 @@ export async function getThemeSettingsPage(slug: string): Promise<ThemeSettingsP
 export async function saveThemeSettingsPage(
   slug: string,
   values: Record<string, unknown>,
+  locale?: string,
 ): Promise<void> {
   await api(`/admin/api/theme-settings/${encodeURIComponent(slug)}`, {
     method: "PUT",
     body: JSON.stringify({ values }),
+    headers: localeHeader(locale),
   });
 }
 

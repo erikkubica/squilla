@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Save, Loader2, AlertCircle, Palette } from "lucide-react";
+import { Save, Loader2, AlertCircle, Palette, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,10 +35,15 @@ function toNodeTypeField(f: ThemeSettingsField): NodeTypeField {
 
 export function ThemeSettingsPage() {
   const { page: pageSlug } = useParams<{ page: string }>();
-  // Re-fetch when the admin's selected language changes — translatable
-  // fields resolve per-locale on the backend, so the form must reload to
-  // show the right values for the current language.
-  const { currentCode } = useAdminLanguage();
+  // Header language is the default; per-page selector below can override it.
+  const { languages, currentCode } = useAdminLanguage();
+  const [pageLocale, setPageLocale] = useState<string>(currentCode);
+  // When the header default changes (e.g. user picks a different language
+  // globally) and they haven't pinned a per-page override yet, follow it.
+  useEffect(() => {
+    setPageLocale(currentCode);
+  }, [currentCode]);
+
   const [data, setData] = useState<ThemeSettingsPageResponse | null>(null);
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [original, setOriginal] = useState<Record<string, unknown>>({});
@@ -51,7 +56,7 @@ export function ThemeSettingsPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getThemeSettingsPage(pageSlug)
+    getThemeSettingsPage(pageSlug, pageLocale)
       .then((resp) => {
         if (cancelled) return;
         setData(resp);
@@ -71,15 +76,15 @@ export function ThemeSettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [pageSlug, currentCode]);
+  }, [pageSlug, pageLocale]);
 
   const handleSave = async () => {
     if (!pageSlug || !data) return;
     setSaving(true);
     try {
-      await saveThemeSettingsPage(pageSlug, values);
+      await saveThemeSettingsPage(pageSlug, values, pageLocale);
       toast.success("Theme settings saved");
-      const fresh = await getThemeSettingsPage(pageSlug);
+      const fresh = await getThemeSettingsPage(pageSlug, pageLocale);
       setData(fresh);
       const refreshed: Record<string, unknown> = {};
       for (const f of fresh.page.fields) {
@@ -100,8 +105,12 @@ export function ThemeSettingsPage() {
   );
 
   const hasChanges = JSON.stringify(values) !== JSON.stringify(original);
+  const hasTranslatable = useMemo(
+    () => (data ? data.page.fields.some((f) => f.translatable) : false),
+    [data],
+  );
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <SduiAdminShell>
         <div className="flex h-64 items-center justify-center">
@@ -124,75 +133,121 @@ export function ThemeSettingsPage() {
 
   return (
     <SduiAdminShell>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              {data.page.name}
-            </h1>
-            {data.page.description && (
-              <p className="text-sm text-slate-500 mt-0.5">
-                {data.page.description}
-              </p>
-            )}
-          </div>
-          <Button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
-          >
-            {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
-          <SectionHeader
-            title={data.page.name}
-            icon={<Palette className="h-4 w-4 text-indigo-500" />}
-          />
-          <CardContent className="space-y-4">
-            {adaptedFields.map((field, idx) => {
-              const originalField = data.page.fields[idx];
-              const v = data.values[originalField.key];
-              const incompatible =
-                v && v.compatible === false && v.raw !== "";
-              return (
-                <div key={originalField.key} className="space-y-2">
-                  <Label htmlFor={`tf-${originalField.key}`}>
-                    {originalField.label}
-                  </Label>
-                  <CustomFieldInput
-                    field={field}
-                    value={values[originalField.key]}
-                    onChange={(val) =>
-                      setValues((prev) => ({
-                        ...prev,
-                        [originalField.key]: val,
-                      }))
-                    }
-                  />
-                  {incompatible && (
-                    <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
-                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <div>
-                        Previous value was incompatible with the new field
-                        type and will be replaced when you save:&nbsp;
-                        <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">
-                          {v.raw}
-                        </code>
+      <div className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          {/* Main content — settings card */}
+          <div className="space-y-4 min-w-0">
+            <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <SectionHeader
+                title={data.page.name}
+                icon={<Palette className="h-4 w-4 text-indigo-500" />}
+              />
+              <CardContent className="space-y-4">
+                {data.page.description && (
+                  <p className="text-xs text-slate-500 -mt-1">
+                    {data.page.description}
+                  </p>
+                )}
+                {adaptedFields.map((field, idx) => {
+                  const originalField = data.page.fields[idx];
+                  const v = data.values[originalField.key];
+                  const incompatible =
+                    v && v.compatible === false && v.raw !== "";
+                  return (
+                    <div key={originalField.key} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`tf-${originalField.key}`}>
+                          {originalField.label}
+                        </Label>
+                        {originalField.translatable && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700"
+                            title="This field stores a separate value per language."
+                          >
+                            <Globe className="h-2.5 w-2.5" />
+                            translatable
+                          </span>
+                        )}
                       </div>
+                      <CustomFieldInput
+                        field={field}
+                        value={values[originalField.key]}
+                        onChange={(val) =>
+                          setValues((prev) => ({
+                            ...prev,
+                            [originalField.key]: val,
+                          }))
+                        }
+                      />
+                      {incompatible && (
+                        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <div>
+                            Previous value was incompatible with the new field
+                            type and will be replaced when you save:&nbsp;
+                            <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">
+                              {v.raw}
+                            </code>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar — Save + per-page language select */}
+          <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+            <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <CardContent className="space-y-3 p-4">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || !hasChanges}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+                >
+                  {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
                   )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+
+                {languages.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="theme-settings-locale"
+                      className="text-xs font-medium text-slate-600"
+                    >
+                      Language
+                    </Label>
+                    <select
+                      id="theme-settings-locale"
+                      value={pageLocale}
+                      onChange={(e) => setPageLocale(e.target.value)}
+                      className="block h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                      <option value="all">All languages (shared)</option>
+                      {languages.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.flag ? `${lang.flag} ` : ""}
+                          {lang.name || lang.code}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] leading-snug text-slate-500">
+                      {hasTranslatable
+                        ? "Translatable fields on this page store a separate value per language. Pick the language to view or edit. Defaults to the admin header language."
+                        : "No fields on this page are translatable — the language picker has no effect here. Themes mark fields with \"translatable\": true to opt in."}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </aside>
+        </div>
       </div>
     </SduiAdminShell>
   );
