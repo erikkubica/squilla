@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"squilla/internal/api"
 	"squilla/internal/auth"
@@ -245,9 +246,11 @@ func (h *ThemeSettingsHandler) Save(c *fiber.Ctx) error {
 				toStore = enc
 			}
 			v := toStore
-			setting := models.SiteSetting{Key: key, LanguageCode: fieldLoc, Value: &v}
-			if err := h.db.Where("\"key\" = ? AND language_code = ?", key, fieldLoc).
-				Assign(setting).FirstOrCreate(&setting).Error; err != nil {
+			row := models.SiteSetting{Key: key, LanguageCode: fieldLoc, Value: &v}
+			if err := h.db.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "key"}, {Name: "language_code"}},
+				DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+			}).Create(&row).Error; err != nil {
 				return api.Error(c, fiber.StatusInternalServerError, "WRITE_FAILED", "Failed to persist theme setting")
 			}
 		} else {

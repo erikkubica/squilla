@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"gorm.io/gorm/clause"
+
 	"squilla/internal/events"
 	"squilla/internal/models"
 	"squilla/internal/secrets"
@@ -97,26 +99,15 @@ func (c *coreImpl) SetSettingLoc(ctx context.Context, key, locale, value string)
 		stored = enc
 	}
 
-	db := c.db.WithContext(ctx)
-	var rows []models.SiteSetting
-	if err := db.Where("\"key\" = ? AND language_code = ?", key, locale).
-		Limit(1).Find(&rows).Error; err != nil {
-		return fmt.Errorf("coreapi SetSetting lookup: %w", err)
-	}
-
-	if len(rows) == 0 {
-		s := models.SiteSetting{Key: key, LanguageCode: locale, Value: &stored}
-		if err := db.Create(&s).Error; err != nil {
-			return fmt.Errorf("coreapi SetSetting create: %w", err)
-		}
-		c.publishSettingUpdated(key, locale)
-		return nil
-	}
-
-	s := rows[0]
-	s.Value = &stored
-	if err := db.Save(&s).Error; err != nil {
-		return fmt.Errorf("coreapi SetSetting update: %w", err)
+	// Upsert atomically — find-then-create has a race window when multiple
+	// goroutines (e.g. sitemap rebuild + admin save) hit the same key.
+	row := models.SiteSetting{Key: key, LanguageCode: locale, Value: &stored}
+	res := c.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}, {Name: "language_code"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+	}).Create(&row)
+	if res.Error != nil {
+		return fmt.Errorf("coreapi SetSetting upsert: %w", res.Error)
 	}
 	c.publishSettingUpdated(key, locale)
 	return nil
