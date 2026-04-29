@@ -293,7 +293,7 @@ func main() {
 	renderer.SetFilterRunner(scriptEngine.ApplyFilter)
 
 	renderCtx := cms.NewRenderContext(database, layoutSvc, layoutBlockSvc, menuSvc, themeAssets)
-	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc, layoutSvc, layoutBlockSvc, menuSvc, renderCtx, eventBus)
+	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc, layoutSvc, layoutBlockSvc, menuSvc, renderCtx, eventBus, themeLoader.SettingsRegistry, coreAPI)
 
 	// --- Public HTML pages ---
 	pageAuthHandler.RegisterRoutes(app)
