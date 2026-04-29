@@ -360,6 +360,21 @@ func (s *ThemeMgmtService) Activate(id int) error {
 		return err
 	}
 
+	// Pre-flight: verify the new theme's manifest is actually on disk before
+	// we destroy the previous theme's registration. A missing theme.json
+	// means the deploy ate the files (e.g. theme.deploy unpacks into a
+	// non-persistent container layer that gets wiped on restart). Without
+	// this check Activate would deregister the previous theme, then fail
+	// silently in LoadTheme (it soft-fails on missing manifest), leaving
+	// the site with NO blocks/layouts/templates registered at all.
+	manifestPath := filepath.Join(theme.Path, "theme.json")
+	if _, err := os.Stat(manifestPath); err != nil {
+		return fmt.Errorf(
+			"cannot activate theme %q: theme.json missing at %s — the theme directory may have been wiped (non-persistent volume?). Re-deploy the theme before activating",
+			theme.Slug, manifestPath,
+		)
+	}
+
 	// Find the currently active theme so we can deregister it.
 	var prevActive models.Theme
 	hasPrev := s.db.Where("is_active = ?", true).First(&prevActive).Error == nil
