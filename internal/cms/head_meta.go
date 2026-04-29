@@ -143,6 +143,17 @@ func BuildHeadMeta(node *models.ContentNode, seo map[string]interface{}, setting
 	return template.HTML(b.String())
 }
 
+// mapClone returns a shallow copy of a string→string map. Used when a
+// caller needs to override a single setting (e.g. force noindex on 404s)
+// without mutating the cached site-settings map.
+func mapClone(src map[string]string) map[string]string {
+	out := make(map[string]string, len(src))
+	for k, v := range src {
+		out[k] = v
+	}
+	return out
+}
+
 // stringOr returns primary unless empty, otherwise fallback.
 func stringOr(primary, fallback string) string {
 	if strings.TrimSpace(primary) != "" {

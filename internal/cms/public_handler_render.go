@@ -290,8 +290,11 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 	}
 	defaultLangID := &defaultLang.ID
 
-	// Find default layout — try language-specific first, then universal (NULL)
-	layout, err := h.layoutSvc.ResolveDefault(defaultLangID)
+	// Prefer a theme-supplied 404/error layout, otherwise fall back to
+	// the default. Themes opt in by adding `{ "slug": "404", "file":
+	// "404.html" }` (or "error" for legacy compatibility) to their
+	// theme.json layouts array — see LayoutService.Resolve404.
+	layout, err := h.layoutSvc.Resolve404(defaultLangID)
 	if err != nil {
 		return "", false
 	}
@@ -320,6 +323,21 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 		NodeType:     "page",
 		LanguageCode: defaultLang.Code,
 	}
+	// Synthesize a ContentNode for BuildHeadMeta so 404s emit the same
+	// canonical/og/twitter scaffolding as real pages — no preview-tab
+	// surprises, and shared infra browsers picking the page up still
+	// see a sensible site_name. Force noindex on 404 regardless of
+	// site-wide robots toggle (404s should never be indexed).
+	notFoundSettings := mapClone(settings)
+	notFoundSettings["seo_robots_index"] = "false"
+	syntheticNode := &models.ContentNode{
+		Title:        nodeData.Title,
+		Slug:         nodeData.Slug,
+		FullURL:      nodeData.FullURL,
+		LanguageCode: nodeData.LanguageCode,
+		NodeType:     nodeData.NodeType,
+	}
+	appData.HeadMeta = BuildHeadMeta(syntheticNode, nodeData.SEO, notFoundSettings, nil, languages)
 
 	user := h.currentUser(c)
 	templateData := TemplateData{
@@ -376,14 +394,26 @@ func (h *PublicHandler) RenderWithLayout(c *fiber.Ctx, title string, innerHTML t
 	appData.Menus = menus
 
 	nodeData := NodeData{
-		Title:      title,
-		Slug:       "",
-		FullURL:    c.Path(),
-		BlocksHTML: innerHTML,
-		Fields:     make(map[string]interface{}),
-		SEO:        map[string]interface{}{"title": title},
-		NodeType:   "page",
+		Title:        title,
+		Slug:         "",
+		FullURL:      c.Path(),
+		BlocksHTML:   innerHTML,
+		Fields:       make(map[string]interface{}),
+		SEO:          map[string]interface{}{"title": title},
+		NodeType:     "page",
+		LanguageCode: defaultLang.Code,
 	}
+	// Synthesize a node for the head_meta builder. RenderWithLayout
+	// covers auth pages and operator-facing chrome that should still
+	// emit canonical + og/twitter scaffolding so social previews and
+	// search engines see something coherent on link sharing.
+	syntheticNode := &models.ContentNode{
+		Title:        nodeData.Title,
+		FullURL:      nodeData.FullURL,
+		LanguageCode: nodeData.LanguageCode,
+		NodeType:     nodeData.NodeType,
+	}
+	appData.HeadMeta = BuildHeadMeta(syntheticNode, nodeData.SEO, settings, nil, languages)
 
 	templateData := TemplateData{
 		App:           appData,

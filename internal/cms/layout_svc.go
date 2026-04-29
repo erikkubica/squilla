@@ -408,6 +408,25 @@ func (s *LayoutService) ResolveDefault(languageID *int) (*models.Layout, error) 
 	return nil, fmt.Errorf("no default layout found")
 }
 
+// Resolve404 returns the layout the public renderer should use for a Page
+// Not Found response. Themes opt in by registering a layout with slug
+// "404" or "error" in their theme.json — both are recognized so existing
+// themes with `error.html` keep working without renaming. Falls back to
+// the default layout when neither is present.
+//
+// Resolution order, per language:
+//   1. "404"   — explicit, idiomatic.
+//   2. "error" — legacy convention several themes already use.
+//   3. default layout (is_default=true).
+func (s *LayoutService) Resolve404(languageID *int) (*models.Layout, error) {
+	for _, slug := range []string{"404", "error"} {
+		if layout := s.findBySlugAndLang(slug, languageID); layout != nil {
+			return layout, nil
+		}
+	}
+	return s.ResolveDefault(languageID)
+}
+
 // InvalidateCache resets the entire layout cache.
 func (s *LayoutService) InvalidateCache() {
 	s.cache.Range(func(key, value interface{}) bool {
