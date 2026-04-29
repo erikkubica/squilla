@@ -150,7 +150,7 @@ export default function UsersPage() {
         tabs={[{ value: "all", label: "All", count: users.length }]}
         activeTab="all"
         newLabel="Add User"
-        newHref="/admin/users/new"
+        newHref="/admin/security/users/new"
       />
 
       <ListToolbar>
@@ -182,7 +182,7 @@ export default function UsersPage() {
             description='Click "Add User" to create one.'
             action={
               <Link
-                to="/admin/users/new"
+                to="/admin/security/users/new"
                 className="h-[30px] px-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -209,7 +209,7 @@ export default function UsersPage() {
                 return (
                   <Tr key={user.id}>
                     <Td>
-                      <TitleCell to={`/admin/users/${user.id}/edit`} title={user.full_name} />
+                      <TitleCell to={`/admin/security/users/${user.id}/edit`} title={user.full_name} />
                     </Td>
                     <Td className="text-slate-600">{user.email}</Td>
                     <Td>
@@ -226,7 +226,7 @@ export default function UsersPage() {
                     </Td>
                     <Td align="right" className="whitespace-nowrap">
                       <RowActions
-                        editTo={`/admin/users/${user.id}/edit`}
+                        editTo={`/admin/security/users/${user.id}/edit`}
                         onDelete={() => openDeleteDialog(user)}
                       />
                     </Td>

@@ -226,7 +226,7 @@ export default function RoleEditorPage() {
         await createRole(data);
         toast.success("Role created successfully");
       }
-      navigate("/admin/roles");
+      navigate("/admin/security/roles");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save role";
@@ -302,7 +302,7 @@ export default function RoleEditorPage() {
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-slate-500 hover:text-slate-700"
-            onClick={() => navigate("/admin/roles")}
+            onClick={() => navigate("/admin/security/roles")}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -315,7 +315,7 @@ export default function RoleEditorPage() {
           <Button
             variant="outline"
             className="rounded-lg border-slate-300"
-            onClick={() => navigate("/admin/roles")}
+            onClick={() => navigate("/admin/security/roles")}
             disabled={saving}
           >
             Cancel

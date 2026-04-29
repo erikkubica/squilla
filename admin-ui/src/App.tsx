@@ -150,16 +150,36 @@ function AppRoutes() {
       <Route path="/admin/content/:nodeType/taxonomies/:taxonomy/new" element={<ProtectedRoute><SduiTermEditorPage /></ProtectedRoute>} />
       <Route path="/admin/content/:nodeType/taxonomies/:taxonomy/:id/edit" element={<ProtectedRoute><SduiTermEditorPage /></ProtectedRoute>} />
 
-      {/* Settings & admin pages */}
-      <Route path="/admin/settings/site" element={<ProtectedRoute><SduiSiteSettingsPage /></ProtectedRoute>} />
-      <Route path="/admin/languages" element={<ProtectedRoute><SduiLanguagesPage /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute><SduiUsersPage /></ProtectedRoute>} />
-      <Route path="/admin/users/new" element={<ProtectedRoute><SduiUserEditorPage /></ProtectedRoute>} />
+      {/* Site Settings — sub-pages share one shell component, parameterized
+          by `section`. /admin/settings/site lands on General by redirect so
+          deep links keep working. */}
+      <Route path="/admin/settings/site" element={<Navigate to="/admin/settings/site/general" replace />} />
+      <Route path="/admin/settings/site/general" element={<ProtectedRoute><SduiSiteSettingsPage section="general" /></ProtectedRoute>} />
+      <Route path="/admin/settings/site/seo" element={<ProtectedRoute><SduiSiteSettingsPage section="seo" /></ProtectedRoute>} />
+      <Route path="/admin/settings/site/advanced" element={<ProtectedRoute><SduiSiteSettingsPage section="advanced" /></ProtectedRoute>} />
+      <Route path="/admin/settings/site/languages" element={<ProtectedRoute><SduiLanguagesPage /></ProtectedRoute>} />
+      {/* Languages used to live at /admin/languages — keep the old path
+          working as an alias so bookmarks and external links don't 404. */}
+      <Route path="/admin/languages" element={<Navigate to="/admin/settings/site/languages" replace />} />
+
+      {/* Security — Users / Roles / MCP Tokens. New /admin/security/*
+          paths; legacy /admin/{users,roles,mcp-tokens} keep redirecting
+          for muscle memory. */}
+      <Route path="/admin/security" element={<Navigate to="/admin/security/users" replace />} />
+      <Route path="/admin/security/users" element={<ProtectedRoute><SduiUsersPage /></ProtectedRoute>} />
+      <Route path="/admin/security/users/new" element={<ProtectedRoute><SduiUserEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/security/users/:id/edit" element={<ProtectedRoute><SduiUserEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/security/roles" element={<ProtectedRoute><SduiRolesPage /></ProtectedRoute>} />
+      <Route path="/admin/security/roles/new" element={<ProtectedRoute><SduiRoleEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/security/roles/:id/edit" element={<ProtectedRoute><SduiRoleEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/security/mcp-tokens" element={<ProtectedRoute><SduiMcpTokensPage /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<Navigate to="/admin/security/users" replace />} />
+      <Route path="/admin/users/new" element={<Navigate to="/admin/security/users/new" replace />} />
       <Route path="/admin/users/:id/edit" element={<ProtectedRoute><SduiUserEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/roles" element={<ProtectedRoute><SduiRolesPage /></ProtectedRoute>} />
-      <Route path="/admin/roles/new" element={<ProtectedRoute><SduiRoleEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/roles" element={<Navigate to="/admin/security/roles" replace />} />
+      <Route path="/admin/roles/new" element={<Navigate to="/admin/security/roles/new" replace />} />
       <Route path="/admin/roles/:id/edit" element={<ProtectedRoute><SduiRoleEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/mcp-tokens" element={<ProtectedRoute><SduiMcpTokensPage /></ProtectedRoute>} />
+      <Route path="/admin/mcp-tokens" element={<Navigate to="/admin/security/mcp-tokens" replace />} />
 
       {/* File viewers */}
       <Route path="/admin/themes/:id/files" element={<ProtectedRoute><SduiThemeFilesPage /></ProtectedRoute>} />

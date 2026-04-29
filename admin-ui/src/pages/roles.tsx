@@ -105,7 +105,7 @@ export default function RolesPage() {
         tabs={[{ value: "all", label: "All", count: roles.length }]}
         activeTab="all"
         newLabel="Add Role"
-        onNew={() => navigate("/admin/roles/new")}
+        onNew={() => navigate("/admin/security/roles/new")}
       />
 
       <ListToolbar>
@@ -137,7 +137,7 @@ export default function RolesPage() {
                 <Tr key={role.id}>
                   <Td>
                     <TitleCell
-                      to={`/admin/roles/${role.id}/edit`}
+                      to={`/admin/security/roles/${role.id}/edit`}
                       title={role.name}
                       slug={role.slug}
                     />
@@ -162,7 +162,7 @@ export default function RolesPage() {
                   </Td>
                   <Td align="right" className="whitespace-nowrap">
                     <RowActions
-                      onEdit={() => navigate(`/admin/roles/${role.id}/edit`)}
+                      onEdit={() => navigate(`/admin/security/roles/${role.id}/edit`)}
                       onDelete={role.is_system ? undefined : () => openDeleteDialog(role)}
                     />
                   </Td>

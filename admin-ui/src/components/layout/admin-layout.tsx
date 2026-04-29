@@ -328,11 +328,11 @@ function AdminLayoutInner() {
     ];
 
     const settingsEntries: NavEntry[] = [
-      { to: "/admin/users", label: "Users", icon: UsersIcon },
-      { to: "/admin/roles", label: "Roles", icon: Shield },
-      { to: "/admin/languages", label: "Languages", icon: Globe },
+      { to: "/admin/security/users", label: "Users", icon: UsersIcon },
+      { to: "/admin/security/roles", label: "Roles", icon: Shield },
+      { to: "/admin/settings/site/languages", label: "Languages", icon: Globe },
       { to: "/admin/settings/site", label: "Site Settings", icon: Settings },
-      { to: "/admin/mcp-tokens", label: "MCP Tokens", icon: Key },
+      { to: "/admin/security/mcp-tokens", label: "MCP Tokens", icon: Key },
       ...settingsMenuItems.map((item) => ({
         to: item.route,
         label: item.label,

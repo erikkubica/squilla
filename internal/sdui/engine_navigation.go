@@ -266,14 +266,33 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 	nav = append(nav, extDev...)
 
 	// ── Settings section ──
+	// Top-level groups: Site Settings (with sub-pages), Security
+	// (with sub-pages). Extension-contributed settings still slot in
+	// after the built-in groups via extSettings.
 	nav = append(nav, NavItem{ID: "section-settings", Label: "Settings", IsSection: true})
-	nav = append(nav, []NavItem{
-		{ID: "nav-site-settings", Label: "Site", Icon: "Globe", Path: "/admin/settings/site"},
-		{ID: "nav-languages", Label: "Languages", Icon: "Languages", Path: "/admin/languages"},
-		{ID: "nav-users", Label: "Users", Icon: "Users", Path: "/admin/users"},
-		{ID: "nav-roles", Label: "Roles", Icon: "Shield", Path: "/admin/roles"},
-		{ID: "nav-mcp-tokens", Label: "MCP Tokens", Icon: "Key", Path: "/admin/mcp-tokens"},
-	}...)
+	nav = append(nav, NavItem{
+		ID:    "nav-site-settings",
+		Label: "Site Settings",
+		Icon:  "Globe",
+		Path:  "/admin/settings/site/general",
+		Children: []NavItem{
+			{ID: "nav-site-settings-general", Label: "General", Icon: "Globe", Path: "/admin/settings/site/general"},
+			{ID: "nav-site-settings-seo", Label: "SEO", Icon: "Globe", Path: "/admin/settings/site/seo"},
+			{ID: "nav-site-settings-advanced", Label: "Advanced", Icon: "FileCode", Path: "/admin/settings/site/advanced"},
+			{ID: "nav-site-settings-languages", Label: "Languages", Icon: "Languages", Path: "/admin/settings/site/languages"},
+		},
+	})
+	nav = append(nav, NavItem{
+		ID:    "nav-security",
+		Label: "Security",
+		Icon:  "Shield",
+		Path:  "/admin/security/users",
+		Children: []NavItem{
+			{ID: "nav-security-users", Label: "Users", Icon: "Users", Path: "/admin/security/users"},
+			{ID: "nav-security-roles", Label: "Roles", Icon: "Shield", Path: "/admin/security/roles"},
+			{ID: "nav-security-mcp-tokens", Label: "MCP Tokens", Icon: "Key", Path: "/admin/security/mcp-tokens"},
+		},
+	})
 	nav = append(nav, extSettings...)
 
 	return nav

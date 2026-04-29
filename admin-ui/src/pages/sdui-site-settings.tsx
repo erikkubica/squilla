@@ -3,9 +3,16 @@ import { useLayout } from "../hooks/use-layout";
 import { LayoutRenderer } from "../sdui/renderer";
 import { getPageStore } from "../sdui/action-handler";
 
-export function SduiSiteSettingsPage() {
-  const { data: layout, isLoading, isFetching, error } = useLayout("site-settings");
-  const store = getPageStore("site-settings");
+// SduiSiteSettingsPage renders one of the site-settings sub-pages
+// (general, seo, advanced) by SDUI slug. The site settings surface used
+// to be a single page with every section stacked into one form. Splitting
+// into named sub-pages keeps the sidebar predictable as new sections
+// land. Pass `section` from the route component so the same shell can
+// resolve the matching SDUI layout.
+export function SduiSiteSettingsPage({ section = "general" }: { section?: "general" | "seo" | "advanced" }) {
+  const slug = `site-settings-${section}`;
+  const { data: layout, isLoading, isFetching, error } = useLayout(slug);
+  const store = getPageStore(slug);
 
   const showSpinner = isLoading && !layout;
 
@@ -22,7 +29,7 @@ export function SduiSiteSettingsPage() {
         </div>
       ) : layout ? (
         <div className={isFetching ? "opacity-90 transition-opacity" : undefined}>
-          <LayoutRenderer layout={layout} pageId="site-settings" store={store} />
+          <LayoutRenderer layout={layout} pageId={slug} store={store} />
         </div>
       ) : null}
     </SduiAdminShell>

@@ -183,6 +183,12 @@ func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userN
 		layout = e.extensionsLayout()
 	case "site-settings":
 		layout = e.siteSettingsLayout()
+	case "site-settings-general":
+		layout = e.siteSettingsGeneralLayout()
+	case "site-settings-seo":
+		layout = e.siteSettingsSEOLayout()
+	case "site-settings-advanced":
+		layout = e.siteSettingsAdvancedLayout()
 	default:
 		layout = e.defaultLayout(pageSlug)
 	}

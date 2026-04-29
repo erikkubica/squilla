@@ -170,7 +170,7 @@ export default function UserEditorPage() {
         } as any);
         toast.success("User created successfully");
       }
-      navigate("/admin/users");
+      navigate("/admin/security/users");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save user";
@@ -196,7 +196,7 @@ export default function UserEditorPage() {
           variant="ghost"
           size="icon"
           className="h-9 w-9"
-          onClick={() => navigate("/admin/users")}
+          onClick={() => navigate("/admin/security/users")}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -314,7 +314,7 @@ export default function UserEditorPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate("/admin/users")}
+                onClick={() => navigate("/admin/security/users")}
                 disabled={saving}
                 className="rounded-lg border-slate-300"
               >

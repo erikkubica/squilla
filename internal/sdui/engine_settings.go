@@ -1,11 +1,24 @@
 package sdui
 
 // engine_settings.go — SDUI layout generators for the various settings pages.
-// The schema is described as plain Go data so the layout cache stays cheap and
-// the React Shell can render any settings page through the same SettingsForm
-// component.
+// The site-settings surface used to be a single page with every section
+// stacked into one form. As the surface grew (general, homepage, SEO, code
+// injection, soon: cache, integrations, …) that page became a wall of
+// cards. Split into named sub-pages so the sidebar can route directly to
+// each. Each sub-page owns one SettingsForm; the React shell renders them
+// behind sibling routes under /admin/settings/site/*.
 
 func (e *Engine) siteSettingsLayout() *LayoutNode {
+	// Backward-compat default: /admin/settings/site renders the General
+	// section so direct hits keep working without redirect plumbing.
+	return e.siteSettingsGeneralLayout()
+}
+
+// siteSettingsGeneralLayout renders Site identity + Homepage selection.
+// Merged into one page because both are 'who is this site, and where do
+// visitors land' — operators reach for them together when standing up a
+// new install.
+func (e *Engine) siteSettingsGeneralLayout() *LayoutNode {
 	schema := []map[string]any{
 		{
 			"title":       "General",
@@ -45,6 +58,25 @@ func (e *Engine) siteSettingsLayout() *LayoutNode {
 				},
 			},
 		},
+	}
+
+	return &LayoutNode{
+		Type: "SettingsForm",
+		Props: map[string]any{
+			"title":            "General",
+			"description":      "Identity and homepage",
+			"schema":           schema,
+			"show_clear_cache": true,
+		},
+	}
+}
+
+// siteSettingsSEOLayout renders the site-wide SEO defaults. Lives on its
+// own page so the warning about per-language behaviour has room to
+// breathe and so the SEO surface can grow (sitemap controls, canonical
+// rules, etc.) without crowding General.
+func (e *Engine) siteSettingsSEOLayout() *LayoutNode {
+	schema := []map[string]any{
 		{
 			"title":       "SEO",
 			"icon":        "Globe",
@@ -100,6 +132,24 @@ func (e *Engine) siteSettingsLayout() *LayoutNode {
 				},
 			},
 		},
+	}
+
+	return &LayoutNode{
+		Type: "SettingsForm",
+		Props: map[string]any{
+			"title":            "SEO",
+			"description":      "Search engine and social-card defaults",
+			"schema":           schema,
+			"show_clear_cache": true,
+		},
+	}
+}
+
+// siteSettingsAdvancedLayout renders code-injection inputs. Separated from
+// General so editors don't trip into raw HTML/JS by accident, and so we
+// can grow this page with sandboxing controls / CSP toggles later.
+func (e *Engine) siteSettingsAdvancedLayout() *LayoutNode {
+	schema := []map[string]any{
 		{
 			"title":       "Code Injection",
 			"icon":        "FileText",
@@ -137,14 +187,11 @@ func (e *Engine) siteSettingsLayout() *LayoutNode {
 		},
 	}
 
-	// SettingsForm owns its own page-level spacing (title row + 2-col grid).
-	// The admin shell's <main> already provides outer padding, so we don't
-	// wrap with another padded VerticalStack here.
 	return &LayoutNode{
 		Type: "SettingsForm",
 		Props: map[string]any{
-			"title":            "Site Settings",
-			"description":      "Configure your site's core settings",
+			"title":            "Advanced",
+			"description":      "Custom code injection",
 			"schema":           schema,
 			"show_clear_cache": true,
 		},
