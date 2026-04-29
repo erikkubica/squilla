@@ -176,16 +176,17 @@ export function SettingsForm({
 
   return (
     <div className="space-y-4">
+      {/* Title row — spans the full width above the 2-col grid. */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+        {description && (
+          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+        )}
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Main content — section cards */}
         <div className="space-y-4 min-w-0">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-            {description && (
-              <p className="text-sm text-slate-500 mt-0.5">{description}</p>
-            )}
-          </div>
-
           {schema.map((section, idx) => (
             <Card
               key={idx}

@@ -142,20 +142,27 @@ export function ThemeSettingsPage() {
   return (
     <SduiAdminShell>
       <div className="space-y-4">
+        {/* Title row — spans the full width above the 2-col grid. */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {data.page.name}
+          </h1>
+          {data.page.description && (
+            <p className="text-sm text-slate-500 mt-0.5">
+              {data.page.description}
+            </p>
+          )}
+        </div>
+
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          {/* Main content — settings card */}
+          {/* Main content — fields card */}
           <div className="space-y-4 min-w-0">
             <Card className="rounded-xl border border-slate-200 shadow-sm">
               <SectionHeader
-                title={data.page.name}
+                title="Fields"
                 icon={<Palette className="h-4 w-4 text-indigo-500" />}
               />
               <CardContent className="space-y-4">
-                {data.page.description && (
-                  <p className="text-xs text-slate-500 -mt-1">
-                    {data.page.description}
-                  </p>
-                )}
                 {adaptedFields.map((field, idx) => {
                   const originalField = data.page.fields[idx];
                   const v = data.values[originalField.key];
