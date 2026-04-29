@@ -6,8 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"squilla/internal/auth"
 	"squilla/internal/cms"
 	"squilla/internal/db"
+	"squilla/internal/models"
 	"squilla/internal/secrets"
 
 	"gorm.io/gorm"
@@ -71,6 +73,33 @@ func handlePostMigrationCLI(database *gorm.DB) bool {
 			log.Fatalf("database seed failed: %v", err)
 		}
 		log.Println("database seeded, exiting")
+		return true
+	case "reset-password":
+		// `squilla reset-password <email> <new-password>` — recover from
+		// "I lost the admin password" without going through SMTP. Looks
+		// the user up by email, hashes the supplied password with the
+		// same routine the auth handlers use, and writes it directly to
+		// the row. Idempotent.
+		if len(os.Args) < 4 {
+			log.Fatalf("usage: squilla reset-password <email> <new-password>")
+		}
+		email := os.Args[2]
+		newPassword := os.Args[3]
+		var user models.User
+		if err := database.Where("email = ?", email).First(&user).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				log.Fatalf("reset-password: no user with email %q", email)
+			}
+			log.Fatalf("reset-password: lookup failed: %v", err)
+		}
+		hash, err := auth.HashPassword(newPassword)
+		if err != nil {
+			log.Fatalf("reset-password: hash failed: %v", err)
+		}
+		if err := database.Model(&user).Update("password_hash", string(hash)).Error; err != nil {
+			log.Fatalf("reset-password: update failed: %v", err)
+		}
+		log.Printf("reset-password: password updated for %s (id=%d)", email, user.ID)
 		return true
 	}
 	return false
