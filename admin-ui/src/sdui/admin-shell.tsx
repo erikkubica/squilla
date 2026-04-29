@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useLocation, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useBoot } from "../hooks/use-boot";
 import { useAuth } from "../hooks/use-auth";
+import { getThemeSettingsPages } from "../api/client";
 import type { NavItem } from "./types";
 import * as Lucide from "lucide-react";
 import {
@@ -334,13 +336,36 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
   const location = useLocation();
   const { user, logout } = useAuth();
   const { data: boot } = useBoot();
+  const { data: themePages } = useQuery({
+    queryKey: ["theme-settings-pages"],
+    queryFn: getThemeSettingsPages,
+    staleTime: 60_000,
+  });
 
   const breadcrumbs = useMemo(
     () => computeBreadcrumbs(location.pathname),
     [location.pathname],
   );
 
-  const navigation = boot?.navigation || [];
+  const navigation = useMemo<NavItem[]>(() => {
+    const base = boot?.navigation || [];
+    const pages = themePages?.pages || [];
+    if (pages.length === 0) return base;
+    const themeSection: NavItem[] = [
+      {
+        id: "theme-settings-section",
+        label: "Theme Settings",
+        is_section: true,
+      },
+      ...pages.map<NavItem>((p) => ({
+        id: `theme-settings-${p.slug}`,
+        label: p.name,
+        icon: p.icon || "Palette",
+        path: `/admin/theme-settings/${p.slug}`,
+      })),
+    ];
+    return [...base, ...themeSection];
+  }, [boot?.navigation, themePages?.pages]);
 
   const sidebarWidth = collapsed ? 56 : 256;
 
