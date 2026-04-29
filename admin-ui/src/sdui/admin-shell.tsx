@@ -242,7 +242,7 @@ function SidebarNav({
             )}
           </button>
           {isOpen && !collapsed && (
-            <div className="mt-0.5 ml-3 border-l border-slate-700 pl-2 space-y-[1px]">
+            <div className="mt-0.5 ml-3 border-l border-slate-700 space-y-[1px]">
               {item.children!.map((child) => renderItem(child, depth + 1))}
             </div>
           )}
@@ -289,9 +289,15 @@ function SidebarNav({
               ? "bg-slate-800 text-white"
               : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
           }`}
-          style={{
-            paddingLeft: isChild ? `${12 + depth * 12}px` : undefined,
-          }}
+          style={
+            // Child rows hug the parent's left border directly — no
+            // container padding, no inline override. The Link's own
+            // px-3 (12px) provides the visual breathing room between
+            // the left border and the icon.
+            isChild && depth > 1
+              ? { paddingLeft: `${12 + (depth - 1) * 12}px` }
+              : undefined
+          }
           title={collapsed ? item.label : undefined}
         >
           {linkContent}
