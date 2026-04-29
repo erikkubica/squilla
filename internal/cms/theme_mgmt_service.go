@@ -187,6 +187,10 @@ func (s *ThemeMgmtService) GetByID(id int) (*models.Theme, error) {
 	return &theme, nil
 }
 
+// ThemesDir returns the base directory holding theme directories.
+// Exposed so the MCP checklist tool can introspect on-disk theme files.
+func (s *ThemeMgmtService) ThemesDir() string { return s.themesDir }
+
 // GetActive returns the currently active theme.
 func (s *ThemeMgmtService) GetActive() (*models.Theme, error) {
 	var theme models.Theme
