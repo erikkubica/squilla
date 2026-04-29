@@ -667,7 +667,12 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   // it so the operator never sees stale output.
   function handlePreview() {
     if (!isEdit || !id) return;
-    const previewWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+    // Open without `noopener` — that feature flag forces window.open to
+    // return null even when the popup actually opened, which made the
+    // 'popup blocked' toast fire on a tab that DID open. The preview
+    // navigates to a blob URL on the same origin, so the lack of opener
+    // isolation is acceptable here.
+    const previewWindow = window.open("about:blank", "_blank");
     if (!previewWindow) {
       toast.error("Popup blocked — allow popups for this site to use Preview.");
       return;
