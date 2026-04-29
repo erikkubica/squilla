@@ -99,6 +99,10 @@ export default function TermEditorPage() {
         const tax = await getTaxonomy(taxSlug);
         setTaxonomy(tax);
 
+        // Resolve the term's effective language up-front so the parent
+        // picker can scope siblings correctly. Edit mode uses the term's
+        // own language_code; create mode uses the admin's current locale.
+        let effectiveLang = currentCode;
         if (isEdit && id) {
           const term = await getTerm(Number(id));
           setName(term.name);
@@ -108,6 +112,7 @@ export default function TermEditorPage() {
           setLanguageCode(term.language_code);
           setParentId(term.parent_id ?? null);
           setAutoSlug(false);
+          effectiveLang = term.language_code;
           // Translations are best-effort: if the endpoint fails (or no
           // siblings exist) we just show an empty panel.
           getTermTranslations(Number(id))
@@ -120,14 +125,13 @@ export default function TermEditorPage() {
         }
 
         // Sibling terms power the parent picker (hierarchical taxonomies
-        // only). Always loaded so toggling the taxonomy's hierarchical
-        // flag in another tab doesn't require reloading this page.
-        if (tax.hierarchical) {
-          listTerms(nodeType!, taxSlug, { language_code: "all" })
+        // only). Always scoped to the term's own language — a Spanish
+        // term must only see Spanish parents, otherwise hierarchies
+        // cross-pollinate across translations and break breadcrumbs.
+        if (tax.hierarchical && effectiveLang) {
+          listTerms(nodeType!, taxSlug, { language_code: effectiveLang })
             .then((all) => {
-              const lc = isEdit && id ? undefined : currentCode;
               const filtered = all.filter((t) => {
-                if (lc && t.language_code !== lc) return false;
                 if (isEdit && id && t.id === Number(id)) return false;
                 return true;
               });
@@ -145,6 +149,20 @@ export default function TermEditorPage() {
 
     loadData();
   }, [isEdit, id, taxSlug, navigate, currentCode]);
+
+  // Reload sibling parent options whenever the term's language changes
+  // (operators can flip the language in the sidebar before saving). The
+  // parent picker only shows same-language candidates, so a stale list
+  // would surface English parents on a Spanish term.
+  useEffect(() => {
+    if (!taxonomy?.hierarchical || !languageCode || !taxSlug || !nodeType) return;
+    listTerms(nodeType, taxSlug, { language_code: languageCode })
+      .then((all) => {
+        const filtered = all.filter((t) => !(isEdit && id && t.id === Number(id)));
+        setSiblingTerms(filtered);
+      })
+      .catch(() => setSiblingTerms([]));
+  }, [languageCode, taxonomy?.hierarchical, taxSlug, nodeType, isEdit, id]);
 
   const handleNameChange = (val: string) => {
     setName(val);

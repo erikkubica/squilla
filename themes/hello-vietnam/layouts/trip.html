@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{{.app.head_meta}}
 {{- range .app.head_styles -}}<link rel="stylesheet" href="{{.}}">{{- end -}}
 {{.app.block_styles}}
 {{- with .app.settings -}}{{- with index . "analytics_code"}}{{safeHTML .}}{{end -}}{{- with index . "custom_head_code"}}{{safeHTML .}}{{end -}}{{- end -}}

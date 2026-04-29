@@ -19,6 +19,7 @@ type AppData struct {
 	HeadStyles   []string
 	HeadScripts  []string
 	FootScripts  []string
+	HeadMeta     template.HTML // Composed SEO meta tags (og:*, twitter:*, hreflang, canonical, robots).
 	BlockStyles  template.HTML
 	BlockScripts template.HTML
 	ThemeURL     string
@@ -76,6 +77,7 @@ func (td TemplateData) ToMap() map[string]interface{} {
 			"head_styles":   td.App.HeadStyles,
 			"head_scripts":  td.App.HeadScripts,
 			"foot_scripts":  td.App.FootScripts,
+			"head_meta":     td.App.HeadMeta,
 			"block_styles":  td.App.BlockStyles,
 			"block_scripts": td.App.BlockScripts,
 			"theme_url":     td.App.ThemeURL,

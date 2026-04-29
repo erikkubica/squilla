@@ -61,6 +61,10 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	appData.Menus = menus
 
 	nodeData := h.renderCtx.BuildNodeData(node, blocksHTML, languages)
+	// Compose SEO meta tags into a single template.HTML string so the
+	// theme's <head> can drop them in with one expression. Per-node SEO
+	// wins; site_settings supply the fallbacks. See head_meta.go.
+	appData.HeadMeta = BuildHeadMeta(node, nodeData.SEO, settings, nodeData.Translations, languages)
 
 	templateData := TemplateData{
 		App:           appData,

@@ -178,17 +178,33 @@ func (h *TermHandler) Update(c *fiber.Ctx) error {
 	}
 	// parent_id is the hierarchical-taxonomy nesting field. Accept both
 	// numeric forms (BodyParser decodes JSON numbers as float64) and an
-	// explicit null to detach the term from its parent.
+	// explicit null to detach the term from its parent. Reject parents
+	// that live in a different language — a Spanish term must not nest
+	// under an English parent or breadcrumbs cross-pollinate.
 	if v, present := updates["parent_id"]; present {
 		switch n := v.(type) {
 		case nil:
 			existing.ParentID = nil
 		case float64:
-			id := int(n)
-			if id == 0 {
+			pid := int(n)
+			if pid == 0 {
 				existing.ParentID = nil
-			} else if id != existing.ID { // never self-parent
-				existing.ParentID = &id
+			} else if pid == existing.ID {
+				return api.Error(c, fiber.StatusBadRequest, "INVALID_PARENT", "A term cannot be its own parent")
+			} else {
+				var parent models.TaxonomyTerm
+				if err := h.db.First(&parent, pid).Error; err != nil {
+					return api.Error(c, fiber.StatusBadRequest, "INVALID_PARENT", "Parent term not found")
+				}
+				if parent.LanguageCode != existing.LanguageCode {
+					return api.Error(c, fiber.StatusBadRequest, "PARENT_LANGUAGE_MISMATCH",
+						"Parent term must be in the same language as the child term")
+				}
+				if parent.NodeType != existing.NodeType || parent.Taxonomy != existing.Taxonomy {
+					return api.Error(c, fiber.StatusBadRequest, "INVALID_PARENT",
+						"Parent term must be in the same taxonomy")
+				}
+				existing.ParentID = &pid
 			}
 		}
 	}

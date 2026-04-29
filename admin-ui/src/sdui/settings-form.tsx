@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SidebarCard } from "@/components/ui/sidebar-card";
 import { LanguageSelect } from "@/components/ui/language-select";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -34,7 +35,7 @@ import { iconMap } from "./sdui-components";
 export interface SettingsFieldDef {
   key: string;
   label: string;
-  type: "text" | "textarea" | "node_select";
+  type: "text" | "textarea" | "node_select" | "toggle";
   placeholder?: string;
   help?: string;
   rows?: number;
@@ -42,6 +43,11 @@ export interface SettingsFieldDef {
   // node_select-specific
   node_type?: string;
   empty_label?: string;
+  // toggle-specific. Settings are stored as strings, so we map the
+  // boolean state back to two configurable string values.
+  true_value?: string;
+  false_value?: string;
+  default?: string;
 }
 
 export interface SettingsSectionDef {
@@ -294,6 +300,23 @@ function SettingsField({
           className={`${inputClasses} resize-none ${field.font_mono ? "font-mono text-xs" : ""}`}
         />
       )}
+      {field.type === "toggle" && (() => {
+        const trueVal = field.true_value ?? "true";
+        const falseVal = field.false_value ?? "false";
+        const effective = value === "" ? (field.default ?? falseVal) : value;
+        const checked = effective === trueVal;
+        return (
+          <div className="flex items-center gap-3 pt-1">
+            <Switch
+              checked={checked}
+              onCheckedChange={(v: boolean) => onChange(v ? trueVal : falseVal)}
+            />
+            <span className="text-xs text-slate-500">
+              {checked ? "On" : "Off"}
+            </span>
+          </div>
+        );
+      })()}
       {field.type === "node_select" && (
         <Select
           value={value || "__none__"}

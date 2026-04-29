@@ -140,6 +140,7 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint) (string, error) {
 	appData := h.renderCtx.BuildAppData(settings, languages, currentLang, usedSlugs)
 	appData.Menus = menus
 	nodeData := h.renderCtx.BuildNodeData(&node, blocksHTML, languages)
+	appData.HeadMeta = BuildHeadMeta(&node, nodeData.SEO, settings, nodeData.Translations, languages)
 
 	templateData := TemplateData{App: appData, Node: nodeData}
 	blockResolver := func(slug string) (string, error) {
