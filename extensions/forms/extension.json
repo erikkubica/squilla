@@ -43,6 +43,7 @@
     "menu": {
       "label": "Forms",
       "icon": "FormInput",
+      "section": "content",
       "position": "4"
     },
     "field_types": [
