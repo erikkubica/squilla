@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -63,33 +64,42 @@ func (h *RevisionHandler) List(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Invalid node id")
 	}
 
-	type row struct {
-		ID            int64
-		NodeID        int
-		Title         string
-		Status        string
-		VersionNumber int
-		CreatedBy     *int
-		CreatorName   *string
-		CreatorEmail  *string
-		CreatedAt     string
-	}
-	var rows []row
-	err = h.db.Table("content_node_revisions r").
-		Select(`r.id, r.node_id, r.title, r.status, r.version_number,
-		         r.created_by, u.name AS creator_name, u.email AS creator_email,
-		         to_char(r.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at`).
-		Joins("LEFT JOIN users u ON u.id = r.created_by").
-		Where("r.node_id = ?", id).
-		Order("r.created_at DESC").
+	// Pull just the columns we surface to the editor and resolve the
+	// creator separately so the query stays robust if migration 0041
+	// hasn't widened content_node_revisions yet on a partially-upgraded
+	// instance — every selected column has existed since 0001.
+	var revs []models.ContentNodeRevision
+	if err := h.db.
+		Where("node_id = ?", id).
+		Order("created_at DESC").
 		Limit(100).
-		Scan(&rows).Error
-	if err != nil {
+		Find(&revs).Error; err != nil {
+		log.Printf("ERROR list revisions for node %d: %v", id, err)
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list revisions")
 	}
 
-	out := make([]revisionListItem, len(rows))
-	for i, r := range rows {
+	creatorIDs := make([]int, 0, len(revs))
+	for _, r := range revs {
+		if r.CreatedBy != nil {
+			creatorIDs = append(creatorIDs, *r.CreatedBy)
+		}
+	}
+	type creator struct {
+		ID    int
+		Name  string
+		Email string
+	}
+	creators := map[int]creator{}
+	if len(creatorIDs) > 0 {
+		var rows []creator
+		_ = h.db.Table("users").Select("id, name, email").Where("id IN ?", creatorIDs).Find(&rows).Error
+		for _, r := range rows {
+			creators[r.ID] = r
+		}
+	}
+
+	out := make([]revisionListItem, len(revs))
+	for i, r := range revs {
 		item := revisionListItem{
 			ID:            r.ID,
 			NodeID:        r.NodeID,
@@ -97,13 +107,13 @@ func (h *RevisionHandler) List(c *fiber.Ctx) error {
 			Status:        r.Status,
 			VersionNumber: r.VersionNumber,
 			CreatedBy:     r.CreatedBy,
-			CreatedAt:     r.CreatedAt,
+			CreatedAt:     r.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 		}
-		if r.CreatorName != nil {
-			item.CreatorName = *r.CreatorName
-		}
-		if r.CreatorEmail != nil {
-			item.CreatorEmail = *r.CreatorEmail
+		if r.CreatedBy != nil {
+			if c, ok := creators[*r.CreatedBy]; ok {
+				item.CreatorName = c.Name
+				item.CreatorEmail = c.Email
+			}
 		}
 		out[i] = item
 	}
