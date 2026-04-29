@@ -53,6 +53,7 @@ func (s *Server) registerNodeTools() {
 		mcp.WithString("slug", mcp.Description("Auto-generated if omitted")),
 		mcp.WithString("status", mcp.DefaultString("draft"), mcp.Enum("draft", "published")),
 		mcp.WithString("excerpt"),
+		mcp.WithString("layout_slug", mcp.Description("Theme layout slug to render this node with (e.g. 'docs', 'default'). Omit to use the active theme's default layout. Discoverable via core.layout.list. NOTE: node-type-specific defaults are not auto-applied — set explicitly when authoring sections that need a non-default layout (docs, landing pages, etc.).")),
 		mcp.WithArray("blocks_data", mcp.Description("Array of {type, fields} blocks")),
 		mcp.WithObject("fields_data"),
 		mcp.WithObject("seo_settings"),
@@ -68,6 +69,7 @@ func (s *Server) registerNodeTools() {
 		mcp.WithString("slug"),
 		mcp.WithString("status", mcp.Enum("draft", "published")),
 		mcp.WithString("excerpt"),
+		mcp.WithString("layout_slug", mcp.Description("Theme layout slug. Pass empty string to leave unchanged; pass a real slug to switch layouts.")),
 		mcp.WithArray("blocks_data", mcp.Description("Array of {type, fields} blocks")),
 		mcp.WithObject("fields_data"),
 		mcp.WithObject("seo_settings"),
@@ -100,6 +102,7 @@ func nodeInputFromArgs(args map[string]any) coreapi.NodeInput {
 		Status:       stringArg(args, "status"),
 		Title:        stringArg(args, "title"),
 		Excerpt:      stringArg(args, "excerpt"),
+		LayoutSlug:   stringArg(args, "layout_slug"),
 	}
 	// Structured fields: accept either a decoded value (array/object) or a
 	// JSON-encoded string (some MCP clients stringify nested JSON).
