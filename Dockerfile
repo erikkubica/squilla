@@ -45,7 +45,7 @@ RUN set -eux; \
     [ "$found" -gt 0 ] || { echo "ERROR: no extension plugins were built"; exit 1; }
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates \
+RUN apk add --no-cache ca-certificates git openssh-client gcompat libc6-compat \
     jpegoptim optipng pngquant imagemagick ffmpeg
 WORKDIR /app
 COPY --from=builder /app/squilla .

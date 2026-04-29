@@ -1,5 +1,5 @@
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates gcompat libc6-compat \
+RUN apk add --no-cache ca-certificates git openssh-client gcompat libc6-compat \
     jpegoptim optipng pngquant imagemagick ffmpeg
 WORKDIR /app
 COPY squilla .

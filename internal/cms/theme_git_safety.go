@@ -38,6 +38,16 @@ func init() {
 // the HTTP fetch validator: scheme allowlist + private-network block via
 // DNS resolution.
 func validateGitURL(rawURL string) error {
+	// SCP-style SSH URLs (e.g. `git@github.com:org/repo.git`) crash url.Parse
+	// because the colon makes the path segment look like a port. Give a
+	// targeted error pointing at the supported form rather than the cryptic
+	// "first path segment in URL cannot contain colon".
+	if strings.Contains(rawURL, "@") && !strings.Contains(rawURL, "://") {
+		return fmt.Errorf(
+			"SSH-style git URL %q is not supported — convert to https:// (e.g. https://github.com/<owner>/<repo>.git) and use a personal access token if the repo is private",
+			rawURL,
+		)
+	}
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return fmt.Errorf("invalid git URL: %w", err)
@@ -71,12 +81,18 @@ func validateGitURL(rawURL string) error {
 // git operations against that working tree. Disabling these at -c
 // scope means the repo's own config is overruled.
 func safeGitFlags() []string {
+	// `protocol.allow` accepts only `always`, `never`, or `user` — the previous
+	// value `https` was rejected by git ("unknown value for config 'protocol.allow'")
+	// and broke every clone. We use the per-protocol form instead: deny all by
+	// default and re-enable only HTTPS, which is the single scheme our URL
+	// validator already permits.
 	return []string{
 		"-c", "core.fsmonitor=false",
 		"-c", "core.hooksPath=/dev/null",
 		"-c", "core.editor=false",
 		"-c", "alias.x=", // any alias resolution returns empty, not the repo's
-		"-c", "protocol.allow=https",
+		"-c", "protocol.allow=never",
+		"-c", "protocol.https.allow=always",
 		"-c", "advice.detachedHead=false",
 	}
 }
