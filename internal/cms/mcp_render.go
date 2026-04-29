@@ -99,15 +99,42 @@ func (h *PublicHandler) RenderLayoutPreview(layoutSlug string, blocks []map[stri
 	return buf.String(), nil
 }
 
+// NodeDraftOverrides carries the in-flight form state from the editor so
+// the renderer can preview unsaved edits without writing to the DB. Every
+// field is optional — when nil, the persisted value wins. JSONB fields
+// arrive as already-encoded byte slices so callers don't need to know the
+// internal storage format.
+type NodeDraftOverrides struct {
+	Title         *string
+	Slug          *string
+	Status        *string
+	LanguageCode  *string
+	Excerpt       *string
+	LayoutSlug    *string
+	LayoutID      *int
+	BlocksData    []byte
+	FieldsData    []byte
+	SeoSettings   []byte
+	FeaturedImage []byte
+	Taxonomies    []byte
+}
+
 // RenderNodePreview renders a specific node (published or draft) via the
-// layout engine, returning HTML. No view counts, no node.viewed events.
-func (h *PublicHandler) RenderNodePreview(nodeID uint) (string, error) {
+// layout engine, returning HTML. No view counts, no node.viewed events,
+// no DB writes. When draft is non-nil its fields override the persisted
+// row in-memory only — the caller (admin Preview button) sees what the
+// page would look like if they hit Save right now.
+func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides) (string, error) {
 	var node models.ContentNode
 	if err := h.db.Where("id = ?", nodeID).First(&node).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", fmt.Errorf("node %d not found", nodeID)
 		}
 		return "", err
+	}
+
+	if draft != nil {
+		applyNodeDraft(&node, draft)
 	}
 
 	blocks := parseBlocks(node.BlocksData)
@@ -159,4 +186,57 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint) (string, error) {
 		return "", fmt.Errorf("render layout: %w", err)
 	}
 	return buf.String(), nil
+}
+
+// applyNodeDraft mutates an in-memory ContentNode with the in-flight draft
+// values so the renderer sees the editor's current screen instead of the
+// persisted row. Callers MUST pass a node loaded from the DB and discard it
+// after rendering — the mutations are not safe to persist.
+func applyNodeDraft(node *models.ContentNode, draft *NodeDraftOverrides) {
+	if draft.Title != nil {
+		node.Title = *draft.Title
+	}
+	if draft.Slug != nil {
+		node.Slug = *draft.Slug
+	}
+	if draft.Status != nil {
+		node.Status = *draft.Status
+	}
+	if draft.LanguageCode != nil && *draft.LanguageCode != "" {
+		node.LanguageCode = *draft.LanguageCode
+	}
+	if draft.Excerpt != nil {
+		node.Excerpt = *draft.Excerpt
+	}
+	if draft.LayoutSlug != nil {
+		s := *draft.LayoutSlug
+		if s == "" {
+			node.LayoutSlug = nil
+		} else {
+			node.LayoutSlug = &s
+		}
+	}
+	if draft.LayoutID != nil {
+		v := *draft.LayoutID
+		if v == 0 {
+			node.LayoutID = nil
+		} else {
+			node.LayoutID = &v
+		}
+	}
+	if draft.BlocksData != nil {
+		node.BlocksData = models.JSONB(draft.BlocksData)
+	}
+	if draft.FieldsData != nil {
+		node.FieldsData = models.JSONB(draft.FieldsData)
+	}
+	if draft.SeoSettings != nil {
+		node.SeoSettings = models.JSONB(draft.SeoSettings)
+	}
+	if draft.FeaturedImage != nil {
+		node.FeaturedImage = models.JSONB(draft.FeaturedImage)
+	}
+	if draft.Taxonomies != nil {
+		node.Taxonomies = models.JSONB(draft.Taxonomies)
+	}
 }

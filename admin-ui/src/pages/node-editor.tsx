@@ -602,10 +602,11 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     setSelectedTemplateId(null);
   }
 
-  // saveNode performs the actual write without depending on a form event,
-  // so the same save path can be reused outside the <form> submit (the
-  // Preview button needs to flush in-flight edits before opening the
-  // public render). Returns true on success so callers can chain.
+  // saveNode performs the actual write to the database. Used by the
+  // form-submit Save button and the Publish button. Preview does NOT
+  // call this — Preview is a side-effect-free render that POSTs the
+  // in-flight form state to the server, gets HTML back, and renders
+  // it without touching the DB. Returns true on success.
   async function saveNode(publishStatus?: string): Promise<boolean> {
     const nodeData: Partial<ContentNode> = {
       title,
@@ -655,11 +656,15 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     await saveNode(publishStatus);
   }
 
-  // handlePreview saves the in-flight form state first, then redirects a
-  // pre-opened tab to the rendered preview. Opening the placeholder tab
-  // synchronously on the click event keeps popup blockers happy — once
-  // the save resolves we point that same tab at the preview URL. If
-  // save fails we close the tab so the editor never sees stale output.
+  // handlePreview renders the in-flight form state in a new tab WITHOUT
+  // saving. POSTs the current editor state to the preview endpoint, gets
+  // HTML back, and points a placeholder tab at a blob URL of the
+  // response. Nothing touches the database — close the tab and the
+  // preview is gone.
+  //
+  // The placeholder tab is opened synchronously on the click event
+  // (popup blockers ignore async window.open). On any failure we close
+  // it so the operator never sees stale output.
   function handlePreview() {
     if (!isEdit || !id) return;
     const previewWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
@@ -667,13 +672,47 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
       toast.error("Popup blocked — allow popups for this site to use Preview.");
       return;
     }
+    previewWindow.document.open();
+    previewWindow.document.write(
+      `<!doctype html><meta charset="utf-8"><title>Loading preview…</title>` +
+      `<style>body{font:14px/1.5 system-ui,sans-serif;color:#475569;margin:48px;text-align:center}</style>` +
+      `Rendering preview…`,
+    );
+    previewWindow.document.close();
+
     void (async () => {
-      const ok = await saveNode();
-      if (!ok) {
+      try {
+        const draft = {
+          title,
+          slug,
+          status,
+          language_code: languageCode,
+          excerpt,
+          layout_id: layoutId ? Number(layoutId) : undefined,
+          blocks_data: blocks,
+          fields_data: fieldsData,
+          seo_settings: { meta_title: seoTitle, meta_description: seoDescription },
+          featured_image: featuredImage,
+          taxonomies: taxonomies,
+        };
+        const res = await fetch(`/admin/api/nodes/${id}/preview`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        });
+        const html = await res.text();
+        // Use a Blob URL so the rendered document gets a proper origin
+        // and absolute paths (/theme/assets/..., /media/...) resolve
+        // against this site. document.write into about:blank would set
+        // the base URL to about:blank — every absolute path 404s.
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        previewWindow.location.href = URL.createObjectURL(blob);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to render preview";
+        toast.error(message);
         previewWindow.close();
-        return;
       }
-      previewWindow.location.href = `/admin/api/nodes/${id}/preview`;
     })();
   }
 

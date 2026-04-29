@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
 	"strconv"
@@ -8,32 +9,98 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// RegisterAdminPreviewRoutes mounts the admin-side preview endpoint that the
-// node editor's Preview button hits. Returns the rendered HTML for any node
-// (drafts included) by reusing the same renderer the public path uses, so
-// editors see exactly what visitors will see once published.
+// RegisterAdminPreviewRoutes mounts the admin-side preview endpoints used
+// by the node editor's Preview button. Two shapes:
 //
-// GET /admin/api/nodes/:id/preview — text/html, 200 on success.
+//   GET  /admin/api/nodes/:id/preview
+//        Render the persisted row as-is. Useful for previewing a node
+//        the way it would render right now without any editor context.
+//
+//   POST /admin/api/nodes/:id/preview
+//        Render the node with the request body's draft overrides applied
+//        in-memory only. Nothing is written to the DB. Use this when the
+//        editor has unsaved changes and the operator wants to see the
+//        page exactly as it will look — without committing.
+//
+// Both endpoints return text/html (the rendered page) on success and an
+// inline HTML error page on failure. JSON envelopes don't render well in
+// fresh browser tabs.
 func (h *PublicHandler) RegisterAdminPreviewRoutes(router fiber.Router) {
 	router.Get("/nodes/:id/preview", h.AdminNodePreview)
+	router.Post("/nodes/:id/preview", h.AdminNodePreviewWithDraft)
 }
 
-// AdminNodePreview renders one node by ID as full HTML. Auth is enforced by
-// the parent /admin/api group's session middleware — there's no extra
-// capability check because anyone with admin access can see any node anyway
-// (drafts are only visible inside admin). Side effects are explicitly
-// avoided: no view counts, no node.viewed events.
-//
-// Errors render as inline HTML rather than the standard JSON envelope so a
-// new browser tab shows a readable diagnostic instead of raw `{"error":...}`
-// text. The caller is always a top-level navigation; structured errors here
-// would just show as broken text.
+// AdminNodePreview renders the persisted row. No DB writes, no events.
 func (h *PublicHandler) AdminNodePreview(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil || id == 0 {
 		return previewHTMLError(c, fiber.StatusBadRequest, "Node id must be a positive integer")
 	}
-	rendered, err := h.RenderNodePreview(uint(id))
+	return renderPreview(c, h, uint(id), nil)
+}
+
+// adminPreviewBody is the POST payload shape. Mirrors the node editor's
+// in-flight form state. Every field is optional — omitted fields keep
+// the persisted value. JSONB shapes (blocks_data, fields_data, etc.) are
+// accepted as decoded JSON; we re-encode before handing them to the
+// renderer.
+type adminPreviewBody struct {
+	Title         *string         `json:"title,omitempty"`
+	Slug          *string         `json:"slug,omitempty"`
+	Status        *string         `json:"status,omitempty"`
+	LanguageCode  *string         `json:"language_code,omitempty"`
+	Excerpt       *string         `json:"excerpt,omitempty"`
+	LayoutSlug    *string         `json:"layout_slug,omitempty"`
+	LayoutID      *int            `json:"layout_id,omitempty"`
+	BlocksData    json.RawMessage `json:"blocks_data,omitempty"`
+	FieldsData    json.RawMessage `json:"fields_data,omitempty"`
+	SeoSettings   json.RawMessage `json:"seo_settings,omitempty"`
+	FeaturedImage json.RawMessage `json:"featured_image,omitempty"`
+	Taxonomies    json.RawMessage `json:"taxonomies,omitempty"`
+}
+
+// AdminNodePreviewWithDraft renders a node with in-flight form state
+// applied in-memory. Body must be JSON-shaped (adminPreviewBody) and
+// every field is optional. Nothing is written to the database.
+func (h *PublicHandler) AdminNodePreviewWithDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil || id == 0 {
+		return previewHTMLError(c, fiber.StatusBadRequest, "Node id must be a positive integer")
+	}
+
+	var body adminPreviewBody
+	if err := c.BodyParser(&body); err != nil {
+		return previewHTMLError(c, fiber.StatusBadRequest, "Could not parse preview payload: "+err.Error())
+	}
+
+	draft := &NodeDraftOverrides{
+		Title:         body.Title,
+		Slug:          body.Slug,
+		Status:        body.Status,
+		LanguageCode:  body.LanguageCode,
+		Excerpt:       body.Excerpt,
+		LayoutSlug:    body.LayoutSlug,
+		LayoutID:      body.LayoutID,
+		BlocksData:    rawOrNil(body.BlocksData),
+		FieldsData:    rawOrNil(body.FieldsData),
+		SeoSettings:   rawOrNil(body.SeoSettings),
+		FeaturedImage: rawOrNil(body.FeaturedImage),
+		Taxonomies:    rawOrNil(body.Taxonomies),
+	}
+	return renderPreview(c, h, uint(id), draft)
+}
+
+// rawOrNil returns the underlying bytes when the RawMessage is non-empty,
+// otherwise nil so the renderer keeps the persisted JSONB column as-is.
+func rawOrNil(m json.RawMessage) []byte {
+	if len(m) == 0 || string(m) == "null" {
+		return nil
+	}
+	return m
+}
+
+func renderPreview(c *fiber.Ctx, h *PublicHandler, id uint, draft *NodeDraftOverrides) error {
+	rendered, err := h.RenderNodePreview(id, draft)
 	if err != nil {
 		return previewHTMLError(c, fiber.StatusNotFound, err.Error())
 	}
@@ -42,8 +109,6 @@ func (h *PublicHandler) AdminNodePreview(c *fiber.Ctx) error {
 			"Renderer returned an empty document. Verify the node has a layout assigned and that the active theme provides templates for it.")
 	}
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	// Prevent caching — preview output reflects unsaved drafts and changes
-	// frequently while editing.
 	c.Set("Cache-Control", "no-store, max-age=0")
 	return c.Status(fiber.StatusOK).SendString(rendered)
 }

@@ -58,7 +58,7 @@ func (s *Server) registerRenderTools() {
 		if pub == nil {
 			return nil, fmt.Errorf("render tools not wired: PublicHandler missing from MCP Deps")
 		}
-		html, err := pub.RenderNodePreview(uintArg(args, "id"))
+		html, err := pub.RenderNodePreview(uintArg(args, "id"), nil)
 		if err != nil {
 			return nil, err
 		}
