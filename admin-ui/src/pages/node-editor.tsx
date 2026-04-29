@@ -602,9 +602,11 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     setSelectedTemplateId(null);
   }
 
-  async function handleSave(e: FormEvent, publishStatus?: string) {
-    e.preventDefault();
-
+  // saveNode performs the actual write without depending on a form event,
+  // so the same save path can be reused outside the <form> submit (the
+  // Preview button needs to flush in-flight edits before opening the
+  // public render). Returns true on success so callers can chain.
+  async function saveNode(publishStatus?: string): Promise<boolean> {
     const nodeData: Partial<ContentNode> = {
       title,
       slug,
@@ -632,18 +634,47 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
         setOriginalNode(updated);
         setStatus(updated.status);
         toast.success(`${label} updated successfully`);
-      } else {
-        const created = await createNode(nodeData);
-        toast.success(`${label} created successfully`);
-        navigate(`${basePath}/${created.id}/edit`, { replace: true });
+        return true;
       }
+      const created = await createNode(nodeData);
+      toast.success(`${label} created successfully`);
+      navigate(`${basePath}/${created.id}/edit`, { replace: true });
+      return true;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : `Failed to save ${label.toLowerCase()}`;
       toast.error(message);
+      return false;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSave(e: FormEvent, publishStatus?: string) {
+    e.preventDefault();
+    await saveNode(publishStatus);
+  }
+
+  // handlePreview saves the in-flight form state first, then redirects a
+  // pre-opened tab to the rendered preview. Opening the placeholder tab
+  // synchronously on the click event keeps popup blockers happy — once
+  // the save resolves we point that same tab at the preview URL. If
+  // save fails we close the tab so the editor never sees stale output.
+  function handlePreview() {
+    if (!isEdit || !id) return;
+    const previewWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+    if (!previewWindow) {
+      toast.error("Popup blocked — allow popups for this site to use Preview.");
+      return;
+    }
+    void (async () => {
+      const ok = await saveNode();
+      if (!ok) {
+        previewWindow.close();
+        return;
+      }
+      previewWindow.location.href = `/admin/api/nodes/${id}/preview`;
+    })();
   }
 
   async function handleDelete() {
@@ -1335,19 +1366,19 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 )}
               </div>
 
-              {/* Preview — opens the rendered node in a new tab. Always
-                  renders the persisted state, so save first if you want
-                  to see your latest unsaved edits. */}
+              {/* Preview — saves the in-flight form state first, then
+                  opens the rendered node in a new tab. Editors can click
+                  Preview without remembering to Save first; what they
+                  see in the tab matches what they're looking at on
+                  screen. */}
               {isEdit && id && (
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full rounded-lg font-medium h-8 text-xs"
                   disabled={saving}
-                  onClick={() => {
-                    window.open(`/admin/api/nodes/${id}/preview`, "_blank", "noopener,noreferrer");
-                  }}
-                  title="Open the rendered page in a new tab. Save first to preview unsaved changes."
+                  onClick={handlePreview}
+                  title="Save and open the rendered page in a new tab."
                 >
                   <Eye className="mr-1.5 h-3.5 w-3.5" />
                   Preview
