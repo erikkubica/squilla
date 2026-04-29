@@ -35,6 +35,10 @@ extensions/*/admin-ui/dist/
 .idea
 preview-test
 
-# squilla theme lives in its own repo (github.com/erikkubica/squilla-app-theme).
-# Never commit it to vibecms.
-themes/squilla/
+# Themes — only the three reference themes ship in this repo. Any other theme
+# directory (squilla, third-party, scratch builds) lives in its own repo and
+# is gitignored here. To add another built-in theme, add an exception below.
+themes/*/
+!themes/default/
+!themes/hello-vietnam/
+!themes/curriculum-vitae/
