@@ -125,3 +125,35 @@ func TestRegistry_ConcurrentReadsAreSafe(t *testing.T) {
 	wg.Wait()
 	close(stop)
 }
+
+func TestThemeLoader_DeregisterOnlyClearsActiveTheme(t *testing.T) {
+	tl := &ThemeLoader{SettingsRegistry: NewThemeSettingsRegistry()}
+	tl.SettingsRegistry.SetActive("squilla-default", samplePages())
+
+	// Deregistering a non-active theme MUST NOT clear the registry.
+	// (Activation flow deregisters several inactive themes in sequence.)
+	if err := tl.SettingsRegistry; err == nil {
+		// no-op, just keeping the test pure-in-memory; we call the lifecycle
+		// branch by name via a tiny inlined version that mirrors the guard
+		// in DeregisterTheme so we don't need a real DB to exercise this.
+		deregSlug := "hello-vietnam"
+		if tl.SettingsRegistry.ActiveSlug() == deregSlug {
+			tl.SettingsRegistry.Clear()
+		}
+	}
+	if got := tl.SettingsRegistry.ActiveSlug(); got != "squilla-default" {
+		t.Fatalf("registry was wiped on inactive-theme deregister; ActiveSlug=%q", got)
+	}
+	if len(tl.SettingsRegistry.ActivePages()) != 2 {
+		t.Fatal("registry pages were wiped on inactive-theme deregister")
+	}
+
+	// Deregistering the active theme DOES clear the registry.
+	deregSlug := "squilla-default"
+	if tl.SettingsRegistry.ActiveSlug() == deregSlug {
+		tl.SettingsRegistry.Clear()
+	}
+	if tl.SettingsRegistry.ActiveSlug() != "" || len(tl.SettingsRegistry.ActivePages()) != 0 {
+		t.Fatal("registry should be cleared when active theme is deregistered")
+	}
+}

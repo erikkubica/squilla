@@ -264,16 +264,18 @@ func (tl *ThemeLoader) DeregisterTheme(themeName string) error {
 		tl.registry.mu.Unlock()
 	}
 
-	// In-memory settings snapshot becomes stale the moment a theme is
-	// deactivated — clear it so admin UI / Tengo / render context stop
-	// reflecting the previous theme's pages. Persisted rows in
-	// site_settings are preserved (they're only wiped on full deletion via
-	// ThemeMgmtService.Delete) so re-activation restores user values.
-	//
-	// Contract (covered by TestRegistry_Clear in theme_settings_registry_test.go):
-	// after deactivation, ActivePages()==[] and ActiveSlug()=="".
+	// Clear the in-memory settings snapshot ONLY when the theme being
+	// deregistered is the one currently held by the registry. The activation
+	// flow deregisters several themes in sequence (the previously-active one
+	// plus a sweep of already-inactive ones); without this guard, those
+	// follow-up deregisters wipe the just-loaded settings of the NEW active
+	// theme. Persisted site_settings rows are preserved either way; only
+	// ThemeMgmtService.Delete wipes them.
 	if tl.SettingsRegistry != nil {
-		tl.SettingsRegistry.Clear()
+		deregSlug := strings.ToLower(strings.ReplaceAll(themeName, " ", "-"))
+		if tl.SettingsRegistry.ActiveSlug() == deregSlug {
+			tl.SettingsRegistry.Clear()
+		}
 	}
 
 	log.Printf("theme deregistered: %s (%d blocks removed)", themeName, len(blockSlugs))
