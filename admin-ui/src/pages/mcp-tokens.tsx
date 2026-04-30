@@ -316,6 +316,7 @@ export default function McpTokensPage() {
             <p className="font-medium mb-1">Claude Code setup</p>
             <pre className="whitespace-pre-wrap break-all">
               {`claude mcp add squilla ${window.location.origin}/mcp \\
+  --transport http \\
   --header "Authorization: Bearer ${revealed?.token || "<token>"}"`}
             </pre>
           </div>
