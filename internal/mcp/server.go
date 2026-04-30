@@ -63,7 +63,7 @@ type toolCatalogEntry struct {
 func New(deps Deps) *Server {
 	s := &Server{
 		deps:        deps,
-		limiter:     newPerTokenLimiter(60, 10),
+		limiter:     newPerTokenLimiter(envIntDefault("SQUILLA_MCP_RPM", 600), envIntDefault("SQUILLA_MCP_BURST", 60)),
 		auditor:     newAuditor(deps.DB),
 		logger:      log.New(os.Stderr, "[mcp] ", log.LstdFlags),
 		allowRawSQL: strings.EqualFold(os.Getenv("SQUILLA_MCP_ALLOW_RAW_SQL"), "true"),
