@@ -157,6 +157,7 @@ function AppRoutes() {
       <Route path="/admin/settings/site" element={<Navigate to="/admin/settings/site/general" replace />} />
       <Route path="/admin/settings/site/general" element={<ProtectedRoute><SduiSiteSettingsPage section="general" /></ProtectedRoute>} />
       <Route path="/admin/settings/site/seo" element={<ProtectedRoute><SduiSiteSettingsPage section="seo" /></ProtectedRoute>} />
+      <Route path="/admin/settings/site/robots" element={<ProtectedRoute><SduiSiteSettingsPage section="robots" /></ProtectedRoute>} />
       <Route path="/admin/settings/site/advanced" element={<ProtectedRoute><SduiSiteSettingsPage section="advanced" /></ProtectedRoute>} />
       <Route path="/admin/settings/site/languages" element={<ProtectedRoute><SduiLanguagesPage /></ProtectedRoute>} />
       {/* Languages used to live at /admin/languages — keep the old path

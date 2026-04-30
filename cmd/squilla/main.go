@@ -522,6 +522,11 @@ func main() {
 	scriptEngine.MountWellKnown(wellKnown)
 	wellKnown.Mount(app)
 
+	// /robots.txt — generated from settings (SEO toggle, AI bot
+	// policies, sitemap URL). Mounted before the public catch-all so
+	// the renderer doesn't try to resolve it as a node.
+	cms.NewRobotsHandler(database).RegisterRoutes(app)
+
 	// --- Public content routes (must be last) ---
 	publicHandler.RegisterRoutes(app)
 

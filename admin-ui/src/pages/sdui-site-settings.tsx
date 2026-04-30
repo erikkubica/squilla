@@ -9,7 +9,7 @@ import { getPageStore } from "../sdui/action-handler";
 // into named sub-pages keeps the sidebar predictable as new sections
 // land. Pass `section` from the route component so the same shell can
 // resolve the matching SDUI layout.
-export function SduiSiteSettingsPage({ section = "general" }: { section?: "general" | "seo" | "advanced" }) {
+export function SduiSiteSettingsPage({ section = "general" }: { section?: "general" | "seo" | "advanced" | "robots" }) {
   const slug = `site-settings-${section}`;
   const { data: layout, isLoading, isFetching, error } = useLayout(slug);
   const store = getPageStore(slug);

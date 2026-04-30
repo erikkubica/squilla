@@ -18,6 +18,7 @@ func RegisterBuiltins(r *Registry) {
 	r.MustRegister(siteGeneral())
 	r.MustRegister(siteSEO())
 	r.MustRegister(siteAdvanced())
+	r.MustRegister(siteRobots())
 }
 
 func security() Schema {
@@ -120,6 +121,77 @@ func siteSEO() Schema {
 						Translatable: true, TrueValue: "true", FalseValue: "false", Default: "true",
 						Help:    "When off, every public page emits noindex,nofollow (and the X-Robots-Tag header). Use OFF during staging.",
 						Warning: "This setting is per-language. To hide the entire site from search, switch the language picker and toggle this OFF for every active language."},
+				},
+			},
+		},
+	}
+}
+
+func siteRobots() Schema {
+	return Schema{
+		ID:          "site.robots",
+		Title:       "Robots & AI Crawlers",
+		Description: "Controls /robots.txt — what classic search engines and AI crawlers may do with your content. The SEO indexing master switch (Site Settings → SEO) overrides everything here when off.",
+		Capability:  "manage_settings",
+		Sections: []Section{
+			{
+				Title:       "AI Crawler Policy",
+				Icon:        "Shield",
+				Description: "Two distinct cohorts. Training crawlers feed model corpora (your content shapes the next model). Search crawlers fetch live when a user asks an AI assistant a question (your content gets cited).",
+				Fields: []Field{
+					{
+						Key:        "robots_allow_ai_training",
+						Label:      "Allow AI training crawlers",
+						Type:       "toggle",
+						TrueValue:  "true",
+						FalseValue: "false",
+						Default:    "true",
+						Help:       "Off blocks GPTBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot, Meta-ExternalAgent, Bytespider, Amazonbot, and ~15 other training crawlers.",
+						Warning:    "Training opt-out is best-effort: it relies on each vendor honouring robots.txt. Sticky badges only — no enforcement.",
+					},
+					{
+						Key:        "robots_allow_ai_search",
+						Label:      "Allow AI answer-engine crawlers",
+						Type:       "toggle",
+						TrueValue:  "true",
+						FalseValue: "false",
+						Default:    "true",
+						Help:       "Off blocks ChatGPT-User, OAI-SearchBot, PerplexityBot, Perplexity-User, MistralAI-User, DuckAssistBot, etc. Turning this off means AI assistants can't cite your pages live.",
+					},
+				},
+			},
+			{
+				Title:       "Custom Rules",
+				Icon:        "FileText",
+				Description: "Operator escape hatch. Paths to disallow for everyone, plus a free-text block appended verbatim.",
+				FullWidth:   true,
+				Fields: []Field{
+					{
+						Key:         "robots_disallow_paths",
+						Label:       "Additional Disallow paths",
+						Type:        "textarea",
+						Rows:        4,
+						FontMono:    true,
+						Placeholder: "/private/\n/internal/\n/search?",
+						Help:        "One path per line. Appended to the User-agent: * block alongside the built-in /admin, /auth, /api defaults.",
+					},
+					{
+						Key:         "robots_custom",
+						Label:       "Custom robots.txt block",
+						Type:        "textarea",
+						Rows:        6,
+						FontMono:    true,
+						Placeholder: "# Slow this one bot down\nUser-agent: SpecialBot\nCrawl-delay: 10",
+						Help:        "Appended verbatim at the end. Use for vendor-specific directives, Crawl-delay, or comments. No parsing — typos go straight to crawlers.",
+					},
+					{
+						Key:         "robots_sitemap_url",
+						Label:       "Sitemap URL override",
+						Type:        "text",
+						FontMono:    true,
+						Placeholder: "https://example.com/sitemap.xml",
+						Help:        "Defaults to <site_url>/sitemap.xml. Override if your sitemap lives elsewhere (e.g. a CDN or a sub-path).",
+					},
 				},
 			},
 		},

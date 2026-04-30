@@ -278,6 +278,7 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		Children: []NavItem{
 			{ID: "nav-site-settings-general", Label: "General", Icon: "Globe", Path: "/admin/settings/site/general"},
 			{ID: "nav-site-settings-seo", Label: "SEO", Icon: "Globe", Path: "/admin/settings/site/seo"},
+			{ID: "nav-site-settings-robots", Label: "Robots & AI", Icon: "Shield", Path: "/admin/settings/site/robots"},
 			{ID: "nav-site-settings-advanced", Label: "Advanced", Icon: "FileCode", Path: "/admin/settings/site/advanced"},
 			{ID: "nav-site-settings-languages", Label: "Languages", Icon: "Languages", Path: "/admin/settings/site/languages"},
 		},

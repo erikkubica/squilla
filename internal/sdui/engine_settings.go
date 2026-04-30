@@ -30,6 +30,13 @@ func (e *Engine) siteSettingsAdvancedLayout() *LayoutNode {
 	return schemaSettingsNode("site.advanced", true)
 }
 
+func (e *Engine) siteSettingsRobotsLayout() *LayoutNode {
+	// show_clear_cache=false: robots.txt is computed at request time
+	// from settings, so changes take effect immediately without a
+	// cache flush.
+	return schemaSettingsNode("site.robots", false)
+}
+
 func (e *Engine) securitySettingsLayout() *LayoutNode {
 	// Security has no translatable fields, so the React component
 	// suppresses the language picker — show_clear_cache stays false
