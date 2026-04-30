@@ -226,7 +226,12 @@ func TestThemeSettings_TranslatableRoundTrip(t *testing.T) {
 
 func decodeThemeSettingsGet(t *testing.T, app *fiber.App, locale string) map[string]valueDTO {
 	t.Helper()
-	req := httptest.NewRequest("GET", "/theme-settings/branding", nil)
+	return decodeThemeSettingsGetForPage(t, app, locale, "branding")
+}
+
+func decodeThemeSettingsGetForPage(t *testing.T, app *fiber.App, locale, page string) map[string]valueDTO {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/theme-settings/"+page, nil)
 	req.Header.Set("X-Admin-Language", locale)
 	resp, err := app.Test(req)
 	if err != nil {

@@ -54,11 +54,22 @@ func CoerceValue(fieldType, raw string) (value any, ok bool) {
 }
 
 // CoerceWithDefault wraps CoerceValue and substitutes the field's declared
-// default (also raw JSON) when the stored value is incompatible. The DB is
-// never mutated here — only the rendered/handed-back value changes.
+// default (raw JSON) in two cases:
+//   - the stored value is incompatible with the field type (Compatible=false)
+//   - the stored value is empty AND the field declares a default — fresh-
+//     install paths where no operator has saved the page yet should still
+//     surface theme-author-declared defaults instead of nil
+//
+// The DB is never mutated here — only the rendered/handed-back value
+// changes.
 func CoerceWithDefault(field ThemeSettingsField, raw string) CoerceResult {
 	v, ok := CoerceValue(field.Type, raw)
 	if ok {
+		if v == nil && len(field.Default) > 0 {
+			var d any
+			_ = json.Unmarshal(field.Default, &d)
+			v = d
+		}
 		return CoerceResult{Value: v, Compatible: true, Raw: raw}
 	}
 	var dflt any

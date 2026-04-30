@@ -113,9 +113,12 @@ func TestThemeSettings_LoadSaveRender_RoundTrip(t *testing.T) {
 	if len(initial.Data.Page.Fields) != 3 {
 		t.Fatalf("expected 3 fields, got %d", len(initial.Data.Page.Fields))
 	}
-	// No values stored yet — coercion of empty raw returns nil + compatible.
-	if initial.Data.Values["tagline"].Value != nil {
-		t.Fatalf("expected nil tagline before save, got %#v", initial.Data.Values["tagline"].Value)
+	// No values stored yet — declared defaults must surface so a fresh
+	// install reflects the theme author's intent, not nil. This used to
+	// be the buggy nil-returning behaviour; CoerceWithDefault now
+	// substitutes the default for empty raw too.
+	if got := initial.Data.Values["tagline"].Value; got != "Welcome" {
+		t.Fatalf("expected default tagline before save, got %#v", got)
 	}
 
 	// 6. PUT new values.
