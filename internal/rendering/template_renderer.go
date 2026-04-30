@@ -258,6 +258,7 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 		"split": func(sep, s string) []string {
 			return strings.Split(s, sep)
 		},
+		"trim": strings.TrimSpace,
 		"mod": func(a, b int) int {
 			if b == 0 {
 				return 0
