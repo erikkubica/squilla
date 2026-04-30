@@ -2,6 +2,7 @@ package cms
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -81,7 +82,15 @@ func (h *PublicHandler) RenderLayoutPreview(layoutSlug string, blocks []map[stri
 	}
 	nodeData := h.renderCtx.BuildNodeData(fakeNode, blocksHTML, languages)
 
-	templateData := TemplateData{App: appData, Node: nodeData}
+	// Theme settings must be present in preview data — layouts and partials
+	// read .theme_settings.<page>.<key> directly. Without this map a node
+	// with a theme that uses theme settings hits "index of untyped nil"
+	// in the layout template before any block renders.
+	templateData := TemplateData{
+		App:           appData,
+		Node:          nodeData,
+		ThemeSettings: h.loadThemeSettingsForRender(context.Background(), nodeData.LanguageCode),
+	}
 	dataMap := templateData.ToMap()
 
 	blockResolver := func(slug string) (string, error) {
@@ -169,7 +178,11 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides
 	nodeData := h.renderCtx.BuildNodeData(&node, blocksHTML, languages)
 	appData.HeadMeta = BuildHeadMeta(&node, nodeData.SEO, settings, nodeData.Translations, languages)
 
-	templateData := TemplateData{App: appData, Node: nodeData}
+	templateData := TemplateData{
+		App:           appData,
+		Node:          nodeData,
+		ThemeSettings: h.loadThemeSettingsForRender(context.Background(), nodeData.LanguageCode),
+	}
 	blockResolver := func(slug string) (string, error) {
 		lb, err := h.layoutBlockSvc.Resolve(slug, languageID)
 		if err != nil {
