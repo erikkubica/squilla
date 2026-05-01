@@ -41,10 +41,28 @@ export const RowActions = wrap("RowActions");
 export const ListFooter = wrap("ListFooter");
 export const EmptyState = wrap("EmptyState");
 export const LoadingRow = wrap("LoadingRow");
+export const SortableTh = wrap("SortableTh");
 
 // Layout helpers
 export const AccordionRow = wrap("AccordionRow");
 export const SectionHeader = wrap("SectionHeader");
+export const SidebarCard = wrap("SidebarCard");
+export const PageHeader = wrap("PageHeader");
+export const Titlebar = wrap("Titlebar");
+export const SaveBar = wrap("SaveBar");
+export const MetaRow = wrap("MetaRow");
+export const MetaList = wrap("MetaList");
+export const PublishActions = wrap("PublishActions");
+export const TabsCard = wrap("TabsCard");
+
+// Form-schema + language helpers
+export const LanguageSelect = wrap("LanguageSelect");
+export const LanguageLabel = wrap("LanguageLabel");
+export const LanguagePicker = wrap("LanguagePicker");
+export const CustomFieldInput = wrap("CustomFieldInput");
+export const FieldSchemaEditor = wrap("FieldSchemaEditor");
+export const FieldTypePicker = wrap("FieldTypePicker");
+export const SubFieldsEditor = wrap("SubFieldsEditor");
 
 // shadcn/ui primitives
 export const Button = wrap("Button");

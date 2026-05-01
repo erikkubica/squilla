@@ -406,7 +406,6 @@ export default function TemplateEditorPage() {
 
               {!isManaged && (
                 <>
-                  <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
                   <PublishActions>
                     <Button
                       type="submit"
@@ -434,7 +433,6 @@ export default function TemplateEditorPage() {
 
               {isEdit && originalTemplate && (
                 <>
-                  <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
                   <MetaList>
                     <MetaRow label="Source" value={<span className="capitalize">{source}</span>} />
                     <MetaRow label="Blocks" value={blockConfig.length} />

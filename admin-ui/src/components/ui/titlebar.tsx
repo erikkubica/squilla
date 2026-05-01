@@ -52,6 +52,7 @@ export function Titlebar({
     >
       {onBack && (
         <button
+          type="button"
           onClick={onBack}
           className="grid place-items-center"
           style={{

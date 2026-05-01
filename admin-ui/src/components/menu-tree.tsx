@@ -429,7 +429,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                     <div>
                       <label className="mb-1 block text-xs font-medium text-muted-foreground">URL</label>
                       <div className="relative">
-                        <LinkIcon className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+                        <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           value={fi.item.url || ""}
                           onChange={(e) => updateItemField(fi.path, "url", e.target.value)}

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"strconv"
+	"strings"
 
 	"squilla/internal/api"
 	"squilla/internal/events"
@@ -73,15 +74,54 @@ func (h *UserHandler) RegisterRoutes(router fiber.Router) {
 }
 
 // ListUsers returns a paginated list of users. Requires manage_users capability.
+//
+// Back-compat: when the caller passes no `page` query param the full,
+// unpaginated list is returned (preserving the legacy shape — admin language
+// pickers and a handful of other selectors still rely on that). Once `page` is
+// present, the response switches to {data, meta} with full pagination + the
+// extra status counts the admin list page uses for its tabs.
 func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	currentUser := GetCurrentUser(c)
 	if !HasCapability(currentUser, "manage_users") {
 		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "Insufficient permissions")
 	}
 
-	page, _ := strconv.Atoi(c.Query("page", "1"))
-	perPage, _ := strconv.Atoi(c.Query("per_page", "20"))
+	pageRaw := c.Query("page")
 
+	// Build the base scope (search + role filter) once so both the legacy
+	// "no page param" branch and the paginated branch share filters.
+	base := h.db.Model(&models.User{})
+	search := strings.TrimSpace(c.Query("search"))
+	if search != "" {
+		needle := "%" + strings.ToLower(search) + "%"
+		base = base.Where("LOWER(email) LIKE ? OR LOWER(COALESCE(full_name, '')) LIKE ?", needle, needle)
+	}
+	if roleSlug := c.Query("role"); roleSlug != "" && roleSlug != "all" {
+		// Match against role slug via a joined subquery — keeps the role
+		// filter usable from the URL even when the role IDs are unknown
+		// to the operator.
+		var role models.Role
+		if err := h.db.Where("slug = ?", roleSlug).First(&role).Error; err == nil {
+			base = base.Where("role_id = ?", role.ID)
+		}
+	}
+
+	if pageRaw == "" {
+		// Legacy callers expect the full sanitized list as a flat array
+		// under "data". Don't touch this shape.
+		var users []models.User
+		if err := base.Preload("Role").Order("id ASC").Find(&users).Error; err != nil {
+			return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to fetch users")
+		}
+		responses := make([]userResponse, len(users))
+		for i, u := range users {
+			responses[i] = toUserResponse(u)
+		}
+		return api.Success(c, responses)
+	}
+
+	page, _ := strconv.Atoi(pageRaw)
+	perPage, _ := strconv.Atoi(c.Query("per_page", "20"))
 	if page < 1 {
 		page = 1
 	}
@@ -92,12 +132,40 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 		perPage = 100
 	}
 
+	// Sort whitelist — keep raw input out of the SQL we feed Order().
+	sortBy := c.Query("sort")
+	sortOrder := strings.ToLower(c.Query("order"))
+	orderClause := "id ASC"
+	switch sortBy {
+	case "full_name", "email", "last_login_at", "created_at", "id":
+		dir := "ASC"
+		if sortOrder == "desc" {
+			dir = "DESC"
+		}
+		orderClause = sortBy + " " + dir
+	}
+
+	// User has no `is_active` column today — every row is active. The
+	// status counts are still surfaced so the admin list page can render
+	// uniform tabs alongside Languages without a special-case branch.
+	var totalAll int64
+	base.Session(&gorm.Session{}).Count(&totalAll)
+	activeCount := totalAll
+	var inactiveCount int64
+
+	scope := base.Session(&gorm.Session{})
+	if s := strings.ToLower(strings.TrimSpace(c.Query("status"))); s == "inactive" {
+		// No inactive users today — return an empty page rather than
+		// leaking the full list when the operator clicks the tab.
+		scope = scope.Where("1 = 0")
+	}
+
 	var total int64
-	h.db.Model(&models.User{}).Count(&total)
+	scope.Session(&gorm.Session{}).Count(&total)
 
 	var users []models.User
 	offset := (page - 1) * perPage
-	if err := h.db.Preload("Role").Order("id ASC").Offset(offset).Limit(perPage).Find(&users).Error; err != nil {
+	if err := scope.Preload("Role").Order(orderClause).Offset(offset).Limit(perPage).Find(&users).Error; err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to fetch users")
 	}
 
@@ -106,7 +174,22 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 		responses[i] = toUserResponse(u)
 	}
 
-	return api.Paginated(c, responses, total, page, perPage)
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
+		totalPages++
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data": responses,
+		"meta": fiber.Map{
+			"total":          total,
+			"page":           page,
+			"per_page":       perPage,
+			"total_pages":    totalPages,
+			"total_all":      totalAll,
+			"active_count":   activeCount,
+			"inactive_count": inactiveCount,
+		},
+	})
 }
 
 // GetUser returns a single user by ID.

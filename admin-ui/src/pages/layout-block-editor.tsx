@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CodeWindow } from "@/components/ui/code-window";
 import FieldSchemaEditor from "@/components/ui/field-schema-editor";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsCard } from "@/components/ui/tabs-card";
 import {
   Select,
   SelectContent,
@@ -279,51 +279,46 @@ export default function LayoutBlockEditorPage() {
           />
 
           {/* Tabs */}
-          <Tabs defaultValue="template" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="template" className="">
-                <FileCode className="mr-2 h-4 w-4" /> Template
-              </TabsTrigger>
-              <TabsTrigger value="fields" className="">
-                <Boxes className="mr-2 h-4 w-4" /> Fields
-              </TabsTrigger>
-              <TabsTrigger value="reference" className="">
-                <BookOpen className="mr-2 h-4 w-4" /> Reference
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="template" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <CodeWindow
-                title="Template Code — Go html/template"
-                value={templateCode}
-                onChange={setTemplateCode}
-                disabled={isManaged}
-                height="500px"
-                placeholder="Enter your Go html/template code here..."
-                variables={TEMPLATE_VARIABLES}
-              />
-            </TabsContent>
-
-            <TabsContent value="fields" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Partial Fields" />
-                <CardContent>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Define editable fields for this partial. When a layout uses this partial, pages will show these fields in the node editor.
-                    Use <code className="bg-muted px-1 rounded text-[10px]">{"{{.partial.field_key}}"}</code> in the template.
-                  </p>
-                  <FieldSchemaEditor
-                    fields={fieldSchema}
-                    onChange={setFieldSchema}
+          <TabsCard
+            defaultValue="template"
+            tabs={[
+              {
+                value: "template",
+                label: (<><FileCode className="mr-2 h-4 w-4" /> Template</>),
+                content: (
+                  <CodeWindow
+                    title="Template Code — Go html/template"
+                    value={templateCode}
+                    onChange={setTemplateCode}
+                    disabled={isManaged}
+                    height="500px"
+                    placeholder="Enter your Go html/template code here..."
+                    variables={TEMPLATE_VARIABLES}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="reference" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Template Reference" />
-                <CardContent>
+                ),
+              },
+              {
+                value: "fields",
+                label: (<><Boxes className="mr-2 h-4 w-4" /> Fields</>),
+                badge: fieldSchema.length,
+                content: (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Define editable fields for this partial. When a layout uses this partial, pages will show these fields in the node editor.
+                      Use <code className="bg-muted px-1 rounded text-[10px]">{"{{.partial.field_key}}"}</code> in the template.
+                    </p>
+                    <FieldSchemaEditor
+                      fields={fieldSchema}
+                      onChange={setFieldSchema}
+                      disabled={isManaged}
+                    />
+                  </>
+                ),
+              },
+              {
+                value: "reference",
+                label: (<><BookOpen className="mr-2 h-4 w-4" /> Reference</>),
+                content: (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                       <h3 className="mb-3 text-sm font-semibold text-foreground">App Variables</h3>
@@ -360,10 +355,10 @@ export default function LayoutBlockEditorPage() {
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Sidebar */}
@@ -385,7 +380,6 @@ export default function LayoutBlockEditorPage() {
 
               {!isManaged && (
                 <>
-                  <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
                   <PublishActions>
                     <Button
                       type="submit"
@@ -413,7 +407,6 @@ export default function LayoutBlockEditorPage() {
 
               {!isNew && (
                 <>
-                  <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
                   <MetaList>
                     <MetaRow label="Source" value={<span className="capitalize">{source}</span>} />
                     {createdAt && <MetaRow label="Created" value={new Date(createdAt).toLocaleDateString("en-GB")} />}

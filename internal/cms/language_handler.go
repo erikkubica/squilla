@@ -35,12 +35,17 @@ func (h *LanguageHandler) RegisterRoutes(router fiber.Router) {
 }
 
 // List handles GET /languages to retrieve all languages.
-// Supports ?active=true query param to return only active languages.
+// Supports:
+//   - ?active=true        → only active languages (unpaginated, used by every
+//                            language picker in the admin)
+//   - ?page=N&per_page=M  → paginated response with total/page/per_page meta
+//   - ?search=foo         → case-insensitive substring filter (name / native /
+//                            code / slug). Combine with page/per_page.
+//
+// Without page/per_page the handler returns the full list (back-compat for
+// callers that expect the entire array).
 func (h *LanguageHandler) List(c *fiber.Ctx) error {
-	activeOnly := c.Query("active")
-
-	var err error
-	if activeOnly == "true" {
+	if c.Query("active") == "true" {
 		languages, err := h.svc.ListActive()
 		if err != nil {
 			return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list languages")
@@ -48,12 +53,46 @@ func (h *LanguageHandler) List(c *fiber.Ctx) error {
 		return api.Success(c, languages)
 	}
 
-	languages, err := h.svc.List()
+	pageRaw := c.Query("page")
+	if pageRaw == "" {
+		// Legacy callers (admin language picker, theme renderer) still expect
+		// the full list. Only switch to paginated when the client asks.
+		languages, err := h.svc.List()
+		if err != nil {
+			return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list languages")
+		}
+		return api.Success(c, languages)
+	}
+
+	page, _ := strconv.Atoi(pageRaw)
+	perPage, _ := strconv.Atoi(c.Query("per_page", "25"))
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 200 {
+		perPage = 25
+	}
+
+	res, err := h.svc.ListPaginated(page, perPage, c.Query("search"), c.Query("status"), c.Query("sort"), c.Query("order"))
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list languages")
 	}
-
-	return api.Success(c, languages)
+	totalPages := int(res.Total) / perPage
+	if int(res.Total)%perPage > 0 {
+		totalPages++
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data": res.Items,
+		"meta": fiber.Map{
+			"total":          res.Total,
+			"page":           page,
+			"per_page":       perPage,
+			"total_pages":    totalPages,
+			"total_all":      res.TotalAll,
+			"active_count":   res.ActiveCount,
+			"inactive_count": res.InactiveCount,
+		},
+	})
 }
 
 // Get handles GET /languages/:id to retrieve a single language.

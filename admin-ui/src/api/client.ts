@@ -477,6 +477,36 @@ export async function getLanguages(activeOnly?: boolean): Promise<Language[]> {
   return res.data;
 }
 
+/**
+ * Server-side paginated language fetch. Used by the admin Languages list page.
+ * `search` filters case-insensitively over name / native_name / code / slug.
+ * `status` is one of "active" | "inactive" | "all" (or empty == all).
+ * `sort` is whitelisted server-side to {name, code, sort_order}; anything
+ * else falls back to the canonical sort_order ordering.
+ */
+export interface LanguageListMeta extends PaginationMeta {
+  total_all?: number;
+  active_count?: number;
+  inactive_count?: number;
+}
+export async function queryLanguages(opts: {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  status?: string;
+  sort?: string;
+  order?: string;
+}): Promise<{ data: Language[]; meta: LanguageListMeta }> {
+  const params = new URLSearchParams();
+  params.set("page", String(opts.page ?? 1));
+  params.set("per_page", String(opts.perPage ?? 25));
+  if (opts.search) params.set("search", opts.search);
+  if (opts.status && opts.status !== "all") params.set("status", opts.status);
+  if (opts.sort) params.set("sort", opts.sort);
+  if (opts.order) params.set("order", opts.order);
+  return api<{ data: Language[]; meta: LanguageListMeta }>(`/admin/api/languages?${params.toString()}`);
+}
+
 export async function getLanguage(id: number | string): Promise<Language> {
   const res = await api<ApiResponse<Language>>(`/admin/api/languages/${id}`);
   return res.data;
@@ -1094,6 +1124,34 @@ export async function getRoles(): Promise<Role[]> {
   return res.data;
 }
 
+/**
+ * Server-side paginated role fetch. Used by the admin Roles list page.
+ * `status` is "system" | "custom" | "all" (or empty == all).
+ * `sort` is whitelisted server-side to {name, slug, created_at, updated_at}.
+ */
+export interface RoleListMeta extends PaginationMeta {
+  total_all?: number;
+  system_count?: number;
+  custom_count?: number;
+}
+export async function queryRoles(opts: {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  status?: string;
+  sort?: string;
+  order?: string;
+}): Promise<{ data: Role[]; meta: RoleListMeta }> {
+  const params = new URLSearchParams();
+  params.set("page", String(opts.page ?? 1));
+  params.set("per_page", String(opts.perPage ?? 25));
+  if (opts.search) params.set("search", opts.search);
+  if (opts.status && opts.status !== "all") params.set("status", opts.status);
+  if (opts.sort) params.set("sort", opts.sort);
+  if (opts.order) params.set("order", opts.order);
+  return api<{ data: Role[]; meta: RoleListMeta }>(`/admin/api/roles?${params.toString()}`);
+}
+
 export async function getRole(id: number): Promise<Role> {
   const res = await api<ApiResponse<Role>>(`/admin/api/roles/${id}`);
   return res.data;
@@ -1143,6 +1201,36 @@ export async function getUsers(params?: { page?: number; per_page?: number }): P
   const qs = searchParams.toString();
   const res = await api<{ data: User[]; meta: PaginationMeta }>(`/admin/api/users${qs ? `?${qs}` : ""}`);
   return res;
+}
+
+/**
+ * Server-side paginated user fetch. Used by the admin Users list page.
+ * `sort` is whitelisted server-side to {full_name, email, last_login_at, created_at}.
+ * `role` filters by role slug.
+ */
+export interface UserListMeta extends PaginationMeta {
+  total_all?: number;
+  active_count?: number;
+  inactive_count?: number;
+}
+export async function queryUsers(opts: {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  status?: string;
+  role?: string;
+  sort?: string;
+  order?: string;
+}): Promise<{ data: User[]; meta: UserListMeta }> {
+  const params = new URLSearchParams();
+  params.set("page", String(opts.page ?? 1));
+  params.set("per_page", String(opts.perPage ?? 25));
+  if (opts.search) params.set("search", opts.search);
+  if (opts.status && opts.status !== "all") params.set("status", opts.status);
+  if (opts.role && opts.role !== "all") params.set("role", opts.role);
+  if (opts.sort) params.set("sort", opts.sort);
+  if (opts.order) params.set("order", opts.order);
+  return api<{ data: User[]; meta: UserListMeta }>(`/admin/api/users?${params.toString()}`);
 }
 
 export async function getUser(id: number): Promise<User> {

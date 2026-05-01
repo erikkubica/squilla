@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { PublishActions } from "@/components/ui/publish-actions";
 import { Titlebar } from "@/components/ui/titlebar";
 import { MetaRow, MetaList } from "@/components/ui/meta-row";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsCard } from "@/components/ui/tabs-card";
 import {
   Dialog,
   DialogContent,
@@ -184,65 +184,62 @@ export default function TaxonomyEditorPage() {
           />
 
           {/* Tabs */}
-          <Tabs defaultValue="fields" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="fields" className="">
-                <Boxes className="mr-2 h-4 w-4" /> Term Fields
-              </TabsTrigger>
-              <TabsTrigger value="content-types" className="">
-                <ListTree className="mr-2 h-4 w-4" /> Content Types
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="fields" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Term Custom Fields" />
-                <CardContent>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Fields that appear when editing terms in this taxonomy.
-                  </p>
-                  <FieldSchemaEditor fields={fields} onChange={setFields} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="content-types" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Assigned Content Types" />
-                <CardContent>
-                  <p className="text-xs text-muted-foreground mb-4">Select which content types can use this taxonomy.</p>
-                  {availableNodeTypes.length === 0 ? (
-                    <p className="text-sm italic text-center py-4" style={{color: "var(--fg-subtle)"}}>No content types available.</p>
-                  ) : (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {availableNodeTypes.map((type) => (
-                        <label
-                          key={type.slug}
-                          className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-border bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="text-sm font-medium text-foreground truncate">{type.label}</span>
-                            <span className="text-[10px] font-mono shrink-0" style={{color: "var(--fg-subtle)"}}>{type.slug}</span>
-                          </div>
-                          <Switch
-                            id={`type-${type.slug}`}
-                            checked={nodeTypes.includes(type.slug)}
-                            onCheckedChange={(checked: boolean) => {
-                              if (checked) {
-                                setNodeTypes([...nodeTypes, type.slug]);
-                              } else {
-                                setNodeTypes(nodeTypes.filter(s => s !== type.slug));
-                              }
-                            }}
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          <TabsCard
+            defaultValue="fields"
+            tabs={[
+              {
+                value: "fields",
+                label: (<><Boxes className="mr-2 h-4 w-4" /> Term Fields</>),
+                badge: fields.length,
+                content: (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Fields that appear when editing terms in this taxonomy.
+                    </p>
+                    <FieldSchemaEditor fields={fields} onChange={setFields} />
+                  </>
+                ),
+              },
+              {
+                value: "content-types",
+                label: (<><ListTree className="mr-2 h-4 w-4" /> Content Types</>),
+                badge: nodeTypes.length,
+                content: (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-4">Select which content types can use this taxonomy.</p>
+                    {availableNodeTypes.length === 0 ? (
+                      <p className="text-sm italic text-center py-4" style={{color: "var(--fg-subtle)"}}>No content types available.</p>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {availableNodeTypes.map((type) => (
+                          <label
+                            key={type.slug}
+                            className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-border bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="text-sm font-medium text-foreground truncate">{type.label}</span>
+                              <span className="text-[10px] font-mono shrink-0" style={{color: "var(--fg-subtle)"}}>{type.slug}</span>
+                            </div>
+                            <Switch
+                              id={`type-${type.slug}`}
+                              checked={nodeTypes.includes(type.slug)}
+                              onCheckedChange={(checked: boolean) => {
+                                if (checked) {
+                                  setNodeTypes([...nodeTypes, type.slug]);
+                                } else {
+                                  setNodeTypes(nodeTypes.filter(s => s !== type.slug));
+                                }
+                              }}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Sidebar */}
@@ -251,7 +248,6 @@ export default function TaxonomyEditorPage() {
           <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
-              <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
               <PublishActions>
                 <Button
                   type="submit"
@@ -276,7 +272,6 @@ export default function TaxonomyEditorPage() {
               </PublishActions>
               {isEdit && originalTaxonomy && (
                 <>
-                  <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
                   <MetaList>
                     {originalTaxonomy.created_at && <MetaRow label="Created" value={new Date(originalTaxonomy.created_at).toLocaleDateString("en-GB")} />}
                     {originalTaxonomy.updated_at && <MetaRow label="Updated" value={new Date(originalTaxonomy.updated_at).toLocaleDateString("en-GB")} />}

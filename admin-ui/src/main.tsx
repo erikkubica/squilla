@@ -30,6 +30,7 @@ import {
   ListCard,
   ListTable,
   Th,
+  SortableTh,
   Tr,
   Td,
   StatusPill,
@@ -111,6 +112,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TabsCard } from "@/components/ui/tabs-card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
@@ -134,7 +136,7 @@ import CodeViewer from "@/components/ui/code-viewer";
 import { CodeWindow } from "@/components/ui/code-window";
 
 // Form-schema and language helpers shared across the admin and extensions
-import { LanguageSelect, LanguageLabel } from "@/components/ui/language-select";
+import { LanguageSelect, LanguageLabel, LanguagePicker } from "@/components/ui/language-select";
 import CustomFieldInput from "@/components/ui/custom-field-input";
 import FieldSchemaEditor from "@/components/ui/field-schema-editor";
 import FieldTypePicker from "@/components/ui/field-type-picker";
@@ -181,6 +183,7 @@ window.__SQUILLA_SHARED__ = {
     ListCard,
     ListTable,
     Th,
+    SortableTh,
     Tr,
     Td,
     StatusPill,
@@ -253,6 +256,7 @@ window.__SQUILLA_SHARED__ = {
     TabsList,
     TabsTrigger,
     TabsContent,
+    TabsCard,
     Textarea,
     Table,
     TableBody,
@@ -272,6 +276,7 @@ window.__SQUILLA_SHARED__ = {
     // Form-schema + language helpers
     LanguageSelect,
     LanguageLabel,
+    LanguagePicker,
     CustomFieldInput,
     FieldSchemaEditor,
     FieldTypePicker,

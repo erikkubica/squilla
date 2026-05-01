@@ -27,8 +27,7 @@ import {
 } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Titlebar } from "@/components/ui/titlebar";
-import { SaveBar } from "@/components/ui/save-bar";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TabsCard } from "@/components/ui/tabs-card";
 import { PublishActions } from "@/components/ui/publish-actions";
 import {
   Select,
@@ -770,53 +769,18 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
             onBack={() => navigate(basePath)}
           />
 
-          {/* Visual Block Editor */}
-          {/* Unified tabs card — Blocks / Excerpt / SEO / Custom Fields */}
-          <Card>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-              <TabsList style={{ paddingLeft: 16, paddingRight: 16 }}>
-                {blocksEnabled && (
-                  <TabsTrigger value="blocks">
-                    Blocks
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 10,
-                        fontWeight: 500,
-                        padding: "1px 5px",
-                        borderRadius: 8,
-                        marginLeft: 6,
-                        background: activeTab === "blocks" ? "var(--accent-mid)" : "var(--sub-bg)",
-                        color: activeTab === "blocks" ? "var(--accent-strong)" : "var(--fg-muted)",
-                      }}
-                    >
-                      {blocks.length}
-                    </span>
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="excerpt">Excerpt</TabsTrigger>
-                <TabsTrigger value="seo">SEO</TabsTrigger>
-                <TabsTrigger value="custom">
-                  Custom Fields
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      fontWeight: 500,
-                      padding: "1px 5px",
-                      borderRadius: 8,
-                      marginLeft: 6,
-                      background: activeTab === "custom" ? "var(--accent-mid)" : "var(--sub-bg)",
-                      color: activeTab === "custom" ? "var(--accent-strong)" : "var(--fg-muted)",
-                    }}
-                  >
-                    {customFields.length}
-                  </span>
-                </TabsTrigger>
-              </TabsList>
-
-              {blocksEnabled && (
-              <TabsContent value="blocks" style={{ padding: "14px 16px 18px" }}>
+          {/* Visual Block Editor — unified TabsCard primitive */}
+          <TabsCard
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+            tabs={[
+              ...(blocksEnabled
+                ? [
+                    {
+                      value: "blocks",
+                      label: "Blocks",
+                      badge: blocks.length,
+                      content: (<>
             <div className="flex items-center justify-between mb-2">
               <span style={{ fontSize: 12, color: "var(--fg-muted)", letterSpacing: "-0.005em" }}>
                 Drag, expand, or remove blocks. Changes are saved on Save.
@@ -1176,10 +1140,14 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 )}
               </div>
             </div>
-              </TabsContent>
-              )}
-
-              <TabsContent value="excerpt" style={{ padding: "14px 16px 18px" }}>
+              </>),
+                    },
+                  ]
+                : []),
+              {
+                value: "excerpt",
+                label: "Excerpt",
+                content: (<>
                 <div className="space-y-2">
                   <Label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em" }}>Excerpt</Label>
                   <p style={{ fontSize: 11.5, color: "var(--fg-muted)", lineHeight: 1.45 }}>
@@ -1194,9 +1162,12 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     style={{ marginTop: 4 }}
                   />
                 </div>
-              </TabsContent>
-
-              <TabsContent value="seo" style={{ padding: "14px 16px 18px" }}>
+              </>),
+              },
+              {
+                value: "seo",
+                label: "SEO",
+                content: (<>
                 <div className="flex flex-col" style={{ gap: 14 }}>
                   <div className="space-y-1.5">
                     <Label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em" }}>SEO title</Label>
@@ -1247,9 +1218,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     </p>
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="custom" style={{ padding: "14px 16px 18px" }}>
+              </>),
+              },
+              {
+                value: "custom",
+                label: "Custom Fields",
+                badge: customFields.length,
+                content: (<>
                 {customFields.length === 0 ? (
                   <div style={{ color: "var(--fg-muted)", fontSize: 12.5, padding: "26px 0", textAlign: "center" }}>
                     No custom fields defined for this content type.
@@ -1281,9 +1256,10 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     })}
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
-          </Card>
+              </>),
+              },
+            ]}
+          />
 
           {/* Layout Partial Fields */}
           {layoutPartials.map((partial) => {
@@ -1385,40 +1361,6 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
             );
           })}
 
-          {/* Sticky save bar */}
-          <SaveBar
-            info={
-              originalNode?.updated_at ? (
-                <>
-                  <ChevronDown size={12} style={{ display: "none" }} />
-                  Last updated {new Date(originalNode.updated_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                </>
-              ) : (
-                <>Unsaved draft</>
-              )
-            }
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => navigate(basePath)}
-              disabled={saving}
-            >
-              Discard
-            </Button>
-            {originalNode && status === "published" && (
-              <Button type="button" variant="outline" asChild>
-                <a href={originalNode.full_url} target="_blank" rel="noopener noreferrer">
-                  <Eye className="mr-1.5 h-3.5 w-3.5" />
-                  Preview
-                </a>
-              </Button>
-            )}
-            <Button type="submit" disabled={saving}>
-              <Save className="mr-1.5 h-3.5 w-3.5" />
-              {saving ? "Saving…" : "Save changes"}
-            </Button>
-          </SaveBar>
         </div>
 
         {/* Sidebar */}
@@ -1561,7 +1503,6 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   )}
                 </div>
 
-              <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
 
               {/* Publish actions — 2-col grid: Save+Publish/Unpublish, Preview+Delete */}
               <PublishActions>

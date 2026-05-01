@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Save, Loader2, Eye } from "@squilla/icons";
+import { useParams, useNavigate } from "react-router-dom";
+import { Save, Loader2, Eye } from "@squilla/icons";
 import {
   Button,
   Input,
   Label,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Textarea,
+  Titlebar,
+  SidebarCard,
+  PublishActions,
+  TabsCard,
+  MetaRow,
+  MetaList,
+  LanguagePicker,
+  CodeEditor,
 } from "@squilla/ui";
 import { toast } from "sonner";
 import {
@@ -32,6 +31,8 @@ interface EmailTemplate {
   subject_template: string;
   body_template: string;
   test_data: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface Language {
@@ -39,6 +40,18 @@ interface Language {
   code: string;
   name: string;
   flag: string;
+}
+
+const UNIVERSAL_CODE = "__universal__";
+
+function slugify(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function resolvePath(data: Record<string, any>, path: string): unknown {
@@ -85,35 +98,49 @@ export default function EmailTemplateEditor() {
 
   const [languages, setLanguages] = useState<Language[]>([]);
   const [baseLayout, setBaseLayout] = useState("");
+  const [original, setOriginal] = useState<EmailTemplate | null>(null);
 
   // Form state
   const [formSlug, setFormSlug] = useState("");
   const [formName, setFormName] = useState("");
-  const [formLanguageId, setFormLanguageId] = useState<string>("__universal__");
+  const [formLanguageCode, setFormLanguageCode] = useState<string>(UNIVERSAL_CODE);
   const [formSubject, setFormSubject] = useState("");
   const [formBody, setFormBody] = useState("");
   const [formTestData, setFormTestData] = useState("{}");
 
+  const [autoSlug, setAutoSlug] = useState(!isEdit);
+
+  // The languages prop for LanguagePicker. Includes a synthetic "Universal"
+  // entry so operators can fall back to the language-agnostic template.
+  const languageOptions: Language[] = [
+    { id: 0, code: UNIVERSAL_CODE, name: "Universal (fallback)", flag: "" },
+    ...languages,
+  ];
+
   useEffect(() => {
     let cancelled = false;
-    getLanguages().then((langs: Language[]) => {
-      if (!cancelled) setLanguages(langs);
-    }).catch(() => {});
+    getLanguages()
+      .then((langs: Language[]) => {
+        if (!cancelled) setLanguages(langs);
+      })
+      .catch(() => {});
     fetch("/admin/api/ext/email-manager/layouts", { credentials: "include" })
       .then((res) => res.json())
       .then((json) => {
         if (cancelled) return;
-        // Find universal layout (language_id is null) as default for preview.
         const layouts = json.data || [];
         const universal = layouts.find((l: any) => l.language_id === null);
         if (universal) {
-          // List endpoint strips body_template — fetch full layout.
           if (universal.body_template) {
             setBaseLayout(universal.body_template);
           } else {
-            fetch(`/admin/api/ext/email-manager/layouts/${universal.id}`, { credentials: "include" })
+            fetch(`/admin/api/ext/email-manager/layouts/${universal.id}`, {
+              credentials: "include",
+            })
               .then((r) => r.json())
-              .then((j) => { if (!cancelled && j.data?.body_template) setBaseLayout(j.data.body_template); })
+              .then((j) => {
+                if (!cancelled && j.data?.body_template) setBaseLayout(j.data.body_template);
+              })
               .catch(() => {});
           }
         }
@@ -125,15 +152,22 @@ export default function EmailTemplateEditor() {
     getEmailTemplate(Number(id))
       .then((tpl: EmailTemplate) => {
         if (cancelled) return;
+        setOriginal(tpl);
         setFormSlug(tpl.slug || "");
         setFormName(tpl.name || "");
-        setFormLanguageId(tpl.language_id ? String(tpl.language_id) : "__universal__");
+        // Resolve numeric language_id back to a code. We do this via the
+        // languages array once it loads — but we already have language_id
+        // here, so cache it and resolve in a separate effect below.
+        setFormLanguageCode(tpl.language_id ? `__id_${tpl.language_id}` : UNIVERSAL_CODE);
         setFormSubject(tpl.subject_template || "");
         setFormBody(tpl.body_template || "");
-        // test_data may come back as a JSON string or an object
         let td = tpl.test_data;
         if (typeof td === "string") {
-          try { td = JSON.parse(td); } catch { td = {}; }
+          try {
+            td = JSON.parse(td);
+          } catch {
+            td = {};
+          }
         }
         setFormTestData(JSON.stringify(td || {}, null, 2));
       })
@@ -148,6 +182,21 @@ export default function EmailTemplateEditor() {
       cancelled = true;
     };
   }, [id, isEdit, navigate]);
+
+  // Once languages have loaded, resolve any pending `__id_N` placeholder set
+  // during initial load into a proper code. Necessary because the template
+  // GET fires before getLanguages resolves.
+  useEffect(() => {
+    if (!formLanguageCode.startsWith("__id_") || languages.length === 0) return;
+    const numId = Number(formLanguageCode.slice("__id_".length));
+    const lang = languages.find((l) => l.id === numId);
+    setFormLanguageCode(lang ? lang.code : UNIVERSAL_CODE);
+  }, [languages, formLanguageCode]);
+
+  function handleNameChange(val: string): void {
+    setFormName(val);
+    if (autoSlug) setFormSlug(slugify(val));
+  }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -170,10 +219,17 @@ export default function EmailTemplateEditor() {
       return;
     }
 
+    // Map code back to language_id for the API.
+    let languageId: number | null = null;
+    if (formLanguageCode !== UNIVERSAL_CODE && !formLanguageCode.startsWith("__id_")) {
+      const lang = languages.find((l) => l.code === formLanguageCode);
+      languageId = lang ? lang.id : null;
+    }
+
     const data: Partial<EmailTemplate> & { language_id?: number | null } = {
       slug: formSlug.trim(),
       name: formName.trim(),
-      language_id: formLanguageId === "__universal__" ? null : Number(formLanguageId),
+      language_id: languageId,
       subject_template: formSubject,
       body_template: formBody,
       test_data: testData,
@@ -190,8 +246,7 @@ export default function EmailTemplateEditor() {
         navigate(`/admin/ext/email-manager/templates/${created.id}`, { replace: true });
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save email template";
+      const message = err instanceof Error ? err.message : "Failed to save email template";
       toast.error(message);
     } finally {
       setSaving(false);
@@ -215,146 +270,139 @@ export default function EmailTemplateEditor() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-strong)" }} />
       </div>
     );
   }
 
+  const contentTab = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="tpl-subject" className="text-sm font-medium text-foreground">
+          Subject Template
+        </Label>
+        <Input
+          id="tpl-subject"
+          placeholder="e.g. Welcome to {{.site_name}}"
+          value={formSubject}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSubject(e.target.value)}
+          className="rounded-lg border-border"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Body Template</Label>
+        <CodeEditor
+          value={formBody}
+          onChange={setFormBody}
+          height="400px"
+          placeholder={
+            '<div style="font-family: sans-serif;">\n  <h2>Hello {{.user_full_name}}</h2>\n  <p>Welcome to {{.site_name}}</p>\n</div>'
+          }
+        />
+      </div>
+    </div>
+  );
+
+  const testDataTab = (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-foreground">Test Data (JSON)</Label>
+      <Textarea
+        value={formTestData}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormTestData(e.target.value)}
+        className="min-h-[300px] font-mono text-sm rounded-lg border-border"
+        placeholder='{"user_full_name": "John", "site_name": "My Site"}'
+      />
+      <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+        Sample data used for the preview tab. Must be valid JSON.
+      </p>
+    </div>
+  );
+
+  const previewTab = (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-sm" style={{ color: "var(--fg-muted)" }}>
+        <Eye className="h-4 w-4" />
+        Rendered using the active universal base layout and your test data.
+      </div>
+      <div
+        className="rounded-lg border bg-card overflow-auto"
+        style={{ height: 500, borderColor: "var(--border-input)" }}
+      >
+        <PreviewIframe html={getPreviewHtml()} title="Email Preview" />
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-            <Link to="/admin/ext/email-manager/templates">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold text-foreground">
-            {isEdit ? "Edit Email Template" : "New Email Template"}
-          </h1>
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
-        >
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? "Saving..." : "Save"}
-        </Button>
+    <form onSubmit={handleSave} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* Main column */}
+      <div className="space-y-4 min-w-0">
+        <Titlebar
+          title={formName}
+          onTitleChange={handleNameChange}
+          titleLabel="Name"
+          titlePlaceholder="e.g. Welcome Email"
+          slug={formSlug}
+          onSlugChange={(v: string) => {
+            setAutoSlug(false);
+            setFormSlug(slugify(v));
+          }}
+          slugPrefix=""
+          autoSlug={autoSlug}
+          onAutoSlugToggle={() => setAutoSlug(!autoSlug)}
+          id={isEdit && id ? Number(id) : undefined}
+          onBack={() => navigate("/admin/ext/email-manager/templates")}
+        />
+
+        <TabsCard
+          tabs={[
+            { value: "content", label: "Content", content: contentTab },
+            { value: "test-data", label: "Test Data", content: testDataTab },
+            { value: "preview", label: "Preview", content: previewTab },
+          ]}
+        />
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* Slug, Name, Subject */}
-        <Card className="rounded-xl border border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">Template Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <Label htmlFor="tpl-slug" className="text-sm font-medium text-foreground">
-                  Slug
-                </Label>
-                <Input
-                  id="tpl-slug"
-                  placeholder="e.g. welcome-email"
-                  value={formSlug}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSlug(e.target.value)}
-                  required
-                  className="rounded-lg border-border "
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tpl-name" className="text-sm font-medium text-foreground">
-                  Name
-                </Label>
-                <Input
-                  id="tpl-name"
-                  placeholder="e.g. Welcome Email"
-                  value={formName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
-                  required
-                  className="rounded-lg border-border "
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Language</Label>
-                <Select value={formLanguageId} onValueChange={setFormLanguageId}>
-                  <SelectTrigger className="rounded-lg border-border">
-                    <SelectValue placeholder="Universal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__universal__">Universal (fallback)</SelectItem>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.id} value={String(lang.id)}>
-                        {lang.flag} {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tpl-subject" className="text-sm font-medium text-foreground">
-                  Subject Template
-                </Label>
-                <Input
-                  id="tpl-subject"
-                  placeholder="e.g. Welcome to {{.site_name}}"
-                  value={formSubject}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSubject(e.target.value)}
-                  className="rounded-lg border-border "
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Sidebar */}
+      <aside className="lg:sticky lg:top-4 lg:self-start">
+        <SidebarCard title="Publish">
+          <LanguagePicker
+            languages={languageOptions}
+            value={
+              formLanguageCode.startsWith("__id_") ? UNIVERSAL_CODE : formLanguageCode
+            }
+            onChange={setFormLanguageCode}
+          />
 
-        {/* Split pane: Body Template + Preview */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="rounded-xl border border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold text-foreground">Body Template</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={formBody}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormBody(e.target.value)}
-                className="min-h-[400px] font-mono text-sm rounded-lg border-border"
-                placeholder={"<div style=\"font-family: sans-serif;\">\n  <h2>Hello {{.user_full_name}}</h2>\n  <p>Welcome to {{.site_name}}</p>\n</div>"}
-              />
-            </CardContent>
-          </Card>
-          <Card className="rounded-xl border border-border shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-muted-foreground" />
-                <CardTitle className="text-base font-semibold text-foreground">Preview</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-96 rounded-lg border border-border bg-card overflow-auto">
-                <PreviewIframe html={getPreviewHtml()} title="Email Preview" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <PublishActions>
+            <Button type="submit" className="w-full" disabled={saving}>
+              {saving ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </PublishActions>
 
-        {/* Test Data */}
-        <Card className="rounded-xl border border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">Test Data (JSON)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={formTestData}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormTestData(e.target.value)}
-              className="min-h-[150px] font-mono text-sm rounded-lg border-border"
-              placeholder='{"user_full_name": "John", "site_name": "My Site"}'
-            />
-          </CardContent>
-        </Card>
-      </form>
-    </div>
+          {isEdit && original && (original.created_at || original.updated_at) && (
+            <MetaList>
+              {original.created_at && (
+                <MetaRow
+                  label="Created"
+                  value={new Date(original.created_at).toLocaleDateString("en-GB")}
+                />
+              )}
+              {original.updated_at && (
+                <MetaRow
+                  label="Updated"
+                  value={new Date(original.updated_at).toLocaleDateString("en-GB")}
+                />
+              )}
+            </MetaList>
+          )}
+        </SidebarCard>
+      </aside>
+    </form>
   );
 }

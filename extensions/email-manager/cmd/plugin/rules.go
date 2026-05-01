@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	"squilla/internal/coreapi"
@@ -13,11 +16,62 @@ import (
 // kernel events (e.g. user.registered) to email templates so
 // the dispatcher knows what to send when.
 
-func (p *EmailManagerPlugin) listRules(ctx context.Context) (*pb.PluginHTTPResponse, error) {
-	result, err := p.host.DataQuery(ctx, "email_rules", coreapi.DataStoreQuery{
-		OrderBy: "id ASC",
-		Limit:   1000,
-	})
+func (p *EmailManagerPlugin) listRules(ctx context.Context, req *pb.PluginHTTPRequest) (*pb.PluginHTTPResponse, error) {
+	params := req.GetQueryParams()
+
+	// Default to a high limit for back-compat with callers that expect the
+	// full rule set (the legacy admin UI fetched all rules at once). When
+	// the caller passes `page` or `per_page` explicitly we honour them.
+	page, perPage := 1, 1000
+	if v := params["per_page"]; v != "" {
+		if n, perr := strconv.Atoi(v); perr == nil && n >= 1 && n <= 100 {
+			perPage = n
+		}
+	}
+	if v := params["page"]; v != "" {
+		if n, perr := strconv.Atoi(v); perr == nil && n >= 1 {
+			page = n
+		}
+	}
+
+	ruleSortable := map[string]string{
+		"action":         "action",
+		"recipient_type": "recipient_type",
+		"created_at":     "created_at",
+		"updated_at":     "updated_at",
+	}
+	orderBy := parseSort(params, ruleSortable, "action ASC")
+
+	var baseConds []string
+	var baseArgs []any
+	if search := params["search"]; search != "" {
+		baseConds = append(baseConds, "(action ILIKE ? OR node_type ILIKE ? OR recipient_value ILIKE ?)")
+		s := "%" + search + "%"
+		baseArgs = append(baseArgs, s, s, s)
+	}
+
+	conds := append([]string{}, baseConds...)
+	args := append([]any{}, baseArgs...)
+	switch params["enabled"] {
+	case "true", "enabled":
+		conds = append(conds, "enabled = ?")
+		args = append(args, true)
+	case "false", "disabled":
+		conds = append(conds, "enabled = ?")
+		args = append(args, false)
+	}
+
+	query := coreapi.DataStoreQuery{
+		OrderBy: orderBy,
+		Limit:   perPage,
+		Offset:  (page - 1) * perPage,
+	}
+	if len(conds) > 0 {
+		query.Raw = strings.Join(conds, " AND ")
+		query.Args = args
+	}
+
+	result, err := p.host.DataQuery(ctx, "email_rules", query)
 	if err != nil {
 		return jsonError(500, "LIST_FAILED", "Failed to list email rules"), nil
 	}
@@ -34,7 +88,26 @@ func (p *EmailManagerPlugin) listRules(ctx context.Context) (*pb.PluginHTTPRespo
 		}
 	}
 
-	return jsonResponse(200, map[string]any{"data": rows}), nil
+	totalAll := p.countWhere(ctx, "email_rules", baseConds, baseArgs, "")
+	enabledCount := p.countWhere(ctx, "email_rules", baseConds, baseArgs, "enabled = ?", true)
+	disabledCount := p.countWhere(ctx, "email_rules", baseConds, baseArgs, "enabled = ?", false)
+
+	totalPages := int(math.Ceil(float64(result.Total) / float64(perPage)))
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	return jsonResponse(200, map[string]any{
+		"data": rows,
+		"meta": map[string]any{
+			"total":          result.Total,
+			"page":           page,
+			"per_page":       perPage,
+			"total_pages":    totalPages,
+			"total_all":      totalAll,
+			"enabled_count":  enabledCount,
+			"disabled_count": disabledCount,
+		},
+	}), nil
 }
 
 func (p *EmailManagerPlugin) getRule(ctx context.Context, id uint) (*pb.PluginHTTPResponse, error) {

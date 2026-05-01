@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LanguageSelect, LanguageLabel } from "@/components/ui/language-select";
+import { LanguageSelect, LanguageLabel, LanguagePicker } from "@/components/ui/language-select";
 import { Titlebar } from "@/components/ui/titlebar";
 import { MetaRow, MetaList } from "@/components/ui/meta-row";
 import { toast } from "sonner";
@@ -328,16 +328,11 @@ export default function TermEditorPage() {
               term in the target language already owns this slug. To clone
               into an additional language without losing the original, use
               the Translations card below instead. */}
-          {languages.length > 0 && (
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Language</Label>
-              <LanguageSelect
-                languages={languages}
-                value={languageCode}
-                onChange={setLanguageCode}
-              />
-            </div>
-          )}
+          <LanguagePicker
+            languages={languages}
+            value={languageCode}
+            onChange={setLanguageCode}
+          />
 
           {taxonomy?.hierarchical && (
             <div className="space-y-1.5">
@@ -364,7 +359,6 @@ export default function TermEditorPage() {
             </div>
           )}
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
           <PublishActions>
             <Button
               type="submit"
@@ -389,7 +383,6 @@ export default function TermEditorPage() {
           </PublishActions>
           {isEdit && originalTerm && (
             <>
-              <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
               <MetaList>
                 {originalTerm.created_at && <MetaRow label="Created" value={new Date(originalTerm.created_at).toLocaleDateString("en-GB")} />}
                 {originalTerm.updated_at && <MetaRow label="Updated" value={new Date(originalTerm.updated_at).toLocaleDateString("en-GB")} />}

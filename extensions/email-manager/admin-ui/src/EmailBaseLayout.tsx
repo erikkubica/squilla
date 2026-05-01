@@ -1,21 +1,38 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Save, Loader2, Eye, Plus, Trash2, Globe, RotateCcw, Pencil } from "@squilla/icons";
+import { useSearchParams } from "react-router-dom";
+import { Save, Eye, Trash2, Globe, RotateCcw, Mail, Loader2 } from "@squilla/icons";
 import {
+  ListPageShell,
+  ListHeader,
+  ListToolbar,
+  ListSearch,
+  ListCard,
+  ListTable,
+  Th,
+  SortableTh,
+  Tr,
+  Td,
+  Chip,
+  RowActions,
+  EmptyState,
+  LoadingRow,
+  ListFooter,
   Button,
-  Input,
   Label,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
+  Titlebar,
+  SidebarCard,
+  PublishActions,
+  TabsCard,
+  MetaRow,
+  MetaList,
+  LanguagePicker,
+  CodeEditor,
+  Textarea,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Textarea,
-  Badge,
 } from "@squilla/ui";
 import { toast } from "sonner";
 import { getLanguages } from "@squilla/api";
@@ -39,11 +56,19 @@ interface Language {
 
 const API_BASE = "/admin/api/ext/email-manager";
 
-async function fetchLayouts(): Promise<EmailLayout[]> {
-  const res = await fetch(`${API_BASE}/layouts`, { credentials: "include" });
+interface LayoutListMeta {
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+  total_all?: number;
+}
+
+async function fetchLayoutList(qs: URLSearchParams): Promise<{ data: EmailLayout[]; meta: LayoutListMeta }> {
+  const url = `${API_BASE}/layouts${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const res = await fetch(url, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch layouts");
-  const json = await res.json();
-  return json.data || [];
+  return res.json();
 }
 
 async function fetchLayout(id: number): Promise<EmailLayout> {
@@ -140,9 +165,38 @@ function PreviewIframe({ html, title }: { html: string; title: string }) {
 }
 
 export default function EmailBaseLayout() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, Number(searchParams.get("page") || "1"));
+  const perPage = Math.max(1, Math.min(100, Number(searchParams.get("per_page") || "25")));
+  const urlSearch = searchParams.get("search") || "";
+  const filterLanguage = searchParams.get("language") || "all";
+  const sortBy = searchParams.get("sort") || "";
+  const sortOrder = (searchParams.get("order") as "asc" | "desc") || "asc";
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput === (searchParams.get("search") || "")) return;
+      setSearchParams((prev: URLSearchParams) => {
+        if (searchInput) prev.set("search", searchInput);
+        else prev.delete("search");
+        prev.delete("page");
+        return prev;
+      });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
   const [layouts, setLayouts] = useState<EmailLayout[]>([]);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalAll, setTotalAll] = useState(0);
 
   // Editor state
   const [editing, setEditing] = useState(false);
@@ -153,11 +207,35 @@ export default function EmailBaseLayout() {
   const [formName, setFormName] = useState("");
   const [formLanguageId, setFormLanguageId] = useState<string>("__universal__");
   const [formBody, setFormBody] = useState("");
+  const [formTestData, setFormTestData] = useState<string>(
+    JSON.stringify(
+      {
+        site: { site_name: "My Site", site_url: "#" },
+        user: { full_name: "Jane Doe", email: "jane@example.com" },
+        recipient: { full_name: "Jane Doe", email: "jane@example.com" },
+      },
+      null,
+      2,
+    ),
+  );
 
   async function loadLayouts() {
+    setLoading(true);
     try {
-      const data = await fetchLayouts();
-      setLayouts(data);
+      const qs = new URLSearchParams();
+      if (urlSearch) qs.set("search", urlSearch);
+      if (filterLanguage && filterLanguage !== "all") qs.set("language", filterLanguage);
+      if (sortBy) {
+        qs.set("sort", sortBy);
+        qs.set("order", sortOrder);
+      }
+      qs.set("page", String(page));
+      qs.set("per_page", String(perPage));
+      const res = await fetchLayoutList(qs);
+      setLayouts(res.data);
+      setTotal(res.meta.total);
+      setTotalPages(res.meta.total_pages);
+      setTotalAll(res.meta.total_all ?? res.meta.total);
     } catch {
       toast.error("Failed to load base layouts");
     } finally {
@@ -167,10 +245,46 @@ export default function EmailBaseLayout() {
 
   useEffect(() => {
     loadLayouts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, perPage, urlSearch, filterLanguage, sortBy, sortOrder]);
+
+  useEffect(() => {
     getLanguages()
       .then((langs: Language[]) => setLanguages(langs))
       .catch(() => {});
   }, []);
+
+  function setLanguageFilter(next: string) {
+    setSearchParams((prev: URLSearchParams) => {
+      if (!next || next === "all") prev.delete("language");
+      else prev.set("language", next);
+      prev.delete("page");
+      return prev;
+    });
+  }
+  function setSort(col: string, order: "asc" | "desc") {
+    setSearchParams((prev: URLSearchParams) => {
+      prev.set("sort", col);
+      prev.set("order", order);
+      prev.delete("page");
+      return prev;
+    });
+  }
+  function setPageNum(next: number) {
+    setSearchParams((prev: URLSearchParams) => {
+      if (next <= 1) prev.delete("page");
+      else prev.set("page", String(next));
+      return prev;
+    });
+  }
+  function setPerPageNum(next: number) {
+    setSearchParams((prev: URLSearchParams) => {
+      if (next === 25) prev.delete("per_page");
+      else prev.set("per_page", String(next));
+      prev.delete("page");
+      return prev;
+    });
+  }
 
   async function openEditor(layout?: EmailLayout) {
     if (layout) {
@@ -245,11 +359,18 @@ export default function EmailBaseLayout() {
   }
 
   function getPreviewHtml(): string {
+    let parsed: Record<string, any> = {};
+    try {
+      parsed = JSON.parse(formTestData);
+    } catch {
+      parsed = {};
+    }
     const sampleData: Record<string, any> = {
       email_body: SAMPLE_EMAIL_BODY,
       site: { name: "My Site", url: "#", site_name: "My Site", site_url: "#" },
       user: { full_name: "Jane Doe", name: "Jane Doe", email: "jane@example.com" },
       recipient: { full_name: "Jane Doe", name: "Jane Doe", email: "jane@example.com" },
+      ...parsed,
     };
     return formBody.replace(
       /\{\{\s*\.([\w.]+)(?:\s*\|\s*(?:raw|safeHTML|safeURL))?\s*\}\}/g,
@@ -262,247 +383,319 @@ export default function EmailBaseLayout() {
     );
   }
 
-  function getLanguageLabel(languageId: number | null): React.ReactNode {
-    if (!languageId) {
-      return (
-        <span className="flex items-center gap-1.5 text-muted-foreground">
-          <Globe className="h-3.5 w-3.5" />
-          Universal
-        </span>
-      );
-    }
-    const lang = languages.find((l) => l.id === languageId);
-    if (!lang) return <span className="text-muted-foreground">Unknown</span>;
-    return (
-      <span>
-        {lang.flag} {lang.name}
-      </span>
-    );
-  }
-
   function formatDate(dateStr: string): string {
     try {
-      return new Date(dateStr).toLocaleDateString(undefined, {
+      return new Date(dateStr).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
         year: "numeric",
-        month: "short",
-        day: "numeric",
       });
     } catch {
       return dateStr;
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-      </div>
-    );
+  function getLanguageText(languageId: number | null): string {
+    if (!languageId) return "Universal";
+    const lang = languages.find((l) => l.id === languageId);
+    if (!lang) return "Unknown";
+    return `${lang.flag} ${lang.name}`;
   }
 
   // --- Editor View ---
   if (editing) {
     const currentLayout = editId ? layouts.find((l) => l.id === editId) : null;
+    const isDefault = !!currentLayout?.is_default;
 
-    return (
-      <div className="space-y-6">
-        {/* Header */}
+    // Convert the legacy numeric language_id state into the string code that
+    // LanguagePicker expects, with a synthetic "Universal" entry as fallback.
+    const universalCode = "__universal__";
+    const languageOptions = [
+      { id: 0, code: universalCode, name: "Universal (fallback)", flag: "" },
+      ...languages,
+    ];
+    const currentCode =
+      formLanguageId === universalCode
+        ? universalCode
+        : languages.find((l) => String(l.id) === formLanguageId)?.code || universalCode;
+
+    function setLanguageByCode(code: string): void {
+      if (code === universalCode) {
+        setFormLanguageId(universalCode);
+        return;
+      }
+      const lang = languages.find((l) => l.code === code);
+      setFormLanguageId(lang ? String(lang.id) : universalCode);
+    }
+
+    const layoutTab = (
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={closeEditor}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-bold text-foreground">
-              {editId ? formName || "Edit Layout" : "New Layout"}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {!editId || !formBody.trim() ? (
-              <Button
-                variant="outline"
-                className="rounded-lg"
-                onClick={() => setFormBody(DEFAULT_LAYOUT)}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Reset to Default
-              </Button>
-            ) : null}
-            {editId && currentLayout && !currentLayout.is_default && (
-              <Button
-                variant="outline"
-                className="rounded-lg text-red-600 hover:text-foreground hover:bg-muted"
-                onClick={() => handleDelete(currentLayout)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
-            )}
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Saving..." : "Save"}
-            </Button>
-          </div>
+          <Label className="text-sm font-medium text-foreground">Body Template</Label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setFormBody(DEFAULT_LAYOUT)}
+          >
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            Reset to Default
+          </Button>
         </div>
+        <CodeEditor
+          value={formBody}
+          onChange={setFormBody}
+          height="500px"
+          placeholder="<!DOCTYPE html>..."
+        />
+        <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+          The wrapper HTML applied to all outgoing emails. Use{" "}
+          <code>{"{{.email_body}}"}</code> as the slot for the rendered template body.
+        </p>
+      </div>
+    );
 
-        {/* Form Fields */}
-        <Card className="rounded-xl border border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">Layout Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="layout-name" className="text-sm font-medium text-foreground">
-                  Name
-                </Label>
-                <Input
-                  id="layout-name"
-                  placeholder="e.g. Default Layout"
-                  value={formName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
-                  required
-                  className="rounded-lg border-border "
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Language</Label>
-                <Select value={formLanguageId} onValueChange={setFormLanguageId}>
-                  <SelectTrigger className="rounded-lg border-border">
-                    <SelectValue placeholder="Universal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__universal__">Universal (fallback)</SelectItem>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.id} value={String(lang.id)}>
-                        {lang.flag} {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    const testDataTab = (
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Test Data (JSON)</Label>
+        <Textarea
+          value={formTestData}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormTestData(e.target.value)}
+          className="min-h-[300px] font-mono text-sm rounded-lg border-border"
+          placeholder='{"site": {"site_name": "My Site"}}'
+        />
+        <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+          Sample variables used for the preview tab. Must be valid JSON.
+        </p>
+      </div>
+    );
 
-        {/* Split pane: Body Template + Preview */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="rounded-xl border border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold text-foreground">Body Template</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={formBody}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormBody(e.target.value)}
-                className="min-h-[500px] font-mono text-sm rounded-lg border-border"
-                placeholder="<!DOCTYPE html>..."
-              />
-            </CardContent>
-          </Card>
-          <Card className="rounded-xl border border-border shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-muted-foreground" />
-                <CardTitle className="text-base font-semibold text-foreground">Preview</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-border bg-card overflow-auto" style={{ height: "500px" }}>
-                <PreviewIframe html={getPreviewHtml()} title="Layout Preview" />
-              </div>
-            </CardContent>
-          </Card>
+    const previewTab = (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm" style={{ color: "var(--fg-muted)" }}>
+          <Eye className="h-4 w-4" />
+          Renders the layout with a sample body and your test data.
+        </div>
+        <div
+          className="rounded-lg border bg-card overflow-auto"
+          style={{ height: 500, borderColor: "var(--border-input)" }}
+        >
+          <PreviewIframe html={getPreviewHtml()} title="Layout Preview" />
         </div>
       </div>
+    );
+
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSave();
+        }}
+        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
+      >
+        {/* Main column */}
+        <div className="space-y-4 min-w-0">
+          <Titlebar
+            title={formName}
+            onTitleChange={setFormName}
+            titleLabel="Name"
+            titlePlaceholder="e.g. Default Layout"
+            id={editId ?? undefined}
+            onBack={closeEditor}
+          />
+
+          <TabsCard
+            tabs={[
+              { value: "layout", label: "Layout", content: layoutTab },
+              { value: "test-data", label: "Test Data", content: testDataTab },
+              { value: "preview", label: "Preview", content: previewTab },
+            ]}
+          />
+        </div>
+
+        {/* Sidebar */}
+        <aside className="lg:sticky lg:top-4 lg:self-start">
+          <SidebarCard title="Publish">
+            {isDefault && (
+              <div
+                className="rounded-md px-3 py-2 text-xs"
+                style={{ background: "var(--accent-weak)", color: "var(--accent-strong)" }}
+              >
+                Default layout — cannot be deleted.
+              </div>
+            )}
+
+            <LanguagePicker
+              languages={languageOptions}
+              value={currentCode}
+              onChange={setLanguageByCode}
+            />
+
+            <PublishActions>
+              <Button type="submit" className="w-full" disabled={saving}>
+                {saving ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {saving ? "Saving..." : "Save"}
+              </Button>
+              {editId && currentLayout && !isDefault && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  style={{ color: "var(--danger)" }}
+                  onClick={() => handleDelete(currentLayout)}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              )}
+            </PublishActions>
+
+            {editId && currentLayout && (currentLayout.created_at || currentLayout.updated_at) && (
+              <MetaList>
+                {currentLayout.created_at && (
+                  <MetaRow
+                    label="Created"
+                    value={new Date(currentLayout.created_at).toLocaleDateString("en-GB")}
+                  />
+                )}
+                {currentLayout.updated_at && (
+                  <MetaRow
+                    label="Updated"
+                    value={new Date(currentLayout.updated_at).toLocaleDateString("en-GB")}
+                  />
+                )}
+              </MetaList>
+            )}
+          </SidebarCard>
+        </aside>
+      </form>
     );
   }
 
   // --- List View ---
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Base Layouts</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            HTML wrappers applied to outgoing emails. The universal layout is used as fallback when no language-specific layout exists.
-          </p>
-        </div>
-        <Button
-          className="bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-sm"
-          onClick={() => openEditor()}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Layout
-        </Button>
-      </div>
+    <ListPageShell>
+      <ListHeader
+        title="Base Layouts"
+        description="HTML wrappers applied to outgoing emails. The universal layout is used as fallback when no language-specific layout exists."
+        tabs={[{ value: "all", label: "All", count: totalAll }]}
+        activeTab="all"
+        newLabel="New Layout"
+        onNew={() => openEditor()}
+      />
 
-      {/* Layout Cards */}
-      {layouts.length === 0 ? (
-        <Card className="rounded-xl border border-border shadow-sm">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No base layouts found. Click "New Layout" to get started.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {layouts.map((layout) => (
-            <Card key={layout.id} className="rounded-xl border border-border shadow-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold text-foreground">
-                    {layout.name}
-                  </CardTitle>
-                  {layout.is_default && (
-                    <Badge variant="secondary" className="bg-accent text-foreground border-border">
-                      Default
-                    </Badge>
-                  )}
-                </div>
-                <CardDescription className="text-sm text-muted-foreground">
-                  {getLanguageLabel(layout.language_id)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-muted-foreground space-y-0.5">
-                    <div>Created: {formatDate(layout.created_at)}</div>
-                    <div>Updated: {formatDate(layout.updated_at)}</div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                      onClick={() => openEditor(layout)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                      disabled={layout.is_default}
-                      onClick={() => handleDelete(layout)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+      <ListToolbar>
+        <ListSearch
+          value={searchInput}
+          onChange={setSearchInput}
+          placeholder="Search layouts…"
+        />
+        <Select value={filterLanguage} onValueChange={setLanguageFilter}>
+          <SelectTrigger className="w-[180px] rounded-lg border-border h-9">
+            <SelectValue placeholder="Language" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All languages</SelectItem>
+            <SelectItem value="__universal__">Universal</SelectItem>
+            {languages.map((l) => (
+              <SelectItem key={l.code} value={l.code}>
+                {l.flag ? `${l.flag} ${l.name}` : l.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </ListToolbar>
+
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : layouts.length === 0 ? (
+          <EmptyState
+            icon={Mail}
+            title="No base layouts found"
+            description={urlSearch || filterLanguage !== "all" ? "Try a different search or filter." : 'Click "New Layout" to get started.'}
+          />
+        ) : (
+          <ListTable>
+            <thead>
+              <tr>
+                <SortableTh column="name" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="asc">Name</SortableTh>
+                <Th width={200}>Language</Th>
+                <SortableTh column="created_at" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="desc" width={130}>Created</SortableTh>
+                <SortableTh column="updated_at" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="desc" width={130}>Updated</SortableTh>
+                <Th width={90} align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {layouts.map((layout) => (
+                <Tr key={layout.id}>
+                  <Td>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditor(layout)}
+                        className="cursor-pointer text-left truncate"
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: "var(--fg)",
+                          letterSpacing: "-0.005em",
+                          transition: "color 100ms",
+                          background: "transparent",
+                          border: "none",
+                          padding: 0,
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-strong)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg)")}
+                      >
+                        {layout.name}
+                      </button>
+                      {layout.is_default && <Chip>Default</Chip>}
+                    </div>
+                  </Td>
+                  <Td>
+                    {layout.language_id ? (
+                      <Chip>{getLanguageText(layout.language_id)}</Chip>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                        <Globe className="h-3.5 w-3.5" />
+                        Universal
+                      </span>
+                    )}
+                  </Td>
+                  <Td className="font-mono text-[12px] text-muted-foreground">
+                    {formatDate(layout.created_at)}
+                  </Td>
+                  <Td className="font-mono text-[12px] text-muted-foreground">
+                    {formatDate(layout.updated_at)}
+                  </Td>
+                  <Td align="right" className="whitespace-nowrap">
+                    <RowActions
+                      onEdit={() => openEditor(layout)}
+                      onDelete={layout.is_default ? undefined : () => handleDelete(layout)}
+                      disableDelete={layout.is_default}
+                    />
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </ListTable>
+        )}
+      </ListCard>
+
+      <ListFooter
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        onPage={setPageNum}
+        onPerPage={setPerPageNum}
+        label="layouts"
+      />
+    </ListPageShell>
   );
 }

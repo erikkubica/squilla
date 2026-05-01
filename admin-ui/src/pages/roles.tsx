@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { getRoles, deleteRole, type Role } from "@/api/client";
+import { queryRoles, deleteRole, type Role } from "@/api/client";
 import {
   ListPageShell,
   ListHeader,
@@ -20,6 +20,7 @@ import {
   ListCard,
   ListTable,
   Th,
+  SortableTh,
   Tr,
   Td,
   Chip,
@@ -27,6 +28,7 @@ import {
   RowActions,
   EmptyState,
   LoadingRow,
+  ListFooter,
 } from "@/components/ui/list-page";
 
 interface RoleWithPerms extends Role {
@@ -35,18 +37,63 @@ interface RoleWithPerms extends Role {
 
 export default function RolesPage() {
   const navigate = useNavigate();
+
+  // URL = source of truth.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, Number(searchParams.get("page") || "1"));
+  const perPage = Math.max(1, Math.min(200, Number(searchParams.get("per_page") || "25")));
+  const urlSearch = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "all";
+  const sortBy = searchParams.get("sort") || "";
+  const sortOrder = (searchParams.get("order") as "asc" | "desc") || "asc";
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput === (searchParams.get("search") || "")) return;
+      setSearchParams((prev) => {
+        if (searchInput) prev.set("search", searchInput);
+        else prev.delete("search");
+        prev.delete("page");
+        return prev;
+      });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
   const [roles, setRoles] = useState<RoleWithPerms[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalAll, setTotalAll] = useState(0);
+  const [systemCount, setSystemCount] = useState(0);
+  const [customCount, setCustomCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
 
   const [showDelete, setShowDelete] = useState(false);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   async function fetchData() {
+    setLoading(true);
     try {
-      const rolesData = await getRoles();
-      setRoles(rolesData as RoleWithPerms[]);
+      const res = await queryRoles({
+        page,
+        perPage,
+        search: urlSearch,
+        status,
+        sort: sortBy || undefined,
+        order: sortBy ? sortOrder : undefined,
+      });
+      setRoles(res.data as RoleWithPerms[]);
+      setTotal(res.meta.total);
+      setTotalPages(res.meta.total_pages);
+      setTotalAll(res.meta.total_all ?? res.meta.total);
+      setSystemCount(res.meta.system_count ?? 0);
+      setCustomCount(res.meta.custom_count ?? 0);
     } catch {
       toast.error("Failed to load roles");
     } finally {
@@ -56,7 +103,8 @@ export default function RolesPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, perPage, urlSearch, status, sortBy, sortOrder]);
 
   function openDeleteDialog(role: Role) {
     setDeletingRole(role);
@@ -88,28 +136,55 @@ export default function RolesPage() {
     return 0;
   }
 
-  const q = search.toLowerCase();
-  const filteredRoles = q
-    ? roles.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.slug.toLowerCase().includes(q) ||
-          (r.description || "").toLowerCase().includes(q),
-      )
-    : roles;
+  function setPage(next: number) {
+    setSearchParams((prev) => {
+      if (next <= 1) prev.delete("page");
+      else prev.set("page", String(next));
+      return prev;
+    });
+  }
+  function setPerPage(next: number) {
+    setSearchParams((prev) => {
+      if (next === 25) prev.delete("per_page");
+      else prev.set("per_page", String(next));
+      prev.delete("page");
+      return prev;
+    });
+  }
+  function setStatusTab(next: string) {
+    setSearchParams((prev) => {
+      if (!next || next === "all") prev.delete("status");
+      else prev.set("status", next);
+      prev.delete("page");
+      return prev;
+    });
+  }
+  function setSort(col: string, order: "asc" | "desc") {
+    setSearchParams((prev) => {
+      prev.set("sort", col);
+      prev.set("order", order);
+      prev.delete("page");
+      return prev;
+    });
+  }
 
   return (
     <ListPageShell>
       <ListHeader
         title="Roles"
-        tabs={[{ value: "all", label: "All", count: roles.length }]}
-        activeTab="all"
+        tabs={[
+          { value: "all", label: "All", count: totalAll },
+          { value: "system", label: "System", count: systemCount },
+          { value: "custom", label: "Custom", count: customCount },
+        ]}
+        activeTab={status}
+        onTabChange={setStatusTab}
         newLabel="Add Role"
         onNew={() => navigate("/admin/security/roles/new")}
       />
 
       <ListToolbar>
-        <ListSearch value={search} onChange={setSearch} placeholder="Search roles…" />
+        <ListSearch value={searchInput} onChange={setSearchInput} placeholder="Search roles…" />
       </ListToolbar>
 
       <ListCard>
@@ -125,15 +200,16 @@ export default function RolesPage() {
           <ListTable>
             <thead>
               <tr>
-                <Th>Name</Th>
+                <SortableTh column="name" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="asc">Name</SortableTh>
                 <Th>Description</Th>
                 <Th width={130}>Permissions</Th>
                 <Th width={110}>Type</Th>
+                <SortableTh column="created_at" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="desc" width={130}>Created</SortableTh>
                 <Th width={110} align="right">Actions</Th>
               </tr>
             </thead>
             <tbody>
-              {filteredRoles.map((role) => (
+              {roles.map((role) => (
                 <Tr key={role.id}>
                   <Td>
                     <TitleCell
@@ -160,6 +236,9 @@ export default function RolesPage() {
                       <Chip>Custom</Chip>
                     )}
                   </Td>
+                  <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
+                    {role.created_at ? new Date(role.created_at).toLocaleDateString("en-GB") : "—"}
+                  </Td>
                   <Td align="right" className="whitespace-nowrap">
                     <RowActions
                       onEdit={() => navigate(`/admin/security/roles/${role.id}/edit`)}
@@ -172,6 +251,16 @@ export default function RolesPage() {
           </ListTable>
         )}
       </ListCard>
+
+      <ListFooter
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        onPage={setPage}
+        onPerPage={setPerPage}
+        label="roles"
+      />
 
       <Dialog open={showDelete} onOpenChange={setShowDelete}>
         <DialogContent>

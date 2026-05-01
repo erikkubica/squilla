@@ -1,14 +1,19 @@
 import type { ReactNode, MouseEvent as ReactMouseEvent } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Pencil, Trash2, Eye, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, ExternalLink, ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ListPageShell({ children }: { children: ReactNode }) {
   return <div className="w-full" style={{ paddingBottom: 32 }}>{children}</div>;
 }
 
 interface ListHeaderProps {
-  title: string;
+  title?: string;
+  /** Optional help text shown between the title row and the tabs strip.
+      Lives here so it never breaks the tabs → toolbar → card adjacency
+      that index.css uses to drop the card's top radius. */
+  description?: ReactNode;
   count?: number;
   tabs?: { value: string; label: string; count?: number }[];
   activeTab?: string;
@@ -16,128 +21,255 @@ interface ListHeaderProps {
   newLabel?: string;
   newHref?: string;
   onNew?: () => void;
+  /** Optional Back button shown left of the New button. */
+  backHref?: string;
+  onBack?: () => void;
+  /** Slot in the title row's right cluster (rendered before Back/New). */
   extra?: ReactNode;
+  /** Slot in the title row's left cluster (rendered before the H1). */
   leading?: ReactNode;
+  /** Slot at the right edge of the connected tabs strip (e.g. language picker). */
+  tabsRight?: ReactNode;
 }
 
-export function ListHeader({ count, tabs, activeTab, onTabChange, newLabel, newHref, onNew, extra, leading }: ListHeaderProps) {
+export function ListHeader({ title, description, count, tabs, activeTab, onTabChange, newLabel, newHref, onNew, backHref, onBack, extra, leading, tabsRight }: ListHeaderProps) {
+  // Total count for the H1 pill: prefer the "all" tab, fall back to summing
+  // counts, fall back to the explicit `count` prop.
+  const totalCount =
+    tabs && tabs.length > 0
+      ? tabs.find((t) => t.value === "all")?.count ??
+        tabs.reduce((acc, t) => acc + (t.count ?? 0), 0)
+      : count;
+
   return (
-    <div
-      className="flex items-center"
-      style={{
-        gap: 0,
-        borderBottom: "1px solid var(--divider)",
-        marginBottom: 12,
-      }}
-    >
-      {leading && <div className="flex items-center" style={{ paddingBottom: 6, paddingRight: 6 }}>{leading}</div>}
-      {tabs && tabs.length > 0 ? (
-        <nav className="flex-1 flex items-center" style={{ gap: 0, marginBottom: -1 }}>
-          {tabs.map((t) => {
-            const active = t.value === activeTab;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => onTabChange?.(t.value)}
-                className="inline-flex items-center"
+    <>
+      {/* Title row — H1 + count pill + actions, sits above the connected list card.
+          Mirrors the SDUI node-listing PageHeader layout so static lists
+          (Users, Roles, MCP Tokens, …) and SDUI lists are visually identical. */}
+      {(title || newHref || onNew || extra || leading || backHref || onBack) && (
+        <div className="flex items-end justify-between" style={{ gap: 16, marginBottom: 14 }}>
+          <div className="flex items-center" style={{ gap: 10, minWidth: 0 }}>
+            {leading}
+            {title && (
+              <h1
+                className="flex items-center"
                 style={{
-                  padding: "12px 14px",
-                  fontSize: 12.5,
-                  fontWeight: active ? 600 : 500,
-                  color: active ? "var(--fg)" : "var(--fg-muted)",
-                  borderBottom: `1.5px solid ${active ? "var(--fg)" : "transparent"}`,
-                  background: "transparent",
-                  cursor: "pointer",
-                  transition: "color 0.12s, border-color 0.12s",
-                  letterSpacing: "-0.005em",
-                  gap: 6,
-                  marginBottom: -1,
+                  fontSize: 22,
+                  fontWeight: 600,
+                  letterSpacing: "-0.025em",
+                  color: "var(--fg)",
+                  gap: 10,
+                  margin: 0,
+                  lineHeight: 1.2,
                 }}
               >
-                {t.label}
-                {t.count !== undefined && (
+                {title}
+                {totalCount !== undefined && (
                   <span
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 500,
-                      padding: "1px 5px",
-                      borderRadius: 8,
-                      background: active ? "var(--accent-mid)" : "var(--sub-bg)",
-                      color: active ? "var(--accent-strong)" : "var(--fg-muted)",
+                      padding: "2px 8px",
+                      borderRadius: 11,
+                      background: "var(--sub-bg)",
+                      color: "var(--fg-muted)",
+                      letterSpacing: 0,
                     }}
                   >
-                    {t.count}
+                    {totalCount}
                   </span>
                 )}
-              </button>
-            );
-          })}
-        </nav>
-      ) : (
-        <div className="flex-1" style={{ paddingBottom: 10 }}>
-          {count !== undefined && (
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, fontWeight: 500, color: "var(--fg-muted)" }}>
-              {count} items
-            </span>
+              </h1>
+            )}
+          </div>
+          <div className="flex items-center" style={{ gap: 6 }}>
+            {extra}
+            {(backHref || onBack) && (
+              backHref ? (
+                <Link
+                  to={backHref}
+                  className="inline-flex items-center cursor-pointer"
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: "var(--fg)",
+                    background: "var(--card-bg)",
+                    gap: 6,
+                    letterSpacing: "-0.005em",
+                    boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04)",
+                  }}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="inline-flex items-center cursor-pointer"
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: "var(--fg)",
+                    background: "var(--card-bg)",
+                    border: "none",
+                    gap: 6,
+                    letterSpacing: "-0.005em",
+                    boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04)",
+                  }}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back
+                </button>
+              )
+            )}
+            {(newHref || onNew) && (
+              newHref ? (
+                <Link
+                  to={newHref}
+                  className="inline-flex items-center cursor-pointer"
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: "var(--accent-fg)",
+                    background: "var(--accent)",
+                    gap: 6,
+                    letterSpacing: "-0.005em",
+                    boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
+                  }}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {newLabel ?? "New"}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onNew}
+                  className="inline-flex items-center cursor-pointer"
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: "var(--accent-fg)",
+                    background: "var(--accent)",
+                    border: "none",
+                    gap: 6,
+                    letterSpacing: "-0.005em",
+                    boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
+                  }}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {newLabel ?? "New"}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Optional help text under the title, above the tabs. Sits OUTSIDE the
+          connected tabs/toolbar/card stack so it never breaks adjacency. */}
+      {description && (
+        <p
+          className="max-w-3xl"
+          style={{
+            fontSize: 12,
+            color: "var(--fg-muted)",
+            lineHeight: 1.5,
+            margin: "0 0 14px 0",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {description}
+        </p>
+      )}
+
+      {/* Connected tabs row — uses the SAME shadcn Tabs/TabsList/TabsTrigger
+          primitives as TabsCard (edit pages), so the v2 underlined style
+          and active-state border come from the [data-slot="tabs-trigger"]
+          rule in index.css — one source of truth. The outer
+          data-slot="list-tabs" wrapper exists only so the list-card below
+          can drop its top radius and visually connect. */}
+      {tabs && tabs.length > 0 && (
+        <div
+          data-slot="list-tabs"
+          className="flex items-center"
+          style={{
+            background: "var(--card-bg)",
+            borderTopLeftRadius: "var(--radius-lg)",
+            borderTopRightRadius: "var(--radius-lg)",
+            gap: 0,
+          }}
+        >
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => onTabChange?.(v)}
+            className="flex-1 min-w-0"
+          >
+            <TabsList>
+              {tabs.map((t) => {
+                const active = t.value === activeTab;
+                return (
+                  <TabsTrigger key={t.value} value={t.value}>
+                    {t.label}
+                    {t.count !== undefined && (
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 10,
+                          fontWeight: 500,
+                          padding: "1px 5px",
+                          borderRadius: 8,
+                          background: active ? "var(--accent-mid)" : "var(--sub-bg)",
+                          color: active ? "var(--accent-strong)" : "var(--fg-muted)",
+                        }}
+                      >
+                        {t.count}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+          {tabsRight && (
+            <div className="flex items-center" style={{ paddingRight: 14, paddingTop: 6, paddingBottom: 6 }}>
+              {tabsRight}
+            </div>
           )}
         </div>
       )}
-      <div className="flex" style={{ gap: 6, paddingBottom: 6 }}>
-        {extra}
-        {(newHref || onNew) && (
-          newHref ? (
-            <Link
-              to={newHref}
-              className="inline-flex items-center"
-              style={{
-                height: 28,
-                padding: "0 10px",
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--accent-fg)",
-                background: "var(--accent)",
-                borderRadius: "var(--radius-md)",
-                gap: 6,
-                letterSpacing: "-0.005em",
-                boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
-              }}
-            >
-              <Plus className="w-3 h-3" />
-              {newLabel ?? "New"}
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={onNew}
-              className="inline-flex items-center cursor-pointer"
-              style={{
-                height: 28,
-                padding: "0 10px",
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--accent-fg)",
-                background: "var(--accent)",
-                borderRadius: "var(--radius-md)",
-                gap: 6,
-                letterSpacing: "-0.005em",
-                border: "none",
-                boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
-              }}
-            >
-              <Plus className="w-3 h-3" />
-              {newLabel ?? "New"}
-            </button>
-          )
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 
 export function ListToolbar({ children }: { children: ReactNode }) {
-  return <div className="flex items-center flex-wrap" style={{ gap: 8, marginBottom: 10 }}>{children}</div>;
+  return (
+    <div
+      data-slot="list-toolbar"
+      className="flex items-center flex-wrap"
+      style={{
+        gap: 8,
+        padding: "10px 14px",
+        background: "var(--card-bg)",
+        borderBottom: "1px solid var(--divider)",
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function ListSearch({
@@ -257,6 +389,68 @@ export function Th({
     <th style={style} className={className}>
       {children}
     </th>
+  );
+}
+
+/**
+ * SortableTh — drop-in replacement for `<Th>` that turns its label into a sort
+ * toggle. Renders the same uppercase mono header chrome plus an arrow icon
+ * (up/down when active, ↕ when inactive). Pure presentation: parent owns the
+ * `sortBy`/`sortOrder` state and the `onSort` callback decides what to do
+ * (URL params, refetch, whatever) — nothing here assumes `useSearchParams`,
+ * so static and SDUI lists share one component.
+ */
+export function SortableTh({
+  column,
+  children,
+  sortBy,
+  sortOrder,
+  onSort,
+  width,
+  align = "left",
+  defaultOrder = "asc",
+}: {
+  column: string;
+  children: ReactNode;
+  sortBy?: string;
+  sortOrder?: string;
+  onSort: (column: string, order: "asc" | "desc") => void;
+  width?: string | number;
+  align?: "left" | "right" | "center";
+  /** Order applied on the first click (when this column is not yet active). */
+  defaultOrder?: "asc" | "desc";
+}) {
+  const active = sortBy === column;
+  const handleClick = () => {
+    if (!active) {
+      onSort(column, defaultOrder);
+      return;
+    }
+    onSort(column, sortOrder === "asc" ? "desc" : "asc");
+  };
+  return (
+    <Th width={width} align={align}>
+      <button
+        type="button"
+        onClick={handleClick}
+        className="inline-flex items-center cursor-pointer bg-transparent border-0 p-0 font-[inherit] text-[inherit]"
+        style={{
+          gap: 4,
+          color: active ? "var(--fg)" : "var(--fg-subtle)",
+          textTransform: "uppercase",
+          letterSpacing: "0.07em",
+        }}
+      >
+        {children}
+        {active ? (
+          sortOrder === "asc"
+            ? <ArrowUp className="w-2.5 h-2.5" style={{ color: "var(--accent-strong)" }} />
+            : <ArrowDown className="w-2.5 h-2.5" style={{ color: "var(--accent-strong)" }} />
+        ) : (
+          <ArrowUpDown className="w-2.5 h-2.5" style={{ color: "var(--fg-subtle)" }} />
+        )}
+      </button>
+    </Th>
   );
 }
 

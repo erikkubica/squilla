@@ -655,7 +655,10 @@ function AdminLayoutInner() {
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* min-w-0 + min-h-0 prevents flex auto-min from pushing content past
+          the viewport, which was the cause of the "page cut off mid-scroll"
+          paint glitch in tall editors with sticky asides. */}
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0 min-h-0">
         {/* Top bar */}
         <header
           className="flex items-center justify-between shrink-0"
@@ -840,7 +843,10 @@ function AdminLayoutInner() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto" style={{ padding: "18px 22px 40px" }}>
+        <main
+          className="flex-1 overflow-y-auto"
+          style={{ padding: "18px 22px 40px", overflowAnchor: "none" }}
+        >
           <div style={{ maxWidth: 1200, margin: "0 auto" }}>
             <Outlet />
           </div>

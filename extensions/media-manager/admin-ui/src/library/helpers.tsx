@@ -106,12 +106,23 @@ export function MediaImage({
   className,
   style,
   onError,
+  loading = "eager",
 }: {
   src: string;
   alt: string;
   className?: string;
   style?: React.CSSProperties;
   onError?: () => void;
+  /**
+   * Lazy loading caused page-1 grid renders to drop tiles and flash to a
+   * single colour in the admin Media Library — Chrome's heuristic was
+   * deferring loads en masse on first paint, then the simultaneous loads
+   * + backdrop-blur cards caused compositor stalls. Defaults to "eager"
+   * because admin grids show ~30–60 thumbnails on a fast intranet, which
+   * is not the use case lazy loading was designed for. Callers that DO
+   * have huge lists (public site, infinite scroll) can opt in.
+   */
+  loading?: "eager" | "lazy";
 }) {
   const [broken, setBroken] = useState(false);
   if (broken) return <BrokenMediaFallback className={className} />;
@@ -121,7 +132,8 @@ export function MediaImage({
       alt={alt}
       className={className}
       style={style}
-      loading="lazy"
+      loading={loading}
+      decoding="async"
       onError={() => {
         setBroken(true);
         onError?.();

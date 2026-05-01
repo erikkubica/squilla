@@ -18,43 +18,59 @@ func (p *EmailManagerPlugin) listLogs(ctx context.Context, req *pb.PluginHTTPReq
 	params := req.GetQueryParams()
 	page, perPage := parsePagination(params)
 
-	query := coreapi.DataStoreQuery{
-		OrderBy: "created_at DESC",
-		Limit:   perPage,
-		Offset:  (page - 1) * perPage,
+	// Whitelist sort columns. User-supplied keys map to real SQL columns.
+	logSortable := map[string]string{
+		"created_at":      "created_at",
+		"recipient_email": "recipient_email",
+		"recipient":       "recipient_email",
+		"status":          "status",
+		"action":          "action",
+		"subject":         "subject",
 	}
+	orderBy := parseSort(params, logSortable, "created_at DESC")
 
-	// Build WHERE conditions via Raw.
-	var conditions []string
-	var args []any
+	// Base conditions (search + date range) — applied to BOTH the tab counts
+	// and the main list. The status filter is the active-tab filter, applied
+	// only to the main list so per-tab counts reflect the available pool.
+	var baseConds []string
+	var baseArgs []any
 
-	if status := params["status"]; status != "" {
-		conditions = append(conditions, "status = ?")
-		args = append(args, status)
-	}
 	if action := params["action"]; action != "" {
-		conditions = append(conditions, "action = ?")
-		args = append(args, action)
+		baseConds = append(baseConds, "action = ?")
+		baseArgs = append(baseArgs, action)
 	}
 	if recipient := params["recipient"]; recipient != "" {
-		conditions = append(conditions, "recipient_email ILIKE ?")
-		args = append(args, "%"+recipient+"%")
+		baseConds = append(baseConds, "recipient_email ILIKE ?")
+		baseArgs = append(baseArgs, "%"+recipient+"%")
 	}
 	if dateFrom := params["date_from"]; dateFrom != "" {
 		if t, err := time.Parse("2006-01-02", dateFrom); err == nil {
-			conditions = append(conditions, "created_at >= ?")
-			args = append(args, t.Format(time.RFC3339))
+			baseConds = append(baseConds, "created_at >= ?")
+			baseArgs = append(baseArgs, t.Format(time.RFC3339))
 		}
 	}
 	if dateTo := params["date_to"]; dateTo != "" {
 		if t, err := time.Parse("2006-01-02", dateTo); err == nil {
-			conditions = append(conditions, "created_at < ?")
-			args = append(args, t.AddDate(0, 0, 1).Format(time.RFC3339))
+			baseConds = append(baseConds, "created_at < ?")
+			baseArgs = append(baseArgs, t.AddDate(0, 0, 1).Format(time.RFC3339))
 		}
 	}
 
-	if len(conditions) > 0 {
-		query.Raw = strings.Join(conditions, " AND ")
+	// Active tab filter — appended to baseConds for the main list only.
+	conds := append([]string{}, baseConds...)
+	args := append([]any{}, baseArgs...)
+	if status := params["status"]; status != "" && status != "all" {
+		conds = append(conds, "status = ?")
+		args = append(args, status)
+	}
+
+	query := coreapi.DataStoreQuery{
+		OrderBy: orderBy,
+		Limit:   perPage,
+		Offset:  (page - 1) * perPage,
+	}
+	if len(conds) > 0 {
+		query.Raw = strings.Join(conds, " AND ")
 		query.Args = args
 	}
 
@@ -63,14 +79,24 @@ func (p *EmailManagerPlugin) listLogs(ctx context.Context, req *pb.PluginHTTPReq
 		return jsonError(500, "LIST_FAILED", "Failed to list email logs"), nil
 	}
 
+	// Per-tab counts use the search/date-filtered set (NOT the active status).
+	totalAll := p.countWhere(ctx, "email_logs", baseConds, baseArgs, "")
+	sentCount := p.countWhere(ctx, "email_logs", baseConds, baseArgs, "status = ?", "sent")
+	failedCount := p.countWhere(ctx, "email_logs", baseConds, baseArgs, "status = ?", "failed")
+	pendingCount := p.countWhere(ctx, "email_logs", baseConds, baseArgs, "status = ?", "pending")
+
 	totalPages := int(math.Ceil(float64(result.Total) / float64(perPage)))
 	resp := map[string]any{
 		"data": result.Rows,
 		"meta": map[string]any{
-			"total":       result.Total,
-			"page":        page,
-			"per_page":    perPage,
-			"total_pages": totalPages,
+			"total":         result.Total,
+			"page":          page,
+			"per_page":      perPage,
+			"total_pages":   totalPages,
+			"total_all":     totalAll,
+			"sent_count":    sentCount,
+			"failed_count":  failedCount,
+			"pending_count": pendingCount,
 		},
 	}
 

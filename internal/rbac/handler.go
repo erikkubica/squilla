@@ -3,6 +3,7 @@ package rbac
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -40,13 +41,92 @@ func (h *RoleHandler) RegisterRoutes(router fiber.Router) {
 	roles.Delete("/:id", h.Delete)
 }
 
-// List handles GET /roles to retrieve all roles.
+// List handles GET /roles to retrieve roles. When `page` is absent, the full
+// flat list is returned (legacy shape — role pickers across the admin still
+// rely on that). When `page` is present, the response switches to {data, meta}
+// with full pagination, search, sort, and the system/custom counts the admin
+// list uses for its tabs.
 func (h *RoleHandler) List(c *fiber.Ctx) error {
+	pageRaw := c.Query("page")
+
+	base := h.db.Model(&models.Role{})
+	search := strings.TrimSpace(c.Query("search"))
+	if search != "" {
+		needle := "%" + strings.ToLower(search) + "%"
+		base = base.Where(
+			"LOWER(name) LIKE ? OR LOWER(slug) LIKE ? OR LOWER(COALESCE(description, '')) LIKE ?",
+			needle, needle, needle,
+		)
+	}
+
+	if pageRaw == "" {
+		var roles []models.Role
+		if err := base.Order("id ASC").Find(&roles).Error; err != nil {
+			return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list roles")
+		}
+		return api.Success(c, roles)
+	}
+
+	page, _ := strconv.Atoi(pageRaw)
+	perPage, _ := strconv.Atoi(c.Query("per_page", "25"))
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 200 {
+		perPage = 25
+	}
+
+	sortBy := c.Query("sort")
+	sortOrder := strings.ToLower(c.Query("order"))
+	orderClause := "id ASC"
+	switch sortBy {
+	case "name", "slug", "created_at", "updated_at", "id":
+		dir := "ASC"
+		if sortOrder == "desc" {
+			dir = "DESC"
+		}
+		orderClause = sortBy + " " + dir
+	}
+
+	// Type counts (system vs custom) feed the admin tabs.
+	var totalAll, systemCount, customCount int64
+	base.Session(&gorm.Session{}).Count(&totalAll)
+	base.Session(&gorm.Session{}).Where("is_system = ?", true).Count(&systemCount)
+	base.Session(&gorm.Session{}).Where("is_system = ?", false).Count(&customCount)
+
+	scope := base.Session(&gorm.Session{})
+	switch strings.ToLower(strings.TrimSpace(c.Query("status"))) {
+	case "system":
+		scope = scope.Where("is_system = ?", true)
+	case "custom":
+		scope = scope.Where("is_system = ?", false)
+	}
+
+	var total int64
+	scope.Session(&gorm.Session{}).Count(&total)
+
 	var roles []models.Role
-	if err := h.db.Order("id ASC").Find(&roles).Error; err != nil {
+	offset := (page - 1) * perPage
+	if err := scope.Order(orderClause).Offset(offset).Limit(perPage).Find(&roles).Error; err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list roles")
 	}
-	return api.Success(c, roles)
+
+	totalPages := int(total) / perPage
+	if int(total)%perPage > 0 {
+		totalPages++
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data": roles,
+		"meta": fiber.Map{
+			"total":        total,
+			"page":         page,
+			"per_page":     perPage,
+			"total_pages":  totalPages,
+			"total_all":    totalAll,
+			"system_count": systemCount,
+			"custom_count": customCount,
+		},
+	})
 }
 
 // Get handles GET /roles/:id to retrieve a single role.

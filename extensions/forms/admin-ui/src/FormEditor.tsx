@@ -10,19 +10,9 @@ import {
   Download,
   Trash2,
 } from "@squilla/icons";
-import { typeLabelMap } from "./tabs/builder/types";
 
 const {
   Button,
-  Card,
-  CardContent,
-  SectionHeader,
-  Separator,
-  Chip,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
   LoadingRow,
   Dialog,
   DialogContent,
@@ -31,7 +21,9 @@ const {
   DialogHeader,
   DialogTitle,
   Titlebar,
-  SaveBar,
+  TabsCard,
+  SidebarCard,
+  PublishActions,
   MetaRow,
   MetaList,
 } = (window as any).__SQUILLA_SHARED__.ui;
@@ -248,165 +240,149 @@ export default function FormEditor() {
     );
 
   const isEdit = !!(id && id !== "new");
+  const fieldsCount = form.fields?.length || 0;
+  const notificationsCount = form.notifications?.length || 0;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSave();
+  };
 
   return (
-    <div className="w-full pb-8">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* Main content (col 1): pill + tabs */}
+    <>
+      <form
+        onSubmit={handleSubmit}
+        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
+      >
+        {/* Main column */}
         <div className="space-y-4 min-w-0">
-      <Titlebar
-        title={form.name}
-        onTitleChange={(v: string) => handleNameChange(v)}
-        titleLabel="Form name"
-        titlePlaceholder="Contact Us"
-        slug={form.slug}
-        onSlugChange={(v: string) => {
-          setAutoSlug(false);
-          setForm((prev: any) => ({ ...prev, slug: v.replace(/\s+/g, "-").toLowerCase() }));
-          if (fieldErrors.slug) setFieldErrors((p) => ({ ...p, slug: "" }));
-        }}
-        slugPrefix="/"
-        autoSlug={autoSlug}
-        onAutoSlugToggle={() => setAutoSlug(!autoSlug)}
-        id={form.id ? Number(form.id) : undefined}
-        onBack={handleCancel}
-      />
+          <Titlebar
+            title={form.name}
+            onTitleChange={(v: string) => handleNameChange(v)}
+            titleLabel="Form name"
+            titlePlaceholder="Contact Us"
+            slug={form.slug}
+            onSlugChange={(v: string) => {
+              setAutoSlug(false);
+              setForm((prev: any) => ({
+                ...prev,
+                slug: v.replace(/\s+/g, "-").toLowerCase(),
+              }));
+              if (fieldErrors.slug) setFieldErrors((p) => ({ ...p, slug: "" }));
+            }}
+            slugPrefix="/"
+            autoSlug={autoSlug}
+            onAutoSlugToggle={() => setAutoSlug(!autoSlug)}
+            id={(form as any).id ? Number((form as any).id) : undefined}
+            onBack={handleCancel}
+          />
 
-      {/* Field errors below pill */}
-      {(fieldErrors.name || fieldErrors.slug) && (
-        <div className="flex gap-6 px-2 -mt-1">
-          {fieldErrors.name && <p className="text-xs text-rose-600">{fieldErrors.name}</p>}
-          {fieldErrors.slug && <p className="text-xs text-rose-600">{fieldErrors.slug}</p>}
+          {/* Field errors below pill */}
+          {(fieldErrors.name || fieldErrors.slug) && (
+            <div className="flex gap-6 px-2 -mt-1">
+              {fieldErrors.name && (
+                <p className="text-xs text-rose-600">{fieldErrors.name}</p>
+              )}
+              {fieldErrors.slug && (
+                <p className="text-xs text-rose-600">{fieldErrors.slug}</p>
+              )}
+            </div>
+          )}
+
+          <TabsCard
+            tabs={[
+              {
+                value: "builder",
+                label: (
+                  <span className="inline-flex items-center">
+                    <ListPlus className="mr-1.5 h-3.5 w-3.5" /> Builder
+                  </span>
+                ),
+                badge: fieldsCount || undefined,
+                content: <BuilderTab form={form} setForm={setForm} />,
+              },
+              {
+                value: "layout",
+                label: (
+                  <span className="inline-flex items-center">
+                    <Layout className="mr-1.5 h-3.5 w-3.5" /> Layout
+                  </span>
+                ),
+                content: <LayoutTab form={form} setForm={setForm} />,
+              },
+              {
+                value: "preview",
+                label: (
+                  <span className="inline-flex items-center">
+                    <Eye className="mr-1.5 h-3.5 w-3.5" /> Preview
+                  </span>
+                ),
+                content: <PreviewTab form={form} />,
+              },
+              {
+                value: "notifications",
+                label: (
+                  <span className="inline-flex items-center">
+                    <Mail className="mr-1.5 h-3.5 w-3.5" /> Notifications
+                  </span>
+                ),
+                badge: notificationsCount || undefined,
+                content: <NotificationsTab form={form} setForm={setForm} />,
+              },
+              {
+                value: "settings",
+                label: (
+                  <span className="inline-flex items-center">
+                    <Settings className="mr-1.5 h-3.5 w-3.5" /> Settings
+                  </span>
+                ),
+                content: <SettingsTab form={form} setForm={setForm} />,
+              },
+              {
+                value: "webhooks",
+                label: (
+                  <span className="inline-flex items-center">
+                    <Webhook className="mr-1.5 h-3.5 w-3.5" /> Webhooks
+                  </span>
+                ),
+                content: <WebhooksTab form={form} setForm={setForm} />,
+              },
+            ]}
+          />
         </div>
-      )}
 
-          <Tabs defaultValue="builder" className="w-full mt-1">
-            <TabsList className="grid w-full grid-cols-6 mb-4">
-              <TabsTrigger value="builder">
-                <ListPlus className="mr-1.5 h-3.5 w-3.5" /> Builder
-              </TabsTrigger>
-              <TabsTrigger value="layout">
-                <Layout className="mr-1.5 h-3.5 w-3.5" /> Layout
-              </TabsTrigger>
-              <TabsTrigger value="preview">
-                <Eye className="mr-1.5 h-3.5 w-3.5" /> Preview
-              </TabsTrigger>
-              <TabsTrigger value="notifications">
-                <Mail className="mr-1.5 h-3.5 w-3.5" /> Notifs
-              </TabsTrigger>
-              <TabsTrigger value="settings">
-                <Settings className="mr-1.5 h-3.5 w-3.5" /> Settings
-              </TabsTrigger>
-              <TabsTrigger value="webhooks">
-                <Webhook className="mr-1.5 h-3.5 w-3.5" /> Webhooks
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="builder">
-              <BuilderTab form={form} setForm={setForm} />
-            </TabsContent>
-            <TabsContent value="layout">
-              <LayoutTab form={form} setForm={setForm} />
-            </TabsContent>
-            <TabsContent value="preview">
-              <PreviewTab form={form} />
-            </TabsContent>
-            <TabsContent value="notifications">
-              <NotificationsTab form={form} setForm={setForm} />
-            </TabsContent>
-            <TabsContent value="settings">
-              <SettingsTab form={form} setForm={setForm} />
-            </TabsContent>
-            <TabsContent value="webhooks">
-              <WebhooksTab form={form} setForm={setForm} />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Sidebar (col 2) */}
-        <div className="space-y-4">
-          {/* Publish card — canonical pattern */}
-          <Card>
-            <SectionHeader title="Publish" />
-            <CardContent className="space-y-4 p-4">
-              <div className="relative">
+        {/* Sidebar */}
+        <aside className="lg:sticky lg:top-4 lg:self-start">
+          <SidebarCard title="Publish">
+            <PublishActions>
+              <div className="relative w-full">
                 {isDirty && (
                   <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400 border border-white z-10" />
                 )}
                 <Button
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
-                  onClick={handleSave}
+                  type="submit"
+                  className="w-full"
                   disabled={saving}
                 >
                   <Save className="mr-1.5 h-3.5 w-3.5" />
                   {saving ? "Saving…" : "Save"}
                 </Button>
               </div>
-
               {isEdit && (
-                <>
-                  <Separator />
-                  <Button
-                    variant="outline"
-                    className="w-full bg-red-50 text-red-600 border-red-200 hover:bg-muted rounded-lg font-medium h-8 text-xs"
-                    onClick={() => setShowDelete(true)}
-                  >
-                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                    Delete
-                  </Button>
-                </>
-              )}
-
-              {isEdit && (
-                <>
-                  <Separator />
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>Fields</span>
-                      <span className="text-muted-foreground">{form.fields?.length || 0}</span>
-                    </div>
-                    {form.created_at && (
-                      <div className="flex justify-between">
-                        <span>Created</span>
-                        <span className="text-muted-foreground">{new Date(form.created_at).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                    {form.updated_at && (
-                      <div className="flex justify-between">
-                        <span>Updated</span>
-                        <span className="text-muted-foreground">{new Date(form.updated_at).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Fields summary — visible on every tab */}
-          {form.fields && form.fields.length > 0 && (
-            <Card>
-              <SectionHeader title={`Fields (${form.fields.length})`} />
-              <CardContent className="p-3 space-y-1.5">
-                {form.fields.map((f: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2 text-[12px] min-w-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate text-foreground font-medium">{f.label || "Untitled"}</div>
-                      <div className="truncate text-[10.5px] font-mono" style={{ color: "var(--fg-subtle)" }}>{f.id || f.key || "—"}</div>
-                    </div>
-                    <Chip>{typeLabelMap[f.type] || f.type}</Chip>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Actions card */}
-          {isEdit && (
-            <Card>
-              <SectionHeader title="Actions" />
-              <CardContent className="p-3">
                 <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  style={{ color: "var(--danger)" }}
+                  onClick={() => setShowDelete(true)}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              )}
+              {isEdit && (
+                <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start text-muted-foreground hover:text-foreground"
@@ -416,11 +392,29 @@ export default function FormEditor() {
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" /> Export JSON
                 </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+              )}
+            </PublishActions>
+
+            {isEdit && (
+              <MetaList>
+                <MetaRow label="Fields" value={String(fieldsCount)} />
+                {form.created_at && (
+                  <MetaRow
+                    label="Created"
+                    value={new Date(form.created_at).toLocaleDateString("en-GB")}
+                  />
+                )}
+                {form.updated_at && (
+                  <MetaRow
+                    label="Updated"
+                    value={new Date(form.updated_at).toLocaleDateString("en-GB")}
+                  />
+                )}
+              </MetaList>
+            )}
+          </SidebarCard>
+        </aside>
+      </form>
 
       {/* Delete dialog */}
       <Dialog open={showDelete} onOpenChange={setShowDelete}>
@@ -428,12 +422,17 @@ export default function FormEditor() {
           <DialogHeader>
             <DialogTitle>Delete Form</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{form.name}&quot;?
-              This will also delete all submissions for this form. This action cannot be undone.
+              Are you sure you want to delete &quot;{form.name}&quot;? This will
+              also delete all submissions for this form. This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDelete(false)} disabled={deleting}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDelete(false)}
+              disabled={deleting}
+            >
               Cancel
             </Button>
             <Button
@@ -446,6 +445,6 @@ export default function FormEditor() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

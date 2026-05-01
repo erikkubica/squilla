@@ -1,13 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
-  Upload,
-  Loader2,
   Image as ImageIcon,
   LayoutGrid,
   List,
-  ArrowUpDown,
-  ChevronDown,
-  Check,
 } from "@squilla/icons";
 import {
   Button,
@@ -20,6 +15,9 @@ import {
 } from "@squilla/ui";
 import { toast } from "sonner";
 
+// All shared listing primitives + react-router hooks come from the SPA shell
+// via the import-map shim. We type them locally because @squilla/ui doesn't
+// ship .d.ts to extensions — runtime resolution is via __SQUILLA_SHARED__.
 const SHARED = (window as unknown as {
   __SQUILLA_SHARED__: {
     ReactRouterDOM: {
@@ -35,16 +33,21 @@ const SHARED = (window as unknown as {
       ListPageShell: React.ComponentType<{ children: React.ReactNode }>;
       ListHeader: React.ComponentType<{
         title?: string;
+        description?: React.ReactNode;
         tabs?: { value: string; label: string; count?: number }[];
         activeTab?: string;
         onTabChange?: (v: string) => void;
+        newLabel?: string;
+        onNew?: () => void;
         extra?: React.ReactNode;
       }>;
+      ListToolbar: React.ComponentType<{ children: React.ReactNode }>;
       ListSearch: React.ComponentType<{
         value: string;
         onChange: (v: string) => void;
         placeholder?: string;
       }>;
+      ListCard: React.ComponentType<{ children: React.ReactNode }>;
       ListFooter: React.ComponentType<{
         page: number;
         totalPages: number;
@@ -54,11 +57,37 @@ const SHARED = (window as unknown as {
         onPerPage?: (n: number) => void;
         label?: string;
       }>;
+      EmptyState: React.ComponentType<{
+        icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+        title: string;
+        description?: string;
+        action?: React.ReactNode;
+      }>;
+      LoadingRow: React.ComponentType<unknown>;
+      Select: React.ComponentType<{ value: string; onValueChange: (v: string) => void; children: React.ReactNode }>;
+      SelectTrigger: React.ComponentType<{ className?: string; children: React.ReactNode; size?: "sm" | "default" }>;
+      SelectValue: React.ComponentType<{ placeholder?: string }>;
+      SelectContent: React.ComponentType<{ children: React.ReactNode }>;
+      SelectItem: React.ComponentType<{ value: string; children: React.ReactNode }>;
     };
   };
 }).__SQUILLA_SHARED__;
 const { useSearchParams } = SHARED.ReactRouterDOM;
-const { ListPageShell, ListHeader, ListSearch, ListFooter } = SHARED.ui;
+const {
+  ListPageShell,
+  ListHeader,
+  ListToolbar,
+  ListSearch,
+  ListCard,
+  ListFooter,
+  EmptyState,
+  LoadingRow,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} = SHARED.ui;
 
 import {
   MediaFile,
@@ -170,7 +199,7 @@ const TYPE_TABS = [
   { value: "application", label: "Documents" },
 ];
 
-const SORT_OPTIONS = [
+const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "date_desc", label: "Newest first" },
   { value: "date_asc", label: "Oldest first" },
   { value: "name_asc", label: "Name A–Z" },
@@ -179,62 +208,13 @@ const SORT_OPTIONS = [
   { value: "size_asc", label: "Smallest first" },
 ];
 
+const DENSITY_OPTIONS: { value: Density; label: string }[] = [
+  { value: "compact", label: "Compact" },
+  { value: "comfy", label: "Comfy" },
+  { value: "spacious", label: "Spacious" },
+];
+
 const PER_PAGE_OPTIONS = [10, 25, 50, 100];
-
-// ---------- Pill dropdown ----------
-
-interface PillProps<T extends string> {
-  icon: React.ComponentType<{ className?: string }>;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
-}
-
-function Pill<T extends string>({ icon: Icon, value, options, onChange }: PillProps<T>) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const cur = options.find((o) => o.value === value) || options[0];
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener("mousedown", close);
-    return () => window.removeEventListener("mousedown", close);
-  }, []);
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="h-8 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-[11.5px] text-foreground flex items-center gap-1.5 cursor-pointer"
-      >
-        <Icon className="h-3 w-3 text-muted-foreground" />
-        {cur.label}
-        <ChevronDown className="h-3 w-3 text-muted-foreground" />
-      </button>
-      {open && (
-        <div className="absolute top-full mt-1 left-0 z-30 w-52 rounded-lg border border-border bg-card shadow-lg overflow-hidden">
-          {options.map((o) => (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => {
-                onChange(o.value);
-                setOpen(false);
-              }}
-              className={`w-full text-left px-3 py-1.5 text-[12px] flex items-center gap-2 cursor-pointer ${
-                o.value === value ? "bg-accent text-foreground font-medium" : "hover:bg-muted text-foreground"
-              }`}
-            >
-              {o.value === value ? <Check className="h-3 w-3" /> : <span className="w-3" />}
-              {o.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ---------- Main ----------
 
@@ -246,7 +226,7 @@ export default function MediaLibrary() {
     ? Number(searchParams.get("per_page"))
     : 25;
   const search = searchParams.get("q") || "";
-  const mimeFilter = searchParams.get("type") || "all";
+  const mimeFilter = searchParams.get("kind") || searchParams.get("type") || "all";
   const sortBy = searchParams.get("sort") || "date_desc";
   const viewMode: "grid" | "list" = searchParams.get("view") === "list" ? "list" : "grid";
   const density: Density = (["compact", "comfy", "spacious"] as Density[]).includes(
@@ -279,7 +259,7 @@ export default function MediaLibrary() {
   }, [page, updateParams]);
   const setPerPage = (n: number) => updateParams({ per_page: n === 25 ? null : n }, { resetPage: true });
   const setSearch = (s: string) => updateParams({ q: s || null }, { replace: true, resetPage: true });
-  const setMimeFilter = (v: string) => updateParams({ type: v === "all" ? null : v }, { resetPage: true });
+  const setMimeFilter = (v: string) => updateParams({ kind: v === "all" ? null : v, type: null }, { resetPage: true });
   const setSortBy = (v: string) => updateParams({ sort: v === "date_desc" ? null : v }, { resetPage: true });
   const setViewMode = (v: "grid" | "list") => updateParams({ view: v === "grid" ? null : v });
   const setDensity = (d: Density) => updateParams({ density: d === "comfy" ? null : d });
@@ -560,150 +540,181 @@ export default function MediaLibrary() {
 
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.per_page)) : 1;
 
-  const tabs = TYPE_TABS.map((t) => ({
-    value: t.value,
-    label: t.label,
-    count: tabCounts[t.value],
-  }));
+  const tabs = [
+    { value: "all", label: "All", count: tabCounts.all },
+    { value: "image", label: "Images", count: tabCounts.image },
+    { value: "video", label: "Videos", count: tabCounts.video },
+    { value: "audio", label: "Audio", count: tabCounts.audio },
+    { value: "application", label: "Documents", count: tabCounts.application },
+  ];
 
-  const uploadBtn = (
-    <Button
-      onClick={openUpload}
-      className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-primary border border-primary rounded hover:bg-primary/90 cursor-pointer"
-    >
-      <Upload className="w-3 h-3" />
-      Upload
-    </Button>
-  );
+  const isEmpty = !loading && files.length === 0;
 
   return (
     <ListPageShell>
       <ListHeader
+        title="Media Library"
         tabs={tabs}
         activeTab={mimeFilter}
         onTabChange={setMimeFilter}
-        extra={uploadBtn}
+        newLabel="Upload"
+        onNew={openUpload}
       />
 
-      {/* Toolbar: search + view + sort + density */}
-      <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+      <ListToolbar>
         <ListSearch value={search} onChange={setSearch} placeholder="Search media files…" />
-        <div className="flex items-center gap-0.5 h-[30px] rounded border border-border bg-card p-0.5 shrink-0">
+
+        {/* View toggle: grid vs list */}
+        <div
+          className="flex items-center shrink-0"
+          style={{
+            gap: 2,
+            height: 30,
+            padding: 2,
+            borderRadius: "var(--radius-md)",
+            background: "var(--sub-bg)",
+            border: "1px solid var(--border-input)",
+          }}
+        >
           <button
             type="button"
             onClick={() => setViewMode("grid")}
-            className={`h-[24px] w-[26px] grid place-items-center rounded-[2px] transition-colors cursor-pointer ${
-              viewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
             title="Grid view"
+            className="grid place-items-center cursor-pointer"
+            style={{
+              height: 24,
+              width: 28,
+              borderRadius: 4,
+              border: "none",
+              background: viewMode === "grid" ? "var(--card-bg)" : "transparent",
+              color: viewMode === "grid" ? "var(--fg)" : "var(--fg-subtle)",
+              boxShadow: viewMode === "grid" ? "0 1px 2px rgba(20,18,15,0.06)" : "none",
+              transition: "background 80ms",
+            }}
           >
-            <LayoutGrid className="h-3.5 w-3.5" />
+            <LayoutGrid className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={() => setViewMode("list")}
-            className={`h-[24px] w-[26px] grid place-items-center rounded-[2px] transition-colors cursor-pointer ${
-              viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
             title="List view"
+            className="grid place-items-center cursor-pointer"
+            style={{
+              height: 24,
+              width: 28,
+              borderRadius: 4,
+              border: "none",
+              background: viewMode === "list" ? "var(--card-bg)" : "transparent",
+              color: viewMode === "list" ? "var(--fg)" : "var(--fg-subtle)",
+              boxShadow: viewMode === "list" ? "0 1px 2px rgba(20,18,15,0.06)" : "none",
+              transition: "background 80ms",
+            }}
           >
-            <List className="h-3.5 w-3.5" />
+            <List className="w-3.5 h-3.5" />
           </button>
         </div>
-        <Pill icon={ArrowUpDown} value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
-        {viewMode === "grid" && (
-          <div className="flex items-center gap-0.5 h-[30px] rounded border border-border bg-card p-0.5">
-            {(["compact", "comfy", "spacious"] as Density[]).map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDensity(d)}
-                className={`h-[24px] px-2 rounded-[2px] text-[11px] font-medium capitalize cursor-pointer ${
-                  density === d ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {d}
-              </button>
+
+        {/* Sort */}
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
             ))}
-          </div>
+          </SelectContent>
+        </Select>
+
+        {/* Density — only meaningful in grid view */}
+        {viewMode === "grid" && (
+          <Select value={density} onValueChange={(v) => setDensity(v as Density)}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DENSITY_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
+
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={toggleAll}
-          className="h-[30px] px-2.5 rounded text-[12px] text-muted-foreground hover:bg-muted font-medium cursor-pointer"
-        >
-          {selected.size === files.length && files.length > 0 ? "Deselect all" : "Select all"}
-        </button>
-      </div>
 
-      {/* Selection bar */}
-      {selected.size > 0 && (
-        <div className="mb-2.5">
-          <SelectionBar
-            count={selected.size}
-            onClear={clearSelection}
-            onDelete={() => setBulkDeleteOpen(true)}
+        {files.length > 0 && (
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="cursor-pointer"
+            style={{
+              height: 30,
+              padding: "0 10px",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--fg-muted)",
+              background: "transparent",
+              border: "none",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            {selected.size === files.length ? "Deselect all" : "Select all"}
+          </button>
+        )}
+      </ListToolbar>
+
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : isEmpty ? (
+          <EmptyState
+            icon={ImageIcon}
+            title="No media files yet"
+            description={
+              searchDebounce || mimeFilter !== "all"
+                ? "Try clearing filters, or upload new media."
+                : "Click Upload to add your first file."
+            }
+            action={
+              !searchDebounce && mimeFilter === "all" ? (
+                <Button onClick={openUpload}>Upload File</Button>
+              ) : undefined
+            }
           />
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="mt-1">
-      {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-        </div>
-      ) : files.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card/50 py-16 text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-muted grid place-items-center mb-3">
-            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+        ) : viewMode === "grid" ? (
+          <div style={{ padding: 14 }}>
+            <MediaGrid
+              files={files}
+              selected={selected}
+              copyState={copyState}
+              density={density}
+              onOpen={setEditing}
+              onToggle={toggle}
+              onCopy={handleCopy}
+              onDownload={handleDownload}
+              onDelete={requestDelete}
+            />
           </div>
-          <div className="text-[14px] font-semibold text-foreground">No files match</div>
-          <div className="mt-1 text-[12px] text-muted-foreground">
-            {searchDebounce || mimeFilter !== "all"
-              ? "Try clearing filters, or upload new media."
-              : "Upload your first file to get started."}
-          </div>
-          {!searchDebounce && mimeFilter === "all" && (
-            <Button
-              onClick={openUpload}
-              className="mt-4 bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium cursor-pointer"
-            >
-              <Upload className="mr-2 h-4 w-4" /> Upload File
-            </Button>
-          )}
-        </div>
-      ) : viewMode === "grid" ? (
-        <MediaGrid
-          files={files}
-          selected={selected}
-          copyState={copyState}
-          density={density}
-          onOpen={setEditing}
-          onToggle={toggle}
-          onCopy={handleCopy}
-          onDownload={handleDownload}
-          onDelete={requestDelete}
-        />
-      ) : (
-        <MediaListView
-          files={files}
-          selected={selected}
-          sortBy={sortBy}
-          onSort={setSortBy}
-          onOpen={setEditing}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onCopy={handleCopy}
-          onDownload={handleDownload}
-          onDelete={requestDelete}
-        />
-      )}
-      </div>
+        ) : (
+          <MediaListView
+            files={files}
+            selected={selected}
+            sortBy={sortBy}
+            onSort={setSortBy}
+            onOpen={setEditing}
+            onToggle={toggle}
+            onToggleAll={toggleAll}
+            onCopy={handleCopy}
+            onDownload={handleDownload}
+            onDelete={requestDelete}
+          />
+        )}
 
-      {meta && (
-        <div className="mt-3">
+        {meta && !loading && !isEmpty && (
           <ListFooter
             page={page}
             totalPages={totalPages}
@@ -713,6 +724,22 @@ export default function MediaLibrary() {
             onPerPage={setPerPage}
             label="files"
           />
+        )}
+      </ListCard>
+
+      {/* Selection bar — fixed-position floating bar */}
+      {selected.size > 0 && (
+        <div
+          className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
+          style={{ bottom: 24 }}
+        >
+          <div className="pointer-events-auto" style={{ minWidth: 320 }}>
+            <SelectionBar
+              count={selected.size}
+              onClear={clearSelection}
+              onDelete={() => setBulkDeleteOpen(true)}
+            />
+          </div>
         </div>
       )}
 

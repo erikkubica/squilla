@@ -28,6 +28,98 @@ func (s *LanguageService) List() ([]models.Language, error) {
 	return languages, nil
 }
 
+// LanguagePage bundles the paginated language slice with both the filtered
+// total (matching the active status filter, if any) and the unfiltered
+// active/inactive counts the admin list page uses to label its tabs.
+type LanguagePage struct {
+	Items         []models.Language
+	Total         int64
+	TotalAll      int64
+	ActiveCount   int64
+	InactiveCount int64
+}
+
+// ListPaginated returns a page of languages plus row counts, with an
+// optional case-insensitive `q` substring filter applied to name / native_name
+// / code / slug. The `status` argument filters the returned slice ("active",
+// "inactive", or "" / "all" for no filter); the active/inactive counts in the
+// returned struct are always computed against the search-filtered set so the
+// tab labels reflect the correct totals as the operator types.
+//
+// `sortBy` is whitelisted to {name, code, sort_order}; anything else falls
+// back to the default `sort_order ASC, name ASC` ordering.
+func (s *LanguageService) ListPaginated(page, perPage int, q, status, sortBy, sortOrder string) (*LanguagePage, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 25
+	}
+
+	base := s.db.Model(&models.Language{})
+	if q = strings.TrimSpace(q); q != "" {
+		needle := "%" + strings.ToLower(q) + "%"
+		base = base.Where(
+			"LOWER(name) LIKE ? OR LOWER(native_name) LIKE ? OR LOWER(code) LIKE ? OR LOWER(slug) LIKE ?",
+			needle, needle, needle, needle,
+		)
+	}
+
+	// Counts BEFORE the status filter so the tabs reflect the unfiltered
+	// (or search-filtered) totals.
+	var totalAll, activeCount, inactiveCount int64
+	if err := base.Session(&gorm.Session{}).Count(&totalAll).Error; err != nil {
+		return nil, fmt.Errorf("counting languages: %w", err)
+	}
+	if err := base.Session(&gorm.Session{}).Where("is_active = ?", true).Count(&activeCount).Error; err != nil {
+		return nil, fmt.Errorf("counting active languages: %w", err)
+	}
+	if err := base.Session(&gorm.Session{}).Where("is_active = ?", false).Count(&inactiveCount).Error; err != nil {
+		return nil, fmt.Errorf("counting inactive languages: %w", err)
+	}
+
+	scope := base.Session(&gorm.Session{})
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "active":
+		scope = scope.Where("is_active = ?", true)
+	case "inactive":
+		scope = scope.Where("is_active = ?", false)
+	}
+
+	var total int64
+	if err := scope.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("counting filtered languages: %w", err)
+	}
+
+	// Whitelist sort columns to keep raw user input out of the SQL we feed
+	// GORM's Order(). Anything off-list falls back to the canonical order.
+	orderClause := "sort_order ASC, name ASC"
+	switch sortBy {
+	case "name", "code", "sort_order":
+		dir := "ASC"
+		if strings.ToLower(sortOrder) == "desc" {
+			dir = "DESC"
+		}
+		orderClause = sortBy + " " + dir + ", name ASC"
+	}
+
+	var languages []models.Language
+	if err := scope.
+		Order(orderClause).
+		Limit(perPage).
+		Offset((page - 1) * perPage).
+		Find(&languages).Error; err != nil {
+		return nil, fmt.Errorf("listing languages: %w", err)
+	}
+	return &LanguagePage{
+		Items:         languages,
+		Total:         total,
+		TotalAll:      totalAll,
+		ActiveCount:   activeCount,
+		InactiveCount: inactiveCount,
+	}, nil
+}
+
 // ListActive retrieves only active languages ordered by sort_order.
 func (s *LanguageService) ListActive() ([]models.Language, error) {
 	var languages []models.Language

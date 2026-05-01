@@ -4,7 +4,7 @@ export default function DragOverlay({ active }: { active: boolean }) {
   if (!active) return null;
   return (
     <div className="fixed inset-0 z-[60] pointer-events-none">
-      <div className="absolute inset-4 rounded-2xl border-2 border-dashed border-border bg-accent0/10 backdrop-blur-sm grid place-items-center">
+      <div className="absolute inset-4 rounded-2xl border-2 border-dashed border-border grid place-items-center" style={{ background: "rgba(248, 246, 240, 0.92)" }}>
         <div className="text-center animate-pulse">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary text-white grid place-items-center shadow-lg">
             <UploadCloud className="h-8 w-8" />

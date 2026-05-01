@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Key, Loader2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +20,7 @@ import {
   ListCard,
   ListTable,
   Th,
+  SortableTh,
   Tr,
   Td,
   StatusPill,
@@ -87,9 +89,40 @@ function tokenStatusLabel(t: McpToken): string {
 }
 
 export default function McpTokensPage() {
+  // URL-driven state — search and sort ride in the URL so deep-links and
+  // refresh reproduce the view. The MCP token endpoint isn't paginated
+  // (per-user list, typically a handful of tokens) so the sort is applied
+  // client-side over the already-fetched array.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSearch = searchParams.get("search") || "";
+  const sortBy = searchParams.get("sort") || "";
+  const sortOrder = (searchParams.get("order") as "asc" | "desc") || "asc";
+
   const [tokens, setTokens] = useState<McpToken[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput === (searchParams.get("search") || "")) return;
+      setSearchParams((prev) => {
+        if (searchInput) prev.set("search", searchInput);
+        else prev.delete("search");
+        return prev;
+      });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+  function setSort(col: string, order: "asc" | "desc") {
+    setSearchParams((prev) => {
+      prev.set("sort", col);
+      prev.set("order", order);
+      return prev;
+    });
+  }
   const [createOpen, setCreateOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<McpToken | null>(null);
   const [revealed, setRevealed] = useState<{ token: string; record: McpToken } | null>(null);
@@ -162,28 +195,41 @@ export default function McpTokensPage() {
     }
   }
 
-  const q = search.toLowerCase();
-  const filteredTokens = q
-    ? tokens.filter((t) => t.name.toLowerCase().includes(q) || t.token_prefix.toLowerCase().includes(q))
-    : tokens;
+  const q = urlSearch.toLowerCase();
+  const filteredTokens = useMemo(() => {
+    const filtered = q
+      ? tokens.filter((t) => t.name.toLowerCase().includes(q) || t.token_prefix.toLowerCase().includes(q))
+      : tokens.slice();
+    if (!sortBy) return filtered;
+    const dir = sortOrder === "desc" ? -1 : 1;
+    const cmp = (a: McpToken, b: McpToken) => {
+      const va = (a as unknown as Record<string, unknown>)[sortBy];
+      const vb = (b as unknown as Record<string, unknown>)[sortBy];
+      // Treat null/undefined as smallest so ascending pushes them to the top.
+      if (va == null && vb == null) return 0;
+      if (va == null) return -1 * dir;
+      if (vb == null) return 1 * dir;
+      if (typeof va === "string" && typeof vb === "string") {
+        return va.localeCompare(vb) * dir;
+      }
+      return (va < vb ? -1 : va > vb ? 1 : 0) * dir;
+    };
+    return filtered.sort(cmp);
+  }, [tokens, q, sortBy, sortOrder]);
 
   return (
     <ListPageShell>
       <ListHeader
         title="MCP Tokens"
+        description="Bearer tokens that let AI clients control this Squilla instance via the Model Context Protocol. Each token is shown once at creation — store it somewhere safe."
         tabs={[{ value: "all", label: "All", count: tokens.length }]}
         activeTab="all"
         newLabel="New token"
         onNew={() => setCreateOpen(true)}
       />
 
-      <p className="mb-3 text-[12px] text-muted-foreground max-w-3xl">
-        Bearer tokens that let AI clients control this Squilla instance via the Model Context
-        Protocol. Each token is shown once at creation — store it somewhere safe.
-      </p>
-
       <ListToolbar>
-        <ListSearch value={search} onChange={setSearch} placeholder="Search tokens…" />
+        <ListSearch value={searchInput} onChange={setSearchInput} placeholder="Search tokens…" />
       </ListToolbar>
 
       <ListCard>
@@ -199,12 +245,12 @@ export default function McpTokensPage() {
           <ListTable>
             <thead>
               <tr>
-                <Th>Name</Th>
+                <SortableTh column="name" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="asc">Name</SortableTh>
                 <Th width={140}>Scope</Th>
                 <Th width={100}>Status</Th>
-                <Th width={170}>Last used</Th>
-                <Th width={170}>Expires</Th>
-                <Th width={170}>Created</Th>
+                <SortableTh column="last_used_at" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="desc" width={170}>Last used</SortableTh>
+                <SortableTh column="expires_at" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="desc" width={170}>Expires</SortableTh>
+                <SortableTh column="created_at" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="desc" width={170}>Created</SortableTh>
                 <Th width={80} align="right">Actions</Th>
               </tr>
             </thead>

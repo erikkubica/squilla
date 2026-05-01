@@ -41,10 +41,6 @@ function deriveTitleFromPath(pathname: string): string {
   return "";
 }
 import {
-  ArrowLeft,
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   FileText,
   Globe,
   Home,
@@ -57,7 +53,9 @@ import {
   ListTable,
   ListFooter,
   ListSearch,
+  ListHeader,
   Th,
+  SortableTh,
   Tr,
   Td,
   StatusPill,
@@ -171,198 +169,58 @@ export function PageHeader({
   const [, setSearchParams] = useSearchParams();
   const location = useLocation();
 
-  const totalCount =
-    tabs && tabs.length > 0
-      ? tabs.find((t) => t.value === "all")?.count ??
-        tabs.reduce((acc, t) => acc + (t.count ?? 0), 0)
-      : undefined;
-
   const resolvedTitle = title || deriveTitleFromPath(location.pathname);
   const titleStr = resolvedTitle ? resolvedTitle.charAt(0).toUpperCase() + resolvedTitle.slice(1) : "";
 
-  return (
-    <>
-      {/* Title row — H1 + count + actions, sits above the connected list card */}
-      {(resolvedTitle || newPath || onNew || backPath || onBack) && (
-        <div className="flex items-end justify-between" style={{ gap: 16, marginBottom: 14 }}>
-          <h1
-            className="flex items-center"
-            style={{
-              fontSize: 22,
-              fontWeight: 600,
-              letterSpacing: "-0.025em",
-              color: "var(--fg)",
-              gap: 10,
-              margin: 0,
-            }}
-          >
-            {titleStr}
-            {totalCount !== undefined && (
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  padding: "2px 8px",
-                  borderRadius: 11,
-                  background: "var(--sub-bg)",
-                  color: "var(--fg-muted)",
-                  letterSpacing: 0,
-                }}
-              >
-                {totalCount}
-              </span>
-            )}
-          </h1>
-          <div className="flex items-center" style={{ gap: 6 }}>
-            {(backPath || onBack) && (
-              <button
-                type="button"
-                onClick={() => (onBack ? onBack() : navigate(backPath!))}
-                className="inline-flex items-center cursor-pointer"
-                style={{
-                  height: 32,
-                  padding: "0 12px",
-                  borderRadius: "var(--radius-md)",
-                  fontSize: 12.5,
-                  fontWeight: 500,
-                  color: "var(--fg)",
-                  background: "var(--card-bg)",
-                  border: "none",
-                  gap: 6,
-                  letterSpacing: "-0.005em",
-                  boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04)",
-                }}
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Back
-              </button>
-            )}
-            {(newPath || onNew) && (
-              <button
-                type="button"
-                onClick={() => (newPath ? navigate(newPath) : onNew?.())}
-                className="inline-flex items-center cursor-pointer"
-                style={{
-                  height: 32,
-                  padding: "0 12px",
-                  borderRadius: "var(--radius-md)",
-                  fontSize: 12.5,
-                  fontWeight: 500,
-                  color: "var(--accent-fg)",
-                  background: "var(--accent)",
-                  border: "none",
-                  gap: 6,
-                  letterSpacing: "-0.005em",
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
-                }}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {newLabel ?? "New"}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+  // Wire URL params → ListHeader's callback API. The visual layout
+  // (title + count pill + Back/New buttons + connected tabs strip +
+  // optional right-slot) lives in ListHeader so static lists (Users,
+  // Roles, MCP Tokens) and SDUI lists render identical chrome.
+  const tabsRight = languages && languages.length > 0 ? (
+    <Select
+      value={activeLanguage || "all"}
+      onValueChange={(val) => {
+        setSearchParams((prev) => {
+          if (val === "all") prev.delete("language");
+          else prev.set("language", val);
+          prev.delete("page");
+          return prev;
+        });
+      }}
+    >
+      <SelectTrigger size="sm" className="w-[160px]">
+        <Globe className="w-3.5 h-3.5 mr-1" style={{ color: "var(--fg-subtle)" }} />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All languages</SelectItem>
+        {languages.map((lang) => (
+          <SelectItem key={lang.code} value={lang.id != null ? String(lang.id) : lang.code}>
+            {lang.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  ) : undefined;
 
-      {/* Tabs row — connected top of list card */}
-      {tabs && tabs.length > 0 && (
-        <div
-          data-slot="list-tabs"
-          className="flex items-center"
-          style={{
-            background: "var(--card-bg)",
-            borderTopLeftRadius: "var(--radius-lg)",
-            borderTopRightRadius: "var(--radius-lg)",
-            borderBottom: "1px solid var(--divider)",
-            padding: "0 14px",
-            gap: 0,
-          }}
-        >
-          <nav className="flex-1 flex items-center" style={{ gap: 0, marginBottom: -1 }}>
-            {tabs.map((t) => {
-              const active = t.value === activeTab;
-              return (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => {
-                    setSearchParams((prev) => {
-                      if (t.value === "all") prev.delete(tabParam);
-                      else prev.set(tabParam, t.value);
-                      prev.delete("page");
-                      return prev;
-                    });
-                  }}
-                  className="inline-flex items-center cursor-pointer"
-                  style={{
-                    padding: "12px 14px",
-                    fontSize: 12.5,
-                    fontWeight: active ? 600 : 500,
-                    color: active ? "var(--fg)" : "var(--fg-muted)",
-                    borderBottom: `1.5px solid ${active ? "var(--fg)" : "transparent"}`,
-                    background: "transparent",
-                    border: "none",
-                    borderBottomWidth: 1.5,
-                    borderBottomStyle: "solid",
-                    borderBottomColor: active ? "var(--fg)" : "transparent",
-                    transition: "color 0.12s, border-color 0.12s",
-                    letterSpacing: "-0.005em",
-                    gap: 6,
-                    marginBottom: -1,
-                  }}
-                >
-                  {t.label}
-                  {t.count !== undefined && (
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 10,
-                        fontWeight: 500,
-                        padding: "1px 5px",
-                        borderRadius: 8,
-                        background: active ? "var(--accent-mid)" : "var(--sub-bg)",
-                        color: active ? "var(--accent-strong)" : "var(--fg-muted)",
-                      }}
-                    >
-                      {t.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-          {languages && languages.length > 0 && (
-            <div className="flex items-center" style={{ paddingTop: 6, paddingBottom: 6 }}>
-              <Select
-                value={activeLanguage || "all"}
-                onValueChange={(val) => {
-                  setSearchParams((prev) => {
-                    if (val === "all") prev.delete("language");
-                    else prev.set("language", val);
-                    prev.delete("page");
-                    return prev;
-                  });
-                }}
-              >
-                <SelectTrigger size="sm" className="w-[160px]">
-                  <Globe className="w-3.5 h-3.5 mr-1" style={{ color: "var(--fg-subtle)" }} />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All languages</SelectItem>
-                  {languages.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.id != null ? String(lang.id) : lang.code}>
-                      {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
-      )}
-    </>
+  return (
+    <ListHeader
+      title={titleStr}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={(v) => {
+        setSearchParams((prev) => {
+          if (v === "all") prev.delete(tabParam);
+          else prev.set(tabParam, v);
+          prev.delete("page");
+          return prev;
+        });
+      }}
+      newLabel={newLabel}
+      onNew={newPath ? () => navigate(newPath) : onNew}
+      onBack={backPath ? () => navigate(backPath) : onBack}
+      tabsRight={tabsRight}
+    />
   );
 }
 
@@ -628,27 +486,12 @@ export function ContentNodeTable({
       <ListTable>
         <thead>
           <tr>
-            <Th>Title</Th>
+            <SortableTh column="title" sortBy={sortBy} sortOrder={sortOrder} onSort={(c) => handleSort(c)} defaultOrder="asc">Title</SortableTh>
             <Th width={120}>Status</Th>
             <Th width={240}>Taxonomies</Th>
             <Th width={80}>Lang</Th>
-            <Th width={110}>
-              <button
-                type="button"
-                onClick={() => handleSort("updated_at")}
-                className={`inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 font-[inherit] text-[inherit] ${sortBy === "updated_at" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Updated
-                {sortBy === "updated_at" ? (
-                  sortOrder === "asc" ? <ArrowUp className="w-2.5 h-2.5" style={{color: "var(--accent-strong)"}} /> : <ArrowDown className="w-2.5 h-2.5" style={{color: "var(--accent-strong)"}} />
-                ) : (
-                  <ArrowUpDown className="w-2.5 h-2.5" style={{color: "var(--fg-subtle)"}} />
-                )}
-              </button>
-            </Th>
-            <Th width={110} align="right">
-              Actions
-            </Th>
+            <SortableTh column="updated_at" sortBy={sortBy} sortOrder={sortOrder} onSort={(c) => handleSort(c)} defaultOrder="desc" width={110}>Updated</SortableTh>
+            <Th width={110} align="right">Actions</Th>
           </tr>
         </thead>
         <tbody>
@@ -842,47 +685,16 @@ export function TaxonomyTermsTable({
         : `/admin/content/${nodeType}`
     : "/admin/content/page";
 
-  const nameActive = sortBy === "name";
-  const countActive = sortBy === "count";
-
   return (
     <ListCard>
       <ListTable minWidth={640}>
         <thead>
           <tr>
-            <Th>
-              <button
-                type="button"
-                onClick={() => handleSort("name")}
-                className={`inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 font-[inherit] text-[inherit] ${nameActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Name
-                {nameActive ? (
-                  sortOrder === "asc" ? <ArrowUp className="w-2.5 h-2.5" style={{color: "var(--accent-strong)"}} /> : <ArrowDown className="w-2.5 h-2.5" style={{color: "var(--accent-strong)"}} />
-                ) : (
-                  <ArrowUpDown className="w-2.5 h-2.5" style={{color: "var(--fg-subtle)"}} />
-                )}
-              </button>
-            </Th>
+            <SortableTh column="name" sortBy={sortBy} sortOrder={sortOrder} onSort={(c) => handleSort(c)} defaultOrder="asc">Name</SortableTh>
             <Th width={200}>Slug</Th>
             <Th width={70}>Lang</Th>
-            <Th width={80} align="center">
-              <button
-                type="button"
-                onClick={() => handleSort("count")}
-                className={`inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 font-[inherit] text-[inherit] ${countActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Count
-                {countActive ? (
-                  sortOrder === "asc" ? <ArrowUp className="w-2.5 h-2.5" style={{color: "var(--accent-strong)"}} /> : <ArrowDown className="w-2.5 h-2.5" style={{color: "var(--accent-strong)"}} />
-                ) : (
-                  <ArrowUpDown className="w-2.5 h-2.5" style={{color: "var(--fg-subtle)"}} />
-                )}
-              </button>
-            </Th>
-            <Th width={110} align="right">
-              Actions
-            </Th>
+            <SortableTh column="count" sortBy={sortBy} sortOrder={sortOrder} onSort={(c) => handleSort(c)} defaultOrder="desc" width={80} align="center">Count</SortableTh>
+            <Th width={110} align="right">Actions</Th>
           </tr>
         </thead>
         <tbody>

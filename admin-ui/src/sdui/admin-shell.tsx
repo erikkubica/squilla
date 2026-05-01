@@ -535,7 +535,12 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
       {/* ----------------------------------------------------------------- */}
       {/* Main content area                                                  */}
       {/* ----------------------------------------------------------------- */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* min-w-0 + min-h-0 — without these flex children inherit
+          min-width/min-height: auto which lets them grow past their parent's
+          bounds. That was the source of the "page gets cut off mid-scroll"
+          paint glitch: the inner <main overflow-y-auto> would intermittently
+          fail to repaint its bottom region because layout was racing. */}
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0 min-h-0">
         {/* Top bar */}
         <header
           className="flex shrink-0 items-center justify-between"
@@ -646,7 +651,17 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
         </header>
 
         {/* Page content */}
-        <main className={mainClassName ?? "flex-1 overflow-y-auto"} style={{ padding: "18px 22px 40px" }}>
+        <main
+          className={mainClassName ?? "flex-1 overflow-y-auto"}
+          style={{
+            padding: "18px 22px 40px",
+            // overflow-anchor: none avoids Chrome's scroll-anchoring kicking in
+            // when content above the viewport changes height — that was firing
+            // mid-scroll and causing the "lower half of page goes blank" paint
+            // glitch with sticky asides inside this scroll container.
+            overflowAnchor: "none",
+          }}
+        >
           <div style={{ maxWidth: 1200, margin: "0 auto" }}>{children}</div>
         </main>
       </div>

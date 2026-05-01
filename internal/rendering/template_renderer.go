@@ -93,6 +93,17 @@ func (r *TemplateRenderer) resolveAsset(uri string) string {
 	return fn(uri)
 }
 
+// FuncMap returns the renderer's full template FuncMap so other surfaces
+// (block-type preview, fragment renders) execute templates with the same
+// helpers (image_url, image_srcset, add, sub, seq, setting, mustSetting,
+// list, mod, trim, …) the live theme renderer uses. Without this, those
+// surfaces parse the template against an empty FuncMap and fail with
+// "function 'image_url' not defined" / "function 'add' not defined" the
+// moment a theme template uses any helper.
+func (r *TemplateRenderer) FuncMap() template.FuncMap {
+	return r.funcMap
+}
+
 // SetImageURLPrefix overrides the prefix used by the image_url /
 // image_srcset template helpers. main.go reads the
 // `image_cache_url_prefix` site setting at boot (and on theme reload)

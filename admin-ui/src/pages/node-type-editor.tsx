@@ -34,7 +34,7 @@ import { PublishActions } from "@/components/ui/publish-actions";
 import { Switch } from "@/components/ui/switch";
 import { Titlebar } from "@/components/ui/titlebar";
 import { MetaRow, MetaList } from "@/components/ui/meta-row";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsCard } from "@/components/ui/tabs-card";
 import {
   Dialog,
   DialogContent,
@@ -276,175 +276,169 @@ export default function NodeTypeEditorPage() {
           />
 
           {/* Tabs */}
-          <Tabs defaultValue="fields" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="fields" className="">
-                <Boxes className="mr-2 h-4 w-4" /> Fields
-              </TabsTrigger>
-              <TabsTrigger value="taxonomies" className="">
-                <ListTree className="mr-2 h-4 w-4" /> Taxonomies
-              </TabsTrigger>
-              <TabsTrigger value="urls" className="">
-                <Link2 className="mr-2 h-4 w-4" /> URLs
-              </TabsTrigger>
-            </TabsList>
+          <TabsCard
+            defaultValue="fields"
+            tabs={[
+              {
+                value: "fields",
+                label: (<><Boxes className="mr-2 h-4 w-4" /> Fields</>),
+                badge: fields.length,
+                content: (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Define editable fields for this content type. They appear in the node editor sidebar.
+                    </p>
+                    <FieldSchemaEditor fields={fields} onChange={setFields} />
+                  </>
+                ),
+              },
+              {
+                value: "taxonomies",
+                label: (<><ListTree className="mr-2 h-4 w-4" /> Taxonomies</>),
+                badge: taxArray.length,
+                content: (
+                  <div className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Register taxonomies (e.g. Categories, Tags, Genres) to classify content of this type.
+                    </p>
 
-            <TabsContent value="fields" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Custom Fields" />
-                <CardContent>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Define editable fields for this content type. They appear in the node editor sidebar.
-                  </p>
-                  <FieldSchemaEditor fields={fields} onChange={setFields} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="taxonomies" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Taxonomies" />
-                <CardContent className="space-y-4">
-                  <p className="text-xs text-muted-foreground">
-                    Register taxonomies (e.g. Categories, Tags, Genres) to classify content of this type.
-                  </p>
-
-                  {taxArray.length > 0 ? (
-                    <div className="space-y-2">
-                      {taxArray.map((tax, index) => (
-                        <div
-                          key={tax.slug}
-                          className="overflow-hidden"
-                          style={{
-                            border: "1px solid var(--border)",
-                            borderRadius: "var(--radius-lg)",
-                            background: "var(--card-bg)",
-                          }}
-                        >
+                    {taxArray.length > 0 ? (
+                      <div className="space-y-2">
+                        {taxArray.map((tax, index) => (
                           <div
-                            className="flex items-center gap-2 select-none"
-                            style={{ padding: "8px 10px", background: "var(--sub-bg)" }}
+                            key={tax.slug}
+                            className="overflow-hidden"
+                            style={{
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius-lg)",
+                              background: "var(--card-bg)",
+                            }}
                           >
-                            <span className="font-semibold" style={{ fontSize: 12.5, color: "var(--fg)" }}>
-                              {tax.label}
-                            </span>
-                            <span className="font-mono" style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-                              {tax.slug}
-                            </span>
-                            <Badge className={`border-0 text-[10px] ${tax.multiple ? "bg-violet-100 text-violet-700 hover:bg-violet-100" : "bg-muted text-muted-foreground hover:bg-muted"}`}>
-                              {tax.multiple ? "Multiple" : "Single"}
-                            </Badge>
-                            <div className="flex-1" />
+                            <div
+                              className="flex items-center gap-2 select-none"
+                              style={{ padding: "8px 10px", background: "var(--sub-bg)" }}
+                            >
+                              <span className="font-semibold" style={{ fontSize: 12.5, color: "var(--fg)" }}>
+                                {tax.label}
+                              </span>
+                              <span className="font-mono" style={{ fontSize: 11, color: "var(--fg-muted)" }}>
+                                {tax.slug}
+                              </span>
+                              <Badge className={`border-0 text-[10px] ${tax.multiple ? "bg-violet-100 text-violet-700 hover:bg-violet-100" : "bg-muted text-muted-foreground hover:bg-muted"}`}>
+                                {tax.multiple ? "Multiple" : "Single"}
+                              </Badge>
+                              <div className="flex-1" />
+                              <button
+                                type="button"
+                                onClick={() => setTaxonomies(taxArray.filter((_, i) => i !== index))}
+                                className="p-1 rounded hover:"
+                                style={{ color: "var(--danger)", background: "var(--danger-bg)"}}
+                                title="Remove"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm italic text-center py-4" style={{color: "var(--fg-subtle)"}}>No taxonomies registered.</p>
+                    )}
+
+                    <Separator />
+
+                    <div className="space-y-3 rounded-lg border p-4" style={{background: "var(--accent-weak)", borderColor: "var(--accent-mid)"}}>
+                      <p className="text-sm font-semibold text-foreground">Add Taxonomy</p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-foreground">Label</Label>
+                          <Input
+                            placeholder="e.g. Category"
+                            value={newTaxLabel}
+                            onChange={(e) => setNewTaxLabel(e.target.value)}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-medium text-foreground">Key (slug)</Label>
                             <button
                               type="button"
-                              onClick={() => setTaxonomies(taxArray.filter((_, i) => i !== index))}
-                              className="p-1 rounded hover:"
-                              style={{ color: "var(--danger)", background: "var(--danger-bg)"}}
-                              title="Remove"
+                              className="text-[10px] hover:underline" style={{color: "var(--accent-strong)"}}
+                              onClick={() => setAutoTaxKey(!autoTaxKey)}
                             >
-                              <X className="h-3.5 w-3.5" />
+                              {autoTaxKey ? "Edit manually" : "Auto"}
                             </button>
+                          </div>
+                          <Input
+                            placeholder="category"
+                            value={newTaxKey}
+                            onChange={(e) => {
+                              setAutoTaxKey(false);
+                              setNewTaxKey(e.target.value);
+                            }}
+                            disabled={autoTaxKey}
+                            className="h-9 text-sm font-mono"
+                          />
+                        </div>
+                      </div>
+                      <label htmlFor="new-tax-multiple" className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                          id="new-tax-multiple"
+                          checked={newTaxMultiple}
+                          onCheckedChange={setNewTaxMultiple}
+                        />
+                        <span className="text-sm text-foreground">Allow multiple terms per node</span>
+                      </label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-primary text-white"
+                        onClick={addTaxonomy}
+                      >
+                        <Plus className="mr-1.5 h-4 w-4" /> Add Taxonomy
+                      </Button>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                value: "urls",
+                label: (<><Link2 className="mr-2 h-4 w-4" /> URLs</>),
+                content: (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Set the URL prefix per language. Leave empty to use the type slug as prefix.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {languages.map((lang) => (
+                        <div key={lang.code} className="space-y-1.5">
+                          <Label className="text-xs font-medium text-muted-foreground">{lang.name} ({lang.code})</Label>
+                          <div className="flex items-center rounded-lg border border-border overflow-hidden">
+                            <span className="shrink-0 bg-muted px-2 py-2 text-sm text-muted-foreground border-r border-border">
+                              /{lang.code}/
+                            </span>
+                            <input
+                              placeholder={slug || "prefix"}
+                              value={urlPrefixes[lang.code] || ""}
+                              onChange={(e) =>
+                                setUrlPrefixes((prev) => ({
+                                  ...prev,
+                                  [lang.code]: e.target.value,
+                                }))
+                              }
+                              className="flex-1 bg-transparent px-2 py-2 text-sm outline-none"
+                            />
+                            <span className="shrink-0 text-sm pr-2" style={{color: "var(--fg-subtle)"}}>/slug</span>
                           </div>
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm italic text-center py-4" style={{color: "var(--fg-subtle)"}}>No taxonomies registered.</p>
-                  )}
-
-                  <Separator />
-
-                  <div className="space-y-3 rounded-lg border p-4" style={{background: "var(--accent-weak)", borderColor: "var(--accent-mid)"}}>
-                    <p className="text-sm font-semibold text-foreground">Add Taxonomy</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-foreground">Label</Label>
-                        <Input
-                          placeholder="e.g. Category"
-                          value={newTaxLabel}
-                          onChange={(e) => setNewTaxLabel(e.target.value)}
-                          className="h-9 text-sm"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-medium text-foreground">Key (slug)</Label>
-                          <button
-                            type="button"
-                            className="text-[10px] hover:underline" style={{color: "var(--accent-strong)"}}
-                            onClick={() => setAutoTaxKey(!autoTaxKey)}
-                          >
-                            {autoTaxKey ? "Edit manually" : "Auto"}
-                          </button>
-                        </div>
-                        <Input
-                          placeholder="category"
-                          value={newTaxKey}
-                          onChange={(e) => {
-                            setAutoTaxKey(false);
-                            setNewTaxKey(e.target.value);
-                          }}
-                          disabled={autoTaxKey}
-                          className="h-9 text-sm font-mono"
-                        />
-                      </div>
-                    </div>
-                    <label htmlFor="new-tax-multiple" className="flex items-center gap-2 cursor-pointer">
-                      <Switch
-                        id="new-tax-multiple"
-                        checked={newTaxMultiple}
-                        onCheckedChange={setNewTaxMultiple}
-                      />
-                      <span className="text-sm text-foreground">Allow multiple terms per node</span>
-                    </label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="bg-primary text-white"
-                      onClick={addTaxonomy}
-                    >
-                      <Plus className="mr-1.5 h-4 w-4" /> Add Taxonomy
-                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="urls" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="URL Prefixes" />
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Set the URL prefix per language. Leave empty to use the type slug as prefix.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {languages.map((lang) => (
-                      <div key={lang.code} className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">{lang.name} ({lang.code})</Label>
-                        <div className="flex items-center rounded-lg border border-border overflow-hidden">
-                          <span className="shrink-0 bg-muted px-2 py-2 text-sm text-muted-foreground border-r border-border">
-                            /{lang.code}/
-                          </span>
-                          <input
-                            placeholder={slug || "prefix"}
-                            value={urlPrefixes[lang.code] || ""}
-                            onChange={(e) =>
-                              setUrlPrefixes((prev) => ({
-                                ...prev,
-                                [lang.code]: e.target.value,
-                              }))
-                            }
-                            className="flex-1 bg-transparent px-2 py-2 text-sm outline-none"
-                          />
-                          <span className="shrink-0 text-sm pr-2" style={{color: "var(--fg-subtle)"}}>/slug</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Sidebar */}
@@ -453,7 +447,6 @@ export default function NodeTypeEditorPage() {
           <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
-              <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
               <PublishActions>
                 <Button
                   type="submit"
@@ -479,7 +472,6 @@ export default function NodeTypeEditorPage() {
 
               {isEdit && originalNodeType && (
                 <>
-                  <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
                   <MetaList>
                     {originalNodeType.created_at && <MetaRow label="Created" value={new Date(originalNodeType.created_at).toLocaleDateString("en-GB")} />}
                     {originalNodeType.updated_at && <MetaRow label="Updated" value={new Date(originalNodeType.updated_at).toLocaleDateString("en-GB")} />}

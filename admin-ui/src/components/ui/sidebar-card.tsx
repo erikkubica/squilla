@@ -20,7 +20,7 @@ export function SidebarCard({ title, icon, actions, children, contentClassName }
   return (
     <Card>
       <SectionHeader title={title} icon={icon} actions={actions} />
-      <CardContent className={contentClassName}>{children}</CardContent>
+      <CardContent className={contentClassName ?? "space-y-4"}>{children}</CardContent>
     </Card>
   );
 }

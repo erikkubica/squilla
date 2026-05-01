@@ -98,6 +98,46 @@ export function LanguageSelect(props: Props): React.ReactElement | null {
   );
 }
 
+// LanguagePicker is the canonical "Language" field used inside Publish
+// sidebars across editors. It's a thin label-over-select combo so every
+// editor's language row looks identical (same label size, same select
+// height, same spacing) without each page reimplementing the markup.
+import { Label } from "@/components/ui/label";
+
+interface LanguagePickerProps {
+  languages: Language[];
+  value: string;
+  onChange: (code: string) => void;
+  label?: string;
+  hint?: string;
+  disabled?: boolean;
+}
+
+export function LanguagePicker({
+  languages,
+  value,
+  onChange,
+  label = "Language",
+  hint,
+  disabled,
+}: LanguagePickerProps) {
+  if (languages.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <LanguageSelect
+        languages={languages}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      {hint && (
+        <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>{hint}</p>
+      )}
+    </div>
+  );
+}
+
 // LanguageLabel renders a language's display name from a code, falling back
 // to the code itself when the language list hasn't loaded or the code is
 // unknown. No flags. Used in pills, lists, and breadcrumbs that show 'the

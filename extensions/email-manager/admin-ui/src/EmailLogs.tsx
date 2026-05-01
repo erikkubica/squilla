@@ -1,23 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, RefreshCw, Loader2 } from "@squilla/icons";
+import { useSearchParams } from "react-router-dom";
+import { Eye, RefreshCw, Loader2, Mail } from "@squilla/icons";
 import {
+  ListPageShell,
   ListHeader,
-  Button,
+  ListToolbar,
+  ListSearch,
+  ListCard,
+  ListTable,
+  Th,
+  SortableTh,
+  Tr,
+  Td,
+  StatusPill,
+  ListFooter,
+  EmptyState,
+  LoadingRow,
   Input,
   Label,
-  Badge,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  Card,
-  CardContent,
   Select,
   SelectContent,
   SelectItem,
@@ -25,7 +29,7 @@ import {
   SelectValue,
 } from "@squilla/ui";
 import { toast } from "sonner";
-import { getEmailLogs, resendEmail, getSystemActions } from "@squilla/api";
+import { resendEmail, getSystemActions } from "@squilla/api";
 
 interface EmailLog {
   id: number;
@@ -43,7 +47,16 @@ interface SystemAction {
   label: string;
 }
 
-const PER_PAGE = 20;
+interface LogListMeta {
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+  total_all?: number;
+  sent_count?: number;
+  failed_count?: number;
+  pending_count?: number;
+}
 
 // Bypass the Chromium srcDoc + sandbox="" rendering glitch by writing the
 // HTML through contentWindow.document instead.
@@ -61,61 +74,105 @@ function PreviewIframe({ html, title }: { html: string; title: string }) {
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleString();
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function statusBadge(status: string) {
+function statusKind(status: string): string {
   switch (status) {
     case "sent":
-      return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Sent</Badge>;
+      return "success";
     case "failed":
-      return <Badge className="bg-red-100 text-red-600 hover:bg-muted border-0 text-xs">Failed</Badge>;
+      return "danger";
     case "pending":
-      return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0 text-xs">Pending</Badge>;
+      return "warning";
     default:
-      return <Badge variant="outline" className="text-xs">{status}</Badge>;
+      return "neutral";
   }
 }
 
+async function fetchLogList(params: URLSearchParams): Promise<{ data: EmailLog[]; meta: LogListMeta }> {
+  const qs = params.toString();
+  const res = await fetch(`/admin/api/ext/email-manager/logs${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to load logs");
+  return res.json();
+}
+
 export default function EmailLogs() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, Number(searchParams.get("page") || "1"));
+  const perPage = Math.max(1, Math.min(100, Number(searchParams.get("per_page") || "20")));
+  const urlSearch = searchParams.get("search") || "";
+  const status = searchParams.get("status") || "all";
+  const filterAction = searchParams.get("action") || "";
+  const dateFrom = searchParams.get("date_from") || "";
+  const dateTo = searchParams.get("date_to") || "";
+  const sortBy = searchParams.get("sort") || "";
+  const sortOrder = (searchParams.get("order") as "asc" | "desc") || "desc";
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput === (searchParams.get("search") || "")) return;
+      setSearchParams((prev: URLSearchParams) => {
+        if (searchInput) prev.set("search", searchInput);
+        else prev.delete("search");
+        prev.delete("page");
+        return prev;
+      });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalAll, setTotalAll] = useState(0);
+  const [sentCount, setSentCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
 
-  // Filters
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterAction, setFilterAction] = useState("");
-  const [filterRecipient, setFilterRecipient] = useState("");
-  const [filterDateFrom, setFilterDateFrom] = useState("");
-  const [filterDateTo, setFilterDateTo] = useState("");
-
-  // Lookups
   const [actions, setActions] = useState<SystemAction[]>([]);
 
-  // View dialog
   const [showView, setShowView] = useState(false);
   const [viewingLog, setViewingLog] = useState<EmailLog | null>(null);
-
-  // Resend loading
   const [resending, setResending] = useState<number | null>(null);
 
-  async function fetchLogs(p?: number) {
+  async function fetchLogs() {
     setLoading(true);
     try {
-      const currentPage = p ?? page;
-      const res = await getEmailLogs({
-        status: filterStatus || undefined,
-        action: filterAction || undefined,
-        recipient: filterRecipient || undefined,
-        date_from: filterDateFrom || undefined,
-        date_to: filterDateTo || undefined,
-        page: currentPage,
-        per_page: PER_PAGE,
-      });
+      const params = new URLSearchParams();
+      if (status && status !== "all") params.set("status", status);
+      if (filterAction) params.set("action", filterAction);
+      if (urlSearch) params.set("recipient", urlSearch);
+      if (dateFrom) params.set("date_from", dateFrom);
+      if (dateTo) params.set("date_to", dateTo);
+      if (sortBy) {
+        params.set("sort", sortBy);
+        params.set("order", sortOrder);
+      }
+      params.set("page", String(page));
+      params.set("per_page", String(perPage));
+      const res = await fetchLogList(params);
       setLogs(res.data);
-      setTotal(res.total);
-      setPage(currentPage);
+      setTotal(res.meta.total);
+      setTotalPages(res.meta.total_pages);
+      setTotalAll(res.meta.total_all ?? res.meta.total);
+      setSentCount(res.meta.sent_count ?? 0);
+      setFailedCount(res.meta.failed_count ?? 0);
+      setPendingCount(res.meta.pending_count ?? 0);
     } catch {
       toast.error("Failed to load email logs");
     } finally {
@@ -123,22 +180,59 @@ export default function EmailLogs() {
     }
   }
 
-  async function fetchActions() {
-    try {
-      const data = await getSystemActions();
-      setActions(data);
-    } catch {
-      // Non-fatal
-    }
-  }
+  useEffect(() => {
+    fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, perPage, urlSearch, status, filterAction, dateFrom, dateTo, sortBy, sortOrder]);
 
   useEffect(() => {
-    fetchLogs(1);
-    fetchActions();
+    getSystemActions()
+      .then((data: SystemAction[]) => setActions(data))
+      .catch(() => {});
   }, []);
 
-  function handleFilter() {
-    fetchLogs(1);
+  function setUrlParam(key: string, value: string, resetPage: boolean = true) {
+    setSearchParams((prev: URLSearchParams) => {
+      if (!value) prev.delete(key);
+      else prev.set(key, value);
+      if (resetPage) prev.delete("page");
+      return prev;
+    });
+  }
+  function setStatusTab(next: string) {
+    setUrlParam("status", next === "all" ? "" : next);
+  }
+  function setActionFilter(next: string) {
+    setUrlParam("action", next);
+  }
+  function setDateFrom(next: string) {
+    setUrlParam("date_from", next);
+  }
+  function setDateTo(next: string) {
+    setUrlParam("date_to", next);
+  }
+  function setSort(col: string, order: "asc" | "desc") {
+    setSearchParams((prev: URLSearchParams) => {
+      prev.set("sort", col);
+      prev.set("order", order);
+      prev.delete("page");
+      return prev;
+    });
+  }
+  function setPage(next: number) {
+    setSearchParams((prev: URLSearchParams) => {
+      if (next <= 1) prev.delete("page");
+      else prev.set("page", String(next));
+      return prev;
+    });
+  }
+  function setPerPage(next: number) {
+    setSearchParams((prev: URLSearchParams) => {
+      if (next === 20) prev.delete("per_page");
+      else prev.set("per_page", String(next));
+      prev.delete("page");
+      return prev;
+    });
   }
 
   function openViewDialog(log: EmailLog) {
@@ -153,201 +247,187 @@ export default function EmailLogs() {
       toast.success("Email resent successfully");
       await fetchLogs();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to resend email";
+      const message = err instanceof Error ? err.message : "Failed to resend email";
       toast.error(message);
     } finally {
       setResending(null);
     }
   }
 
-  const totalPages = Math.ceil(total / PER_PAGE);
-
   return (
-    <div className="w-full pb-8 space-y-4">
+    <ListPageShell>
       <ListHeader
         title="Email Logs"
-        tabs={[{ value: "all", label: "All", count: total }]}
-        activeTab="all"
+        tabs={[
+          { value: "all", label: "All", count: totalAll },
+          { value: "sent", label: "Sent", count: sentCount },
+          { value: "failed", label: "Failed", count: failedCount },
+          { value: "pending", label: "Pending", count: pendingCount },
+        ]}
+        activeTab={status}
+        onTabChange={setStatusTab}
       />
 
-      {/* Filters */}
-      <Card className="rounded-xl border border-border shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-muted-foreground">Status</Label>
-              <Select value={filterStatus || "__all__"} onValueChange={(v) => setFilterStatus(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="w-32 rounded-lg border-border">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-muted-foreground">Action</Label>
-              <Select value={filterAction || "__all__"} onValueChange={(v) => setFilterAction(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="w-40 rounded-lg border-border">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All</SelectItem>
-                  {actions.map((act) => (
-                    <SelectItem key={act.slug} value={act.slug}>
-                      {act.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-muted-foreground">Recipient</Label>
-              <Input
-                placeholder="Search recipient..."
-                value={filterRecipient}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterRecipient(e.target.value)}
-                className="w-48 rounded-lg border-border "
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-muted-foreground">From</Label>
-              <Input
-                type="date"
-                value={filterDateFrom}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateFrom(e.target.value)}
-                className="w-40 rounded-lg border-border "
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-muted-foreground">To</Label>
-              <Input
-                type="date"
-                value={filterDateTo}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateTo(e.target.value)}
-                className="w-40 rounded-lg border-border "
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-transparent select-none">&nbsp;</Label>
-              <Button
-                className="bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
-                onClick={handleFilter}
-              >
-                Filter
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Table */}
-      <Card className="rounded-xl border border-border shadow-sm">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex h-48 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground font-medium">Date</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Action</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Recipient</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Subject</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Status</TableHead>
-                  <TableHead className="text-muted-foreground font-medium text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                      No email logs found.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {logs.map((log) => (
-                  <TableRow key={log.id} className="border-border">
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {formatDate(log.created_at)}
-                    </TableCell>
-                    <TableCell className="text-sm text-foreground">{log.action}</TableCell>
-                    <TableCell className="text-sm text-foreground">{log.recipient_email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                      {log.subject}
-                    </TableCell>
-                    <TableCell>{statusBadge(log.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          onClick={() => openViewDialog(log)}
-                          title="View"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          onClick={() => handleResend(log.id)}
-                          disabled={resending === log.id}
-                          title="Resend"
-                        >
-                          {resending === log.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages} ({total} total)
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchLogs(page - 1)}
-              disabled={page <= 1 || loading}
-              className="rounded-lg border-border"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchLogs(page + 1)}
-              disabled={page >= totalPages || loading}
-              className="rounded-lg border-border"
-            >
-              Next
-            </Button>
-          </div>
+      <ListToolbar>
+        <ListSearch
+          value={searchInput}
+          onChange={setSearchInput}
+          placeholder="Search recipient…"
+        />
+        <Select
+          value={filterAction || "__all__"}
+          onValueChange={(v: string) => setActionFilter(v === "__all__" ? "" : v)}
+        >
+          <SelectTrigger className="w-44 rounded-lg border-border h-9">
+            <SelectValue placeholder="Action" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All actions</SelectItem>
+            {actions.map((act) => (
+              <SelectItem key={act.slug} value={act.slug}>
+                {act.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1.5">
+          <Label className="text-xs text-muted-foreground">From</Label>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateFrom(e.target.value)}
+            className="w-36 rounded-lg border-border h-9"
+          />
         </div>
-      )}
+        <div className="flex items-center gap-1.5">
+          <Label className="text-xs text-muted-foreground">To</Label>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateTo(e.target.value)}
+            className="w-36 rounded-lg border-border h-9"
+          />
+        </div>
+      </ListToolbar>
 
-      {/* View Dialog */}
+      <ListCard>
+        {loading ? (
+          <LoadingRow />
+        ) : logs.length === 0 ? (
+          <EmptyState
+            icon={Mail}
+            title="No email logs found"
+            description="Adjust filters or wait for new emails to be sent."
+          />
+        ) : (
+          <ListTable>
+            <thead>
+              <tr>
+                <SortableTh column="created_at" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="desc" width={170}>Date</SortableTh>
+                <SortableTh column="action" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="asc">Action</SortableTh>
+                <SortableTh column="recipient_email" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="asc">Recipient</SortableTh>
+                <Th>Subject</Th>
+                <SortableTh column="status" sortBy={sortBy} sortOrder={sortOrder} onSort={setSort} defaultOrder="asc" width={110}>Status</SortableTh>
+                <Th width={90} align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <Tr key={log.id}>
+                  <Td className="font-mono text-[12px] text-muted-foreground whitespace-nowrap">
+                    {formatDate(log.created_at)}
+                  </Td>
+                  <Td>{log.action}</Td>
+                  <Td>{log.recipient_email}</Td>
+                  <Td className="text-muted-foreground max-w-xs truncate">
+                    {log.subject}
+                  </Td>
+                  <Td>
+                    <StatusPill status={statusKind(log.status)} label={log.status} />
+                  </Td>
+                  <Td align="right" className="whitespace-nowrap">
+                    <div className="inline-flex group-hover:opacity-100 transition-opacity" style={{ gap: 1, opacity: 0.55 }}>
+                      <button
+                        type="button"
+                        title="View"
+                        onClick={() => openViewDialog(log)}
+                        style={{
+                          width: 26,
+                          height: 26,
+                          display: "grid",
+                          placeItems: "center",
+                          color: "var(--fg-subtle)",
+                          background: "transparent",
+                          border: "none",
+                          borderRadius: 5,
+                          cursor: "pointer",
+                          transition: "background 0.1s, color 0.1s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "var(--hover-bg)";
+                          e.currentTarget.style.color = "var(--fg)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "var(--fg-subtle)";
+                        }}
+                      >
+                        <Eye style={{ width: 12, height: 12 }} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Resend"
+                        onClick={() => handleResend(log.id)}
+                        disabled={resending === log.id}
+                        style={{
+                          width: 26,
+                          height: 26,
+                          display: "grid",
+                          placeItems: "center",
+                          color: "var(--fg-subtle)",
+                          background: "transparent",
+                          border: "none",
+                          borderRadius: 5,
+                          cursor: resending === log.id ? "not-allowed" : "pointer",
+                          opacity: resending === log.id ? 0.4 : 1,
+                          transition: "background 0.1s, color 0.1s",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (resending !== log.id) {
+                            e.currentTarget.style.background = "var(--hover-bg)";
+                            e.currentTarget.style.color = "var(--fg)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "var(--fg-subtle)";
+                        }}
+                      >
+                        {resending === log.id ? (
+                          <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />
+                        ) : (
+                          <RefreshCw style={{ width: 12, height: 12 }} />
+                        )}
+                      </button>
+                    </div>
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </ListTable>
+        )}
+      </ListCard>
+
+      <ListFooter
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        onPage={setPage}
+        onPerPage={setPerPage}
+        label="logs"
+      />
+
       <Dialog open={showView} onOpenChange={setShowView}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
@@ -362,7 +442,7 @@ export default function EmailLogs() {
                 </div>
                 <div>
                   <span className="font-medium text-muted-foreground">Status:</span>{" "}
-                  {statusBadge(viewingLog.status)}
+                  <StatusPill status={statusKind(viewingLog.status)} label={viewingLog.status} />
                 </div>
                 <div>
                   <span className="font-medium text-muted-foreground">Subject:</span>{" "}
@@ -386,6 +466,6 @@ export default function EmailLogs() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPageShell>
   );
 }

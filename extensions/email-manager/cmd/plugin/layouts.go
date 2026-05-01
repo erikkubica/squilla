@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"squilla/internal/coreapi"
@@ -46,17 +47,49 @@ func (p *EmailManagerPlugin) listLayouts(ctx context.Context, req *pb.PluginHTTP
 	params := req.GetQueryParams()
 	page, perPage := parsePagination(params)
 
-	result, err := p.host.DataQuery(ctx, "email_layouts", coreapi.DataStoreQuery{
-		OrderBy: "id ASC",
+	layoutSortable := map[string]string{
+		"name":       "name",
+		"created_at": "created_at",
+		"updated_at": "updated_at",
+	}
+	orderBy := parseSort(params, layoutSortable, "name ASC")
+
+	var conds []string
+	var args []any
+	if search := params["search"]; search != "" {
+		conds = append(conds, "name ILIKE ?")
+		args = append(args, "%"+search+"%")
+	}
+	if cond, langArgs, ok := p.resolveLanguageFilter(ctx, params["language"]); ok {
+		conds = append(conds, cond)
+		args = append(args, langArgs...)
+	}
+
+	query := coreapi.DataStoreQuery{
+		OrderBy: orderBy,
 		Limit:   perPage,
 		Offset:  (page - 1) * perPage,
-	})
+	}
+	if len(conds) > 0 {
+		query.Raw = strings.Join(conds, " AND ")
+		query.Args = args
+	}
+
+	result, err := p.host.DataQuery(ctx, "email_layouts", query)
 	if err != nil {
 		return jsonError(500, "LIST_FAILED", "Failed to list email layouts"), nil
 	}
 
 	// Strip heavy fields from list response.
 	rows := stripFields(result.Rows, "body_template")
+
+	var allConds []string
+	var allArgs []any
+	if search := params["search"]; search != "" {
+		allConds = append(allConds, "name ILIKE ?")
+		allArgs = append(allArgs, "%"+search+"%")
+	}
+	totalAll := p.countWhere(ctx, "email_layouts", allConds, allArgs, "")
 
 	totalPages := int(math.Ceil(float64(result.Total) / float64(perPage)))
 	return jsonResponse(200, map[string]any{
@@ -66,6 +99,7 @@ func (p *EmailManagerPlugin) listLayouts(ctx context.Context, req *pb.PluginHTTP
 			"page":        page,
 			"per_page":    perPage,
 			"total_pages": totalPages,
+			"total_all":   totalAll,
 		},
 	}), nil
 }

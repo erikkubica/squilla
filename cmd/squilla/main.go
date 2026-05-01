@@ -216,6 +216,7 @@ func main() {
 	langHandler := cms.NewLanguageHandler(langSvc)
 	blockTypeHandler := cms.NewBlockTypeHandler(blockTypeSvc, database)
 	blockTypeHandler.SetThemeAssets(themeAssets)
+	blockTypeHandler.SetRenderer(renderer)
 	templateHandler := cms.NewTemplateHandler(templateSvc, database)
 	layoutHandler := cms.NewLayoutHandler(layoutSvc, layoutBlockSvc)
 	layoutHandler.SetDB(database)

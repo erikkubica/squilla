@@ -29,16 +29,25 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
   const pct = savedPercent(file);
   const badgeHide = selected ? "opacity-0" : "opacity-100 group-hover:opacity-0";
 
+  // Card chrome: solid bg, single ring border, transition only the box-shadow.
+  // Previous implementation stacked `ring-1 + ring-2 + ring-offset + shadow-md
+  // + transition-all` on every card AND `backdrop-blur-sm` on six per-card
+  // overlays (orig/opt/dimensions/copy/download/delete). At ~30 cards that
+  // hit ~180 GPU compositor layers on first paint, which Chrome handled by
+  // dropping frames — the "entire UI desaturates and tiles vanish" flash.
+  // Solid backgrounds (no /95 + backdrop-blur), one ring, and a targeted
+  // box-shadow transition keep the look identical without the GPU storm.
   return (
     <div
       onClick={() => onOpen(file)}
-      className={`group relative flex flex-col overflow-hidden rounded-xl cursor-pointer transition-all duration-150 bg-card ${
+      className={`group relative flex flex-col overflow-hidden rounded-xl cursor-pointer bg-card ${
         selected
-          ? "ring-2 ring-indigo-500 ring-offset-1 ring-offset-slate-100 shadow-md"
+          ? "ring-2 ring-indigo-500 shadow-md"
           : "ring-1 ring-slate-200 hover:ring-slate-300 hover:shadow-md"
       }`}
+      style={{ transition: "box-shadow 120ms ease" }}
     >
-      <div className="relative w-full overflow-hidden bg-muted" style={{ aspectRatio: "1 / 1" }}>
+      <div className="relative w-full overflow-hidden bg-muted" style={{ aspectRatio: "4 / 3" }}>
         {isImage(file.mime_type) ? (
           <MediaImage
             src={imageSize(file.url, "medium", file.updated_at)}
@@ -56,12 +65,11 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           </div>
         )}
 
-        {selected && <div className="absolute inset-0 bg-accent0/10 pointer-events-none" />}
-
         {/* Top-left: optimization badge (hides when checkbox slot needed) */}
         {showOptimized ? (
           <div
-            className={`absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full bg-emerald-500/95 pl-1 pr-1.5 py-0.5 text-white shadow-sm backdrop-blur-sm transition-opacity ${badgeHide}`}
+            className={`absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full pl-1 pr-1.5 py-0.5 text-white shadow-sm transition-opacity ${badgeHide}`}
+            style={{ background: "rgb(16, 185, 129)" }}
             title={`Optimized — saved ${humanFileSize(file.optimization_savings)}`}
           >
             <Zap className="h-2.5 w-2.5" strokeWidth={2.5} />
@@ -69,7 +77,8 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           </div>
         ) : isImage(file.mime_type) && file.mime_type !== "image/svg+xml" ? (
           <div
-            className={`absolute top-1.5 left-1.5 rounded-full bg-slate-900/60 backdrop-blur-sm px-1.5 py-0.5 text-white text-[9px] font-medium transition-opacity ${badgeHide}`}
+            className={`absolute top-1.5 left-1.5 rounded-full px-1.5 py-0.5 text-white text-[9px] font-medium transition-opacity ${badgeHide}`}
+            style={{ background: "rgba(15, 23, 42, 0.75)" }}
             title="Original — not optimized"
           >
             orig
@@ -78,7 +87,10 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
 
         {/* Top-right: dimensions chip on hover */}
         {file.width && file.height && (
-          <div className="absolute top-1.5 right-1.5 rounded-md bg-slate-900/65 backdrop-blur-sm px-1.5 py-0.5 text-white text-[9px] font-mono opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
+          <div
+            className="absolute top-1.5 right-1.5 rounded-md px-1.5 py-0.5 text-white text-[9px] font-mono opacity-0 group-hover:opacity-100 transition-opacity tabular-nums"
+            style={{ background: "rgba(15, 23, 42, 0.8)" }}
+          >
             {file.width}×{file.height}
           </div>
         )}
@@ -96,7 +108,7 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           <SelectCheck checked={selected} size={20} />
         </div>
 
-        {/* Hover quick-actions */}
+        {/* Hover quick-actions — solid backgrounds, no backdrop-blur */}
         <div
           className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1.5 pb-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
@@ -104,7 +116,7 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           <button
             type="button"
             onClick={() => onCopy(file)}
-            className="flex-1 h-7 rounded-md bg-card/95 backdrop-blur-sm hover:bg-card text-foreground text-[10.5px] font-medium shadow-sm border border-white/40 flex items-center justify-center gap-1 cursor-pointer"
+            className="flex-1 h-7 rounded-md bg-card hover:bg-muted text-foreground text-[10.5px] font-medium shadow-sm border border-border flex items-center justify-center gap-1 cursor-pointer"
             title="Copy URL"
           >
             {copyState === file.id ? (
@@ -120,7 +132,7 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           <button
             type="button"
             onClick={() => onDownload(file)}
-            className="h-7 w-7 grid place-items-center rounded-md bg-card/95 backdrop-blur-sm hover:bg-card text-foreground shadow-sm border border-white/40 cursor-pointer"
+            className="h-7 w-7 grid place-items-center rounded-md bg-card hover:bg-muted text-foreground shadow-sm border border-border cursor-pointer"
             title="Download"
           >
             <Download className="h-3 w-3" />
@@ -128,7 +140,7 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           <button
             type="button"
             onClick={() => onDelete(file)}
-            className="h-7 w-7 grid place-items-center rounded-md bg-card/95 backdrop-blur-sm hover:bg-muted text-red-600 hover:text-foreground shadow-sm border border-white/40 cursor-pointer"
+            className="h-7 w-7 grid place-items-center rounded-md bg-card hover:bg-muted text-red-600 shadow-sm border border-border cursor-pointer"
             title="Delete"
           >
             <Trash2 className="h-3 w-3" />
@@ -168,8 +180,8 @@ interface MediaGridProps {
 }
 
 const COL_CLASSES: Record<Density, string> = {
-  compact: "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-9",
-  comfy: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7",
+  compact: "grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-9",
+  comfy: "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7",
   spacious: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
 };
 

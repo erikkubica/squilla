@@ -303,7 +303,11 @@
   [data-slot="input"],
   [data-slot="select-trigger"][data-size="default"] {
     height: 32px !important;
-    padding: 0 11px !important;
+    /* Default inline padding kept WITHOUT !important so callers can apply
+       pl-8 / pr-8 to clear an absolutely-positioned leading/trailing icon
+       (link, search, etc). Forcing 11px globally was making icon-prefixed
+       inputs (URL fields in menu-tree, search bars) overlap their text. */
+    padding: 0 11px;
     font-size: 13px !important;
   }
   [data-slot="select-trigger"][data-size="sm"] {
@@ -411,6 +415,10 @@
     min-height: 0 !important;
     gap: 0 !important;
     justify-content: flex-start !important;
+    /* Span the full card width so the bottom divider runs end-to-end,
+       even when the tab labels themselves only need a fraction of it. */
+    display: flex !important;
+    width: 100% !important;
   }
   [data-slot="tabs-trigger"] {
     background-color: transparent !important;
@@ -430,6 +438,9 @@
     display: flex !important;
     align-items: center !important;
     gap: 6px !important;
+    /* Each trigger sizes to its label, never stretches to fill the row. */
+    flex: 0 0 auto !important;
+    width: auto !important;
   }
   [data-slot="tabs-trigger"]:hover:not([data-state="active"]) {
     color: var(--fg) !important;

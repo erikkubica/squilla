@@ -113,7 +113,7 @@ func (p *EmailManagerPlugin) routeRules(ctx context.Context, method, subPath str
 	if subPath == "" {
 		switch method {
 		case "GET":
-			return p.listRules(ctx)
+			return p.listRules(ctx, req)
 		case "POST":
 			return p.createRule(ctx, req.GetBody())
 		default:
@@ -228,6 +228,73 @@ func parsePagination(params map[string]string) (page, perPage int) {
 		perPage = 25
 	}
 	return
+}
+
+// parseSort returns an "ORDER BY <col> <dir>" clause built from `sort` and
+// `order` query params. The `allowed` map whitelists user-supplied column
+// names against the actual SQL column they map to. Any unknown column or
+// missing param falls back to `defaultClause` (e.g. "created_at DESC").
+func parseSort(params map[string]string, allowed map[string]string, defaultClause string) string {
+	col := params["sort"]
+	if col == "" {
+		return defaultClause
+	}
+	sqlCol, ok := allowed[col]
+	if !ok {
+		return defaultClause
+	}
+	dir := strings.ToLower(strings.TrimSpace(params["order"]))
+	if dir != "asc" && dir != "desc" {
+		dir = "asc"
+	}
+	return sqlCol + " " + strings.ToUpper(dir)
+}
+
+// resolveLanguageFilter translates a user-facing `language` query param into
+// a SQL condition + arg pair. Returns ("", nil, false) when no filter applies.
+//
+//   - "" or "all" → no filter
+//   - "__universal__" → "language_id IS NULL"
+//   - any other value → look up languages.code and filter by id
+func (p *EmailManagerPlugin) resolveLanguageFilter(ctx context.Context, value string) (string, []any, bool) {
+	if value == "" || value == "all" {
+		return "", nil, false
+	}
+	if value == "__universal__" {
+		return "language_id IS NULL", nil, true
+	}
+	res, err := p.host.DataQuery(ctx, "languages", coreapi.DataStoreQuery{
+		Raw:   "code = ?",
+		Args:  []any{value},
+		Limit: 1,
+	})
+	if err != nil || res == nil || len(res.Rows) == 0 {
+		// Unknown code — return an impossible condition so the result is empty.
+		return "1 = 0", nil, true
+	}
+	id := toUint(res.Rows[0]["id"])
+	return "language_id = ?", []any{id}, true
+}
+
+// countWhere runs a COUNT(*) query against `table` with extra WHERE conditions
+// AND-joined to a base condition set. Used for per-tab counts.
+func (p *EmailManagerPlugin) countWhere(ctx context.Context, table string, baseConds []string, baseArgs []any, extraCond string, extraArgs ...any) int64 {
+	conds := append([]string{}, baseConds...)
+	args := append([]any{}, baseArgs...)
+	if extraCond != "" {
+		conds = append(conds, extraCond)
+		args = append(args, extraArgs...)
+	}
+	q := coreapi.DataStoreQuery{Limit: 1}
+	if len(conds) > 0 {
+		q.Raw = strings.Join(conds, " AND ")
+		q.Args = args
+	}
+	res, err := p.host.DataQuery(ctx, table, q)
+	if err != nil || res == nil {
+		return 0
+	}
+	return res.Total
 }
 
 func stripFields(rows []map[string]any, fields ...string) []map[string]any {

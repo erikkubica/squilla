@@ -45,7 +45,7 @@ import { toast } from "sonner";
 import { usePageMeta } from "@/components/layout/page-meta";
 import FieldSchemaEditor from "@/components/ui/field-schema-editor";
 import { CodeWindow } from "@/components/ui/code-window";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsCard } from "@/components/ui/tabs-card";
 
 function keyify(text: string) {
   return text
@@ -92,6 +92,7 @@ export default function BlockTypeEditorPage() {
   const [previewHead, setPreviewHead] = useState("");
   const [previewBodyClass, setPreviewBodyClass] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("fields");
 
   useEffect(() => {
     if (isEdit && id) {
@@ -255,87 +256,88 @@ export default function BlockTypeEditorPage() {
           />
 
           {/* Tabs */}
-          <Tabs defaultValue="fields" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="fields" className="">
-                <Boxes className="mr-2 h-4 w-4" /> Fields
-              </TabsTrigger>
-              <TabsTrigger value="template" className="">
-                <FileCode className="mr-2 h-4 w-4" /> Template
-              </TabsTrigger>
-              <TabsTrigger value="test-data" className="">
-                <Code className="mr-2 h-4 w-4" /> Test Data
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="" onClick={handlePreview}>
-                <Eye className="mr-2 h-4 w-4" /> Preview
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="template" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <CodeWindow
-                title="HTML / Go Template"
-                value={htmlTemplate}
-                onChange={setHtmlTemplate}
-                height="500px"
-                disabled={isManaged}
-              />
-            </TabsContent>
-
-            <TabsContent value="fields" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Fields Definition" />
-                <CardContent>
-                  <p className="text-xs text-muted-foreground mb-4">Configure the data structure for this block.</p>
-                  <FieldSchemaEditor
-                    fields={fields}
-                    onChange={setFields}
+          <TabsCard
+            value={activeTab}
+            onValueChange={(v) => {
+              setActiveTab(v);
+              if (v === "preview") handlePreview();
+            }}
+            tabs={[
+              {
+                value: "fields",
+                label: (<><Boxes className="mr-2 h-4 w-4" /> Fields</>),
+                badge: fields.length,
+                content: (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-4">Configure the data structure for this block.</p>
+                    <FieldSchemaEditor
+                      fields={fields}
+                      onChange={setFields}
+                      disabled={isManaged}
+                    />
+                  </>
+                ),
+              },
+              {
+                value: "template",
+                label: (<><FileCode className="mr-2 h-4 w-4" /> Template</>),
+                content: (
+                  <CodeWindow
+                    title="HTML / Go Template"
+                    value={htmlTemplate}
+                    onChange={setHtmlTemplate}
+                    height="500px"
                     disabled={isManaged}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="test-data" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <CodeWindow
-                title="Mock Content (JSON)"
-                value={JSON.stringify(testData, null, 2)}
-                onChange={(v) => {
-                  try { setTestData(JSON.parse(v)); } catch {}
-                }}
-                height="500px"
-                disabled={isManaged}
-              />
-            </TabsContent>
-
-            <TabsContent value="preview" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm h-[500px] flex flex-col">
-                <SectionHeader
-                  title="Rendered Preview"
-                  actions={
-                    <Button variant="ghost" type="button" size="sm" className="h-7 text-xs" onClick={handlePreview} disabled={previewLoading}>
-                      {previewLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
-                      Refresh
-                    </Button>
-                  }
-                />
-                <div className="flex-1 overflow-hidden bg-card">
-                  {previewHtml ? (
-                    <iframe
-                      title="Block preview"
-                      className="h-full w-full border-0 bg-card"
-                      sandbox="allow-same-origin allow-scripts"
-                      srcDoc={`<!doctype html><html><head><meta charset="utf-8">${previewHead || '<script src="https://cdn.tailwindcss.com"></script>'}<style>body{margin:0;padding:1rem;}</style></head><body class="${previewBodyClass}">${previewHtml}</body></html>`}
-                    />
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center space-y-3" style={{color: "var(--fg-subtle)"}}>
-                      <Eye className="h-10 w-10 opacity-20" />
-                      <p className="text-sm">Click refresh to render template with test data</p>
+                ),
+              },
+              {
+                value: "test-data",
+                label: (<><Code className="mr-2 h-4 w-4" /> Test Data</>),
+                content: (
+                  <CodeWindow
+                    title="Mock Content (JSON)"
+                    value={JSON.stringify(testData, null, 2)}
+                    onChange={(v) => {
+                      try { setTestData(JSON.parse(v)); } catch {}
+                    }}
+                    height="500px"
+                    disabled={isManaged}
+                  />
+                ),
+              },
+              {
+                value: "preview",
+                label: (<><Eye className="mr-2 h-4 w-4" /> Preview</>),
+                content: (
+                  <div className="h-[500px] flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-foreground">Rendered Preview</span>
+                      <Button variant="ghost" type="button" size="sm" className="h-7 text-xs" onClick={handlePreview} disabled={previewLoading}>
+                        {previewLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
+                        Refresh
+                      </Button>
                     </div>
-                  )}
-                </div>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                    <div className="flex-1 overflow-hidden bg-card rounded-lg border border-border">
+                      {previewHtml ? (
+                        <iframe
+                          title="Block preview"
+                          className="h-full w-full border-0 bg-card"
+                          sandbox="allow-same-origin allow-scripts"
+                          srcDoc={`<!doctype html><html><head><meta charset="utf-8">${previewHead || '<script src="https://cdn.tailwindcss.com"></script>'}<style>body{margin:0;padding:1rem;}</style></head><body class="${previewBodyClass}">${previewHtml}</body></html>`}
+                        />
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center space-y-3" style={{color: "var(--fg-subtle)"}}>
+                          <Eye className="h-10 w-10 opacity-20" />
+                          <p className="text-sm">Click refresh to render template with test data</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Sidebar */}
@@ -358,7 +360,6 @@ export default function BlockTypeEditorPage() {
 
               {!isManaged && (
                 <>
-                  <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
                   <PublishActions>
                     <Button
                       type="submit"
@@ -386,7 +387,6 @@ export default function BlockTypeEditorPage() {
 
               {isEdit && (
                 <>
-                  <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
                   <MetaList>
                     <MetaRow label="Source" value={<span className="capitalize">{source}</span>} />
                     {createdAt && <MetaRow label="Created" value={new Date(createdAt).toLocaleDateString("en-GB")} />}

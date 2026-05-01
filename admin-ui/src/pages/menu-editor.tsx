@@ -7,12 +7,13 @@ import {
   Link as LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { SectionHeader } from "@/components/ui/section-header";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Titlebar } from "@/components/ui/titlebar";
 import { MetaRow, MetaList } from "@/components/ui/meta-row";
 import { PublishActions } from "@/components/ui/publish-actions";
+import { SidebarCard } from "@/components/ui/sidebar-card";
+import { TabsCard } from "@/components/ui/tabs-card";
 import { toast } from "sonner";
 import { usePageMeta } from "@/components/layout/page-meta";
 import {
@@ -34,6 +35,15 @@ function slugify(text: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+function countMenuItems(items: MenuItem[]): number {
+  let n = 0;
+  for (const it of items) {
+    n += 1;
+    if (it.children && it.children.length > 0) n += countMenuItems(it.children);
+  }
+  return n;
 }
 
 function newMenuItem(type: MenuItem["item_type"]): MenuItem {
@@ -223,75 +233,81 @@ export default function MenuEditorPage() {
           onBack={() => navigate("/admin/menus")}
         />
 
-        <MenuTree items={menuItems} onChange={setMenuItems} autoEditId={lastAddedId} />
-
-          {/* Add buttons — always visible */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 rounded-lg border-dashed border-border text-muted-foreground hover:" style={{color: "var(--accent-strong)"}}
-              onClick={() => addItem("node")}
-            >
-              <LinkIcon className="mr-2 h-4 w-4" />
-              Add Page Link
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 rounded-lg border-dashed border-border text-muted-foreground hover:" style={{color: "var(--accent-strong)"}}
-              onClick={() => addItem("custom")}
-            >
-              <Globe className="mr-2 h-4 w-4" />
-              Add Custom URL
-            </Button>
-          </div>
+        <TabsCard
+          tabs={[
+            {
+              value: "items",
+              label: "Items",
+              badge: countMenuItems(menuItems),
+              content: (
+                <div className="space-y-3">
+                  <MenuTree items={menuItems} onChange={setMenuItems} autoEditId={lastAddedId} />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 rounded-lg border-dashed border-border text-muted-foreground"
+                      style={{ color: "var(--accent-strong)" }}
+                      onClick={() => addItem("node")}
+                    >
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      Add Page Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 rounded-lg border-dashed border-border text-muted-foreground"
+                      style={{ color: "var(--accent-strong)" }}
+                      onClick={() => addItem("custom")}
+                    >
+                      <Globe className="mr-2 h-4 w-4" />
+                      Add Custom URL
+                    </Button>
+                  </div>
+                </div>
+              ),
+            },
+          ]}
+        />
         </div>
 
       {/* Sidebar */}
-      <div className="space-y-6">
-        <Card className="rounded-xl border border-border shadow-sm">
-          <SectionHeader title="Menu Details" />
-          <CardContent className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Language</label>
-              <Select
-                value={languageId === null ? "all" : String(languageId)}
-                onValueChange={(v) => setLanguageId(v === "all" ? null : Number(v))}
-              >
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Languages</SelectItem>
-                  {languages.map((lang) => (
-                    <SelectItem key={lang.id} value={String(lang.id)}>
-                      {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
-            <PublishActions>
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="w-full"
-              >
-                {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
-                {saving ? "Saving..." : "Save Menu"}
-              </Button>
-            </PublishActions>
-            {!isNew && originalMenu && (
-              <>
-                <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
-                <MetaList>
-                  <MetaRow label="Version" value={`v${version}`} />
-                  {originalMenu.created_at && <MetaRow label="Created" value={new Date(originalMenu.created_at).toLocaleDateString("en-GB")} />}
-                  {originalMenu.updated_at && <MetaRow label="Updated" value={new Date(originalMenu.updated_at).toLocaleDateString("en-GB")} />}
-                </MetaList>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <aside className="lg:sticky lg:top-4 lg:self-start space-y-4">
+        <SidebarCard title="Publish">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Language</Label>
+            <Select
+              value={languageId === null ? "all" : String(languageId)}
+              onValueChange={(v) => setLanguageId(v === "all" ? null : Number(v))}
+            >
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Languages</SelectItem>
+                {languages.map((lang) => (
+                  <SelectItem key={lang.id} value={String(lang.id)}>
+                    {lang.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <PublishActions>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full"
+            >
+              {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
+              {saving ? "Saving..." : "Save Menu"}
+            </Button>
+          </PublishActions>
+          {!isNew && originalMenu && (
+            <MetaList>
+              <MetaRow label="Version" value={`v${version}`} />
+              {originalMenu.created_at && <MetaRow label="Created" value={new Date(originalMenu.created_at).toLocaleDateString("en-GB")} />}
+              {originalMenu.updated_at && <MetaRow label="Updated" value={new Date(originalMenu.updated_at).toLocaleDateString("en-GB")} />}
+            </MetaList>
+          )}
+        </SidebarCard>
+      </aside>
     </div>
   );
 }

@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CodeWindow } from "@/components/ui/code-window";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsCard } from "@/components/ui/tabs-card";
 import { toast } from "sonner";
 import { usePageMeta } from "@/components/layout/page-meta";
 import {
@@ -273,32 +273,28 @@ export default function LayoutEditorPage() {
           />
 
           {/* Tabs */}
-          <Tabs defaultValue="template" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="template" className="">
-                <FileCode className="mr-2 h-4 w-4" /> Template
-              </TabsTrigger>
-              <TabsTrigger value="reference" className="">
-                <BookOpen className="mr-2 h-4 w-4" /> Reference
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="template" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <CodeWindow
-                title="Template Code — Go html/template"
-                value={templateCode}
-                onChange={setTemplateCode}
-                disabled={isManaged}
-                height="600px"
-                placeholder="Enter your Go html/template code here..."
-                variables={TEMPLATE_VARIABLES}
-              />
-            </TabsContent>
-
-            <TabsContent value="reference" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-border shadow-sm">
-                <SectionHeader title="Template Reference" />
-                <CardContent>
+          <TabsCard
+            defaultValue="template"
+            tabs={[
+              {
+                value: "template",
+                label: (<><FileCode className="mr-2 h-4 w-4" /> Template</>),
+                content: (
+                  <CodeWindow
+                    title="Template Code — Go html/template"
+                    value={templateCode}
+                    onChange={setTemplateCode}
+                    disabled={isManaged}
+                    height="600px"
+                    placeholder="Enter your Go html/template code here..."
+                    variables={TEMPLATE_VARIABLES}
+                  />
+                ),
+              },
+              {
+                value: "reference",
+                label: (<><BookOpen className="mr-2 h-4 w-4" /> Reference</>),
+                content: (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                       <h3 className="mb-3 text-sm font-semibold text-foreground">App Variables</h3>
@@ -355,10 +351,10 @@ export default function LayoutEditorPage() {
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Sidebar */}
@@ -381,7 +377,6 @@ export default function LayoutEditorPage() {
 
               {!isManaged && (
                 <>
-                  <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
                   <PublishActions>
                     <Button
                       type="submit"
@@ -409,7 +404,6 @@ export default function LayoutEditorPage() {
 
               {isEdit && originalLayout && (
                 <>
-                  <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
                   <MetaList>
                     <MetaRow label="Source" value={<span className="capitalize">{source}</span>} />
                     {originalLayout.created_at && <MetaRow label="Created" value={new Date(originalLayout.created_at).toLocaleDateString("en-GB")} />}

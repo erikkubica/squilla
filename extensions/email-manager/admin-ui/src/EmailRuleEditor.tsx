@@ -1,19 +1,22 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Save, Loader2 } from "@squilla/icons";
+import { useParams, useNavigate } from "react-router-dom";
+import { Save, Loader2 } from "@squilla/icons";
 import {
   Button,
   Input,
   Label,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
+  Titlebar,
+  SidebarCard,
+  PublishActions,
+  TabsCard,
+  MetaRow,
+  MetaList,
 } from "@squilla/ui";
 import { toast } from "sonner";
 import {
@@ -54,6 +57,8 @@ interface EmailRule {
   recipient_type: string;
   recipient_value: string;
   enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function EmailRuleEditor() {
@@ -69,6 +74,7 @@ export default function EmailRuleEditor() {
   const [actions, setActions] = useState<SystemAction[]>([]);
   const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [original, setOriginal] = useState<EmailRule | null>(null);
 
   // Form state
   const [formAction, setFormAction] = useState("");
@@ -98,6 +104,7 @@ export default function EmailRuleEditor() {
         if (isEdit) {
           const rule = await getEmailRule(Number(id));
           if (cancelled) return;
+          setOriginal(rule);
           setFormAction(rule.action);
           setFormNodeType(rule.node_type || "");
           setFormTemplateId(String(rule.template_id));
@@ -160,152 +167,204 @@ export default function EmailRuleEditor() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-strong)" }} />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-            <Link to="/admin/ext/email-manager/rules">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold text-foreground">
-            {isEdit ? "Edit Email Rule" : "New Email Rule"}
-          </h1>
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
-        >
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? "Saving..." : "Save"}
-        </Button>
+  // Title for the rule: derived from the selected action label, or fallback.
+  const actionLabel = actions.find((a) => a.slug === formAction)?.label || formAction;
+  const titleValue = actionLabel || (isEdit ? `Rule #${id}` : "New Email Rule");
+
+  const triggerTab = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Action</Label>
+        <Select value={formAction} onValueChange={setFormAction}>
+          <SelectTrigger className="rounded-lg border-border">
+            <SelectValue placeholder="Select an action..." />
+          </SelectTrigger>
+          <SelectContent>
+            {actions.map((act) => (
+              <SelectItem key={act.slug} value={act.slug}>
+                {act.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+          The system event that fires this rule.
+        </p>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        <Card className="rounded-xl border border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">Rule Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Action</Label>
-              <Select value={formAction} onValueChange={setFormAction}>
-                <SelectTrigger className="rounded-lg border-border">
-                  <SelectValue placeholder="Select an action..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {actions.map((act) => (
-                    <SelectItem key={act.slug} value={act.slug}>
-                      {act.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Node Type (optional)</Label>
-              <Select value={formNodeType || "__all__"} onValueChange={(v) => setFormNodeType(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="rounded-lg border-border">
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All types</SelectItem>
-                  {nodeTypes.map((nt) => (
-                    <SelectItem key={nt.slug} value={nt.slug}>
-                      {nt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Template</Label>
-              <Select value={formTemplateId} onValueChange={setFormTemplateId}>
-                <SelectTrigger className="rounded-lg border-border">
-                  <SelectValue placeholder="Select a template..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((tpl) => (
-                    <SelectItem key={tpl.id} value={String(tpl.id)}>
-                      {tpl.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Recipient Type</Label>
-                <Select value={formRecipientType} onValueChange={(v) => {
-                  setFormRecipientType(v);
-                  setFormRecipientValue("");
-                }}>
-                  <SelectTrigger className="rounded-lg border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="actor">Actor (triggering user)</SelectItem>
-                    <SelectItem value="node_author">Node Author</SelectItem>
-                    <SelectItem value="role">Role</SelectItem>
-                    <SelectItem value="fixed">Fixed Email(s)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formRecipientType === "role" && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Role</Label>
-                  <Select value={formRecipientValue} onValueChange={setFormRecipientValue}>
-                    <SelectTrigger className="rounded-lg border-border">
-                      <SelectValue placeholder="Select a role..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.slug} value={role.slug}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {formRecipientType === "fixed" && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Email Address(es)</Label>
-                  <Input
-                    placeholder="email1@example.com, email2@example.com"
-                    value={formRecipientValue}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormRecipientValue(e.target.value)}
-                    className="rounded-lg border-border "
-                  />
-                </div>
-              )}
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formEnabled}
-                onChange={(e) => setFormEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-foreground "
-              />
-              <span className="text-sm font-medium text-foreground">Enabled</span>
-            </label>
-          </CardContent>
-        </Card>
-      </form>
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Node Type (optional)</Label>
+        <Select
+          value={formNodeType || "__all__"}
+          onValueChange={(v) => setFormNodeType(v === "__all__" ? "" : v)}
+        >
+          <SelectTrigger className="rounded-lg border-border">
+            <SelectValue placeholder="All types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All types</SelectItem>
+            {nodeTypes.map((nt) => (
+              <SelectItem key={nt.slug} value={nt.slug}>
+                {nt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+          Restrict this rule to a single node type. Leave empty to match all.
+        </p>
+      </div>
     </div>
+  );
+
+  const recipientsTab = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Recipient Type</Label>
+        <Select
+          value={formRecipientType}
+          onValueChange={(v) => {
+            setFormRecipientType(v);
+            setFormRecipientValue("");
+          }}
+        >
+          <SelectTrigger className="rounded-lg border-border">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="actor">Actor (triggering user)</SelectItem>
+            <SelectItem value="node_author">Node Author</SelectItem>
+            <SelectItem value="role">Role</SelectItem>
+            <SelectItem value="fixed">Fixed Email(s)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {formRecipientType === "role" && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">Role</Label>
+          <Select value={formRecipientValue} onValueChange={setFormRecipientValue}>
+            <SelectTrigger className="rounded-lg border-border">
+              <SelectValue placeholder="Select a role..." />
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map((role) => (
+                <SelectItem key={role.slug} value={role.slug}>
+                  {role.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {formRecipientType === "fixed" && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">Email Address(es)</Label>
+          <Input
+            placeholder="email1@example.com, email2@example.com"
+            value={formRecipientValue}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFormRecipientValue(e.target.value)
+            }
+            className="rounded-lg border-border"
+          />
+          <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+            Comma-separated list of email addresses to notify.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
+  const templateTab = (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Template</Label>
+        <Select value={formTemplateId} onValueChange={setFormTemplateId}>
+          <SelectTrigger className="rounded-lg border-border">
+            <SelectValue placeholder="Select a template..." />
+          </SelectTrigger>
+          <SelectContent>
+            {templates.map((tpl) => (
+              <SelectItem key={tpl.id} value={String(tpl.id)}>
+                {tpl.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+          The email template rendered when this rule fires.
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <form onSubmit={handleSave} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* Main column */}
+      <div className="space-y-4 min-w-0">
+        <Titlebar
+          title={titleValue}
+          onTitleChange={() => {
+            /* title is derived from action; not directly editable */
+          }}
+          titleLabel="Rule"
+          id={isEdit && id ? Number(id) : undefined}
+          onBack={() => navigate("/admin/ext/email-manager/rules")}
+        />
+
+        <TabsCard
+          tabs={[
+            { value: "trigger", label: "Trigger", content: triggerTab },
+            { value: "recipients", label: "Recipients", content: recipientsTab },
+            { value: "template", label: "Template", content: templateTab },
+          ]}
+        />
+      </div>
+
+      {/* Sidebar */}
+      <aside className="lg:sticky lg:top-4 lg:self-start">
+        <SidebarCard title="Publish">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-sm font-medium text-foreground">Enabled</Label>
+            <Switch checked={formEnabled} onCheckedChange={setFormEnabled} />
+          </div>
+
+          <PublishActions>
+            <Button type="submit" className="w-full" disabled={saving}>
+              {saving ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </PublishActions>
+
+          {isEdit && original && (original.created_at || original.updated_at) && (
+            <MetaList>
+              {original.created_at && (
+                <MetaRow
+                  label="Created"
+                  value={new Date(original.created_at).toLocaleDateString("en-GB")}
+                />
+              )}
+              {original.updated_at && (
+                <MetaRow
+                  label="Updated"
+                  value={new Date(original.updated_at).toLocaleDateString("en-GB")}
+                />
+              )}
+            </MetaList>
+          )}
+        </SidebarCard>
+      </aside>
+    </form>
   );
 }

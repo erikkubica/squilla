@@ -15,6 +15,7 @@ import (
 	"squilla/internal/api"
 	"squilla/internal/auth"
 	"squilla/internal/models"
+	"squilla/internal/rendering"
 )
 
 // activeThemeChrome extracts the <head> inner HTML and the <body class="...">
@@ -60,6 +61,7 @@ type BlockTypeHandler struct {
 	svc         *BlockTypeService
 	db          *gorm.DB
 	themeAssets *ThemeAssetRegistry
+	renderer    *rendering.TemplateRenderer
 }
 
 // NewBlockTypeHandler creates a new BlockTypeHandler with the given BlockTypeService.
@@ -71,6 +73,14 @@ func NewBlockTypeHandler(svc *BlockTypeService, db *gorm.DB) *BlockTypeHandler {
 // emit the same head_styles + block_styles the live renderer uses.
 func (h *BlockTypeHandler) SetThemeAssets(r *ThemeAssetRegistry) {
 	h.themeAssets = r
+}
+
+// SetRenderer wires the live template renderer so the preview endpoint
+// inherits its full FuncMap (image_url, image_srcset, add, sub, seq,
+// setting, mustSetting, list, mod, trim, …). Otherwise themes that use
+// any helper fail in the preview iframe with "function not defined".
+func (h *BlockTypeHandler) SetRenderer(r *rendering.TemplateRenderer) {
+	h.renderer = r
 }
 
 // resolveTestDataSlice replaces any "theme-asset:<key>" or
@@ -284,7 +294,7 @@ func (h *BlockTypeHandler) PreviewBlockTemplate(c *fiber.Ctx) error {
 		}
 	}
 
-	tmpl, err := template.New("preview").Funcs(template.FuncMap{
+	funcs := template.FuncMap{
 		"safeHTML": func(s interface{}) template.HTML {
 			return template.HTML(fmt.Sprintf("%v", s))
 		},
@@ -294,7 +304,19 @@ func (h *BlockTypeHandler) PreviewBlockTemplate(c *fiber.Ctx) error {
 		"safeURL": func(s interface{}) template.URL {
 			return template.URL(fmt.Sprintf("%v", s))
 		},
-	}).Parse(req.HTMLTemplate)
+	}
+	// Inherit the live renderer's helpers (image_url, image_srcset, add,
+	// sub, seq, setting, mustSetting, list, mod, trim, …) so previewing a
+	// block template behaves the same as the public render. Local entries
+	// above stay (safeHTML/raw/safeURL are preview-specific).
+	if h.renderer != nil {
+		for name, fn := range h.renderer.FuncMap() {
+			if _, taken := funcs[name]; !taken {
+				funcs[name] = fn
+			}
+		}
+	}
+	tmpl, err := template.New("preview").Funcs(funcs).Parse(req.HTMLTemplate)
 	if err != nil {
 		return c.JSON(fiber.Map{"html": fmt.Sprintf("<div class=\"text-red-500 text-sm p-3 bg-red-50 rounded-lg border border-red-200\"><strong>Template Error:</strong> %s</div>", template.HTMLEscapeString(err.Error()))})
 	}
