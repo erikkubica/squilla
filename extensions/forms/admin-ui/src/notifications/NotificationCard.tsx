@@ -101,16 +101,16 @@ export default function NotificationCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-400 hover:text-indigo-500"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
               title="Send test email"
             >
               <Send className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-72 p-3 space-y-3" align="end">
-            <p className="text-sm font-medium text-slate-700">Send Test Email</p>
+            <p className="text-sm font-medium text-foreground">Send Test Email</p>
             <div className="space-y-1">
-              <Label className="text-xs text-slate-500">
+              <Label className="text-xs text-muted-foreground">
                 Recipient (leave blank for your account email)
               </Label>
               <Input
@@ -130,7 +130,7 @@ export default function NotificationCard({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-slate-400 hover:text-indigo-500"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
           title="Send test email"
           onClick={handleSendTest}
         >
@@ -141,7 +141,7 @@ export default function NotificationCard({
         variant="ghost"
         size="icon"
         onClick={() => onRemove(index)}
-        className="h-7 w-7 text-slate-400 hover:text-red-500"
+        className="h-7 w-7 text-muted-foreground hover:text-foreground"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
@@ -153,20 +153,20 @@ export default function NotificationCard({
       {isAutoResponder ? (
         <User className="h-4 w-4 text-blue-400 shrink-0" />
       ) : (
-        <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
       )}
-      <span className="font-medium text-[13px] text-slate-700 truncate">
+      <span className="font-medium text-[13px] text-foreground truncate">
         {notif.name}
       </span>
       <span
         className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
-          isAutoResponder ? "bg-blue-100 text-blue-600" : "bg-slate-200 text-slate-500"
+          isAutoResponder ? "bg-blue-100 text-blue-600" : "bg-border text-muted-foreground"
         }`}
       >
         {isAutoResponder ? "Auto-Responder" : "Admin"}
       </span>
       {notif.enabled === false && (
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400 shrink-0">
+        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
           Disabled
         </span>
       )}
@@ -175,7 +175,7 @@ export default function NotificationCard({
 
   return (
     <Card
-      className={`rounded-xl border border-slate-200 shadow-sm overflow-hidden ${
+      className={`rounded-xl border border-border shadow-sm overflow-hidden ${
         !notif.enabled ? "opacity-60" : ""
       }`}
     >
@@ -190,7 +190,7 @@ export default function NotificationCard({
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <ChevronDown
-            className={`h-3.5 w-3.5 text-slate-400 transition-transform shrink-0 ${
+            className={`h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0 ${
               collapsed ? "-rotate-90" : ""
             }`}
           />
@@ -203,7 +203,7 @@ export default function NotificationCard({
       <CardContent className="p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-500">Notification Name</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Notification Name</Label>
             <Input
               value={notif.name}
               onChange={(e: any) => onUpdate(index, "name", e.target.value)}
@@ -211,7 +211,7 @@ export default function NotificationCard({
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-500">Notification Type</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Notification Type</Label>
             <Select value={notifType} onValueChange={(val: string) => onUpdate(index, "type", val)}>
               <SelectTrigger>
                 <SelectValue />
@@ -231,7 +231,7 @@ export default function NotificationCard({
                 </SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-muted-foreground">
               {isAutoResponder
                 ? "Sends to the submitter's email address."
                 : "Sends to the configured recipient addresses."}
@@ -241,7 +241,7 @@ export default function NotificationCard({
 
         {isAutoResponder ? (
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-500">Recipient Field</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Recipient Field</Label>
             {emailFields.length > 0 ? (
               <Select
                 value={notif.recipient_field || ""}
@@ -265,26 +265,26 @@ export default function NotificationCard({
                 placeholder="Enter email field ID"
               />
             )}
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-muted-foreground">
               Select which field contains the submitter's email address.
             </p>
           </div>
         ) : (
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-500">Recipient(s)</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Recipient(s)</Label>
             <Input
               value={notif.recipients}
               onChange={(e: any) => onUpdate(index, "recipients", e.target.value)}
               placeholder="admin@example.com"
             />
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-muted-foreground">
               Comma separated. Supports templates like <code>{"{{.SiteEmail}}"}</code>
             </p>
           </div>
         )}
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Subject</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Subject</Label>
           <Input
             value={notif.subject}
             onChange={(e: any) => onUpdate(index, "subject", e.target.value)}
@@ -293,7 +293,7 @@ export default function NotificationCard({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Email Body (Plain Text or HTML)</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Email Body (Plain Text or HTML)</Label>
           <Textarea
             value={notif.body}
             onChange={(e: any) => onUpdate(index, "body", e.target.value)}
@@ -303,7 +303,7 @@ export default function NotificationCard({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Reply-To Address</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Reply-To Address</Label>
           {emailFields.length > 0 ? (
             <Select
               value={notif.reply_to ? notif.reply_to : "__none__"}
@@ -333,7 +333,7 @@ export default function NotificationCard({
         </div>
 
         {/* CC / BCC */}
-        <div className="border-t border-slate-100 pt-3">
+        <div className="border-t border-border pt-3">
           <AccordionRow
             open={expandedCC}
             onToggle={() => setExpandedCC(!expandedCC)}
@@ -343,22 +343,22 @@ export default function NotificationCard({
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">CC</Label>
+                <Label className="text-xs font-medium text-muted-foreground">CC</Label>
                 <Input
                   value={notif.cc || ""}
                   onChange={(e: any) => onUpdate(index, "cc", e.target.value)}
                   placeholder="cc@example.com"
                 />
-                <p className="text-[10px] text-slate-400">Comma separated email addresses.</p>
+                <p className="text-[10px] text-muted-foreground">Comma separated email addresses.</p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">BCC</Label>
+                <Label className="text-xs font-medium text-muted-foreground">BCC</Label>
                 <Input
                   value={notif.bcc || ""}
                   onChange={(e: any) => onUpdate(index, "bcc", e.target.value)}
                   placeholder="bcc@example.com"
                 />
-                <p className="text-[10px] text-slate-400">Comma separated email addresses.</p>
+                <p className="text-[10px] text-muted-foreground">Comma separated email addresses.</p>
               </div>
             </div>
           </AccordionRow>

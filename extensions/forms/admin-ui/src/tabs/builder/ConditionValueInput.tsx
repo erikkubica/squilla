@@ -37,16 +37,16 @@ export default function ConditionValueInput({
 
     return (
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap gap-1 p-1.5 border border-slate-200 rounded-md min-h-[32px] bg-white">
+        <div className="flex flex-wrap gap-1 p-1.5 border border-border rounded-md min-h-[32px] bg-card">
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-accent text-foreground border border-border"
             >
               {tag}
               <button
                 type="button"
-                className="hover:text-red-500"
+                className="hover:text-foreground"
                 onClick={() => removeTag(tag)}
                 aria-label={`Remove ${tag}`}
               >
@@ -74,7 +74,7 @@ export default function ConditionValueInput({
             }}
           />
         </div>
-        <p className="text-[9px] text-slate-400 mt-0.5">Press Enter or comma to add a value</p>
+        <p className="text-[9px] text-muted-foreground mt-0.5">Press Enter or comma to add a value</p>
       </div>
     );
   }

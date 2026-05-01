@@ -31,32 +31,32 @@ export default function NotificationVariablesPanel() {
       onToggle={() => setOpen(!open)}
       headerLeft={
         <div className="flex items-center gap-2">
-          <Code className="h-4 w-4 text-indigo-500 shrink-0" />
-          <span className="text-[13px] font-semibold text-slate-700">
+          <Code className="h-4 w-4 text-foreground shrink-0" />
+          <span className="text-[13px] font-semibold text-foreground">
             Template Variables Reference
           </span>
         </div>
       }
     >
-      <div className="bg-slate-50 rounded-lg p-4 font-mono text-xs leading-relaxed text-slate-700 border border-slate-100">
-        <p className="text-slate-500 text-[11px] mb-2 font-sans font-medium">
+      <div className="bg-muted rounded-lg p-4 font-mono text-xs leading-relaxed text-foreground border border-border">
+        <p className="text-muted-foreground text-[11px] mb-2 font-sans font-medium">
           Available in Subject and Body:
         </p>
         {TEMPLATE_VARS.map((v, i) => (
           <React.Fragment key={i}>
             <div className="flex gap-3 py-0.5">
-              <span className="text-indigo-600 whitespace-nowrap min-w-[180px]">
+              <span className="text-foreground whitespace-nowrap min-w-[180px]">
                 {v.syntax}
               </span>
-              <span className="text-slate-500 font-sans">— {v.desc}</span>
+              <span className="text-muted-foreground font-sans">— {v.desc}</span>
             </div>
             {v.children &&
               v.children.map((child, j) => (
                 <div key={`${i}-${j}`} className="flex gap-3 py-0.5">
-                  <span className="text-indigo-600 whitespace-nowrap min-w-[180px]">
+                  <span className="text-foreground whitespace-nowrap min-w-[180px]">
                     {child.syntax}
                   </span>
-                  <span className="text-slate-500 font-sans">— {child.desc}</span>
+                  <span className="text-muted-foreground font-sans">— {child.desc}</span>
                 </div>
               ))}
           </React.Fragment>

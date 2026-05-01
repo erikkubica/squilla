@@ -206,14 +206,14 @@ function Pill<T extends string>({ icon: Icon, value, options, onChange }: PillPr
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="h-8 px-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[11.5px] text-slate-700 flex items-center gap-1.5 cursor-pointer"
+        className="h-8 px-2.5 rounded-lg border border-border bg-card hover:bg-muted text-[11.5px] text-foreground flex items-center gap-1.5 cursor-pointer"
       >
-        <Icon className="h-3 w-3 text-slate-400" />
+        <Icon className="h-3 w-3 text-muted-foreground" />
         {cur.label}
-        <ChevronDown className="h-3 w-3 text-slate-400" />
+        <ChevronDown className="h-3 w-3 text-muted-foreground" />
       </button>
       {open && (
-        <div className="absolute top-full mt-1 left-0 z-30 w-52 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden">
+        <div className="absolute top-full mt-1 left-0 z-30 w-52 rounded-lg border border-border bg-card shadow-lg overflow-hidden">
           {options.map((o) => (
             <button
               key={o.value}
@@ -223,7 +223,7 @@ function Pill<T extends string>({ icon: Icon, value, options, onChange }: PillPr
                 setOpen(false);
               }}
               className={`w-full text-left px-3 py-1.5 text-[12px] flex items-center gap-2 cursor-pointer ${
-                o.value === value ? "bg-indigo-50 text-indigo-700 font-medium" : "hover:bg-slate-50 text-slate-700"
+                o.value === value ? "bg-accent text-foreground font-medium" : "hover:bg-muted text-foreground"
               }`}
             >
               {o.value === value ? <Check className="h-3 w-3" /> : <span className="w-3" />}
@@ -569,7 +569,7 @@ export default function MediaLibrary() {
   const uploadBtn = (
     <Button
       onClick={openUpload}
-      className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-indigo-600 border border-indigo-600 rounded hover:bg-indigo-700 cursor-pointer"
+      className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-primary border border-primary rounded hover:bg-primary/90 cursor-pointer"
     >
       <Upload className="w-3 h-3" />
       Upload
@@ -588,12 +588,12 @@ export default function MediaLibrary() {
       {/* Toolbar: search + view + sort + density */}
       <div className="flex items-center gap-2 mb-2.5 flex-wrap">
         <ListSearch value={search} onChange={setSearch} placeholder="Search media files…" />
-        <div className="flex items-center gap-0.5 h-[30px] rounded border border-slate-300 bg-white p-0.5 shrink-0">
+        <div className="flex items-center gap-0.5 h-[30px] rounded border border-border bg-card p-0.5 shrink-0">
           <button
             type="button"
             onClick={() => setViewMode("grid")}
             className={`h-[24px] w-[26px] grid place-items-center rounded-[2px] transition-colors cursor-pointer ${
-              viewMode === "grid" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-800"
+              viewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
             title="Grid view"
           >
@@ -603,7 +603,7 @@ export default function MediaLibrary() {
             type="button"
             onClick={() => setViewMode("list")}
             className={`h-[24px] w-[26px] grid place-items-center rounded-[2px] transition-colors cursor-pointer ${
-              viewMode === "list" ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-800"
+              viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
             title="List view"
           >
@@ -612,14 +612,14 @@ export default function MediaLibrary() {
         </div>
         <Pill icon={ArrowUpDown} value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
         {viewMode === "grid" && (
-          <div className="flex items-center gap-0.5 h-[30px] rounded border border-slate-300 bg-white p-0.5">
+          <div className="flex items-center gap-0.5 h-[30px] rounded border border-border bg-card p-0.5">
             {(["compact", "comfy", "spacious"] as Density[]).map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setDensity(d)}
                 className={`h-[24px] px-2 rounded-[2px] text-[11px] font-medium capitalize cursor-pointer ${
-                  density === d ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:text-slate-800"
+                  density === d ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {d}
@@ -631,7 +631,7 @@ export default function MediaLibrary() {
         <button
           type="button"
           onClick={toggleAll}
-          className="h-[30px] px-2.5 rounded text-[12px] text-slate-600 hover:bg-slate-100 font-medium cursor-pointer"
+          className="h-[30px] px-2.5 rounded text-[12px] text-muted-foreground hover:bg-muted font-medium cursor-pointer"
         >
           {selected.size === files.length && files.length > 0 ? "Deselect all" : "Select all"}
         </button>
@@ -652,15 +652,15 @@ export default function MediaLibrary() {
       <div className="mt-1">
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-foreground" />
         </div>
       ) : files.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white/50 py-16 text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-slate-100 grid place-items-center mb-3">
-            <ImageIcon className="h-6 w-6 text-slate-400" />
+        <div className="rounded-xl border border-dashed border-border bg-card/50 py-16 text-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-muted grid place-items-center mb-3">
+            <ImageIcon className="h-6 w-6 text-muted-foreground" />
           </div>
-          <div className="text-[14px] font-semibold text-slate-800">No files match</div>
-          <div className="mt-1 text-[12px] text-slate-500">
+          <div className="text-[14px] font-semibold text-foreground">No files match</div>
+          <div className="mt-1 text-[12px] text-muted-foreground">
             {searchDebounce || mimeFilter !== "all"
               ? "Try clearing filters, or upload new media."
               : "Upload your first file to get started."}
@@ -668,7 +668,7 @@ export default function MediaLibrary() {
           {!searchDebounce && mimeFilter === "all" && (
             <Button
               onClick={openUpload}
-              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium cursor-pointer"
+              className="mt-4 bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium cursor-pointer"
             >
               <Upload className="mr-2 h-4 w-4" /> Upload File
             </Button>

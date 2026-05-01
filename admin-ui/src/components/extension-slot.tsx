@@ -18,7 +18,7 @@ export function ExtensionSlot({ name, fallback }: ExtensionSlotProps) {
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--accent-strong)" }} />
       </div>
     );
   }
@@ -26,8 +26,8 @@ export function ExtensionSlot({ name, fallback }: ExtensionSlotProps) {
   if (extensions.length === 0) {
     return (
       fallback || (
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
-          <CardContent className="flex h-32 flex-col items-center justify-center gap-2 text-slate-400">
+        <Card className="rounded-xl border border-border shadow-sm">
+          <CardContent className="flex h-32 flex-col items-center justify-center gap-2" style={{ color: "var(--fg-subtle)" }}>
             <Puzzle className="h-8 w-8" />
             <p className="text-sm">No extensions available for this section</p>
           </CardContent>
@@ -43,7 +43,7 @@ export function ExtensionSlot({ name, fallback }: ExtensionSlotProps) {
         <Suspense
           fallback={
             <div className="flex h-32 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+              <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--accent-strong)" }} />
             </div>
           }
         >
@@ -70,7 +70,7 @@ export function ExtensionSlot({ name, fallback }: ExtensionSlotProps) {
             <Suspense
               fallback={
                 <div className="flex h-32 items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+                  <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--accent-strong)" }} />
                 </div>
               }
             >

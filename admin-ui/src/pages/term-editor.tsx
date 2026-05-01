@@ -239,7 +239,7 @@ export default function TermEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -325,9 +325,9 @@ export default function TermEditorPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+              className="rounded-lg border-border text-sm focus:ring-2 resize-none"
             />
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
               Some themes display term descriptions on archive pages.
             </p>
           </CardContent>
@@ -340,9 +340,9 @@ export default function TermEditorPage() {
             <CardContent className="space-y-4">
               {customFields.map((field: any) => (
                 <div key={field.name} className="space-y-1.5">
-                  <Label className="text-sm font-medium text-slate-700">
+                  <Label className="text-sm font-medium text-foreground">
                     {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                    {field.required && <span className="ml-1" style={{color: "var(--danger)"}}>*</span>}
                   </Label>
                   <CustomFieldInput
                     field={field}
@@ -360,12 +360,12 @@ export default function TermEditorPage() {
       <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
         <SidebarCard title="Publish">
           <div className="flex items-center gap-2 text-sm">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{background: "var(--accent-weak)", color: "var(--accent-strong)"}}>
               <Tag className="h-4 w-4" />
             </div>
             <div>
-              <p className="font-medium text-slate-800">{taxLabel}</p>
-              <p className="text-[11px] text-slate-400">{nodeType} taxonomy</p>
+              <p className="font-medium text-foreground">{taxLabel}</p>
+              <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>{nodeType} taxonomy</p>
             </div>
           </div>
 
@@ -376,7 +376,7 @@ export default function TermEditorPage() {
               the Translations card below instead. */}
           {languages.length > 0 && (
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-500">Language</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Language</Label>
               <LanguageSelect
                 languages={languages}
                 value={languageCode}
@@ -387,12 +387,12 @@ export default function TermEditorPage() {
 
           {taxonomy?.hierarchical && (
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-500">Parent</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Parent</Label>
               <Select
                 value={parentId == null ? "__none__" : String(parentId)}
                 onValueChange={(v) => setParentId(v === "__none__" ? null : Number(v))}
               >
-                <SelectTrigger className="h-9 rounded-lg border-slate-300 text-sm">
+                <SelectTrigger className="h-9 rounded-lg border-border text-sm">
                   <SelectValue placeholder="No parent (top-level)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -404,7 +404,7 @@ export default function TermEditorPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                 Nests this term under another. Leave empty for a top-level term.
               </p>
             </div>
@@ -412,7 +412,7 @@ export default function TermEditorPage() {
 
           <Button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+            className="w-full bg-primary text-white font-medium rounded-lg shadow-sm h-9 text-sm"
             disabled={saving}
           >
             {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
@@ -422,7 +422,7 @@ export default function TermEditorPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium h-8 text-xs"
+              className="w-full hover: rounded-lg font-medium h-8 text-xs" style={{background: "var(--danger-bg)", borderColor: "var(--danger-border)", color: "var(--danger)"}}
               onClick={() => setShowDeleteDialog(true)}
             >
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -437,11 +437,11 @@ export default function TermEditorPage() {
         {isEdit && languages.length > 1 && (
           <SidebarCard title="Translations">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 rounded-md bg-indigo-50 border border-indigo-100 px-3 py-2">
-                <span className="text-xs font-medium text-indigo-700 flex-1 truncate">
+              <div className="flex items-center gap-2 rounded-md border px-3 py-2" style={{background: "var(--accent-weak)", borderColor: "var(--accent-mid)"}}>
+                <span className="text-xs font-medium flex-1 truncate" style={{color: "var(--accent-strong)"}}>
                   <LanguageLabel languages={languages} code={languageCode} />
                 </span>
-                <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600">
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{background: "var(--accent-weak)", color: "var(--accent-strong)"}}>
                   Current
                 </span>
               </div>
@@ -449,9 +449,9 @@ export default function TermEditorPage() {
                 <Link
                   key={t.id}
                   to={`/admin/content/${nodeType}/taxonomies/${taxSlug}/${t.id}/edit`}
-                  className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted transition-colors"
                 >
-                  <span className="text-xs font-medium text-slate-700 flex-1 truncate">
+                  <span className="text-xs font-medium text-foreground flex-1 truncate">
                     <LanguageLabel languages={languages} code={t.language_code} />
                   </span>
                 </Link>

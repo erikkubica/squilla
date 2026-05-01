@@ -20,7 +20,7 @@ export default function FieldValidationRules({
     return (
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label className="text-[10px] text-slate-500 uppercase">
+          <Label className="text-[10px] text-muted-foreground uppercase">
             Min Length
           </Label>
           <Input
@@ -39,7 +39,7 @@ export default function FieldValidationRules({
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-slate-500 uppercase">
+          <Label className="text-[10px] text-muted-foreground uppercase">
             Max Length
           </Label>
           <Input
@@ -65,7 +65,7 @@ export default function FieldValidationRules({
     return (
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="space-y-1">
-          <Label className="text-[10px] text-slate-500 uppercase">Min</Label>
+          <Label className="text-[10px] text-muted-foreground uppercase">Min</Label>
           <Input
             type="number"
             value={field.min ?? ""}
@@ -79,7 +79,7 @@ export default function FieldValidationRules({
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-slate-500 uppercase">Max</Label>
+          <Label className="text-[10px] text-muted-foreground uppercase">Max</Label>
           <Input
             type="number"
             value={field.max ?? ""}
@@ -93,7 +93,7 @@ export default function FieldValidationRules({
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-slate-500 uppercase">Step</Label>
+          <Label className="text-[10px] text-muted-foreground uppercase">Step</Label>
           <Input
             type="number"
             min={0.01}

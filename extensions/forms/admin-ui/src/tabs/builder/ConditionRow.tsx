@@ -78,7 +78,7 @@ export default function ConditionRow({
     <div className="flex items-start gap-1.5">
       {/* Field selector */}
       <Select value={condition.field || ""} onValueChange={handleFieldChange}>
-        <SelectTrigger className="w-32 h-7 text-xs bg-white shrink-0">
+        <SelectTrigger className="w-32 h-7 text-xs bg-card shrink-0">
           <SelectValue placeholder="Field" />
         </SelectTrigger>
         <SelectContent>
@@ -92,7 +92,7 @@ export default function ConditionRow({
 
       {/* Operator selector */}
       <Select value={condition.operator || "equals"} onValueChange={handleOperatorChange}>
-        <SelectTrigger className="w-36 h-7 text-xs bg-white shrink-0">
+        <SelectTrigger className="w-36 h-7 text-xs bg-card shrink-0">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -116,7 +116,7 @@ export default function ConditionRow({
         type="button"
         variant="ghost"
         size="icon"
-        className="h-7 w-7 text-slate-400 hover:text-red-500 shrink-0 cursor-pointer"
+        className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
         onClick={onRemove}
         aria-label="Remove condition"
       >

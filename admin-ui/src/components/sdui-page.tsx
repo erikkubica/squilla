@@ -31,9 +31,9 @@ export function SduiPage() {
 
   if (error || !layout) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      <div className="rounded-lg border p-4 text-sm" style={{ borderColor: "var(--danger-border)", background: "var(--danger-bg)", color: "var(--danger)" }}>
         <p className="font-medium">Failed to load page</p>
-        <p className="mt-1 text-red-600">
+        <p className="mt-1" style={{ color: "var(--danger)" }}>
           {error?.message || "No layout data"}
         </p>
       </div>

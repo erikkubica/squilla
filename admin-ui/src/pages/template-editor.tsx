@@ -223,7 +223,7 @@ export default function TemplateEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -231,7 +231,7 @@ export default function TemplateEditorPage() {
   return (
     <div className="space-y-4">
       {isManaged && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 flex items-start gap-2">
+        <div className="rounded-lg border p-3 text-xs flex items-start gap-2" style={{background: "var(--warning-bg)", borderColor: "var(--border)", color: "var(--warning)"}}>
           <Info className="h-4 w-4 mt-0.5 shrink-0" />
           <p>
             This template is managed by the active {source} and is read-only. Click
@@ -371,7 +371,7 @@ export default function TemplateEditorPage() {
             </div>
             <div className="space-y-2">
               {blockConfig.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-12 text-slate-400">
+                <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-12" style={{color: "var(--fg-subtle)"}}>
                   <Square className="h-10 w-10" />
                   <p className="text-sm font-medium">No blocks yet</p>
                   <p className="text-xs">Add blocks to compose this template.</p>
@@ -444,8 +444,8 @@ export default function TemplateEditorPage() {
                               type="button"
                               onClick={() => handleRemoveBlock(index)}
                               disabled={isManaged}
-                              className="p-1 rounded hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                              style={{ color: "var(--danger)" }}
+                              className="p-1 rounded hover: disabled:opacity-30 disabled:cursor-not-allowed"
+                              style={{ color: "var(--danger)", background: "var(--danger-bg)"}}
                               title="Delete block"
                             >
                               <X className="h-3.5 w-3.5" />
@@ -463,7 +463,7 @@ export default function TemplateEditorPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 py-2"
+                  className="w-full rounded-lg border-dashed border-border text-muted-foreground hover: py-2" style={{color: "var(--accent-strong)"}}
                   onClick={() => setShowAddBlock(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -477,13 +477,13 @@ export default function TemplateEditorPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Publish card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
               {isManaged ? (
                 <Button
                   type="button"
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                  className="w-full font-medium rounded-lg shadow-sm h-9 text-sm" style={{background: "var(--warning)", color: "#fff"}}
                   onClick={() => setShowDetach(true)}
                 >
                   <Unlink className="mr-1.5 h-3.5 w-3.5" />
@@ -492,7 +492,7 @@ export default function TemplateEditorPage() {
               ) : (
                 <Button
                   type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                  className="w-full bg-primary text-white font-medium rounded-lg shadow-sm h-9 text-sm"
                   disabled={saving}
                 >
                   <Save className="mr-1.5 h-3.5 w-3.5" />
@@ -506,7 +506,7 @@ export default function TemplateEditorPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium h-8 text-xs"
+                    className="w-full hover: rounded-lg font-medium h-8 text-xs" style={{background: "var(--danger-bg)", borderColor: "var(--danger-border)", color: "var(--danger)"}}
                     onClick={() => setShowDelete(true)}
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -518,25 +518,25 @@ export default function TemplateEditorPage() {
               {isEdit && originalTemplate && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" style={{color: "var(--fg-subtle)"}}>
                     <div className="flex justify-between">
                       <span>Source</span>
-                      <span className="text-slate-600 capitalize">{source}</span>
+                      <span className="text-muted-foreground capitalize">{source}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Blocks</span>
-                      <span className="text-slate-600">{blockConfig.length}</span>
+                      <span className="text-muted-foreground">{blockConfig.length}</span>
                     </div>
                     {originalTemplate.created_at && (
                       <div className="flex justify-between">
                         <span>Created</span>
-                        <span className="text-slate-600">{new Date(originalTemplate.created_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalTemplate.created_at).toLocaleDateString()}</span>
                       </div>
                     )}
                     {originalTemplate.updated_at && (
                       <div className="flex justify-between">
                         <span>Updated</span>
-                        <span className="text-slate-600">{new Date(originalTemplate.updated_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalTemplate.updated_at).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -546,11 +546,11 @@ export default function TemplateEditorPage() {
           </Card>
 
           {/* Settings card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Settings" />
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-xs font-medium text-slate-500">Description</Label>
+                <Label htmlFor="description" className="text-xs font-medium text-muted-foreground">Description</Label>
                 <Textarea
                   id="description"
                   placeholder="A brief description of this template"
@@ -628,7 +628,7 @@ export default function TemplateEditorPage() {
             <Button
               onClick={handleDetach}
               disabled={detaching}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="" style={{background: "var(--warning)", color: "#fff"}}
             >
               {detaching ? "Detaching..." : "Detach"}
             </Button>

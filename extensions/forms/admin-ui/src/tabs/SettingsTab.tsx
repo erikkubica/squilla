@@ -38,12 +38,12 @@ export default function SettingsTab({ form, setForm }: any) {
   return (
     <div className="space-y-6 max-w-2xl">
       {/* General */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader title="General" icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />} />
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-500">Success Message</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Success Message</Label>
               <Input
                 value={getSetting("success_message", "")}
                 onChange={(e: any) => updateSettings("success_message", e.target.value)}
@@ -51,7 +51,7 @@ export default function SettingsTab({ form, setForm }: any) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-500">Error Message</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Error Message</Label>
               <Input
                 value={getSetting("error_message", "")}
                 onChange={(e: any) => updateSettings("error_message", e.target.value)}
@@ -63,27 +63,27 @@ export default function SettingsTab({ form, setForm }: any) {
       </Card>
 
       {/* Redirects */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader title="Redirects" icon={<Globe className="h-4 w-4 text-blue-500" />} />
         <CardContent className="p-4 space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Redirect URL (Optional)</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Redirect URL (Optional)</Label>
           <Input
             value={getSetting("redirect_url", "")}
             onChange={(e: any) => updateSettings("redirect_url", e.target.value)}
             placeholder="e.g. /thank-you"
             className="max-w-2xl"
           />
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Leave empty to stay on the same page and show the success message.
           </p>
         </CardContent>
       </Card>
 
       {/* Styling */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
-        <SectionHeader title="Styling" icon={<MousePointer2 className="h-4 w-4 text-indigo-500" />} />
+      <Card className="rounded-xl border border-border shadow-sm">
+        <SectionHeader title="Styling" icon={<MousePointer2 className="h-4 w-4 text-foreground" />} />
         <CardContent className="p-4 space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Form CSS Class</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Form CSS Class</Label>
           <Input
             value={getSetting("form_css_class", "")}
             onChange={(e: any) => updateSettings("form_css_class", e.target.value)}
@@ -94,13 +94,13 @@ export default function SettingsTab({ form, setForm }: any) {
       </Card>
 
       {/* Anti-spam */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader title="Anti-spam" icon={<Shield className="h-4 w-4 text-amber-500" />} />
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center justify-between py-2">
             <div>
-              <Label className="text-sm font-medium text-slate-700">Honeypot Field</Label>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <Label className="text-sm font-medium text-foreground">Honeypot Field</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Adds a hidden trap field that bots fill in. Legitimate users never see it.
               </p>
             </div>
@@ -114,7 +114,7 @@ export default function SettingsTab({ form, setForm }: any) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-500">Rate Limit (submissions)</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Rate Limit (submissions)</Label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -127,10 +127,10 @@ export default function SettingsTab({ form, setForm }: any) {
                 placeholder="10"
                 className="max-w-[8rem]"
               />
-              <p className="text-xs text-slate-400">Per IP per window</p>
+              <p className="text-xs text-muted-foreground">Per IP per window</p>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-500">Window (seconds)</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Window (seconds)</Label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -143,12 +143,12 @@ export default function SettingsTab({ form, setForm }: any) {
                 placeholder="3600"
                 className="max-w-[8rem]"
               />
-              <p className="text-xs text-slate-400">Default: 3600 (1 hour)</p>
+              <p className="text-xs text-muted-foreground">Default: 3600 (1 hour)</p>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-500">CAPTCHA Provider</Label>
+            <Label className="text-xs font-medium text-muted-foreground">CAPTCHA Provider</Label>
             <Select
               value={captchaProvider}
               onValueChange={(val: string) => updateSettings("captcha_provider", val)}
@@ -166,9 +166,9 @@ export default function SettingsTab({ form, setForm }: any) {
           </div>
 
           {captchaProvider !== "none" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 pl-3 border-l-2 border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 pl-3 border-l-2 border-border">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">CAPTCHA Site Key</Label>
+                <Label className="text-xs font-medium text-muted-foreground">CAPTCHA Site Key</Label>
                 <Input
                   value={getSetting("captcha_site_key", "")}
                   onChange={(e: any) => updateSettings("captcha_site_key", e.target.value)}
@@ -176,7 +176,7 @@ export default function SettingsTab({ form, setForm }: any) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">CAPTCHA Secret Key</Label>
+                <Label className="text-xs font-medium text-muted-foreground">CAPTCHA Secret Key</Label>
                 <Input
                   type="password"
                   value={getSetting("captcha_secret_key", "")}
@@ -190,25 +190,25 @@ export default function SettingsTab({ form, setForm }: any) {
       </Card>
 
       {/* Privacy */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader title="Privacy" icon={<Lock className="h-4 w-4 text-teal-500" />} />
         <CardContent className="p-4 space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Privacy Policy URL</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Privacy Policy URL</Label>
           <Input
             value={getSetting("privacy_policy_url", "")}
             onChange={(e: any) => updateSettings("privacy_policy_url", e.target.value)}
             placeholder="e.g. /privacy-policy"
             className="max-w-2xl"
           />
-          <p className="text-xs text-slate-400">Used by GDPR consent fields.</p>
+          <p className="text-xs text-muted-foreground">Used by GDPR consent fields.</p>
         </CardContent>
       </Card>
 
       {/* Data Retention */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader title="Data Retention" icon={<Database className="h-4 w-4 text-violet-500" />} />
         <CardContent className="p-4 space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Retention Period</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Retention Period</Label>
           <Select
             value={String(getSetting("retention_period", "0"))}
             onValueChange={(val: string) => updateSettings("retention_period", val)}
@@ -225,20 +225,20 @@ export default function SettingsTab({ form, setForm }: any) {
               <SelectItem value="365">365 days</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Submissions older than the retention period will be automatically deleted.
           </p>
         </CardContent>
       </Card>
 
       {/* Submission Settings */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader title="Submission Settings" icon={<Send className="h-4 w-4 text-cyan-500" />} />
         <CardContent className="p-4">
           <div className="flex items-center justify-between py-2">
             <div>
-              <Label className="text-sm font-medium text-slate-700">Store IP Addresses</Label>
-              <p className="text-xs text-slate-400 mt-0.5">Disable for strict GDPR compliance.</p>
+              <Label className="text-sm font-medium text-foreground">Store IP Addresses</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Disable for strict GDPR compliance.</p>
             </div>
             <Switch
               checked={getSetting("store_ip", true)}

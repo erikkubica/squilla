@@ -288,7 +288,7 @@ export default function RoleEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -301,27 +301,27 @@ export default function RoleEditorPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-slate-500 hover:text-slate-700"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={() => navigate("/admin/security/roles")}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Shield className="h-7 w-7 text-indigo-600" />
-          <h1 className="text-2xl font-bold text-slate-900">
+          <Shield className="h-7 w-7" style={{color: "var(--accent-strong)"}} />
+          <h1 className="text-2xl font-bold text-foreground">
             {isEditing ? "Edit Role" : "New Role"}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            className="rounded-lg border-slate-300"
+            className="rounded-lg border-border"
             onClick={() => navigate("/admin/security/roles")}
             disabled={saving}
           >
             Cancel
           </Button>
           <Button
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm"
+            className="bg-primary text-white font-medium rounded-lg shadow-sm"
             onClick={handleSave}
             disabled={saving}
           >
@@ -342,12 +342,12 @@ export default function RoleEditorPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Card 1: Basic Info */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader title="Basic Info" />
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="role-name" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="role-name" className="text-sm font-medium text-foreground">
                   Name
                 </Label>
                 <Input
@@ -359,18 +359,18 @@ export default function RoleEditorPage() {
                     if (autoSlug) setFormSlug(slugify(e.target.value));
                   }}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="role-slug" className="text-sm font-medium text-slate-700">
+                  <Label htmlFor="role-slug" className="text-sm font-medium text-foreground">
                     Slug
                   </Label>
                   {!isEditing && (
                     <button
                       type="button"
-                      className="text-xs text-indigo-600 hover:underline"
+                      className="text-xs hover:underline" style={{color: "var(--accent-strong)"}}
                       onClick={() => setAutoSlug(!autoSlug)}
                     >
                       {autoSlug ? "Edit" : "Auto"}
@@ -387,15 +387,15 @@ export default function RoleEditorPage() {
                   }}
                   disabled={(autoSlug && !isEditing) || isSystem}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
                 {isSystem && (
-                  <p className="text-xs text-slate-400">System role slug cannot be changed</p>
+                  <p className="text-xs" style={{color: "var(--fg-subtle)"}}>System role slug cannot be changed</p>
                 )}
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role-description" className="text-sm font-medium text-slate-700">
+              <Label htmlFor="role-description" className="text-sm font-medium text-foreground">
                 Description
               </Label>
               <Textarea
@@ -404,23 +404,23 @@ export default function RoleEditorPage() {
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 rows={3}
-                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="rounded-lg border-border focus:ring-2"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Card 2: Capabilities */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader title="Capabilities" />
           <CardContent>
             <div className="grid gap-2 sm:grid-cols-2">
               {CAPABILITY_KEYS.map(({ key, label }) => (
                 <label
                   key={key}
-                  className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
+                  className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-border px-3 py-2 hover:bg-muted transition-colors"
                 >
-                  <span className="text-sm font-medium text-slate-700 truncate">{label}</span>
+                  <span className="text-sm font-medium text-foreground truncate">{label}</span>
                   <Switch
                     checked={!!formCaps[key]}
                     onCheckedChange={() => toggleCap(key)}
@@ -432,22 +432,22 @@ export default function RoleEditorPage() {
         </Card>
 
         {/* Card 3: Node Access */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader title="Node Access" />
           <CardContent className="p-0">
             <div className="rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-200 hover:bg-transparent bg-slate-50">
-                    <TableHead className="text-slate-500 font-medium text-xs">Node Type</TableHead>
-                    <TableHead className="text-slate-500 font-medium text-xs">Access</TableHead>
-                    <TableHead className="text-slate-500 font-medium text-xs">Scope</TableHead>
+                  <TableRow className="border-border hover:bg-transparent bg-muted">
+                    <TableHead className="text-muted-foreground font-medium text-xs">Node Type</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs">Access</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-xs">Scope</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {/* Default row */}
-                  <TableRow className="border-slate-100 bg-indigo-50/30">
-                    <TableCell className="font-medium text-slate-700 text-sm">
+                  <TableRow className="" style={{background: "var(--accent-weak)"}}>
+                    <TableCell className="font-medium text-foreground text-sm">
                       Default (other types)
                     </TableCell>
                     <TableCell>
@@ -460,7 +460,7 @@ export default function RoleEditorPage() {
                           }))
                         }
                       >
-                        <SelectTrigger className="w-28 h-8 text-xs rounded-md border-slate-300">
+                        <SelectTrigger className="w-28 h-8 text-xs rounded-md border-border">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -481,7 +481,7 @@ export default function RoleEditorPage() {
                         }
                         disabled={formDefaultNodeAccess.access === "none"}
                       >
-                        <SelectTrigger className="w-24 h-8 text-xs rounded-md border-slate-300">
+                        <SelectTrigger className="w-24 h-8 text-xs rounded-md border-border">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -495,8 +495,8 @@ export default function RoleEditorPage() {
                   {nodeTypes.map((nt) => {
                     const entry = formNodeAccess[nt.slug] || { access: "default" as AccessLevel, scope: "all" as AccessScope };
                     return (
-                      <TableRow key={nt.slug} className="border-slate-100">
-                        <TableCell className="font-medium text-slate-700 text-sm">
+                      <TableRow key={nt.slug} className="">
+                        <TableCell className="font-medium text-foreground text-sm">
                           {nt.label}
                         </TableCell>
                         <TableCell>
@@ -504,7 +504,7 @@ export default function RoleEditorPage() {
                             value={entry.access}
                             onValueChange={(val) => setNodeAccess(nt.slug, val as AccessLevel)}
                           >
-                            <SelectTrigger className="w-28 h-8 text-xs rounded-md border-slate-300">
+                            <SelectTrigger className="w-28 h-8 text-xs rounded-md border-border">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -521,7 +521,7 @@ export default function RoleEditorPage() {
                             onValueChange={(val) => setNodeScope(nt.slug, val as AccessScope)}
                             disabled={entry.access === "none" || entry.access === "default"}
                           >
-                            <SelectTrigger className="w-24 h-8 text-xs rounded-md border-slate-300">
+                            <SelectTrigger className="w-24 h-8 text-xs rounded-md border-border">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -535,7 +535,7 @@ export default function RoleEditorPage() {
                   })}
                   {nodeTypes.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-4 text-slate-400 text-sm">
+                      <TableCell colSpan={3} className="text-center py-4 text-sm" style={{color: "var(--fg-subtle)"}}>
                         No node types defined yet.
                       </TableCell>
                     </TableRow>
@@ -548,29 +548,29 @@ export default function RoleEditorPage() {
 
         {/* Card 4: Email Subscriptions */}
         {systemActions.length > 0 && (
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Email Subscriptions" />
             <CardContent className="space-y-4">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Users with this role will receive email notifications for checked actions.
               </p>
               {Object.entries(actionsByCategory).map(([category, actions]) => (
                 <div key={category} className="space-y-2">
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {category}
                   </h4>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {actions.map((action) => (
                       <label
                         key={action.slug}
-                        className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
+                        className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-border px-3 py-2 hover:bg-muted transition-colors"
                       >
                         <div className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium text-slate-700 truncate">
+                          <span className="block text-sm font-medium text-foreground truncate">
                             {action.label}
                           </span>
                           {action.description && (
-                            <span className="block text-xs text-slate-400 truncate">{action.description}</span>
+                            <span className="block text-xs truncate" style={{color: "var(--fg-subtle)"}}>{action.description}</span>
                           )}
                         </div>
                         <Switch

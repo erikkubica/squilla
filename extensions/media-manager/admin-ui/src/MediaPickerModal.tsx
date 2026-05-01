@@ -236,16 +236,16 @@ export default function MediaPickerModal({
         {/* Toolbar */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search files..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 rounded-lg border-slate-300"
+              className="pl-9 rounded-lg border-border"
             />
           </div>
           <Select value={mimeType} onValueChange={(v) => { setMimeType(v === "all" ? "" : v); }}>
-            <SelectTrigger className="w-[150px] rounded-lg border-slate-300">
+            <SelectTrigger className="w-[150px] rounded-lg border-border">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
@@ -273,10 +273,10 @@ export default function MediaPickerModal({
         <div className="flex-1 overflow-y-auto min-h-0 mt-2">
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
           ) : files.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
               <ImageIcon className="h-12 w-12 mb-2" />
               <p className="text-sm">No media files found</p>
             </div>
@@ -291,8 +291,8 @@ export default function MediaPickerModal({
                     onClick={() => toggleSelect(file)}
                     className={`group relative aspect-square rounded-lg border-2 overflow-hidden transition-all ${
                       isSelected
-                        ? "border-indigo-500 ring-2 ring-indigo-500/20"
-                        : "border-slate-200 hover:border-slate-300"
+                        ? "border-border ring-2 ring-ring/20"
+                        : "border-border hover:border-border"
                     }`}
                   >
                     {isImage(file.mime_type) ? (
@@ -303,16 +303,16 @@ export default function MediaPickerModal({
                         loading="lazy"
                       />
                     ) : (
-                      <div className="h-full w-full flex flex-col items-center justify-center bg-slate-50 p-2">
-                        <FileIcon mime={file.mime_type} className="h-8 w-8 text-slate-400" />
-                        <span className="text-[10px] text-slate-500 mt-1 truncate w-full text-center">
+                      <div className="h-full w-full flex flex-col items-center justify-center bg-muted p-2">
+                        <FileIcon mime={file.mime_type} className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground mt-1 truncate w-full text-center">
                           {file.original_name}
                         </span>
                       </div>
                     )}
                     {/* Selection indicator */}
                     {isSelected && (
-                      <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-indigo-500 flex items-center justify-center">
+                      <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-accent0 flex items-center justify-center">
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
@@ -340,7 +340,7 @@ export default function MediaPickerModal({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-muted-foreground">
               {meta.page} / {meta.total_pages}
             </span>
             <Button
@@ -362,7 +362,7 @@ export default function MediaPickerModal({
           <Button
             onClick={handleConfirm}
             disabled={selected.size === 0}
-            className="rounded-lg bg-indigo-600 hover:bg-indigo-700"
+            className="rounded-lg bg-primary hover:bg-primary/90"
           >
             {selected.size > 0
               ? `Select ${selected.size} file${selected.size > 1 ? "s" : ""}`

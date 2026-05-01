@@ -68,7 +68,7 @@ export function LanguageSelect(props: Props): React.ReactElement | null {
         onValueChange={(v) => v && props.onAdd(v)}
         disabled={disabled}
       >
-        <SelectTrigger className={triggerClassName ?? "h-9 rounded-lg border-slate-300 text-sm"}>
+        <SelectTrigger className={triggerClassName ?? "h-9 rounded-lg border-border text-sm"}>
           <SelectValue placeholder={props.placeholder ?? "+ Add language"} />
         </SelectTrigger>
         <SelectContent className={className}>
@@ -84,7 +84,7 @@ export function LanguageSelect(props: Props): React.ReactElement | null {
 
   return (
     <Select value={props.value} onValueChange={props.onChange} disabled={disabled}>
-      <SelectTrigger className={triggerClassName ?? "h-9 rounded-lg border-slate-300 text-sm"}>
+      <SelectTrigger className={triggerClassName ?? "h-9 rounded-lg border-border text-sm"}>
         <SelectValue placeholder={props.placeholder ?? "Select a language"} />
       </SelectTrigger>
       <SelectContent className={className}>

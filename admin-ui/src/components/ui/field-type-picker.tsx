@@ -163,17 +163,17 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
         >
           {selected ? (
             <span className="flex items-center gap-2 truncate">
-              <selected.icon className={cn("shrink-0 text-slate-500", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+              <selected.icon className={cn("shrink-0 text-muted-foreground", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
               <span className="truncate">{selected.label}</span>
             </span>
           ) : value ? (
-            <span className="flex items-center gap-2 truncate text-amber-700">
+            <span className="flex items-center gap-2 truncate" style={{ color: "var(--warning)" }}>
               <AlertCircle className={cn("shrink-0", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
               <span className="truncate font-mono">{value}</span>
               <span className="text-[10px] uppercase tracking-wide opacity-60">unknown</span>
             </span>
           ) : (
-            <span className="text-slate-400">Select field type...</span>
+            <span className="text-muted-foreground">Select field type...</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -200,20 +200,20 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
                       <div className={cn(
                         "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
                         value === option.value
-                          ? "border-indigo-200 bg-indigo-50 text-indigo-600"
-                          : "border-slate-200 bg-slate-50 text-slate-500"
+                          ? "border-border bg-accent text-accent-foreground"
+                          : "border-border bg-muted text-muted-foreground"
                       )}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <span className="text-sm font-medium text-slate-800">{option.label}</span>
-                        <span className="text-xs text-slate-400 truncate">{option.description}</span>
+                        <span className="text-sm font-medium text-foreground">{option.label}</span>
+                        <span className="text-xs truncate">{option.description}</span>
                         {option.howTo && (
-                          <span className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{option.howTo}</span>
+                          <span className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{option.howTo}</span>
                         )}
                       </div>
                       {value === option.value && (
-                        <Check className="ml-auto h-4 w-4 shrink-0 text-indigo-600" />
+                        <Check className="ml-auto h-4 w-4 shrink-0 text-foreground" />
                       )}
                     </CommandItem>
                   );

@@ -34,22 +34,22 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
-      <Card className="w-full max-w-md rounded-2xl border border-slate-200/50 bg-white shadow-xl">
+      <Card className="w-full max-w-md rounded-2xl border border-border/50 bg-card shadow-xl">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <span className="text-lg font-bold text-white">V</span>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
             Squilla
           </CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardDescription className="text-muted-foreground">
             Sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent className="p-8 pt-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700 text-sm font-medium">
+              <Label htmlFor="email" className="text-foreground text-sm font-medium">
                 Email
               </Label>
               <Input
@@ -60,11 +60,11 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm"
+                className="w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-700 text-sm font-medium">
+              <Label htmlFor="password" className="text-foreground text-sm font-medium">
                 Password
               </Label>
               <Input
@@ -75,12 +75,12 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm"
+                className="w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 text-sm"
               />
             </div>
             <Button
               type="submit"
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-sm"
+              className="w-full py-3 bg-primary text-white rounded-lg font-semibold shadow-sm"
               disabled={submitting}
             >
               {submitting ? "Signing in..." : "Sign in"}
@@ -90,13 +90,13 @@ export default function LoginPage() {
           <div className="mt-6 flex items-center justify-between text-sm">
             <a
               href="/register"
-              className="text-indigo-600 hover:text-indigo-500 transition-colors font-medium"
+              className="hover: transition-colors font-medium" style={{color: "var(--accent-strong)"}}
             >
               Create account
             </a>
             <a
               href="/auth/forgot-password"
-              className="text-indigo-600 hover:text-indigo-500 transition-colors font-medium"
+              className="hover: transition-colors font-medium" style={{color: "var(--accent-strong)"}}
             >
               Forgot password?
             </a>

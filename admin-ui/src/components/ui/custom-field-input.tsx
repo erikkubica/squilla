@@ -42,33 +42,33 @@ function LinkFieldInput({
     ? value
     : defaultLink;
   const update = (key: string, val: unknown) => onChange({ ...link, [key]: val });
-  const inputClass = "rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
+  const inputClass = "rounded-lg";
 
   return (
-    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+    <div className="space-y-3 rounded-lg border border-border bg-muted p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label className="text-xs font-medium text-slate-600">Link Text</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Link Text</Label>
           <Input value={String(link.text || "")} onChange={(e) => update("text", e.target.value)} placeholder="Click here" className={inputClass} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs font-medium text-slate-600">URL</Label>
+          <Label className="text-xs font-medium text-muted-foreground">URL</Label>
           <Input value={String(link.url || "")} onChange={(e) => update("url", e.target.value)} placeholder="https://example.com" className={inputClass} />
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label className="text-xs font-medium text-slate-600">Alt / Title</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Alt / Title</Label>
           <Input value={String(link.alt || "")} onChange={(e) => update("alt", e.target.value)} placeholder="Link description" className={inputClass} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs font-medium text-slate-600">&nbsp;</Label>
+          <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
           <label className="flex items-center gap-2 h-9 cursor-pointer">
             <Switch
               checked={link.target === "_blank"}
               onCheckedChange={(c) => update("target", c ? "_blank" : "")}
             />
-            <span className="text-sm text-slate-600">Open in new tab</span>
+            <span className="text-sm text-muted-foreground">Open in new tab</span>
           </label>
         </div>
       </div>
@@ -90,11 +90,11 @@ function GroupFieldInput({
   const subFields = field.sub_fields || [];
 
   if (subFields.length === 0) {
-    return <p className="text-sm text-slate-400 italic">No sub-fields defined for this group.</p>;
+    return <p className="text-sm italic">No sub-fields defined for this group.</p>;
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+    <div className="rounded-lg border border-border bg-muted p-3">
       <div className="flex flex-wrap" style={{ gap: "12px 12px" }}>
         {subFields.map((sf) => {
           const w = typeof sf.width === "number" && sf.width > 0 && sf.width <= 100 ? sf.width : 100;
@@ -104,9 +104,9 @@ function GroupFieldInput({
               className="space-y-1 min-w-0"
               style={{ flex: `0 0 calc(${w}% - 12px)`, maxWidth: `calc(${w}% - 12px)` }}
             >
-              <Label className="text-xs font-medium text-slate-600">
+              <Label className="text-xs font-medium text-muted-foreground">
                 {sf.label}
-                {sf.required && <span className="ml-1 text-red-500">*</span>}
+                {sf.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
               </Label>
               <CustomFieldInput
                 field={sf}
@@ -159,7 +159,7 @@ function RepeaterFieldInput({
   const [collapsedRows, setCollapsedRows] = useState<Set<number>>(() => new Set());
 
   if (subFields.length === 0) {
-    return <p className="text-sm text-slate-400 italic">No sub-fields defined for this repeater.</p>;
+    return <p className="text-sm italic">No sub-fields defined for this repeater.</p>;
   }
 
   function addRow() {
@@ -226,8 +226,8 @@ function RepeaterFieldInput({
     <div className="space-y-2">
       {rows.length > 1 && (
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={expandAll} className="text-xs text-indigo-600 hover:underline">Expand all</button>
-          <button type="button" onClick={collapseAll} className="text-xs text-indigo-600 hover:underline">Collapse all</button>
+          <button type="button" onClick={expandAll} className="text-xs hover:underline">Expand all</button>
+          <button type="button" onClick={collapseAll} className="text-xs hover:underline">Collapse all</button>
         </div>
       )}
       {rows.map((row, rowIndex) => {
@@ -299,7 +299,7 @@ function RepeaterFieldInput({
                 <button
                   type="button"
                   onClick={() => removeRow(rowIndex)}
-                  className="p-1 rounded hover:bg-red-50"
+                  className="p-1 rounded hover:bg-muted"
                   style={{ color: "var(--danger)" }}
                   title="Remove row"
                 >
@@ -341,7 +341,7 @@ function RepeaterFieldInput({
       <Button
         type="button"
         variant="outline"
-        className="w-full rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+        className="w-full rounded-lg border-dashed border-border text-muted-foreground hover:bg-muted"
         onClick={addRow}
       >
         <Plus className="mr-2 h-4 w-4" />
@@ -450,10 +450,10 @@ function TermSelectorInput({
   }
 
   if (!taxonomy || !termNodeType) {
-    return <div className="text-sm text-amber-600">Term field needs both <code>taxonomy</code> and <code>term_node_type</code> set in the schema.</div>;
+    return <div className="text-sm" style={{ color: "var(--warning)" }}>Term field needs both <code>taxonomy</code> and <code>term_node_type</code> set in the schema.</div>;
   }
-  if (loading) return <div className="text-sm text-slate-500">Loading terms…</div>;
-  if (terms.length === 0) return <div className="text-sm text-slate-500">No terms in <code>{taxonomy}</code>. Create some in admin first.</div>;
+  if (loading) return <div className="text-sm text-muted-foreground">Loading terms…</div>;
+  if (terms.length === 0) return <div className="text-sm text-muted-foreground">No terms in <code>{taxonomy}</code>. Create some in admin first.</div>;
 
   if (!isMultiple) {
     const currentId = selected[0]?.id ?? "";
@@ -480,7 +480,7 @@ function TermSelectorInput({
             key={t.id}
             type="button"
             onClick={() => handleToggleMulti(t)}
-            className={`rounded-full px-3 py-1 text-sm border ${on ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-300 hover:border-indigo-400"}`}
+            className={`rounded-full px-3 py-1 text-sm border ${on ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:bg-muted"}`}
           >
             {t.name}
           </button>
@@ -562,10 +562,10 @@ function NodeSelectorInput({
       {selected.length > 0 && (
         <div className="space-y-1.5">
           {selected.map((node) => (
-            <div key={node.id} className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
-              <span className="flex-1 text-sm font-medium text-slate-800">{node.title}</span>
-              <span className="text-xs text-slate-400 font-mono">{node.node_type}</span>
-              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-500" onClick={() => handleRemove(node.id)}>
+            <div key={node.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 px-3 py-2">
+              <span className="flex-1 text-sm font-medium text-foreground">{node.title}</span>
+              <span className="text-xs font-mono">{node.node_type}</span>
+              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => handleRemove(node.id)}>
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -584,15 +584,15 @@ function NodeSelectorInput({
               setShowResults(true);
             }}
             onFocus={() => setShowResults(true)}
-            className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+            className="rounded-lg"
           />
           {/* Dropdown results */}
           {showResults && (searchQuery.trim() || searching) && (
-            <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+            <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
               {searching ? (
-                <div className="px-3 py-2 text-sm text-slate-400">Searching...</div>
+                <div className="px-3 py-2 text-sm">Searching...</div>
               ) : results.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-slate-400">
+                <div className="px-3 py-2 text-sm">
                   {searchQuery.trim() ? "No results found" : "Type to search..."}
                 </div>
               ) : (
@@ -600,12 +600,12 @@ function NodeSelectorInput({
                   <button
                     key={node.id}
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-indigo-50 transition-colors"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
                     onClick={() => handleSelect(node)}
                   >
-                    <span className="font-medium text-slate-800">{node.title}</span>
-                    <span className="text-xs text-slate-400 font-mono ml-auto">{node.node_type}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${node.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                    <span className="font-medium text-foreground">{node.title}</span>
+                    <span className="text-xs font-mono ml-auto">{node.node_type}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded" style={node.status === "published" ? { background: "var(--success-bg)", color: "var(--success)" } : { background: "var(--warning-bg)", color: "var(--warning)" }}>
                       {node.status}
                     </span>
                   </button>
@@ -640,7 +640,7 @@ function NodeTypeSelectInput({
   if (loading) {
     return (
       <Select disabled>
-        <SelectTrigger className="rounded-lg border-slate-300">
+        <SelectTrigger className="rounded-lg border-border">
           <SelectValue placeholder="Loading node types..." />
         </SelectTrigger>
       </Select>
@@ -649,7 +649,7 @@ function NodeTypeSelectInput({
 
   return (
     <Select key={nodeTypes.length} value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger className="rounded-lg border-slate-300">
+      <SelectTrigger className="rounded-lg border-border">
         <SelectValue placeholder="Select content type" />
       </SelectTrigger>
       <SelectContent>
@@ -691,7 +691,7 @@ function CustomFieldInput({
     field.type === "gallery";
   if (needsExtension && !extField && extensionsLoading) {
     return (
-      <p className="text-sm text-slate-400 italic py-2">Loading…</p>
+      <p className="text-sm italic py-2">Loading…</p>
     );
   }
 
@@ -700,7 +700,7 @@ function CustomFieldInput({
     return (
       <div>
         {field.help && (
-          <p className="mb-1 text-xs text-slate-400">{field.help}</p>
+          <p className="mb-1 text-xs">{field.help}</p>
         )}
         <ExtComponent field={field} value={value} onChange={onChange} />
       </div>
@@ -708,14 +708,14 @@ function CustomFieldInput({
   }
 
   const inputClass =
-    "rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
+    "rounded-lg";
   const strVal = value == null ? (field.default_value ?? "") : String(value);
 
   const input = (() => { switch (field.type) {
     case "text":
       return (
         <div className="flex">
-          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.prepend}</span>}
+          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             value={strVal}
@@ -724,7 +724,7 @@ function CustomFieldInput({
             maxLength={field.max_length}
             className={`${inputClass} ${field.prepend ? "rounded-l-none" : ""} ${field.append ? "rounded-r-none" : ""}`}
           />
-          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.append}</span>}
+          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.append}</span>}
         </div>
       );
     case "textarea":
@@ -741,7 +741,7 @@ function CustomFieldInput({
     case "number":
       return (
         <div className="flex">
-          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.prepend}</span>}
+          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
             type="number"
             placeholder={field.placeholder || "0"}
@@ -753,7 +753,7 @@ function CustomFieldInput({
             step={field.step}
             className={`${inputClass} ${field.prepend ? "rounded-l-none" : ""} ${field.append ? "rounded-r-none" : ""}`}
           />
-          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.append}</span>}
+          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.append}</span>}
         </div>
       );
     case "date":
@@ -769,7 +769,7 @@ function CustomFieldInput({
     case "select":
       return (
         <Select value={strVal} onValueChange={(v) => onChange(v)}>
-          <SelectTrigger className="rounded-lg border-slate-300">
+          <SelectTrigger className="rounded-lg border-border">
             <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
           </SelectTrigger>
           <SelectContent>
@@ -789,13 +789,13 @@ function CustomFieldInput({
           <button
             type="button"
             onClick={() => onChange(!value)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${
-              value ? "bg-indigo-600" : "bg-slate-300"
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-ring ${
+              value ? "bg-primary" : "bg-border"
             }`}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? "translate-x-6" : "translate-x-1"}`} />
           </button>
-          <span className="text-sm text-slate-600">{value ? "Yes" : "No"}</span>
+          <span className="text-sm text-muted-foreground">{value ? "Yes" : "No"}</span>
         </div>
       );
     case "link":
@@ -819,7 +819,7 @@ function CustomFieldInput({
     case "email":
       return (
         <div className="flex">
-          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.prepend}</span>}
+          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
             type="email"
             placeholder={field.placeholder || "email@example.com"}
@@ -828,13 +828,13 @@ function CustomFieldInput({
             required={field.required}
             className={`${inputClass} ${field.prepend ? "rounded-l-none" : ""} ${field.append ? "rounded-r-none" : ""}`}
           />
-          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.append}</span>}
+          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.append}</span>}
         </div>
       );
     case "url":
       return (
         <div className="flex">
-          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.prepend}</span>}
+          {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
             type="url"
             placeholder={field.placeholder || "https://example.com"}
@@ -843,7 +843,7 @@ function CustomFieldInput({
             required={field.required}
             className={`${inputClass} ${field.prepend ? "rounded-l-none" : ""} ${field.append ? "rounded-r-none" : ""}`}
           />
-          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-slate-300 bg-slate-100 px-3 text-sm text-slate-500">{field.append}</span>}
+          {field.append && <span className="inline-flex items-center rounded-r-lg border border-l-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.append}</span>}
         </div>
       );
     case "color":
@@ -853,7 +853,7 @@ function CustomFieldInput({
             type="color"
             value={strVal || "#000000"}
             onChange={(e) => onChange(e.target.value)}
-            className="h-10 w-14 cursor-pointer rounded-lg border border-slate-300 p-1"
+            className="h-10 w-14 cursor-pointer rounded-lg border border-border p-1"
           />
           <Input
             placeholder="#000000"
@@ -863,7 +863,7 @@ function CustomFieldInput({
           />
           {strVal && (
             <div
-              className="h-8 w-8 rounded-md border border-slate-200 shrink-0"
+              className="h-8 w-8 rounded-md border border-border shrink-0"
               style={{ backgroundColor: strVal }}
             />
           )}
@@ -880,13 +880,13 @@ function CustomFieldInput({
               step={field.step ?? 1}
               value={strVal || String(field.min ?? 0)}
               onChange={(e) => onChange(Number(e.target.value))}
-              className="flex-1 h-2 rounded-lg appearance-none bg-slate-200 accent-indigo-600 cursor-pointer"
+              className="flex-1 h-2 rounded-lg appearance-none bg-muted accent-foreground cursor-pointer"
             />
-            <span className="min-w-[3rem] text-center text-sm font-medium text-slate-700 bg-slate-100 px-2 py-1 rounded-md">
+            <span className="min-w-[3rem] text-center text-sm font-medium text-foreground bg-muted px-2 py-1 rounded-md">
               {strVal || (field.min ?? 0)}
             </span>
           </div>
-          <div className="flex justify-between text-xs text-slate-400">
+          <div className="flex justify-between text-xs">
             <span>{field.min ?? 0}</span>
             <span>{field.max ?? 100}</span>
           </div>
@@ -897,7 +897,7 @@ function CustomFieldInput({
     case "media":
     case "gallery":
       return (
-        <p className="text-sm text-slate-400 italic py-2">
+        <p className="text-sm italic py-2">
           Media extension required for this field type.
         </p>
       );
@@ -906,10 +906,10 @@ function CustomFieldInput({
         <div className="space-y-2">
           {(field.options || []).map((opt) => (
             <label key={opt} className="flex items-center gap-2.5 cursor-pointer group" onClick={() => onChange(opt)}>
-              <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${strVal === opt ? "border-indigo-600 bg-indigo-600" : "border-slate-300 group-hover:border-slate-400"}`}>
+              <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${strVal === opt ? "border-primary bg-primary" : "border-border group-hover:border-border"}`}>
                 {strVal === opt && <div className="h-2 w-2 rounded-full bg-white" />}
               </div>
-              <span className="text-sm text-slate-700">{opt}</span>
+              <span className="text-sm text-foreground">{opt}</span>
             </label>
           ))}
         </div>
@@ -930,9 +930,9 @@ function CustomFieldInput({
                     onChange(checked.filter((v) => v !== opt));
                   }
                 }}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-border focus:ring-ring"
               />
-              <span className="text-sm text-slate-700">{opt}</span>
+              <span className="text-sm text-foreground">{opt}</span>
             </label>
           ))}
         </div>
@@ -951,7 +951,7 @@ function CustomFieldInput({
   return (
     <div>
       {field.help && (
-        <p className="mb-1 text-xs text-slate-400">{field.help}</p>
+        <p className="mb-1 text-xs">{field.help}</p>
       )}
       {input}
     </div>

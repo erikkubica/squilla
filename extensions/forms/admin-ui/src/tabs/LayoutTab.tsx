@@ -98,7 +98,7 @@ export default function LayoutTab({ form, setForm }: any) {
             variant="ghost"
             size="sm"
             onClick={handleReset}
-            className="text-slate-500 hover:text-indigo-600"
+            className="text-muted-foreground hover:text-foreground"
           >
             <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset
           </Button>

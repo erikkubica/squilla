@@ -120,14 +120,14 @@ export function ExtensionsGrid({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Extensions</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Extensions</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {extensions.length} installed, {activeCount} active
           </p>
         </div>
         <Button
           onClick={() => setInstallOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+          className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
         >
           <Plus className="mr-2 h-4 w-4" />
           Install
@@ -135,8 +135,8 @@ export function ExtensionsGrid({
       </div>
 
       {extensions.length === 0 ? (
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
-          <CardContent className="flex h-64 flex-col items-center justify-center gap-3 text-slate-400">
+        <Card className="rounded-xl border border-border shadow-sm">
+          <CardContent className="flex h-64 flex-col items-center justify-center gap-3" style={{color: "var(--fg-subtle)"}}>
             <Puzzle className="h-12 w-12" />
             <p className="text-lg font-medium">No extensions installed</p>
             <p className="text-sm">Click Install to add your first extension</p>
@@ -149,11 +149,12 @@ export function ExtensionsGrid({
               key={ext.slug}
               className={`group flex h-full flex-col rounded-xl overflow-hidden transition-all duration-200 ${
                 ext.is_active
-                  ? "border-2 border-emerald-500/70 shadow-md shadow-emerald-500/5"
-                  : "border border-slate-200/80 shadow-sm hover:shadow-md hover:border-slate-300"
+                  ? "border-2 shadow-md"
+                  : "border border-border/80 shadow-sm hover:shadow-md hover:border-border"
               }`}
+              style={ext.is_active ? {borderColor: "var(--success)"} : undefined}
             >
-              <div className="relative bg-slate-100 overflow-hidden">
+              <div className="relative bg-muted overflow-hidden">
                 <img
                   src={`/admin/api/extensions/${ext.slug}/preview`}
                   alt={ext.name}
@@ -162,12 +163,12 @@ export function ExtensionsGrid({
                 />
                 <div className="absolute top-2.5 right-2.5">
                   {ext.is_active ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm" style={{background: "var(--success)"}}>
                       <Check className="h-3 w-3" />
                       Active
                     </span>
                   ) : (
-                    <span className="inline-flex items-center rounded-full bg-slate-900/50 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm" style={{background: "rgba(15,23,42,0.5)"}}>
                       Inactive
                     </span>
                   )}
@@ -177,19 +178,19 @@ export function ExtensionsGrid({
               <div className="flex flex-1 flex-col p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-[15px] text-slate-900 truncate leading-tight">{ext.name}</h3>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <h3 className="font-semibold text-[15px] text-foreground truncate leading-tight">{ext.name}</h3>
+                    <p className="text-xs mt-1" style={{color: "var(--fg-subtle)"}}>
                       {ext.author ? `by ${ext.author}` : ext.slug}
                       {ext.priority !== 50 && ` · Priority ${ext.priority}`}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-500 tracking-wide">
+                  <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground tracking-wide">
                     {ext.version}
                   </span>
                 </div>
 
                 {ext.description && (
-                  <p className="text-[13px] text-slate-500 leading-relaxed line-clamp-2">{ext.description}</p>
+                  <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{ext.description}</p>
                 )}
 
                 <div className="mt-auto flex items-center gap-1.5 pt-2">
@@ -197,9 +198,10 @@ export function ExtensionsGrid({
                     size="sm"
                     className={`text-xs h-8 rounded-lg flex-1 ${
                       ext.is_active
-                        ? "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 shadow-none"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        ? "bg-card border border-border text-muted-foreground hover:bg-muted shadow-none"
+                        : "text-white shadow-sm"
                     }`}
+                    style={!ext.is_active ? {background: "var(--success)"} : undefined}
                     disabled={togglingSlug === ext.slug}
                     onClick={() => handleToggle(ext)}
                   >
@@ -215,7 +217,7 @@ export function ExtensionsGrid({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-xs h-8 rounded-lg border-slate-200"
+                    className="text-xs h-8 rounded-lg border-border"
                     onClick={() => navigate(`/admin/extensions/${ext.slug}/files`)}
                   >
                     <FolderOpen className="mr-1.5 h-3 w-3" />
@@ -224,7 +226,8 @@ export function ExtensionsGrid({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                    className="h-8 w-8 p-0 rounded-lg"
+                    style={{color: "var(--fg-subtle)"}}
                     disabled={ext.is_active}
                     onClick={() => setDeleteTarget(ext)}
                     title={ext.is_active ? "Deactivate extension before deleting" : "Delete extension"}
@@ -249,20 +252,21 @@ export function ExtensionsGrid({
           </DialogHeader>
           <div
             className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
-              dragOver ? "border-indigo-400 bg-indigo-50" : "border-slate-300 bg-slate-50 hover:border-slate-400"
+              dragOver ? "" : "bg-muted"
             }`}
+            style={dragOver ? {borderColor: "var(--accent-mid)", background: "var(--accent-weak)"} : {borderColor: "var(--border-input)"}}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <Puzzle className="mb-3 h-10 w-10 text-slate-400" />
-            <p className="mb-1 text-sm font-medium text-slate-700">Drag and drop a ZIP file here</p>
-            <p className="mb-4 text-xs text-slate-500">or click to browse</p>
+            <Puzzle className="mb-3 h-10 w-10" style={{color: "var(--fg-subtle)"}} />
+            <p className="mb-1 text-sm font-medium text-foreground">Drag and drop a ZIP file here</p>
+            <p className="mb-4 text-xs text-muted-foreground">or click to browse</p>
             <input ref={fileInputRef} type="file" accept=".zip" className="hidden" onChange={handleFileChange} />
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+              className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
             >
               {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Uploading...</> : <><Upload className="mr-2 h-4 w-4" />Choose File</>}
             </Button>

@@ -224,7 +224,7 @@ export default function LayoutEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -232,7 +232,7 @@ export default function LayoutEditorPage() {
   return (
     <div className="space-y-4">
       {isManaged && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700 flex items-start gap-2">
+        <div className="rounded-lg border p-3 text-xs flex items-start gap-2" style={{background: "var(--warning-bg)", borderColor: "var(--border)", color: "var(--warning)"}}>
           <Info className="h-4 w-4 mt-0.5 shrink-0" />
           <p>
             This layout is managed by the active {source} and is read-only. To customize it, click
@@ -383,62 +383,62 @@ export default function LayoutEditorPage() {
             </TabsContent>
 
             <TabsContent value="reference" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <Card className="rounded-xl border border-border shadow-sm">
                 <SectionHeader title="Template Reference" />
                 <CardContent>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                      <h3 className="mb-3 text-sm font-semibold text-slate-700">App Variables</h3>
+                      <h3 className="mb-3 text-sm font-semibold text-foreground">App Variables</h3>
                       <div className="space-y-2 text-sm">
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.settings.site_name}}"}</code> <span className="text-slate-500">site setting by key</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.code}}"}</code> <span className="text-slate-500">current language code</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.block_styles}}"}</code> <span className="text-slate-500">inline block CSS (HTML)</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.block_scripts}}"}</code> <span className="text-slate-500">inline block JS (HTML)</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.app.settings.site_name}}"}</code> <span className="text-muted-foreground">site setting by key</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.app.current_lang.code}}"}</code> <span className="text-muted-foreground">current language code</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.app.block_styles}}"}</code> <span className="text-muted-foreground">inline block CSS (HTML)</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.app.block_scripts}}"}</code> <span className="text-muted-foreground">inline block JS (HTML)</span></div>
                       </div>
-                      <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">Loops (use range)</h3>
+                      <h3 className="mb-3 mt-4 text-sm font-semibold text-foreground">Loops (use range)</h3>
                       <div className="space-y-2 text-sm">
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.head_styles}}<link rel="stylesheet" href="{{.}}">{{end}}'}</code></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.head_scripts}}<script src="{{.}}"></script>{{end}}'}</code></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.foot_scripts}}<script src="{{.}}" defer></script>{{end}}'}</code></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{range .app.languages}}{{.code}}{{end}}'}</code></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{'{{range .app.head_styles}}<link rel="stylesheet" href="{{.}}">{{end}}'}</code></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{'{{range .app.head_scripts}}<script src="{{.}}"></script>{{end}}'}</code></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{'{{range .app.foot_scripts}}<script src="{{.}}" defer></script>{{end}}'}</code></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{'{{range .app.languages}}{{.code}}{{end}}'}</code></div>
                       </div>
                     </div>
                     <div>
-                      <h3 className="mb-3 text-sm font-semibold text-slate-700">Node Variables</h3>
+                      <h3 className="mb-3 text-sm font-semibold text-foreground">Node Variables</h3>
                       <div className="space-y-2 text-sm">
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.title}}"}</code> <span className="text-slate-500">page title</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.slug}}"}</code> <span className="text-slate-500">page slug</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.full_url}}"}</code> <span className="text-slate-500">full URL path</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.blocks_html}}"}</code> <span className="text-slate-500">rendered content blocks</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.node_type}}"}</code> <span className="text-slate-500">page, post, etc.</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.language_code}}"}</code> <span className="text-slate-500">language code</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.seo.title}}"}</code> <span className="text-slate-500">SEO title</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.node.fields}}"}</code> <span className="text-slate-500">custom fields map</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.title}}"}</code> <span className="text-muted-foreground">page title</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.slug}}"}</code> <span className="text-muted-foreground">page slug</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.full_url}}"}</code> <span className="text-muted-foreground">full URL path</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.blocks_html}}"}</code> <span className="text-muted-foreground">rendered content blocks</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.node_type}}"}</code> <span className="text-muted-foreground">page, post, etc.</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.language_code}}"}</code> <span className="text-muted-foreground">language code</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.seo.title}}"}</code> <span className="text-muted-foreground">SEO title</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.node.fields}}"}</code> <span className="text-muted-foreground">custom fields map</span></div>
                       </div>
-                      <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">Functions</h3>
+                      <h3 className="mb-3 mt-4 text-sm font-semibold text-foreground">Functions</h3>
                       <div className="space-y-2 text-sm">
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{renderLayoutBlock \"slug\"}}"}</code> <span className="text-slate-500">render a partial/layout block</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{renderLayoutBlock \"slug\"}}"}</code> <span className="text-muted-foreground">render a partial/layout block</span></div>
                       </div>
-                      <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">Menus</h3>
+                      <h3 className="mb-3 mt-4 text-sm font-semibold text-foreground">Menus</h3>
                       <div className="space-y-2 text-sm">
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{'{{$menu := index .app.menus "main-nav"}}'}</code> <span className="text-slate-500">get menu by slug</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{range $menu.items}}"}</code> <span className="text-slate-500">loop menu items</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.title}} {{.url}} {{.target}}"}</code> <span className="text-slate-500">item fields</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.css_class}} {{.item_type}}"}</code> <span className="text-slate-500">more item fields</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{range .children}}...{{end}}"}</code> <span className="text-slate-500">nested submenu items</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{'{{$menu := index .app.menus "main-nav"}}'}</code> <span className="text-muted-foreground">get menu by slug</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{range $menu.items}}"}</code> <span className="text-muted-foreground">loop menu items</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.title}} {{.url}} {{.target}}"}</code> <span className="text-muted-foreground">item fields</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.css_class}} {{.item_type}}"}</code> <span className="text-muted-foreground">more item fields</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{range .children}}...{{end}}"}</code> <span className="text-muted-foreground">nested submenu items</span></div>
                       </div>
-                      <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">Language</h3>
+                      <h3 className="mb-3 mt-4 text-sm font-semibold text-foreground">Language</h3>
                       <div className="space-y-2 text-sm">
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.code}}"}</code> <span className="text-slate-500">e.g. "en"</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.name}}"}</code> <span className="text-slate-500">e.g. "English"</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.app.current_lang.flag}}"}</code> <span className="text-slate-500">e.g. emoji flag</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.app.current_lang.code}}"}</code> <span className="text-muted-foreground">e.g. "en"</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.app.current_lang.name}}"}</code> <span className="text-muted-foreground">e.g. "English"</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.app.current_lang.flag}}"}</code> <span className="text-muted-foreground">e.g. emoji flag</span></div>
                       </div>
-                      <h3 className="mb-3 mt-4 text-sm font-semibold text-slate-700">User / Auth</h3>
+                      <h3 className="mb-3 mt-4 text-sm font-semibold text-foreground">User / Auth</h3>
                       <div className="space-y-2 text-sm">
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{if .user.logged_in}}...{{end}}"}</code> <span className="text-slate-500">check if logged in</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.user.email}}"}</code> <span className="text-slate-500">user email</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.user.role}}"}</code> <span className="text-slate-500">user role</span></div>
-                        <div><code className="rounded bg-slate-100 px-2 py-0.5 text-xs font-mono text-indigo-700">{"{{.user.full_name}}"}</code> <span className="text-slate-500">display name</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{if .user.logged_in}}...{{end}}"}</code> <span className="text-muted-foreground">check if logged in</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.user.email}}"}</code> <span className="text-muted-foreground">user email</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.user.role}}"}</code> <span className="text-muted-foreground">user role</span></div>
+                        <div><code className="rounded bg-muted px-2 py-0.5 text-xs font-mono" style={{color: "var(--accent-strong)"}}>{"{{.user.full_name}}"}</code> <span className="text-muted-foreground">display name</span></div>
                       </div>
                     </div>
                   </div>
@@ -451,13 +451,13 @@ export default function LayoutEditorPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Publish card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
               {isManaged ? (
                 <Button
                   type="button"
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                  className="w-full font-medium rounded-lg shadow-sm h-9 text-sm" style={{background: "var(--warning)", color: "#fff"}}
                   onClick={handleDetach}
                   disabled={detaching}
                 >
@@ -467,7 +467,7 @@ export default function LayoutEditorPage() {
               ) : (
                 <Button
                   type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                  className="w-full bg-primary text-white font-medium rounded-lg shadow-sm h-9 text-sm"
                   disabled={saving}
                 >
                   <Save className="mr-1.5 h-3.5 w-3.5" />
@@ -481,7 +481,7 @@ export default function LayoutEditorPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium h-8 text-xs"
+                    className="w-full hover: rounded-lg font-medium h-8 text-xs" style={{background: "var(--danger-bg)", borderColor: "var(--danger-border)", color: "var(--danger)"}}
                     onClick={() => setShowDelete(true)}
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -493,21 +493,21 @@ export default function LayoutEditorPage() {
               {isEdit && originalLayout && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" style={{color: "var(--fg-subtle)"}}>
                     <div className="flex justify-between">
                       <span>Source</span>
-                      <span className="text-slate-600 capitalize">{source}</span>
+                      <span className="text-muted-foreground capitalize">{source}</span>
                     </div>
                     {originalLayout.created_at && (
                       <div className="flex justify-between">
                         <span>Created</span>
-                        <span className="text-slate-600">{new Date(originalLayout.created_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalLayout.created_at).toLocaleDateString()}</span>
                       </div>
                     )}
                     {originalLayout.updated_at && (
                       <div className="flex justify-between">
                         <span>Updated</span>
-                        <span className="text-slate-600">{new Date(originalLayout.updated_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalLayout.updated_at).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -517,11 +517,11 @@ export default function LayoutEditorPage() {
           </Card>
 
           {/* Settings card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Settings" />
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-xs font-medium text-slate-500">Description</Label>
+                <Label htmlFor="description" className="text-xs font-medium text-muted-foreground">Description</Label>
                 <Textarea
                   id="description"
                   value={description}
@@ -532,13 +532,13 @@ export default function LayoutEditorPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="language" className="text-xs font-medium text-slate-500">Language</Label>
+                <Label htmlFor="language" className="text-xs font-medium text-muted-foreground">Language</Label>
                 <Select
                   value={languageId === null ? "all" : String(languageId)}
                   onValueChange={(v) => setLanguageId(v === "all" ? null : Number(v))}
                   disabled={isManaged}
                 >
-                  <SelectTrigger id="language" className="h-9 rounded-lg border-slate-300 text-sm">
+                  <SelectTrigger id="language" className="h-9 rounded-lg border-border text-sm">
                     <SelectValue placeholder="All Languages" />
                   </SelectTrigger>
                   <SelectContent>
@@ -553,7 +553,7 @@ export default function LayoutEditorPage() {
               </div>
               <div className="space-y-3 pt-1">
                 <label className={`flex items-center justify-between gap-3 ${isManaged ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
-                  <span className="text-sm text-slate-700">Set as default layout</span>
+                  <span className="text-sm text-foreground">Set as default layout</span>
                   <Switch
                     checked={isDefault}
                     onCheckedChange={setIsDefault}
@@ -562,8 +562,8 @@ export default function LayoutEditorPage() {
                 </label>
                 <label className={`flex items-center justify-between gap-3 ${isManaged ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                   <div className="space-y-0.5 min-w-0">
-                    <span className="block text-sm text-slate-700">Supports blocks</span>
-                    <span className="block text-[11px] text-slate-400">Enable block-based composition.</span>
+                    <span className="block text-sm text-foreground">Supports blocks</span>
+                    <span className="block text-[11px]" style={{color: "var(--fg-subtle)"}}>Enable block-based composition.</span>
                   </div>
                   <Switch
                     checked={supportsBlocks}

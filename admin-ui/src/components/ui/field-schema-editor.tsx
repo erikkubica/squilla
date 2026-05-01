@@ -37,7 +37,7 @@ export function fieldTypeBadgeClass(type: string): string {
     case "date":
       return "bg-teal-100 text-teal-700 hover:bg-teal-100";
     case "select":
-      return "bg-indigo-100 text-indigo-700 hover:bg-indigo-100";
+      return "bg-accent text-accent-foreground";
     case "image":
       return "bg-pink-100 text-pink-700 hover:bg-pink-100";
     case "toggle":
@@ -67,11 +67,11 @@ export function fieldTypeBadgeClass(type: string): string {
     case "gallery":
       return "bg-pink-100 text-pink-700 hover:bg-pink-100";
     case "radio":
-      return "bg-indigo-100 text-indigo-700 hover:bg-indigo-100";
+      return "bg-accent text-accent-foreground";
     case "checkbox":
-      return "bg-indigo-100 text-indigo-700 hover:bg-indigo-100";
+      return "bg-accent text-accent-foreground";
     default:
-      return "bg-slate-100 text-slate-600 hover:bg-slate-100";
+      return "bg-muted text-muted-foreground";
   }
 }
 
@@ -236,7 +236,7 @@ export default function FieldSchemaEditor({
   return (
     <div className="space-y-3">
       {fields.length === 0 && !showAddField && (
-        <p className="text-sm text-slate-400 text-center py-4">
+        <p className="text-sm text-center py-4">
           No fields defined yet. Add fields to define the structure.
         </p>
       )}
@@ -257,7 +257,7 @@ export default function FieldSchemaEditor({
                     {field.key}
                   </span>
                   <Badge className={`${fieldTypeBadgeClass(field.type)} border-0 text-[10px] shrink-0`}>{field.type}</Badge>
-                  {field.required && <Badge className="bg-red-100 text-red-600 hover:bg-red-100 border-0 text-[10px] shrink-0">Required</Badge>}
+                  {field.required && <Badge className="border-0 text-[10px] shrink-0" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>Required</Badge>}
                 </>
               }
               headerRight={
@@ -286,7 +286,7 @@ export default function FieldSchemaEditor({
                     type="button"
                     onClick={() => handleRemoveField(index)}
                     disabled={disabled}
-                    className="p-1 rounded hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
                     style={{ color: "var(--danger)" }}
                     title="Delete"
                   >
@@ -297,21 +297,21 @@ export default function FieldSchemaEditor({
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Label</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Label</Label>
                   <Input value={field.label} onChange={(e) => updateField(index, { label: e.target.value })} disabled={disabled} className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Key</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Key</Label>
                   <Input value={field.key} onChange={(e) => updateField(index, { key: e.target.value })} disabled={disabled} className="h-8 text-sm font-mono" />
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Type</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Type</Label>
                   <FieldTypePicker value={field.type} onValueChange={(v) => updateField(index, { type: v as NodeTypeField["type"] })} compact />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Width</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Width</Label>
                   <Select
                     value={String(field.width ?? 100)}
                     onValueChange={(v) => {
@@ -334,16 +334,16 @@ export default function FieldSchemaEditor({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">&nbsp;</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
                   <label className={`flex items-center gap-2 h-8 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                     <Switch checked={!!field.required} disabled={disabled} onCheckedChange={(c) => updateField(index, { required: c || undefined })} />
-                    <span className="text-sm text-slate-700">Required</span>
+                    <span className="text-sm text-foreground">Required</span>
                   </label>
                 </div>
               </div>
               {field.type === "select" && (
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Options (comma-separated)</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Options (comma-separated)</Label>
                   <Input value={(field.options || []).join(", ")} disabled={disabled} onChange={(e) => updateField(index, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })} className="h-8 text-sm" />
                 </div>
               )}
@@ -357,52 +357,52 @@ export default function FieldSchemaEditor({
               {field.type === "node" && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Node Type Filter</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Node Type Filter</Label>
                     <Input value={field.node_type_filter || ""} disabled={disabled} onChange={(e) => updateField(index, { node_type_filter: e.target.value })} placeholder="e.g. page, post (empty = all)" className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">&nbsp;</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
                     <label className={`flex items-center gap-2 h-8 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                       <Switch checked={!!field.multiple} disabled={disabled} onCheckedChange={(c) => updateField(index, { multiple: c })} />
-                      <span className="text-sm text-slate-700">Allow multiple</span>
+                      <span className="text-sm text-foreground">Allow multiple</span>
                     </label>
                   </div>
                 </div>
               )}
               {["text", "textarea", "number", "email", "url"].includes(field.type) && (
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Placeholder</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Placeholder</Label>
                   <Input value={field.placeholder || ""} disabled={disabled} onChange={(e) => updateField(index, { placeholder: e.target.value || undefined })} placeholder="Placeholder text" className="h-8 text-sm" />
                 </div>
               )}
               {!["group", "repeater"].includes(field.type) && (
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Default Value</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Default Value</Label>
                   <Input value={field.default_value || ""} disabled={disabled} onChange={(e) => updateField(index, { default_value: e.target.value || undefined })} placeholder="Default value" className="h-8 text-sm" />
                 </div>
               )}
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-slate-600">Help Text</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Help Text</Label>
                 <Input value={field.help || ""} disabled={disabled} onChange={(e) => updateField(index, { help: e.target.value || undefined })} placeholder="Instructions for content editors" className="h-8 text-sm" />
               </div>
               {(field.type === "radio" || field.type === "checkbox") && (
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Options (comma-separated)</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Options (comma-separated)</Label>
                   <Input value={(field.options || []).join(", ")} disabled={disabled} onChange={(e) => updateField(index, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })} className="h-8 text-sm" />
                 </div>
               )}
               {(field.type === "number" || field.type === "range") && (
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Min</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Min</Label>
                     <Input type="number" value={field.min ?? ""} disabled={disabled} onChange={(e) => updateField(index, { min: e.target.value ? Number(e.target.value) : undefined })} className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Max</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Max</Label>
                     <Input type="number" value={field.max ?? ""} disabled={disabled} onChange={(e) => updateField(index, { max: e.target.value ? Number(e.target.value) : undefined })} className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Step</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Step</Label>
                     <Input type="number" value={field.step ?? ""} disabled={disabled} onChange={(e) => updateField(index, { step: e.target.value ? Number(e.target.value) : undefined })} className="h-8 text-sm" />
                   </div>
                 </div>
@@ -410,29 +410,29 @@ export default function FieldSchemaEditor({
               {(field.type === "text" || field.type === "textarea") && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Min Length</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Min Length</Label>
                     <Input type="number" value={field.min_length ?? ""} disabled={disabled} onChange={(e) => updateField(index, { min_length: e.target.value ? Number(e.target.value) : undefined })} placeholder="No min" className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Max Length</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Max Length</Label>
                     <Input type="number" value={field.max_length ?? ""} disabled={disabled} onChange={(e) => updateField(index, { max_length: e.target.value ? Number(e.target.value) : undefined })} placeholder="No max" className="h-8 text-sm" />
                   </div>
                 </div>
               )}
               {field.type === "textarea" && (
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-600">Rows</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Rows</Label>
                   <Input type="number" value={field.rows ?? ""} disabled={disabled} onChange={(e) => updateField(index, { rows: e.target.value ? Number(e.target.value) : undefined })} placeholder="4 (default)" className="h-8 text-sm" />
                 </div>
               )}
               {["text", "number", "email", "url"].includes(field.type) && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Prepend</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Prepend</Label>
                     <Input value={field.prepend || ""} disabled={disabled} onChange={(e) => updateField(index, { prepend: e.target.value || undefined })} placeholder="e.g. $" className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Append</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Append</Label>
                     <Input value={field.append || ""} disabled={disabled} onChange={(e) => updateField(index, { append: e.target.value || undefined })} placeholder="e.g. px" className="h-8 text-sm" />
                   </div>
                 </div>
@@ -440,14 +440,14 @@ export default function FieldSchemaEditor({
               {field.type === "file" && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">Allowed Types</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Allowed Types</Label>
                     <Input value={field.allowed_types || ""} disabled={disabled} onChange={(e) => updateField(index, { allowed_types: e.target.value || undefined })} placeholder="pdf, doc, zip" className="h-8 text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-slate-600">&nbsp;</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
                     <label className={`flex items-center gap-2 h-8 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
                       <Switch checked={!!field.multiple} disabled={disabled} onCheckedChange={(c) => updateField(index, { multiple: c })} />
-                      <span className="text-sm text-slate-700">Multiple files</span>
+                      <span className="text-sm text-foreground">Multiple files</span>
                     </label>
                   </div>
                 </div>
@@ -461,11 +461,11 @@ export default function FieldSchemaEditor({
       {!disabled && showAddField && (
         <>
           <Separator />
-          <div className="space-y-4 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4">
-            <p className="text-sm font-semibold text-slate-700">New Field</p>
+          <div className="space-y-4 rounded-lg border border-border bg-muted p-4">
+            <p className="text-sm font-semibold text-foreground">New Field</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Label</Label>
+                <Label className="text-sm font-medium text-foreground">Label</Label>
                 <Input
                   placeholder="e.g. Price, Author Name"
                   value={newFieldLabel}
@@ -474,10 +474,10 @@ export default function FieldSchemaEditor({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-slate-700">Key</Label>
+                  <Label className="text-sm font-medium text-foreground">Key</Label>
                   <button
                     type="button"
-                    className="text-xs text-indigo-600 hover:underline"
+                    className="text-xs hover:underline"
                     onClick={() => setAutoFieldKey(!autoFieldKey)}
                   >
                     {autoFieldKey ? "Edit manually" : "Auto-generate"}
@@ -498,25 +498,25 @@ export default function FieldSchemaEditor({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Type</Label>
+                <Label className="text-sm font-medium text-foreground">Type</Label>
                 <FieldTypePicker value={newFieldType} onValueChange={(v) => setNewFieldType(v as NodeTypeField["type"])} />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">&nbsp;</Label>
+                <Label className="text-sm font-medium text-foreground">&nbsp;</Label>
                 <label htmlFor="new-field-required" className="flex items-center gap-2 h-9 cursor-pointer">
                   <Switch
                     id="new-field-required"
                     checked={newFieldRequired}
                     onCheckedChange={setNewFieldRequired}
                   />
-                  <span className="text-sm font-medium text-slate-700">Required</span>
+                  <span className="text-sm font-medium text-foreground">Required</span>
                 </label>
               </div>
             </div>
 
             {newFieldType === "select" && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Options (comma-separated)</Label>
+                <Label className="text-sm font-medium text-foreground">Options (comma-separated)</Label>
                 <Input
                   placeholder="e.g. Option A, Option B, Option C"
                   value={newFieldOptions}
@@ -536,7 +536,7 @@ export default function FieldSchemaEditor({
             {newFieldType === "node" && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Node Type Filter</Label>
+                  <Label className="text-sm font-medium text-foreground">Node Type Filter</Label>
                   <Input
                     value={newFieldNodeTypeFilter}
                     onChange={(e) => setNewFieldNodeTypeFilter(e.target.value)}
@@ -544,10 +544,10 @@ export default function FieldSchemaEditor({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">&nbsp;</Label>
+                  <Label className="text-sm font-medium text-foreground">&nbsp;</Label>
                   <label className="flex items-center gap-2 h-9 cursor-pointer">
                     <Switch checked={newFieldMultiple} onCheckedChange={setNewFieldMultiple} />
-                    <span className="text-sm text-slate-700">Allow multiple selection</span>
+                    <span className="text-sm text-foreground">Allow multiple selection</span>
                   </label>
                 </div>
               </div>
@@ -556,7 +556,7 @@ export default function FieldSchemaEditor({
             {newFieldType === "term" && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Taxonomy Slug</Label>
+                  <Label className="text-sm font-medium text-foreground">Taxonomy Slug</Label>
                   <Input
                     value={newFieldTaxonomy}
                     onChange={(e) => setNewFieldTaxonomy(e.target.value)}
@@ -564,7 +564,7 @@ export default function FieldSchemaEditor({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Node Type (for terms)</Label>
+                  <Label className="text-sm font-medium text-foreground">Node Type (for terms)</Label>
                   <Input
                     value={newFieldTermNodeType}
                     onChange={(e) => setNewFieldTermNodeType(e.target.value)}
@@ -574,7 +574,7 @@ export default function FieldSchemaEditor({
                 <div className="space-y-2 sm:col-span-2">
                   <label className="flex items-center gap-2 h-9 cursor-pointer">
                     <Switch checked={newFieldMultiple} onCheckedChange={setNewFieldMultiple} />
-                    <span className="text-sm text-slate-700">Allow multiple selection</span>
+                    <span className="text-sm text-foreground">Allow multiple selection</span>
                   </label>
                 </div>
               </div>
@@ -582,7 +582,7 @@ export default function FieldSchemaEditor({
 
             {["text", "textarea", "number", "email", "url"].includes(newFieldType) && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Placeholder</Label>
+                <Label className="text-sm font-medium text-foreground">Placeholder</Label>
                 <Input
                   placeholder="Placeholder text shown when empty"
                   value={newFieldPlaceholder}
@@ -593,7 +593,7 @@ export default function FieldSchemaEditor({
 
             {!["group", "repeater"].includes(newFieldType) && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Default Value</Label>
+                <Label className="text-sm font-medium text-foreground">Default Value</Label>
                 <Input
                   placeholder="Default value for new content"
                   value={newFieldDefaultValue}
@@ -603,7 +603,7 @@ export default function FieldSchemaEditor({
             )}
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Help Text</Label>
+              <Label className="text-sm font-medium text-foreground">Help Text</Label>
               <Input
                 placeholder="Instructions shown below the field"
                 value={newFieldHelpText}
@@ -613,7 +613,7 @@ export default function FieldSchemaEditor({
 
             {(newFieldType === "radio" || newFieldType === "checkbox") && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Options (comma-separated)</Label>
+                <Label className="text-sm font-medium text-foreground">Options (comma-separated)</Label>
                 <Input
                   placeholder="e.g. Option A, Option B, Option C"
                   value={newFieldOptions}
@@ -625,15 +625,15 @@ export default function FieldSchemaEditor({
             {(newFieldType === "number" || newFieldType === "range") && (
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Min</Label>
+                  <Label className="text-sm font-medium text-foreground">Min</Label>
                   <Input type="number" placeholder="0" value={newFieldMin} onChange={(e) => setNewFieldMin(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Max</Label>
+                  <Label className="text-sm font-medium text-foreground">Max</Label>
                   <Input type="number" placeholder="100" value={newFieldMax} onChange={(e) => setNewFieldMax(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Step</Label>
+                  <Label className="text-sm font-medium text-foreground">Step</Label>
                   <Input type="number" placeholder="1" value={newFieldStep} onChange={(e) => setNewFieldStep(e.target.value)} />
                 </div>
               </div>
@@ -642,11 +642,11 @@ export default function FieldSchemaEditor({
             {(newFieldType === "text" || newFieldType === "textarea") && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Min Length</Label>
+                  <Label className="text-sm font-medium text-foreground">Min Length</Label>
                   <Input type="number" placeholder="No minimum" value={newFieldMinLength} onChange={(e) => setNewFieldMinLength(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Max Length</Label>
+                  <Label className="text-sm font-medium text-foreground">Max Length</Label>
                   <Input type="number" placeholder="No maximum" value={newFieldMaxLength} onChange={(e) => setNewFieldMaxLength(e.target.value)} />
                 </div>
               </div>
@@ -654,7 +654,7 @@ export default function FieldSchemaEditor({
 
             {newFieldType === "textarea" && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Rows</Label>
+                <Label className="text-sm font-medium text-foreground">Rows</Label>
                 <Input type="number" placeholder="4 (default)" value={newFieldRows} onChange={(e) => setNewFieldRows(e.target.value)} />
               </div>
             )}
@@ -662,11 +662,11 @@ export default function FieldSchemaEditor({
             {["text", "number", "email", "url"].includes(newFieldType) && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Prepend</Label>
+                  <Label className="text-sm font-medium text-foreground">Prepend</Label>
                   <Input placeholder="e.g. $, https://" value={newFieldPrepend} onChange={(e) => setNewFieldPrepend(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Append</Label>
+                  <Label className="text-sm font-medium text-foreground">Append</Label>
                   <Input placeholder="e.g. px, kg, %" value={newFieldAppend} onChange={(e) => setNewFieldAppend(e.target.value)} />
                 </div>
               </div>
@@ -675,12 +675,12 @@ export default function FieldSchemaEditor({
             {newFieldType === "file" && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Allowed File Types</Label>
+                  <Label className="text-sm font-medium text-foreground">Allowed File Types</Label>
                   <Input placeholder="e.g. pdf, doc, zip (empty = all)" value={newFieldAllowedTypes} onChange={(e) => setNewFieldAllowedTypes(e.target.value)} />
                 </div>
                 <label className="flex items-center gap-2 h-9 cursor-pointer">
                   <Switch checked={newFieldMultiple} onCheckedChange={setNewFieldMultiple} />
-                  <span className="text-sm text-slate-700">Allow multiple files</span>
+                  <span className="text-sm text-foreground">Allow multiple files</span>
                 </label>
               </div>
             )}
@@ -688,7 +688,7 @@ export default function FieldSchemaEditor({
             <div className="flex gap-2">
               <Button
                 type="button"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg"
                 onClick={handleAddField}
               >
                 {addLabel}
@@ -696,7 +696,7 @@ export default function FieldSchemaEditor({
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-lg border-slate-300"
+                className="rounded-lg border-border"
                 onClick={resetAddFieldForm}
               >
                 Cancel
@@ -710,7 +710,7 @@ export default function FieldSchemaEditor({
         <Button
           type="button"
           variant="outline"
-          className="w-full rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+          className="w-full rounded-lg border-dashed border-border text-muted-foreground hover:bg-muted"
           onClick={() => setShowAddField(true)}
         >
           <Plus className="mr-2 h-4 w-4" />

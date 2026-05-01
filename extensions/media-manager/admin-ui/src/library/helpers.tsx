@@ -93,9 +93,9 @@ export function FileTypeIcon({ mime, className }: { mime: string; className?: st
 
 export function BrokenMediaFallback({ className }: { className?: string }) {
   return (
-    <div className={`flex flex-col items-center justify-center gap-2 w-full h-full bg-slate-50 text-slate-400 ${className || ""}`}>
-      <AlertCircle className="h-8 w-8 text-slate-300" />
-      <span className="text-xs font-medium text-slate-400">Failed to load</span>
+    <div className={`flex flex-col items-center justify-center gap-2 w-full h-full bg-muted text-muted-foreground ${className || ""}`}>
+      <AlertCircle className="h-8 w-8 text-muted-foreground" />
+      <span className="text-xs font-medium text-muted-foreground">Failed to load</span>
     </div>
   );
 }

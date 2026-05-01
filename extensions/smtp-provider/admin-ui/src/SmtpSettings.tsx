@@ -62,17 +62,17 @@ export default function SmtpSettings() {
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
-    <Card className="rounded-xl border border-slate-200 shadow-sm">
+    <Card className="rounded-xl border border-border shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Server className="h-5 w-5 text-indigo-500" />
-          <CardTitle className="text-lg font-semibold text-slate-900">
+          <Server className="h-5 w-5 text-foreground" />
+          <CardTitle className="text-lg font-semibold text-foreground">
             SMTP Configuration
           </CardTitle>
         </div>
@@ -83,36 +83,36 @@ export default function SmtpSettings() {
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Host</Label>
+            <Label className="text-sm font-medium text-foreground">Host</Label>
             <Input placeholder="smtp.example.com" value={host} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHost(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Port</Label>
+            <Label className="text-sm font-medium text-foreground">Port</Label>
             <Input placeholder="587" value={port} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPort(e.target.value)} />
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Username</Label>
+            <Label className="text-sm font-medium text-foreground">Username</Label>
             <Input placeholder="user@example.com" value={username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">Password</Label>
+            <Label className="text-sm font-medium text-foreground">Password</Label>
             <Input type="password" placeholder="********" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} />
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">From Email</Label>
+            <Label className="text-sm font-medium text-foreground">From Email</Label>
             <Input placeholder="noreply@example.com" value={fromEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">From Name</Label>
+            <Label className="text-sm font-medium text-foreground">From Name</Label>
             <Input placeholder="My Site" value={fromName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFromName(e.target.value)} />
           </div>
         </div>
         <div className="space-y-2 max-w-xs">
-          <Label className="text-sm font-medium text-slate-700">Encryption</Label>
+          <Label className="text-sm font-medium text-foreground">Encryption</Label>
           <Select value={encryption} onValueChange={setEncryption}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -125,7 +125,7 @@ export default function SmtpSettings() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="bg-primary hover:bg-primary/90 text-white"
         >
           {saving ? (
             <>

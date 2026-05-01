@@ -35,10 +35,10 @@ export default function SubmissionsToolbar({
         />
 
         <div className="flex items-center gap-1.5">
-          <label className="text-[12px] text-slate-500 whitespace-nowrap">From</label>
+          <label className="text-[12px] text-muted-foreground whitespace-nowrap">From</label>
           <Input
             type="date"
-            className="h-[30px] w-36 text-[13px] bg-white border-slate-300 rounded"
+            className="h-[30px] w-36 text-[13px] bg-card border-border rounded"
             value={filters.dateFrom}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               onChange({ dateFrom: e.target.value })
@@ -47,10 +47,10 @@ export default function SubmissionsToolbar({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <label className="text-[12px] text-slate-500 whitespace-nowrap">To</label>
+          <label className="text-[12px] text-muted-foreground whitespace-nowrap">To</label>
           <Input
             type="date"
-            className="h-[30px] w-36 text-[13px] bg-white border-slate-300 rounded"
+            className="h-[30px] w-36 text-[13px] bg-card border-border rounded"
             value={filters.dateTo}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               onChange({ dateTo: e.target.value })

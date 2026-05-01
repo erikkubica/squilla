@@ -74,16 +74,16 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Config */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader
           title="Webhook Configuration"
-          icon={<Webhook className="h-4 w-4 text-indigo-500" />}
+          icon={<Webhook className="h-4 w-4 text-foreground" />}
         />
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium text-slate-700">Enable Webhook</Label>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <Label className="text-sm font-medium text-foreground">Enable Webhook</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Send a POST request to a URL after each submission
               </p>
             </div>
@@ -96,7 +96,7 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
           {webhookEnabled && (
             <>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">Webhook URL</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Webhook URL</Label>
                 <Input
                   id="webhook-url"
                   type="url"
@@ -108,9 +108,9 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">
+                <Label className="text-xs font-medium text-muted-foreground">
                   Additional Headers{" "}
-                  <span className="font-normal text-slate-400">(JSON)</span>
+                  <span className="font-normal text-muted-foreground">(JSON)</span>
                 </Label>
                 <textarea
                   id="webhook-headers"
@@ -120,9 +120,9 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                     updateSettings("webhook_headers", e.target.value)
                   }
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2  resize-none"
                 />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Optional JSON object of extra HTTP headers to include
                 </p>
               </div>
@@ -133,7 +133,7 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
 
       {/* Logs */}
       {formId && (
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader
             title="Webhook Logs"
             actions={
@@ -162,7 +162,7 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
               {logsLoading ? (
                 <LoadingRow />
               ) : logs.length === 0 ? (
-                <div className="flex h-32 items-center justify-center text-[13px] text-slate-400">
+                <div className="flex h-32 items-center justify-center text-[13px] text-muted-foreground">
                   No webhook logs yet
                 </div>
               ) : (
@@ -183,13 +183,13 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
                             {log.status_code >= 200 && log.status_code < 300 ? (
                               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                             ) : (
-                              <XCircle className="h-3.5 w-3.5 text-red-500" />
+                              <XCircle className="h-3.5 w-3.5 text-red-600" />
                             )}
                             <span
                               className={`text-[12px] font-mono ${
                                 log.status_code >= 200 && log.status_code < 300
                                   ? "text-emerald-700"
-                                  : "text-red-700"
+                                  : "text-red-600"
                               }`}
                             >
                               {log.status_code || "ERR"}
@@ -198,21 +198,21 @@ export default function WebhooksTab({ form, setForm }: WebhooksTabProps) {
                         </Td>
                         <Td className="max-w-[180px]">
                           <span
-                            className="text-[12px] text-slate-600 truncate block"
+                            className="text-[12px] text-muted-foreground truncate block"
                             title={log.url}
                           >
                             {log.url}
                           </span>
                           {log.error && (
-                            <span className="text-[11px] text-red-500 block truncate">
+                            <span className="text-[11px] text-red-600 block truncate">
                               {log.error}
                             </span>
                           )}
                         </Td>
-                        <Td className="font-mono text-[12px] text-slate-500">
+                        <Td className="font-mono text-[12px] text-muted-foreground">
                           {log.duration_ms}ms
                         </Td>
-                        <Td className="font-mono text-[12px] text-slate-500">
+                        <Td className="font-mono text-[12px] text-muted-foreground">
                           {new Date(log.created_at).toLocaleString()}
                         </Td>
                       </Tr>

@@ -124,16 +124,16 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onMouseDown={close}>
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
       <div
-        className="relative w-[720px] max-w-full max-h-[86vh] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-[720px] max-w-full max-h-[86vh] rounded-2xl bg-card shadow-2xl overflow-hidden flex flex-col"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* header */}
-        <div className="h-14 px-5 flex items-center gap-2 border-b border-slate-200 shrink-0">
-          <UploadCloud className="h-5 w-5 text-indigo-600" />
-          <div className="text-[14px] font-semibold text-slate-900">Upload media</div>
+        <div className="h-14 px-5 flex items-center gap-2 border-b border-border shrink-0">
+          <UploadCloud className="h-5 w-5 text-foreground" />
+          <div className="text-[14px] font-semibold text-foreground">Upload media</div>
           {total > 0 && (
             <div className="ml-3 flex items-center gap-1.5 text-[11.5px]">
-              <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 tabular-nums font-mono">
+              <span className="px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground tabular-nums font-mono">
                 {done}/{total} done
               </span>
               {errors > 0 && (
@@ -147,7 +147,7 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
           <button
             type="button"
             onClick={close}
-            className="w-8 h-8 rounded-md hover:bg-slate-100 text-slate-500 grid place-items-center cursor-pointer"
+            className="w-8 h-8 rounded-md hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -168,8 +168,8 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
             }}
             className={`block rounded-xl border-2 border-dashed transition-all cursor-pointer ${
               dragHot
-                ? "border-indigo-500 bg-indigo-50/60"
-                : "border-slate-300 hover:border-indigo-400 hover:bg-slate-50/60 bg-slate-50/30"
+                ? "border-border bg-accent/60"
+                : "border-border hover:border-border hover:bg-muted/60 bg-muted/30"
             }`}
           >
             <input
@@ -183,11 +183,11 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
               }}
             />
             <div className="px-6 py-10 text-center">
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-indigo-100 grid place-items-center mb-3">
-                <UploadCloud className="h-7 w-7 text-indigo-600" />
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-accent grid place-items-center mb-3">
+                <UploadCloud className="h-7 w-7 text-foreground" />
               </div>
-              <div className="text-[14px] font-semibold text-slate-900">Drop files here, or click to browse</div>
-              <div className="mt-1 text-[12px] text-slate-500">
+              <div className="text-[14px] font-semibold text-foreground">Drop files here, or click to browse</div>
+              <div className="mt-1 text-[12px] text-muted-foreground">
                 JPG, PNG, WebP, AVIF, SVG, MP4 — multiple files supported
               </div>
               <div className="mt-3 flex items-center justify-center gap-2">
@@ -197,7 +197,7 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
                     e.preventDefault();
                     inputRef.current?.click();
                   }}
-                  className="px-3 h-8 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-medium flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 h-8 rounded-md bg-primary hover:bg-primary/90 text-white text-[12px] font-medium flex items-center gap-1.5 cursor-pointer"
                 >
                   <Folder className="h-3 w-3" /> Browse files
                 </button>
@@ -208,49 +208,49 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
           {queue.length > 0 && (
             <div className="mt-5">
               <div className="flex items-center gap-2 mb-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Queue · {total}
                 </div>
-                <div className="flex-1 h-px bg-slate-200" />
+                <div className="flex-1 h-px bg-border" />
                 {errors > 0 && (
                   <button
                     type="button"
                     onClick={retryAll}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] text-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
                   >
                     <RotateCw className="h-3 w-3" /> Retry failed
                   </button>
                 )}
-                <div className="text-[11px] font-mono tabular-nums text-slate-500">{overall}%</div>
+                <div className="text-[11px] font-mono tabular-nums text-muted-foreground">{overall}%</div>
               </div>
               <div className="space-y-2">
                 {queue.map((item) => (
                   <div
                     key={item.id}
-                    className={`rounded-lg border bg-white flex items-center gap-3 p-2.5 ${
-                      item.status === "error" ? "border-rose-200 bg-rose-50/40" : "border-slate-200"
+                    className={`rounded-lg border bg-card flex items-center gap-3 p-2.5 ${
+                      item.status === "error" ? "border-rose-200 bg-rose-50/40" : "border-border"
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-md overflow-hidden border border-slate-200 shrink-0 relative bg-slate-100 grid place-items-center">
-                      <ImageIcon className="h-4 w-4 text-slate-400" />
+                    <div className="w-10 h-10 rounded-md overflow-hidden border border-border shrink-0 relative bg-muted grid place-items-center">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <div className="text-[12.5px] font-medium text-slate-800 truncate flex-1">{item.name}</div>
-                        <div className="text-[10.5px] font-mono tabular-nums text-slate-400">
+                        <div className="text-[12.5px] font-medium text-foreground truncate flex-1">{item.name}</div>
+                        <div className="text-[10.5px] font-mono tabular-nums text-muted-foreground">
                           {humanFileSize(item.size)}
                         </div>
                       </div>
                       {item.status === "uploading" && (
-                        <div className="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
                           <div
-                            className="h-full bg-indigo-500 transition-[width] duration-200"
+                            className="h-full bg-accent0 transition-[width] duration-200"
                             style={{ width: item.progress + "%" }}
                           />
                         </div>
                       )}
                       {item.status === "processing" && (
-                        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-indigo-600">
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-foreground">
                           <Loader2 className="h-3 w-3 animate-spin" /> Optimizing…
                         </div>
                       )}
@@ -267,7 +267,7 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">
                       {item.status === "uploading" && (
-                        <div className="text-[11px] font-mono tabular-nums text-slate-500 w-10 text-right">
+                        <div className="text-[11px] font-mono tabular-nums text-muted-foreground w-10 text-right">
                           {Math.round(item.progress)}%
                         </div>
                       )}
@@ -288,7 +288,7 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
                       <button
                         type="button"
                         onClick={() => remove(item.id)}
-                        className="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center cursor-pointer"
+                        className="w-7 h-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground grid place-items-center cursor-pointer"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -300,8 +300,8 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
           )}
         </div>
 
-        <div className="border-t border-slate-200 p-3 flex items-center gap-2 shrink-0">
-          <div className="text-[11.5px] text-slate-500">
+        <div className="border-t border-border p-3 flex items-center gap-2 shrink-0">
+          <div className="text-[11.5px] text-muted-foreground">
             {uploading > 0
               ? `Uploading ${uploading}…`
               : total === 0
@@ -312,7 +312,7 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
           <button
             type="button"
             onClick={close}
-            className="px-3 h-9 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-[12.5px] font-medium cursor-pointer"
+            className="px-3 h-9 rounded-lg border border-border hover:bg-muted text-foreground text-[12.5px] font-medium cursor-pointer"
           >
             {done > 0 ? "Done" : "Close"}
           </button>

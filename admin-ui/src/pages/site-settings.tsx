@@ -149,7 +149,7 @@ export default function SiteSettingsPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -159,8 +159,8 @@ export default function SiteSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Site Settings</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-foreground">Site Settings</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Configure your site's core settings
           </p>
         </div>
@@ -179,7 +179,7 @@ export default function SiteSettingsPage() {
           <Button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+            className="bg-primary text-white shadow-sm rounded-lg font-medium"
           >
             <Save className="mr-2 h-4 w-4" />
             {saving ? "Saving..." : "Save Changes"}
@@ -189,37 +189,37 @@ export default function SiteSettingsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* General */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
-          <SectionHeader title="General" icon={<Globe className="h-4 w-4 text-indigo-500" />} />
+        <Card className="rounded-xl border border-border shadow-sm">
+          <SectionHeader title="General" icon={<Globe className="h-4 w-4" style={{color: "var(--accent-strong)"}} />} />
           <CardContent className="space-y-4">
-            <p className="text-xs text-slate-500 -mt-1">Basic site identity</p>
+            <p className="text-xs text-muted-foreground -mt-1">Basic site identity</p>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-slate-700">
+              <Label className="text-sm font-medium text-foreground">
                 Site Name
               </Label>
               <Input
                 placeholder="My Website"
                 value={settings.site_name}
                 onChange={(e) => update("site_name", e.target.value)}
-                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="rounded-lg border-border focus:ring-2"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-slate-700">
+              <Label className="text-sm font-medium text-foreground">
                 Site URL
               </Label>
               <Input
                 placeholder="https://example.com"
                 value={settings.site_url}
                 onChange={(e) => update("site_url", e.target.value)}
-                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="rounded-lg border-border focus:ring-2"
               />
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                 Used for sitemaps, canonical URLs, and absolute links
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-slate-700">
+              <Label className="text-sm font-medium text-foreground">
                 Site Description
               </Label>
               <Textarea
@@ -227,19 +227,19 @@ export default function SiteSettingsPage() {
                 value={settings.site_description}
                 onChange={(e) => update("site_description", e.target.value)}
                 rows={2}
-                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                className="rounded-lg border-border focus:ring-2 resize-none"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Homepage */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
-          <SectionHeader title="Homepage" icon={<Home className="h-4 w-4 text-emerald-500" />} />
+        <Card className="rounded-xl border border-border shadow-sm">
+          <SectionHeader title="Homepage" icon={<Home className="h-4 w-4" style={{color: "var(--success)"}} />} />
           <CardContent className="space-y-3">
-            <p className="text-xs text-slate-500 -mt-1">Choose which page visitors see first</p>
+            <p className="text-xs text-muted-foreground -mt-1">Choose which page visitors see first</p>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-slate-700">
+              <Label className="text-sm font-medium text-foreground">
                 Homepage
               </Label>
               <Select
@@ -248,7 +248,7 @@ export default function SiteSettingsPage() {
                   update("homepage_node_id", v === "none" ? "" : v)
                 }
               >
-                <SelectTrigger className="rounded-lg border-slate-300">
+                <SelectTrigger className="rounded-lg border-border">
                   <SelectValue placeholder="Select a page..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,7 +260,7 @@ export default function SiteSettingsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                 This page will be displayed when visitors access your site root
               </p>
             </div>
@@ -270,37 +270,37 @@ export default function SiteSettingsPage() {
         {/* SEO defaults — emitted in the rendered <head> when a node
             doesn't override them. Per-node SEO (Meta Title / Description
             on the node edit screen) always wins. */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
+        <Card className="rounded-xl border border-border shadow-sm lg:col-span-2">
           <SectionHeader title="SEO" icon={<Search className="h-4 w-4 text-sky-500" />} />
           <CardContent className="space-y-4">
-            <p className="text-xs text-slate-500 -mt-1">
+            <p className="text-xs text-muted-foreground -mt-1">
               Site-wide defaults. Per-node SEO settings always take precedence.
               Themes read these as <code className="text-[11px] font-mono">{`{{ index $s "seo_default_og_image" }}`}</code> etc.
             </p>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">Default Meta Title</Label>
+                <Label className="text-sm font-medium text-foreground">Default Meta Title</Label>
                 <Input
                   placeholder={settings.site_name || "Site title fallback"}
                   value={settings.seo_default_meta_title}
                   onChange={(e) => update("seo_default_meta_title", e.target.value)}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                   Used when a page has no Meta Title. {settings.seo_default_meta_title.length || 0}/60.
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">Default Meta Description</Label>
+                <Label className="text-sm font-medium text-foreground">Default Meta Description</Label>
                 <Textarea
                   placeholder={settings.site_description || "Brief site description"}
                   value={settings.seo_default_meta_description}
                   onChange={(e) => update("seo_default_meta_description", e.target.value)}
                   rows={2}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                  className="rounded-lg border-border focus:ring-2 resize-none"
                 />
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                   {settings.seo_default_meta_description.length || 0}/160 recommended.
                 </p>
               </div>
@@ -308,27 +308,27 @@ export default function SiteSettingsPage() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">Default OG Image</Label>
+                <Label className="text-sm font-medium text-foreground">Default OG Image</Label>
                 <Input
                   placeholder="https://example.com/og.png"
                   value={settings.seo_default_og_image}
                   onChange={(e) => update("seo_default_og_image", e.target.value)}
-                  className="rounded-lg border-slate-300 font-mono text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border font-mono text-xs focus:ring-2"
                 />
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                   Fallback for og:image / twitter:image when a page has no featured image.
                   1200×630 recommended.
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">OG Site Name</Label>
+                <Label className="text-sm font-medium text-foreground">OG Site Name</Label>
                 <Input
                   placeholder={settings.site_name}
                   value={settings.seo_og_site_name}
                   onChange={(e) => update("seo_og_site_name", e.target.value)}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                   Emitted as og:site_name. Defaults to Site Name when blank.
                 </p>
               </div>
@@ -336,19 +336,19 @@ export default function SiteSettingsPage() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">Twitter Handle</Label>
+                <Label className="text-sm font-medium text-foreground">Twitter Handle</Label>
                 <Input
                   placeholder="@yoursite"
                   value={settings.seo_twitter_handle}
                   onChange={(e) => update("seo_twitter_handle", e.target.value)}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
-                <p className="text-[11px] text-slate-400">Emitted as twitter:site for cards.</p>
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>Emitted as twitter:site for cards.</p>
               </div>
               <div className="space-y-1.5 flex flex-col justify-between">
                 <div>
-                  <Label className="text-sm font-medium text-slate-700">Search Engines</Label>
-                  <p className="text-[11px] text-slate-400">
+                  <Label className="text-sm font-medium text-foreground">Search Engines</Label>
+                  <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                     When off, every page emits <code className="font-mono">noindex,nofollow</code>.
                     Use during staging or to take a site offline from search.
                   </p>
@@ -369,13 +369,13 @@ export default function SiteSettingsPage() {
         </Card>
 
         {/* Code Injection */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
-          <SectionHeader title="Code Injection" icon={<FileText className="h-4 w-4 text-amber-500" />} />
+        <Card className="rounded-xl border border-border shadow-sm lg:col-span-2">
+          <SectionHeader title="Code Injection" icon={<FileText className="h-4 w-4" style={{color: "var(--warning)"}} />} />
           <CardContent className="space-y-4">
-            <p className="text-xs text-slate-500 -mt-1">Add custom code to your site's &lt;head&gt; section</p>
+            <p className="text-xs text-muted-foreground -mt-1">Add custom code to your site's &lt;head&gt; section</p>
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">
+                <Label className="text-sm font-medium text-foreground">
                   Analytics Code
                 </Label>
                 <Textarea
@@ -383,14 +383,14 @@ export default function SiteSettingsPage() {
                   value={settings.analytics_code}
                   onChange={(e) => update("analytics_code", e.target.value)}
                   rows={5}
-                  className="rounded-lg border-slate-300 font-mono text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                  className="rounded-lg border-border font-mono text-xs focus:ring-2 resize-none"
                 />
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                   Injected into &lt;head&gt; on every public page
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-slate-700">
+                <Label className="text-sm font-medium text-foreground">
                   Custom Head Code
                 </Label>
                 <Textarea
@@ -398,15 +398,15 @@ export default function SiteSettingsPage() {
                   value={settings.custom_head_code}
                   onChange={(e) => update("custom_head_code", e.target.value)}
                   rows={5}
-                  className="rounded-lg border-slate-300 font-mono text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                  className="rounded-lg border-border font-mono text-xs focus:ring-2 resize-none"
                 />
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                   Injected into &lt;head&gt; on every public page
                 </p>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-slate-700">
+              <Label className="text-sm font-medium text-foreground">
                 Footer Code
               </Label>
               <Textarea
@@ -414,9 +414,9 @@ export default function SiteSettingsPage() {
                 value={settings.custom_footer_code}
                 onChange={(e) => update("custom_footer_code", e.target.value)}
                 rows={5}
-                className="rounded-lg border-slate-300 font-mono text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                className="rounded-lg border-border font-mono text-xs focus:ring-2 resize-none"
               />
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                 Injected before &lt;/body&gt; on every public page
               </p>
             </div>

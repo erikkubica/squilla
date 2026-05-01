@@ -50,17 +50,17 @@ export default function ResendSettings() {
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-foreground" />
       </div>
     );
   }
 
   return (
-    <Card className="rounded-xl border border-slate-200 shadow-sm">
+    <Card className="rounded-xl border border-border shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Key className="h-5 w-5 text-indigo-500" />
-          <CardTitle className="text-lg font-semibold text-slate-900">
+          <Key className="h-5 w-5 text-foreground" />
+          <CardTitle className="text-lg font-semibold text-foreground">
             Resend Configuration
           </CardTitle>
         </div>
@@ -70,7 +70,7 @@ export default function ResendSettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-700">API Key</Label>
+          <Label className="text-sm font-medium text-foreground">API Key</Label>
           <Input
             type="password"
             placeholder="re_..."
@@ -80,7 +80,7 @@ export default function ResendSettings() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">From Email</Label>
+            <Label className="text-sm font-medium text-foreground">From Email</Label>
             <Input
               placeholder="noreply@example.com"
               value={fromEmail}
@@ -88,7 +88,7 @@ export default function ResendSettings() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-slate-700">From Name</Label>
+            <Label className="text-sm font-medium text-foreground">From Name</Label>
             <Input
               placeholder="My Site"
               value={fromName}
@@ -99,7 +99,7 @@ export default function ResendSettings() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="bg-primary hover:bg-primary/90 text-white"
         >
           {saving ? (
             <>

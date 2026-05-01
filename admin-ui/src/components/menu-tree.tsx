@@ -86,10 +86,10 @@ function NodeSearchInput({
 
   if (value && selectedLabel) {
     return (
-      <div className="flex items-center gap-1 h-9 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm">
-        <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-        <span className="flex-1 truncate text-slate-700">{selectedLabel}</span>
-        <button type="button" onClick={handleClear} className="text-slate-400 hover:text-red-500">
+      <div className="flex items-center gap-1 h-9 rounded-md border border-border bg-muted px-3 text-sm">
+        <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--fg-subtle)" }} />
+        <span className="flex-1 truncate text-foreground">{selectedLabel}</span>
+        <button type="button" onClick={handleClear} className="hover:opacity-80" style={{ color: "var(--fg-subtle)" }}>
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -99,7 +99,7 @@ function NodeSearchInput({
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-2.5 top-2 h-4 w-4" style={{ color: "var(--fg-subtle)" }} />
         <Input
           value={query}
           onChange={(e) => handleInput(e.target.value)}
@@ -107,12 +107,12 @@ function NodeSearchInput({
           placeholder="Search pages..."
           className="h-9 pl-8"
         />
-        {loading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-slate-400" />}
+        {loading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin" style={{ color: "var(--fg-subtle)" }} />}
       </div>
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
           {results.length === 0 && !loading && (
-            <p className="px-3 py-2 text-xs text-slate-400">
+            <p className="px-3 py-2 text-xs" style={{ color: "var(--fg-subtle)" }}>
               {query ? "No results found" : "Type to search pages"}
             </p>
           )}
@@ -121,11 +121,11 @@ function NodeSearchInput({
               key={node.id}
               type="button"
               onClick={() => handleSelect(node)}
-              className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm hover:bg-indigo-50 transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
             >
-              <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span className="font-medium text-slate-800 truncate">{node.title}</span>
-              <span className="text-xs text-slate-400 truncate">/{node.slug}</span>
+              <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--fg-subtle)" }} />
+              <span className="font-medium text-foreground truncate">{node.title}</span>
+              <span className="text-xs truncate" style={{ color: "var(--fg-subtle)" }}>/{node.slug}</span>
             </button>
           ))}
         </div>
@@ -318,7 +318,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
   return (
     <div className="space-y-0">
       {flat.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-12 text-slate-400">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-12" style={{ color: "var(--fg-subtle)" }}>
           <LinkIcon className="h-10 w-10 opacity-40" />
           <p className="text-sm font-medium">No menu items</p>
           <p className="text-xs">Add a page link or custom URL to get started</p>
@@ -393,7 +393,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                     <button
                       type="button"
                       onClick={() => deleteItem(fi.path)}
-                      className="p-1 rounded hover:bg-red-50"
+                      className="p-1 rounded hover:bg-muted"
                       style={{ color: "var(--danger)" }}
                       title="Delete"
                     >
@@ -404,7 +404,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
               >
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Title</label>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Title</label>
                     <Input
                       value={fi.item.title}
                       onChange={(e) => updateItemField(fi.path, "title", e.target.value)}
@@ -413,7 +413,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Type</label>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Type</label>
                     <Select
                       value={fi.item.item_type}
                       onValueChange={(v) => updateItemField(fi.path, "item_type", v)}
@@ -427,9 +427,9 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                   </div>
                   {fi.item.item_type === "custom" && (
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">URL</label>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">URL</label>
                       <div className="relative">
-                        <LinkIcon className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+                        <LinkIcon className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                         <Input
                           value={fi.item.url || ""}
                           onChange={(e) => updateItemField(fi.path, "url", e.target.value)}
@@ -441,7 +441,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                   )}
                   {fi.item.item_type === "node" && (
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Page / Content Node</label>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Page / Content Node</label>
                       <NodeSearchInput
                         value={fi.item.node_id ?? null}
                         onChange={(nodeId, title) => {
@@ -455,7 +455,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                     </div>
                   )}
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Target</label>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Target</label>
                     <Select
                       value={fi.item.target}
                       onValueChange={(v) => updateItemField(fi.path, "target", v)}
@@ -468,7 +468,7 @@ export default function MenuTree({ items, onChange, autoEditId }: MenuTreeProps)
                     </Select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">CSS Class</label>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">CSS Class</label>
                     <Input
                       value={fi.item.css_class || ""}
                       onChange={(e) => updateItemField(fi.path, "css_class", e.target.value)}

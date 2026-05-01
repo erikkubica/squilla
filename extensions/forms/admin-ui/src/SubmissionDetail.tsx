@@ -24,7 +24,7 @@ interface EnrichedSubmission extends Submission {
 
 function renderFieldValue(value: unknown): React.ReactNode {
   if (value === true) return <span className="text-green-600 font-medium">✓</span>;
-  if (value === false) return <span className="text-red-500 font-medium">✗</span>;
+  if (value === false) return <span className="text-red-600 font-medium">✗</span>;
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ("label" in obj && "value" in obj && Object.keys(obj).length === 2) {
@@ -47,11 +47,11 @@ function renderFieldValue(value: unknown): React.ReactNode {
           <a
             href={obj.url as string}
             download={obj.name as string}
-            className="text-indigo-600 hover:underline text-sm"
+            className="text-foreground hover:underline text-sm"
           >
             {obj.name as string}
           </a>
-          {sizeKB && <span className="text-xs text-slate-400">{sizeKB}</span>}
+          {sizeKB && <span className="text-xs text-muted-foreground">{sizeKB}</span>}
         </div>
       );
     }
@@ -71,7 +71,7 @@ function renderFieldValue(value: unknown): React.ReactNode {
     );
   }
   const str = String(value ?? "");
-  return str === "" ? <span className="text-slate-300">—</span> : str;
+  return str === "" ? <span className="text-muted-foreground">—</span> : str;
 }
 
 export default function SubmissionDetail() {
@@ -185,7 +185,7 @@ export default function SubmissionDetail() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="w-[26px] h-[26px] grid place-items-center text-slate-500 hover:bg-slate-100 rounded border-0 bg-transparent cursor-pointer"
+              className="w-[26px] h-[26px] grid place-items-center text-muted-foreground hover:bg-muted rounded border-0 bg-transparent cursor-pointer"
               aria-label="Back"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -253,46 +253,46 @@ export default function SubmissionDetail() {
           />
         ) : (
           <div className="space-y-6 p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-muted rounded-lg border border-border text-sm">
               <div>
-                <p className="text-slate-400 uppercase text-[10px] tracking-wider mb-1">
+                <p className="text-muted-foreground uppercase text-[10px] tracking-wider mb-1">
                   Date Submitted
                 </p>
-                <p className="font-medium text-slate-900">
+                <p className="font-medium text-foreground">
                   {new Date(submission.created_at).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-slate-400 uppercase text-[10px] tracking-wider mb-1">
+                <p className="text-muted-foreground uppercase text-[10px] tracking-wider mb-1">
                   Form
                 </p>
-                <p className="font-medium text-slate-900">
+                <p className="font-medium text-foreground">
                   {submission.form_name || "N/A"}
                 </p>
               </div>
               <div>
-                <p className="text-slate-400 uppercase text-[10px] tracking-wider mb-1">
+                <p className="text-muted-foreground uppercase text-[10px] tracking-wider mb-1">
                   Submission ID
                 </p>
-                <p className="font-medium text-slate-900">#{submission.id}</p>
+                <p className="font-medium text-foreground">#{submission.id}</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
-                <Filter className="h-4 w-4 text-indigo-500" />
+              <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                <Filter className="h-4 w-4 text-foreground" />
                 Submitted Data
               </h4>
-              <div className="divide-y divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+              <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
                 {Object.entries(submission.data || {}).map(([key, value]) => (
                   <div
                     key={key}
                     className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 text-sm"
                   >
-                    <div className="font-medium text-slate-600 capitalize sm:col-span-1">
+                    <div className="font-medium text-muted-foreground capitalize sm:col-span-1">
                       {labelMap[key] || key.replace(/_/g, " ")}
                     </div>
-                    <div className="sm:col-span-3 text-slate-900 break-words">
+                    <div className="sm:col-span-3 text-foreground break-words">
                       {renderFieldValue(value)}
                     </div>
                   </div>
@@ -304,20 +304,20 @@ export default function SubmissionDetail() {
               typeof submission.metadata === "object" &&
               Object.keys(submission.metadata).length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-slate-900 text-sm">
+                  <h4 className="font-semibold text-foreground text-sm">
                     Technical Metadata
                   </h4>
-                  <div className="divide-y divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+                  <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
                     {Object.entries(submission.metadata as Record<string, unknown>).map(
                       ([key, value]) => (
                         <div
                           key={key}
                           className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 text-sm"
                         >
-                          <div className="font-medium text-slate-600 capitalize sm:col-span-1">
+                          <div className="font-medium text-muted-foreground capitalize sm:col-span-1">
                             {key.replace(/_/g, " ")}
                           </div>
-                          <div className="sm:col-span-3 text-slate-900 break-all font-mono text-xs">
+                          <div className="sm:col-span-3 text-foreground break-all font-mono text-xs">
                             {renderFieldValue(value)}
                           </div>
                         </div>

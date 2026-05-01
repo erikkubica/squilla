@@ -21,9 +21,9 @@ export default function OptionsEditor({
 }: OptionsEditorProps) {
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] text-slate-500 uppercase">Options</Label>
+      <Label className="text-[10px] text-muted-foreground uppercase">Options</Label>
       {options.length > 0 && (
-        <div className="flex items-center gap-1.5 text-[9px] text-slate-400 uppercase px-0.5">
+        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground uppercase px-0.5">
           <span className="flex-1">Label</span>
           <span className="flex-1">Value</span>
           <span className="w-7" />
@@ -52,7 +52,7 @@ export default function OptionsEditor({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-300 hover:text-red-500 shrink-0"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
               onClick={() => onRemove(optIdx)}
             >
               <X className="h-3 w-3" />
@@ -63,7 +63,7 @@ export default function OptionsEditor({
       <button
         type="button"
         onClick={onAdd}
-        className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+        className="text-[11px] text-foreground hover:text-foreground font-medium flex items-center gap-1"
       >
         <Plus className="h-3 w-3" /> Add option
       </button>

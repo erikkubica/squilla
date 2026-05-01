@@ -30,7 +30,7 @@ function ProviderSettingsInner({ providerSlug, useExtensions }: { providerSlug: 
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-foreground" />
       </div>
     );
   }
@@ -133,7 +133,7 @@ export default function EmailSettings() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -143,14 +143,14 @@ export default function EmailSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Settings className="h-7 w-7 text-indigo-600" />
-          <h1 className="text-2xl font-bold text-slate-900">Email Settings</h1>
+          <Settings className="h-7 w-7 text-foreground" />
+          <h1 className="text-2xl font-bold text-foreground">Email Settings</h1>
         </div>
         <Button
           variant="outline"
           onClick={handleTestEmail}
           disabled={testing || !activeProvider}
-          className="rounded-lg border-slate-300"
+          className="rounded-lg border-border"
           title={!activeProvider ? "Activate a provider first" : ""}
         >
           {testing ? (
@@ -169,8 +169,8 @@ export default function EmailSettings() {
 
       {/* No providers */}
       {providers.length === 0 && (
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
-          <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-slate-400">
+        <Card className="rounded-xl border border-border shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
             <Puzzle className="h-10 w-10" />
             <p className="text-sm text-center max-w-md">
               No email provider extensions are active. Go to{" "}
@@ -189,13 +189,13 @@ export default function EmailSettings() {
             className={`rounded-xl border shadow-sm transition-colors ${
               isActive
                 ? "border-green-300 bg-green-50/30"
-                : "border-slate-200"
+                : "border-border"
             }`}
           >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CardTitle className="text-lg font-semibold text-slate-900">
+                  <CardTitle className="text-lg font-semibold text-foreground">
                     {provider.name}
                   </CardTitle>
                   {isActive && (
@@ -212,7 +212,7 @@ export default function EmailSettings() {
                       size="sm"
                       onClick={handleDeactivate}
                       disabled={activating !== null}
-                      className="rounded-lg border-slate-300 text-slate-600 hover:text-red-600 hover:border-red-300"
+                      className="rounded-lg border-border text-muted-foreground hover:text-foreground hover:border-border"
                     >
                       {activating === "__none__" ? (
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -226,7 +226,7 @@ export default function EmailSettings() {
                       size="sm"
                       onClick={() => handleActivate(provider.slug)}
                       disabled={activating !== null}
-                      className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+                      className="rounded-lg bg-primary hover:bg-primary/90 text-white"
                     >
                       {activating === provider.slug ? (
                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

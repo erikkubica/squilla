@@ -15,7 +15,7 @@ export default function FieldFileOptions({
     <>
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label className="text-[10px] text-slate-500 uppercase">
+          <Label className="text-[10px] text-muted-foreground uppercase">
             Allowed Types
           </Label>
           <Input
@@ -26,12 +26,12 @@ export default function FieldFileOptions({
             className="h-8 text-sm"
             placeholder="pdf, doc, jpg, png"
           />
-          <p className="text-[9px] text-slate-400">
+          <p className="text-[9px] text-muted-foreground">
             Comma-separated file extensions
           </p>
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-slate-500 uppercase">
+          <Label className="text-[10px] text-muted-foreground uppercase">
             Max Size (MB)
           </Label>
           <Input
@@ -51,7 +51,7 @@ export default function FieldFileOptions({
       </div>
       <div className="flex items-center justify-between pt-1">
         <div>
-          <Label className="text-[10px] text-slate-500 uppercase">
+          <Label className="text-[10px] text-muted-foreground uppercase">
             Allow Multiple Files
           </Label>
         </div>

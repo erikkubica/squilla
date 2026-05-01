@@ -17,7 +17,7 @@ export function SduiThemeFilesPage() {
     <SduiAdminShell mainClassName="flex-1 overflow-hidden">
       {!theme ? (
         <div className="flex h-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
         </div>
       ) : (
         <FileBrowser

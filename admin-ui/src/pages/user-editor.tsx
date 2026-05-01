@@ -183,7 +183,7 @@ export default function UserEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -201,8 +201,8 @@ export default function UserEditorPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex items-center gap-3">
-          <Users className="h-7 w-7 text-indigo-600" />
-          <h1 className="text-2xl font-bold text-slate-900">
+          <Users className="h-7 w-7" style={{color: "var(--accent-strong)"}} />
+          <h1 className="text-2xl font-bold text-foreground">
             {isEdit ? "Edit User" : "Add User"}
           </h1>
         </div>
@@ -210,12 +210,12 @@ export default function UserEditorPage() {
 
       {/* Form */}
       <form onSubmit={handleSave}>
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader title={isEdit ? "Update user details" : "Fill in the details to create a new user"} />
           <CardContent className="space-y-6">
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="user-fullname" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="user-fullname" className="text-sm font-medium text-foreground">
                   Full Name
                 </Label>
                 <Input
@@ -224,12 +224,12 @@ export default function UserEditorPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="user-email" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="user-email" className="text-sm font-medium text-foreground">
                   Email
                 </Label>
                 <Input
@@ -239,14 +239,14 @@ export default function UserEditorPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
               </div>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="user-password" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="user-password" className="text-sm font-medium text-foreground">
                   Password
                 </Label>
                 <Input
@@ -256,23 +256,23 @@ export default function UserEditorPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required={!isEdit}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
                 {isEdit && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs" style={{color: "var(--fg-subtle)"}}>
                     Leave blank to keep the current password.
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="user-role" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="user-role" className="text-sm font-medium text-foreground">
                   Role
                 </Label>
                 <Select value={roleId} onValueChange={setRoleId}>
                   <SelectTrigger
                     id="user-role"
-                    className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="rounded-lg border-border focus:ring-2"
                   >
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -287,11 +287,11 @@ export default function UserEditorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">
+                <Label className="text-sm font-medium text-foreground">
                   Preferred Language
                 </Label>
                 <Select value={languageId} onValueChange={setLanguageId}>
-                  <SelectTrigger className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                  <SelectTrigger className="rounded-lg border-border focus:ring-2">
                     <SelectValue placeholder="Site default" />
                   </SelectTrigger>
                   <SelectContent>
@@ -303,26 +303,26 @@ export default function UserEditorPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs" style={{color: "var(--fg-subtle)"}}>
                   Used for sending emails in the user's preferred language.
                 </p>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-6">
+            <div className="flex items-center justify-end gap-3 border-t border-border pt-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => navigate("/admin/security/users")}
                 disabled={saving}
-                className="rounded-lg border-slate-300"
+                className="rounded-lg border-border"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg"
+                className="bg-primary text-white font-medium rounded-lg"
                 disabled={saving}
               >
                 {saving ? (

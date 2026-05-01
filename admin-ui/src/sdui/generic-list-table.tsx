@@ -125,7 +125,7 @@ export function GenericListTable({
             !hasFilters && newPath ? (
               <Link
                 to={newPath}
-                className="h-[30px] px-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                className="h-[30px] px-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-primary rounded hover:bg-primary/90"
               >
                 + {newLabel ?? "New"}
               </Link>
@@ -157,14 +157,14 @@ export function GenericListTable({
 
       case "slug":
         return (
-          <Td className="font-mono text-[12px] text-slate-500">{val}</Td>
+          <Td className="font-mono text-[12px] text-muted-foreground">{val}</Td>
         );
 
       case "blockCount":
       case "fieldCount":
       case "itemCount":
         return (
-          <Td className="text-slate-500 tabular-nums" align="center">
+          <Td className="text-muted-foreground tabular-nums" align="center">
             {val ?? 0}
           </Td>
         );
@@ -179,7 +179,7 @@ export function GenericListTable({
 
       case "description":
         return (
-          <Td className="text-slate-500">
+          <Td className="text-muted-foreground">
             <span
               className="block max-w-xs truncate"
               title={val || ""}
@@ -193,7 +193,7 @@ export function GenericListTable({
         return (
           <Td>
             {val ? (
-              <span className="inline-flex items-center gap-1 px-1.5 py-px text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-[2px]">
+              <span className="inline-flex items-center gap-1 px-1.5 py-px text-[11px] font-medium border rounded-[2px]" style={{color: "var(--accent-strong)", background: "var(--accent-weak)", borderColor: "var(--accent-mid)"}}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="10"
@@ -210,7 +210,7 @@ export function GenericListTable({
                 Default
               </span>
             ) : (
-              <span className="text-slate-400 text-[12px]">—</span>
+              <span className="text-[12px]" style={{color: "var(--fg-subtle)"}}>—</span>
             )}
           </Td>
         );
@@ -227,19 +227,19 @@ export function GenericListTable({
         if (flag) {
           return (
             <Td>
-              <span className="inline-flex items-center gap-1.5 text-[12px] text-slate-700">
+              <span className="inline-flex items-center gap-1.5 text-[12px] text-foreground">
                 <span>{flag}</span>
                 {val}
               </span>
             </Td>
           );
         }
-        return <Td className="text-slate-600">{val}</Td>;
+        return <Td className="text-muted-foreground">{val}</Td>;
       }
 
       case "updated_at":
         return (
-          <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+          <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
             {val || "—"}
           </Td>
         );
@@ -249,23 +249,23 @@ export function GenericListTable({
         return (
           <Td align="center">
             {val ? (
-              <Check className="inline-block w-3.5 h-3.5 text-emerald-600" />
+              <Check className="inline-block w-3.5 h-3.5" style={{color: "var(--success)"}} />
             ) : (
-              <span className="text-slate-300 text-[12px]">—</span>
+              <span className="text-[12px]" style={{color: "var(--fg-subtle)"}}>—</span>
             )}
           </Td>
         );
 
       case "taxonomyCount":
         return (
-          <Td className="text-slate-500 tabular-nums" align="center">
-            {val > 0 ? val : <span className="text-slate-300">—</span>}
+          <Td className="text-muted-foreground tabular-nums" align="center">
+            {val > 0 ? val : <span style={{color: "var(--fg-subtle)"}}>—</span>}
           </Td>
         );
 
       case "nodeTypesDisplay":
         return (
-          <Td className="text-slate-600">
+          <Td className="text-muted-foreground">
             <span className="block max-w-xs truncate" title={val || ""}>
               {val || "—"}
             </span>
@@ -292,7 +292,8 @@ export function GenericListTable({
                     type="button"
                     title="Detach from source"
                     onClick={() => onRowDetach?.(row)}
-                    className="w-[26px] h-[26px] grid place-items-center text-amber-600 hover:bg-amber-50 hover:border-amber-200 border border-transparent rounded-[2px] cursor-pointer bg-transparent disabled:opacity-40"
+                    className="w-[26px] h-[26px] grid place-items-center border border-transparent rounded-[2px] cursor-pointer bg-transparent disabled:opacity-40"
+                    style={{color: "var(--warning)"}}
                   >
                     <Unplug className="w-3 h-3" />
                   </button>
@@ -304,7 +305,7 @@ export function GenericListTable({
 
       default:
         return (
-          <Td className="text-slate-500">
+          <Td className="text-muted-foreground">
             {val != null ? String(val) : "—"}
           </Td>
         );
@@ -325,10 +326,10 @@ export function GenericListTable({
         <button
           type="button"
           onClick={() => handleSort(col.key)}
-          className={`inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 font-[inherit] text-[inherit] ${isActive ? "text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
+          className={`inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0 font-[inherit] text-[inherit] ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
         >
           {col.label}
-          <Icon className={`w-3 h-3 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
+          <Icon className="w-3 h-3" style={{color: isActive ? "var(--accent-strong)" : "var(--fg-subtle)"}} />
         </button>
       </Th>
     );

@@ -25,11 +25,11 @@ function fieldTypeBadgeClass(type: string): string {
     case "date":
       return "bg-teal-100 text-teal-700 hover:bg-teal-100";
     case "select":
-      return "bg-indigo-100 text-indigo-700 hover:bg-indigo-100";
+      return "bg-accent text-accent-foreground";
     case "radio":
-      return "bg-indigo-100 text-indigo-700 hover:bg-indigo-100";
+      return "bg-accent text-accent-foreground";
     case "checkbox":
-      return "bg-indigo-100 text-indigo-700 hover:bg-indigo-100";
+      return "bg-accent text-accent-foreground";
     case "image":
       return "bg-pink-100 text-pink-700 hover:bg-pink-100";
     case "gallery":
@@ -51,7 +51,7 @@ function fieldTypeBadgeClass(type: string): string {
     case "term":
       return "bg-sky-100 text-sky-700 hover:bg-sky-100";
     default:
-      return "bg-slate-100 text-slate-600 hover:bg-slate-100";
+      return "bg-muted text-muted-foreground";
   }
 }
 
@@ -71,9 +71,9 @@ function keyify(text: string): string {
 
 function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: NodeTypeField; updateField: (updates: Partial<NodeTypeField>) => void; size?: "normal" | "compact" }) {
   const inputClass = size === "compact"
-    ? "h-8 text-sm rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-    : "rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
-  const labelClass = size === "compact" ? "text-xs font-medium text-slate-600" : "text-sm font-medium text-slate-700";
+    ? "h-8 text-sm rounded-lg"
+    : "rounded-lg";
+  const labelClass = size === "compact" ? "text-xs font-medium text-muted-foreground" : "text-sm font-medium text-foreground";
 
   return (
     <>
@@ -192,7 +192,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
             <Label className={labelClass}>&nbsp;</Label>
             <label className="flex items-center gap-2 h-9 cursor-pointer">
               <Switch checked={!!field.multiple} onCheckedChange={(c) => updateField({ multiple: c })} />
-              <span className="text-sm text-slate-700">Multiple files</span>
+              <span className="text-sm text-foreground">Multiple files</span>
             </label>
           </div>
         </div>
@@ -212,7 +212,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
           <div className="space-y-1.5 sm:col-span-2">
             <label className="flex items-center gap-2 h-9 cursor-pointer">
               <Switch checked={!!field.multiple} onCheckedChange={(c) => updateField({ multiple: c })} />
-              <span className="text-sm text-slate-700">Allow multiple</span>
+              <span className="text-sm text-foreground">Allow multiple</span>
             </label>
           </div>
         </div>
@@ -229,7 +229,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
             <Label className={labelClass}>&nbsp;</Label>
             <label className="flex items-center gap-2 h-9 cursor-pointer">
               <Switch checked={!!field.multiple} onCheckedChange={(c) => updateField({ multiple: c })} />
-              <span className="text-sm text-slate-700">Allow multiple</span>
+              <span className="text-sm text-foreground">Allow multiple</span>
             </label>
           </div>
         </div>
@@ -311,62 +311,62 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
 
   return (
     <div className="space-y-3">
-      <Label className="text-sm font-medium text-slate-700">{label || "Sub-fields"}</Label>
+      <Label className="text-sm font-medium text-foreground">{label || "Sub-fields"}</Label>
 
       {value.length > 0 && (
         <div className="space-y-2">
           {value.map((sf, i) => (
             <div
               key={i}
-              className={`rounded-lg border ${editingIndex === i ? "border-indigo-300 bg-indigo-50/30" : "border-slate-200 bg-slate-50"}`}
+              className={`rounded-lg border ${editingIndex === i ? "border-border bg-muted" : "border-border bg-muted"}`}
             >
               {/* Header row */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className="flex flex-col gap-0.5">
-                  <button type="button" onClick={() => handleMoveField(i, "up")} disabled={i === 0} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                  <button type="button" onClick={() => handleMoveField(i, "up")} disabled={i === 0} className="text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed">
                     <ChevronUp className="h-4 w-4" />
                   </button>
-                  <button type="button" onClick={() => handleMoveField(i, "down")} disabled={i === value.length - 1} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                  <button type="button" onClick={() => handleMoveField(i, "down")} disabled={i === value.length - 1} className="text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed">
                     <ChevronDown className="h-4 w-4" />
                   </button>
                 </div>
                 <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setEditingIndex(editingIndex === i ? null : i)}>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-800">{sf.label}</span>
-                    <span className="text-xs text-slate-400 font-mono">{sf.key}</span>
+                    <span className="text-sm font-medium text-foreground">{sf.label}</span>
+                    <span className="text-xs font-mono">{sf.key}</span>
                   </div>
                 </button>
                 <Badge className={`${fieldTypeBadgeClass(sf.type)} border-0 text-xs`}>{sf.type}</Badge>
-                {sf.required && <Badge className="bg-red-100 text-red-600 hover:bg-red-100 border-0 text-xs">Required</Badge>}
-                {sf.help && <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-0 text-xs" title={sf.help}>?</Badge>}
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 shrink-0" onClick={() => setEditingIndex(editingIndex === i ? null : i)}>
+                {sf.required && <Badge className="border-0 text-xs" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>Required</Badge>}
+                {sf.help && <Badge className="bg-muted text-muted-foreground border-0 text-xs" title={sf.help}>?</Badge>}
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0" onClick={() => setEditingIndex(editingIndex === i ? null : i)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 shrink-0" onClick={() => handleRemove(i)}>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground shrink-0" onClick={() => handleRemove(i)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
               {/* Inline edit form */}
               {editingIndex === i && (
-                <div className="border-t border-indigo-200 px-4 py-3 space-y-3">
+                <div className="border-t border-border px-4 py-3 space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-600">Label</Label>
-                      <Input value={sf.label} onChange={(e) => updateField(i, { label: e.target.value })} className="h-9 text-sm rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
+                      <Label className="text-xs font-medium text-muted-foreground">Label</Label>
+                      <Input value={sf.label} onChange={(e) => updateField(i, { label: e.target.value })} className="h-9 text-sm rounded-lg" />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-600">Key</Label>
-                      <Input value={sf.key} onChange={(e) => updateField(i, { key: e.target.value })} className="h-9 text-sm font-mono rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
+                      <Label className="text-xs font-medium text-muted-foreground">Key</Label>
+                      <Input value={sf.key} onChange={(e) => updateField(i, { key: e.target.value })} className="h-9 text-sm font-mono rounded-lg" />
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-600">Type</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">Type</Label>
                       <FieldTypePicker value={sf.type} onValueChange={(v) => updateField(i, { type: v as NodeTypeField["type"] })} compact />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-600">Width</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">Width</Label>
                       <Select
                         value={String(sf.width ?? 100)}
                         onValueChange={(v) => {
@@ -388,10 +388,10 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-600">&nbsp;</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
                       <label className="flex items-center gap-2 h-9 cursor-pointer">
                         <Switch checked={!!sf.required} onCheckedChange={(c) => updateField(i, { required: c || undefined })} />
-                        <span className="text-sm text-slate-700">Required</span>
+                        <span className="text-sm text-foreground">Required</span>
                       </label>
                     </div>
                   </div>
@@ -414,22 +414,22 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
       {adding ? (
         <>
           <Separator />
-          <div className="space-y-4 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4">
-            <p className="text-sm font-semibold text-slate-700">New Sub-field</p>
+          <div className="space-y-4 rounded-lg border border-border bg-muted p-4">
+            <p className="text-sm font-semibold text-foreground">New Sub-field</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Label</Label>
+                <Label className="text-sm font-medium text-foreground">Label</Label>
                 <Input
                   value={newFieldLabel}
                   onChange={(e) => setNewFieldLabel(e.target.value)}
                   placeholder="Field label"
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-slate-700">Key</Label>
-                  <button type="button" className="text-xs text-indigo-600 hover:underline" onClick={() => setAutoKey(!autoKey)}>
+                  <Label className="text-sm font-medium text-foreground">Key</Label>
+                  <button type="button" className="text-xs hover:underline" onClick={() => setAutoKey(!autoKey)}>
                     {autoKey ? "Edit manually" : "Auto-generate"}
                   </button>
                 </div>
@@ -438,21 +438,21 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
                   onChange={(e) => { setAutoKey(false); setNewFieldKey(e.target.value); }}
                   disabled={autoKey}
                   placeholder="field_key"
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-mono text-sm"
+                  className="rounded-lg font-mono text-sm"
                 />
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Type</Label>
+                <Label className="text-sm font-medium text-foreground">Type</Label>
                 <FieldTypePicker value={newFieldType} onValueChange={(v) => setNewFieldType(v as NodeTypeField["type"])} />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">&nbsp;</Label>
+                <Label className="text-sm font-medium text-foreground">&nbsp;</Label>
                 <label className="flex items-center gap-2 h-9 cursor-pointer">
                   <Switch checked={newFieldRequired} onCheckedChange={setNewFieldRequired} />
-                  <span className="text-sm font-medium text-slate-700">Required</span>
+                  <span className="text-sm font-medium text-foreground">Required</span>
                 </label>
               </div>
             </div>
@@ -460,12 +460,12 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
             {/* Options for select/radio/checkbox */}
             {(newFieldType === "select" || newFieldType === "radio" || newFieldType === "checkbox") && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Options (comma-separated)</Label>
+                <Label className="text-sm font-medium text-foreground">Options (comma-separated)</Label>
                 <Input
                   value={newFieldOptions}
                   onChange={(e) => setNewFieldOptions(e.target.value)}
                   placeholder="Option A, Option B, Option C"
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg"
                 />
               </div>
             )}
@@ -473,42 +473,42 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
             {/* Placeholder */}
             {["text", "textarea", "number", "email", "url"].includes(newFieldType) && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Placeholder</Label>
+                <Label className="text-sm font-medium text-foreground">Placeholder</Label>
                 <Input
                   value={newFieldPlaceholder}
                   onChange={(e) => setNewFieldPlaceholder(e.target.value)}
                   placeholder="Placeholder text shown when empty"
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg"
                 />
               </div>
             )}
 
             {/* Default Value */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Default Value</Label>
+              <Label className="text-sm font-medium text-foreground">Default Value</Label>
               <Input
                 value={newFieldDefaultValue}
                 onChange={(e) => setNewFieldDefaultValue(e.target.value)}
                 placeholder="Default value for new content"
-                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="rounded-lg"
               />
             </div>
 
             {/* Help Text */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Help Text</Label>
+              <Label className="text-sm font-medium text-foreground">Help Text</Label>
               <Input
                 value={newFieldHelpText}
                 onChange={(e) => setNewFieldHelpText(e.target.value)}
                 placeholder="Instructions shown below the field"
-                className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="rounded-lg"
               />
             </div>
 
             <div className="flex gap-2">
               <Button
                 type="button"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg"
                 onClick={handleAdd}
               >
                 Add Sub-field
@@ -516,7 +516,7 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-lg border-slate-300"
+                className="rounded-lg border-border"
                 onClick={reset}
               >
                 Cancel
@@ -528,7 +528,7 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
         <Button
           type="button"
           variant="outline"
-          className="w-full rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+          className="w-full rounded-lg border-dashed border-border text-muted-foreground hover:bg-muted"
           onClick={() => setAdding(true)}
         >
           <Plus className="mr-2 h-4 w-4" />

@@ -120,7 +120,7 @@ function iconForFile(name: string) {
     return <FileText className="h-4 w-4 shrink-0 text-emerald-500" />;
   if (["css", "scss", "toml", "yaml", "yml"].includes(ext))
     return <FileCode className="h-4 w-4 shrink-0 text-purple-500" />;
-  return <File className="h-4 w-4 shrink-0 text-slate-400" />;
+  return <File className="h-4 w-4 shrink-0" style={{ color: "var(--fg-subtle)" }} />;
 }
 
 function langFromName(name: string): string {
@@ -179,10 +179,10 @@ function TreeItem({
   return (
     <>
       <button
-        className={`flex w-full items-center gap-1.5 py-1.5 px-2 text-left text-sm cursor-pointer transition-colors hover:bg-slate-100 ${
-          isSelected ? "bg-indigo-50 text-indigo-700 font-medium" : "text-slate-700"
+        className={`flex w-full items-center gap-1.5 py-1.5 px-2 text-left text-sm cursor-pointer transition-colors hover:bg-muted ${
+          isSelected ? "font-medium" : "text-foreground"
         }`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        style={isSelected ? { paddingLeft: `${depth * 16 + 8}px`, background: "var(--accent-weak)", color: "var(--accent-strong)" } : { paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => {
           if (node.is_dir) {
             onToggle(node);
@@ -194,9 +194,9 @@ function TreeItem({
         {node.is_dir ? (
           <>
             {node.expanded ? (
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--fg-subtle)" }} />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <ChevronRight className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--fg-subtle)" }} />
             )}
             {node.expanded ? (
               <FolderOpen className="h-4 w-4 shrink-0 text-amber-500" />
@@ -217,16 +217,16 @@ function TreeItem({
         <div className="overflow-hidden transition-all duration-150">
           {!node.loaded ? (
             <div
-              className="flex items-center gap-2 py-1 text-xs text-slate-400"
-              style={{ paddingLeft: `${(depth + 1) * 16 + 8}px` }}
+              className="flex items-center gap-2 py-1 text-xs"
+              style={{ paddingLeft: `${(depth + 1) * 16 + 8}px`, color: "var(--fg-subtle)" }}
             >
               <Loader2 className="h-3 w-3 animate-spin" />
               Loading...
             </div>
           ) : node.children && node.children.length === 0 ? (
             <div
-              className="py-1 text-xs text-slate-400 italic"
-              style={{ paddingLeft: `${(depth + 1) * 16 + 8}px` }}
+              className="py-1 text-xs italic"
+              style={{ paddingLeft: `${(depth + 1) * 16 + 8}px`, color: "var(--fg-subtle)" }}
             >
               Empty folder
             </div>
@@ -386,30 +386,30 @@ export default function FileBrowser({ apiBase, title, backUrl, backLabel, defaul
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 border-b border-slate-200 bg-white px-6 py-3">
+      <div className="shrink-0 flex items-center gap-3 border-b border-border bg-card px-6 py-3">
         <Link
           to={backUrl}
-          className="flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 transition-colors"
+          className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to {backLabel}
         </Link>
-        <div className="h-5 w-px bg-slate-200" />
-        <h1 className="text-base font-semibold text-slate-900">
-          {title} <span className="font-normal text-slate-500">— File Browser</span>
+        <div className="h-5 w-px" style={{ background: "var(--border)" }} />
+        <h1 className="text-base font-semibold text-foreground">
+          {title} <span className="font-normal text-muted-foreground">— File Browser</span>
         </h1>
       </div>
 
       {/* Two-panel layout */}
       <div className="flex flex-1 min-h-0">
         {/* Left panel: file tree */}
-        <div className="w-[280px] shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
+        <div className="w-[280px] shrink-0 border-r border-border bg-card overflow-y-auto">
           {treeLoading ? (
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--fg-subtle)" }} />
             </div>
           ) : tree.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2">
+            <div className="flex flex-col items-center justify-center h-full text-sm gap-2" style={{ color: "var(--fg-subtle)" }}>
               <Folder className="h-8 w-8" />
               <span>No files</span>
             </div>

@@ -66,13 +66,13 @@ export default function ConditionBuilder({
     onChange({ [mode]: [...items, { all: [emptyCondition()] }] } as ConditionGroup);
   };
 
-  const indentClass = depth > 0 ? "ml-4 border-l-2 border-indigo-100 pl-3" : "";
+  const indentClass = depth > 0 ? "ml-4 border-l-2 border-border pl-3" : "";
 
   return (
     <div className={`space-y-2 ${indentClass}`}>
       {/* Mode toggle (+ remove-group button when nested) */}
       <div className="flex items-center gap-1">
-        <span className="text-[10px] text-slate-500 uppercase font-medium mr-1">Match</span>
+        <span className="text-[10px] text-muted-foreground uppercase font-medium mr-1">Match</span>
         {(["all", "any"] as const).map((m) => (
           <button
             key={m}
@@ -80,8 +80,8 @@ export default function ConditionBuilder({
             onClick={() => setMode(m)}
             className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
               mode === m
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                ? "bg-primary text-white border-primary"
+                : "bg-card text-muted-foreground border-border hover:border-border"
             }`}
           >
             {m === "all" ? "ALL (AND)" : "ANY (OR)"}
@@ -91,7 +91,7 @@ export default function ConditionBuilder({
           <button
             type="button"
             onClick={onRemoveGroup}
-            className="ml-auto flex items-center gap-1 text-[10px] text-slate-400 hover:text-red-500 font-medium cursor-pointer"
+            className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
             aria-label="Remove group"
           >
             <X className="h-3 w-3" />
@@ -129,7 +129,7 @@ export default function ConditionBuilder({
         <button
           type="button"
           onClick={addCondition}
-          className="flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
+          className="flex items-center gap-1 text-[10px] text-foreground hover:text-foreground font-medium cursor-pointer"
         >
           <Plus className="h-3 w-3" />
           Add condition
@@ -138,7 +138,7 @@ export default function ConditionBuilder({
           <button
             type="button"
             onClick={addGroup}
-            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-700 font-medium cursor-pointer"
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
           >
             <PlusSquare className="h-3 w-3" />
             Add group

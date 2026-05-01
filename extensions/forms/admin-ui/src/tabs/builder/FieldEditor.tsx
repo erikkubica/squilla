@@ -68,7 +68,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
       {/* Basic fields */}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="text-[10px] text-slate-500 uppercase">Label</Label>
+          <Label className="text-[10px] text-muted-foreground uppercase">Label</Label>
           <Input
             value={field.label}
             onChange={(e: any) => updateField({ label: e.target.value })}
@@ -77,7 +77,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[10px] text-slate-500 uppercase">Key</Label>
+          <Label className="text-[10px] text-muted-foreground uppercase">Key</Label>
           <Input
             value={field.id}
             onChange={(e: any) =>
@@ -91,7 +91,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="text-[10px] text-slate-500 uppercase">Type</Label>
+          <Label className="text-[10px] text-muted-foreground uppercase">Type</Label>
           <Select
             value={field.type}
             onValueChange={(val: string) => {
@@ -114,7 +114,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
               updateField(updates);
             }}
           >
-            <SelectTrigger className="h-8 text-sm bg-white">
+            <SelectTrigger className="h-8 text-sm bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -128,7 +128,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
         </div>
         {!isGDPR && field.type !== "hidden" && (
           <div className="space-y-1.5">
-            <Label className="text-[10px] text-slate-500 uppercase">Placeholder</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase">Placeholder</Label>
             <Input
               value={field.placeholder || ""}
               onChange={(e: any) => updateField({ placeholder: e.target.value })}
@@ -142,7 +142,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
       {field.type !== "hidden" && !isGDPR && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-[10px] text-slate-500 uppercase">Default Value</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase">Default Value</Label>
             <Input
               value={field.default_value || ""}
               onChange={(e: any) => updateField({ default_value: e.target.value })}
@@ -151,7 +151,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[10px] text-slate-500 uppercase">Help Text</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase">Help Text</Label>
             <Input
               value={field.help || ""}
               onChange={(e: any) => updateField({ help: e.target.value })}
@@ -165,7 +165,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
       {field.type === "hidden" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-[10px] text-slate-500 uppercase">Default Value</Label>
+            <Label className="text-[10px] text-muted-foreground uppercase">Default Value</Label>
             <Input
               value={field.default_value || ""}
               onChange={(e: any) => updateField({ default_value: e.target.value })}
@@ -196,7 +196,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
 
       {/* Width selector */}
       <div className="space-y-1.5">
-        <Label className="text-[10px] text-slate-500 uppercase">Width</Label>
+        <Label className="text-[10px] text-muted-foreground uppercase">Width</Label>
         <div className="flex gap-1">
           {(["full", "half", "third"] as const).map((w) => (
             <button
@@ -205,8 +205,8 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
               onClick={() => updateField({ width: w })}
               className={`flex-1 py-1 text-xs rounded border transition-colors ${
                 (field.width || "full") === w
-                  ? "border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold"
-                  : "border-slate-200 text-slate-500 hover:border-slate-300"
+                  ? "border-border bg-accent text-foreground font-semibold"
+                  : "border-border text-muted-foreground hover:border-border"
               }`}
             >
               {w === "full" ? "Full" : w === "half" ? "1/2" : "1/3"}
@@ -218,9 +218,9 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
       {/* Required toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <Label className="text-[10px] text-slate-500 uppercase">Required</Label>
+          <Label className="text-[10px] text-muted-foreground uppercase">Required</Label>
           {isGDPR && (
-            <p className="text-[9px] text-slate-400">GDPR consent fields are always required.</p>
+            <p className="text-[9px] text-muted-foreground">GDPR consent fields are always required.</p>
           )}
         </div>
         <Switch
@@ -239,7 +239,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium" style={{ color: "var(--fg)" }}>Show this field when…</span>
               {(displayWhenGroup.all?.length || displayWhenGroup.any?.length) ? (
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600">
+                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-accent text-foreground">
                   Active
                 </span>
               ) : null}
@@ -256,7 +256,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
             {(displayWhenGroup.all?.length || displayWhenGroup.any?.length) ? (
               <button
                 type="button"
-                className="mt-2 text-[10px] text-slate-400 hover:text-red-500"
+                className="mt-2 text-[10px] text-muted-foreground hover:text-foreground"
                 onClick={() => updateField({ display_when: {} })}
               >
                 Clear all conditions

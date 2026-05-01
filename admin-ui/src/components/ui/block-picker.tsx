@@ -122,12 +122,12 @@ export default function BlockPicker({
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--fg-subtle)" }} />
           <Input
             placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 rounded-lg border-slate-300"
+            className="pl-9 rounded-lg border-border"
           />
         </div>
 
@@ -142,10 +142,12 @@ export default function BlockPicker({
                     key={item.id}
                     type="button"
                     onClick={() => handleSelect(item)}
-                    className="group rounded-xl border border-slate-200 bg-white text-left transition-all hover:border-indigo-300 hover:shadow-md overflow-hidden"
+                    className="group rounded-xl border border-border bg-card text-left transition-all hover:shadow-md overflow-hidden"
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent-mid)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = ""; }}
                   >
                     {/* Preview area — 4:3 aspect ratio */}
-                    <div className="aspect-[4/3] bg-slate-50 flex items-center justify-center border-b border-slate-100 group-hover:bg-indigo-50/50 transition-colors overflow-hidden">
+                    <div className="aspect-[4/3] bg-muted flex items-center justify-center border-b border-border transition-colors overflow-hidden">
                       {item.preview_image ? (
                         <img
                           src={item.preview_image}
@@ -153,23 +155,23 @@ export default function BlockPicker({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <IconComp className="h-10 w-10 text-slate-300 group-hover:text-indigo-400 transition-colors" />
+                        <IconComp className="h-10 w-10 transition-colors" style={{ color: "var(--fg-subtle)" }} />
                       )}
                     </div>
                     {/* Info */}
                     <div className="p-3 space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-slate-800 truncate flex-1">
+                        <p className="text-sm font-medium text-foreground truncate flex-1">
                           {item.label}
                         </p>
                         {item.badge && (
-                          <span className="text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 shrink-0">
+                          <span className="text-[10px] font-medium bg-muted rounded-full px-2 py-0.5 shrink-0" style={{ color: "var(--fg-subtle)" }}>
                             {item.badge}
                           </span>
                         )}
                       </div>
                       {item.description && (
-                        <p className="text-xs text-slate-400 line-clamp-2">
+                        <p className="text-xs line-clamp-2" style={{ color: "var(--fg-subtle)" }}>
                           {item.description}
                         </p>
                       )}
@@ -179,10 +181,10 @@ export default function BlockPicker({
               })}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-16" style={{ color: "var(--fg-subtle)" }}>
               {search.trim() ? (
                 <>
-                  <Search className="h-10 w-10 mb-3 text-slate-300" />
+                  <Search className="h-10 w-10 mb-3" style={{ color: "var(--fg-subtle)" }} />
                   <p className="text-sm">No results for &ldquo;{search}&rdquo;</p>
                 </>
               ) : (

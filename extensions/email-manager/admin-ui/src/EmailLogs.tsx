@@ -69,7 +69,7 @@ function statusBadge(status: string) {
     case "sent":
       return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 text-xs">Sent</Badge>;
     case "failed":
-      return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-0 text-xs">Failed</Badge>;
+      return <Badge className="bg-red-100 text-red-600 hover:bg-muted border-0 text-xs">Failed</Badge>;
     case "pending":
       return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0 text-xs">Pending</Badge>;
     default:
@@ -172,13 +172,13 @@ export default function EmailLogs() {
       />
 
       {/* Filters */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-slate-500">Status</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Status</Label>
               <Select value={filterStatus || "__all__"} onValueChange={(v) => setFilterStatus(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="w-32 rounded-lg border-slate-300">
+                <SelectTrigger className="w-32 rounded-lg border-border">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
@@ -190,9 +190,9 @@ export default function EmailLogs() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-slate-500">Action</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Action</Label>
               <Select value={filterAction || "__all__"} onValueChange={(v) => setFilterAction(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="w-40 rounded-lg border-slate-300">
+                <SelectTrigger className="w-40 rounded-lg border-border">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
@@ -206,36 +206,36 @@ export default function EmailLogs() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-slate-500">Recipient</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Recipient</Label>
               <Input
                 placeholder="Search recipient..."
                 value={filterRecipient}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterRecipient(e.target.value)}
-                className="w-48 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="w-48 rounded-lg border-border "
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-slate-500">From</Label>
+              <Label className="text-xs font-medium text-muted-foreground">From</Label>
               <Input
                 type="date"
                 value={filterDateFrom}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateFrom(e.target.value)}
-                className="w-40 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="w-40 rounded-lg border-border "
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-slate-500">To</Label>
+              <Label className="text-xs font-medium text-muted-foreground">To</Label>
               <Input
                 type="date"
                 value={filterDateTo}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilterDateTo(e.target.value)}
-                className="w-40 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="w-40 rounded-lg border-border "
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-medium text-transparent select-none">&nbsp;</Label>
               <Button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg"
+                className="bg-primary hover:bg-primary/90 text-white font-medium rounded-lg"
                 onClick={handleFilter}
               >
                 Filter
@@ -246,40 +246,40 @@ export default function EmailLogs() {
       </Card>
 
       {/* Table */}
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex h-48 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-200 hover:bg-transparent">
-                  <TableHead className="text-slate-500 font-medium">Date</TableHead>
-                  <TableHead className="text-slate-500 font-medium">Action</TableHead>
-                  <TableHead className="text-slate-500 font-medium">Recipient</TableHead>
-                  <TableHead className="text-slate-500 font-medium">Subject</TableHead>
-                  <TableHead className="text-slate-500 font-medium">Status</TableHead>
-                  <TableHead className="text-slate-500 font-medium text-right">Actions</TableHead>
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-medium">Date</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Action</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Recipient</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Subject</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Status</TableHead>
+                  <TableHead className="text-muted-foreground font-medium text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                       No email logs found.
                     </TableCell>
                   </TableRow>
                 )}
                 {logs.map((log) => (
-                  <TableRow key={log.id} className="border-slate-100">
-                    <TableCell className="text-sm text-slate-600 whitespace-nowrap">
+                  <TableRow key={log.id} className="border-border">
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {formatDate(log.created_at)}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-700">{log.action}</TableCell>
-                    <TableCell className="text-sm text-slate-700">{log.recipient_email}</TableCell>
-                    <TableCell className="text-sm text-slate-600 max-w-xs truncate">
+                    <TableCell className="text-sm text-foreground">{log.action}</TableCell>
+                    <TableCell className="text-sm text-foreground">{log.recipient_email}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
                       {log.subject}
                     </TableCell>
                     <TableCell>{statusBadge(log.status)}</TableCell>
@@ -288,7 +288,7 @@ export default function EmailLogs() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-indigo-600"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           onClick={() => openViewDialog(log)}
                           title="View"
                         >
@@ -297,7 +297,7 @@ export default function EmailLogs() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-indigo-600"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           onClick={() => handleResend(log.id)}
                           disabled={resending === log.id}
                           title="Resend"
@@ -321,7 +321,7 @@ export default function EmailLogs() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Page {page} of {totalPages} ({total} total)
           </p>
           <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ export default function EmailLogs() {
               size="sm"
               onClick={() => fetchLogs(page - 1)}
               disabled={page <= 1 || loading}
-              className="rounded-lg border-slate-300"
+              className="rounded-lg border-border"
             >
               Previous
             </Button>
@@ -339,7 +339,7 @@ export default function EmailLogs() {
               size="sm"
               onClick={() => fetchLogs(page + 1)}
               disabled={page >= totalPages || loading}
-              className="rounded-lg border-slate-300"
+              className="rounded-lg border-border"
             >
               Next
             </Button>
@@ -357,29 +357,29 @@ export default function EmailLogs() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium text-slate-500">Recipient:</span>{" "}
-                  <span className="text-slate-800">{viewingLog.recipient_email}</span>
+                  <span className="font-medium text-muted-foreground">Recipient:</span>{" "}
+                  <span className="text-foreground">{viewingLog.recipient_email}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-slate-500">Status:</span>{" "}
+                  <span className="font-medium text-muted-foreground">Status:</span>{" "}
                   {statusBadge(viewingLog.status)}
                 </div>
                 <div>
-                  <span className="font-medium text-slate-500">Subject:</span>{" "}
-                  <span className="text-slate-800">{viewingLog.subject}</span>
+                  <span className="font-medium text-muted-foreground">Subject:</span>{" "}
+                  <span className="text-foreground">{viewingLog.subject}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-slate-500">Date:</span>{" "}
-                  <span className="text-slate-800">{formatDate(viewingLog.created_at)}</span>
+                  <span className="font-medium text-muted-foreground">Date:</span>{" "}
+                  <span className="text-foreground">{formatDate(viewingLog.created_at)}</span>
                 </div>
                 {viewingLog.error_message && (
                   <div className="col-span-2">
-                    <span className="font-medium text-red-500">Error:</span>{" "}
-                    <span className="text-red-700">{viewingLog.error_message}</span>
+                    <span className="font-medium text-red-600">Error:</span>{" "}
+                    <span className="text-red-600">{viewingLog.error_message}</span>
                   </div>
                 )}
               </div>
-              <div className="rounded-lg border border-slate-200 bg-white overflow-hidden" style={{ height: "400px" }}>
+              <div className="rounded-lg border border-border bg-card overflow-hidden" style={{ height: "400px" }}>
                 <PreviewIframe html={viewingLog.rendered_body} title="Rendered Email" />
               </div>
             </div>

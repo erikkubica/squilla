@@ -183,7 +183,7 @@ export default function UsersPage() {
             action={
               <Link
                 to="/admin/security/users/new"
-                className="h-[30px] px-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+                className="h-[30px] px-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-primary rounded"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add User
@@ -211,17 +211,17 @@ export default function UsersPage() {
                     <Td>
                       <TitleCell to={`/admin/security/users/${user.id}/edit`} title={user.full_name} />
                     </Td>
-                    <Td className="text-slate-600">{user.email}</Td>
+                    <Td className="text-muted-foreground">{user.email}</Td>
                     <Td>
                       <Chip>{getRoleName(user.role)}</Chip>
                     </Td>
                     <Td>
                       <StatusPill status={isActive ? "active" : "inactive"} />
                     </Td>
-                    <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                    <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
                       {formatDateTime(user.last_login_at)}
                     </Td>
-                    <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                    <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
                       {formatDate(user.created_at)}
                     </Td>
                     <Td align="right" className="whitespace-nowrap">

@@ -108,11 +108,11 @@ export default function AddFieldForm({
   };
 
   return (
-    <Card className="rounded-xl border border-indigo-200 shadow-sm">
+    <Card className="rounded-xl border border-border shadow-sm">
       <SectionHeader title="Add New Field" />
       <CardContent className="p-4 space-y-4">
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Field Label</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Field Label</Label>
           <Input
             placeholder="e.g. Your Email"
             value={newFieldLabel}
@@ -121,9 +121,9 @@ export default function AddFieldForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">
+          <Label className="text-xs font-medium text-muted-foreground">
             Field Key{" "}
-            <span className="font-normal text-slate-400">(used in templates)</span>
+            <span className="font-normal text-muted-foreground">(used in templates)</span>
           </Label>
           <Input
             placeholder="e.g. user_email"
@@ -137,9 +137,9 @@ export default function AddFieldForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-500">Field Type</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Field Type</Label>
           <Select value={newFieldType} onValueChange={(val: string) => setNewFieldType(val)}>
-            <SelectTrigger className="bg-white">
+            <SelectTrigger className="bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -154,9 +154,9 @@ export default function AddFieldForm({
 
         {(newFieldType === "select" || newFieldType === "radio") && (
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-slate-500">Options</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Options</Label>
             {newFieldOptions.length > 0 && (
-              <div className="grid grid-cols-[1fr_1fr_auto] gap-1 text-[9px] text-slate-400 uppercase px-0.5">
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-1 text-[9px] text-muted-foreground uppercase px-0.5">
                 <span>Label</span>
                 <span>Value</span>
                 <span className="w-6" />
@@ -185,7 +185,7 @@ export default function AddFieldForm({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-slate-300 hover:text-red-500 shrink-0"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
                     onClick={() => removeNewOption(optIdx)}
                   >
                     <X className="h-3.5 w-3.5" />
@@ -196,7 +196,7 @@ export default function AddFieldForm({
             <button
               type="button"
               onClick={addNewOption}
-              className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+              className="text-[11px] text-foreground hover:text-foreground font-medium flex items-center gap-1"
             >
               <Plus className="h-3 w-3" /> Add option
             </button>
@@ -205,7 +205,7 @@ export default function AddFieldForm({
 
         {newFieldType !== "hidden" && newFieldType !== "gdpr_consent" && (
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-500">Placeholder</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Placeholder</Label>
             <Input
               placeholder="Optional placeholder text"
               value={newFieldPlaceholder}
@@ -224,7 +224,7 @@ export default function AddFieldForm({
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-slate-500">Required</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Required</Label>
             <Switch
               checked={newFieldRequired}
               onCheckedChange={(checked: boolean) => setNewFieldRequired(checked)}

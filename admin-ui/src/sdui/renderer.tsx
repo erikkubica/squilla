@@ -16,9 +16,16 @@ interface RendererProps {
 // Error fallback component
 function VibeErrorCard({ type, error }: { type: string; error?: Error }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+    <div
+      className="rounded-lg border p-4 text-sm"
+      style={{
+        borderColor: "var(--danger-border)",
+        background: "var(--danger-bg)",
+        color: "var(--danger)",
+      }}
+    >
       <p className="font-medium">Failed to render: {type}</p>
-      {error && <p className="mt-1 text-red-600">{error.message}</p>}
+      {error && <p className="mt-1" style={{ color: "var(--danger)" }}>{error.message}</p>}
     </div>
   );
 }

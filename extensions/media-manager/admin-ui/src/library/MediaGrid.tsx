@@ -32,13 +32,13 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
   return (
     <div
       onClick={() => onOpen(file)}
-      className={`group relative flex flex-col overflow-hidden rounded-xl cursor-pointer transition-all duration-150 bg-white ${
+      className={`group relative flex flex-col overflow-hidden rounded-xl cursor-pointer transition-all duration-150 bg-card ${
         selected
           ? "ring-2 ring-indigo-500 ring-offset-1 ring-offset-slate-100 shadow-md"
           : "ring-1 ring-slate-200 hover:ring-slate-300 hover:shadow-md"
       }`}
     >
-      <div className="relative w-full overflow-hidden bg-slate-100" style={{ aspectRatio: "1 / 1" }}>
+      <div className="relative w-full overflow-hidden bg-muted" style={{ aspectRatio: "1 / 1" }}>
         {isImage(file.mime_type) ? (
           <MediaImage
             src={imageSize(file.url, "medium", file.updated_at)}
@@ -48,15 +48,15 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
         ) : (
           <div className="absolute inset-0 grid place-items-center">
             <div className="flex flex-col items-center gap-2">
-              <FileTypeIcon mime={file.mime_type} className="h-8 w-8 text-slate-400" />
-              <span className="rounded-md bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <FileTypeIcon mime={file.mime_type} className="h-8 w-8 text-muted-foreground" />
+              <span className="rounded-md bg-border/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 {getFileExtension(file.original_name)}
               </span>
             </div>
           </div>
         )}
 
-        {selected && <div className="absolute inset-0 bg-indigo-500/10 pointer-events-none" />}
+        {selected && <div className="absolute inset-0 bg-accent0/10 pointer-events-none" />}
 
         {/* Top-left: optimization badge (hides when checkbox slot needed) */}
         {showOptimized ? (
@@ -104,12 +104,12 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           <button
             type="button"
             onClick={() => onCopy(file)}
-            className="flex-1 h-7 rounded-md bg-white/95 backdrop-blur-sm hover:bg-white text-slate-700 text-[10.5px] font-medium shadow-sm border border-white/40 flex items-center justify-center gap-1 cursor-pointer"
+            className="flex-1 h-7 rounded-md bg-card/95 backdrop-blur-sm hover:bg-card text-foreground text-[10.5px] font-medium shadow-sm border border-white/40 flex items-center justify-center gap-1 cursor-pointer"
             title="Copy URL"
           >
             {copyState === file.id ? (
               <>
-                <Check className="h-3 w-3 text-emerald-600" /> Copied
+                <Check className="h-3 w-3 text-emerald-700" /> Copied
               </>
             ) : (
               <>
@@ -120,7 +120,7 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           <button
             type="button"
             onClick={() => onDownload(file)}
-            className="h-7 w-7 grid place-items-center rounded-md bg-white/95 backdrop-blur-sm hover:bg-white text-slate-700 shadow-sm border border-white/40 cursor-pointer"
+            className="h-7 w-7 grid place-items-center rounded-md bg-card/95 backdrop-blur-sm hover:bg-card text-foreground shadow-sm border border-white/40 cursor-pointer"
             title="Download"
           >
             <Download className="h-3 w-3" />
@@ -128,7 +128,7 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
           <button
             type="button"
             onClick={() => onDelete(file)}
-            className="h-7 w-7 grid place-items-center rounded-md bg-white/95 backdrop-blur-sm hover:bg-red-50 text-red-500 hover:text-red-600 shadow-sm border border-white/40 cursor-pointer"
+            className="h-7 w-7 grid place-items-center rounded-md bg-card/95 backdrop-blur-sm hover:bg-muted text-red-600 hover:text-foreground shadow-sm border border-white/40 cursor-pointer"
             title="Delete"
           >
             <Trash2 className="h-3 w-3" />
@@ -136,16 +136,16 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
         </div>
       </div>
 
-      <div className="px-2.5 py-2 border-t border-slate-100">
-        <p className="truncate text-[12px] font-medium text-slate-800 leading-tight">{file.original_name}</p>
+      <div className="px-2.5 py-2 border-t border-border">
+        <p className="truncate text-[12px] font-medium text-foreground leading-tight">{file.original_name}</p>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="text-[10px] text-slate-400 tabular-nums font-mono shrink-0">{humanFileSize(file.size)}</p>
+          <p className="text-[10px] text-muted-foreground tabular-nums font-mono shrink-0">{humanFileSize(file.size)}</p>
           {file.alt ? (
-            <span className="text-[9.5px] text-slate-400 truncate italic" title={file.alt}>
+            <span className="text-[9.5px] text-muted-foreground truncate italic" title={file.alt}>
               “{file.alt}”
             </span>
           ) : isImage(file.mime_type) ? (
-            <span className="text-[9.5px] text-amber-600 font-medium flex items-center gap-0.5 shrink-0">
+            <span className="text-[9.5px] text-amber-700 font-medium flex items-center gap-0.5 shrink-0">
               <AlertTriangle className="h-2.5 w-2.5" /> no alt
             </span>
           ) : null}

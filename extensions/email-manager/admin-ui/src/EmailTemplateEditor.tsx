@@ -215,7 +215,7 @@ export default function EmailTemplateEditor() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -230,14 +230,14 @@ export default function EmailTemplateEditor() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-foreground">
             {isEdit ? "Edit Email Template" : "New Email Template"}
           </h1>
         </div>
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+          className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
         >
           <Save className="mr-2 h-4 w-4" />
           {saving ? "Saving..." : "Save"}
@@ -246,14 +246,14 @@ export default function EmailTemplateEditor() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Slug, Name, Subject */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-slate-800">Template Details</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">Template Details</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
-                <Label htmlFor="tpl-slug" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="tpl-slug" className="text-sm font-medium text-foreground">
                   Slug
                 </Label>
                 <Input
@@ -262,11 +262,11 @@ export default function EmailTemplateEditor() {
                   value={formSlug}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSlug(e.target.value)}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border "
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tpl-name" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="tpl-name" className="text-sm font-medium text-foreground">
                   Name
                 </Label>
                 <Input
@@ -275,13 +275,13 @@ export default function EmailTemplateEditor() {
                   value={formName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border "
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Language</Label>
+                <Label className="text-sm font-medium text-foreground">Language</Label>
                 <Select value={formLanguageId} onValueChange={setFormLanguageId}>
-                  <SelectTrigger className="rounded-lg border-slate-300">
+                  <SelectTrigger className="rounded-lg border-border">
                     <SelectValue placeholder="Universal" />
                   </SelectTrigger>
                   <SelectContent>
@@ -295,7 +295,7 @@ export default function EmailTemplateEditor() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tpl-subject" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="tpl-subject" className="text-sm font-medium text-foreground">
                   Subject Template
                 </Label>
                 <Input
@@ -303,7 +303,7 @@ export default function EmailTemplateEditor() {
                   placeholder="e.g. Welcome to {{.site_name}}"
                   value={formSubject}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSubject(e.target.value)}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border "
                 />
               </div>
             </div>
@@ -312,28 +312,28 @@ export default function EmailTemplateEditor() {
 
         {/* Split pane: Body Template + Preview */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base font-semibold text-slate-800">Body Template</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">Body Template</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={formBody}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormBody(e.target.value)}
-                className="min-h-[400px] font-mono text-sm rounded-lg border-slate-300"
+                className="min-h-[400px] font-mono text-sm rounded-lg border-border"
                 placeholder={"<div style=\"font-family: sans-serif;\">\n  <h2>Hello {{.user_full_name}}</h2>\n  <p>Welcome to {{.site_name}}</p>\n</div>"}
               />
             </CardContent>
           </Card>
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-slate-500" />
-                <CardTitle className="text-base font-semibold text-slate-800">Preview</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base font-semibold text-foreground">Preview</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="h-96 rounded-lg border border-slate-300 bg-white overflow-auto">
+              <div className="h-96 rounded-lg border border-border bg-card overflow-auto">
                 <PreviewIframe html={getPreviewHtml()} title="Email Preview" />
               </div>
             </CardContent>
@@ -341,15 +341,15 @@ export default function EmailTemplateEditor() {
         </div>
 
         {/* Test Data */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-slate-800">Test Data (JSON)</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">Test Data (JSON)</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
               value={formTestData}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormTestData(e.target.value)}
-              className="min-h-[150px] font-mono text-sm rounded-lg border-slate-300"
+              className="min-h-[150px] font-mono text-sm rounded-lg border-border"
               placeholder='{"user_full_name": "John", "site_name": "My Site"}'
             />
           </CardContent>

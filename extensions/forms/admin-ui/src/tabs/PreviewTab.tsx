@@ -141,7 +141,7 @@ export default function PreviewTab({ form }: any) {
       : "";
 
   const deviceToggle = (
-    <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden">
+    <div className="flex items-center rounded-lg border border-border overflow-hidden">
       {(["desktop", "tablet", "phone"] as DeviceMode[]).map((d) => {
         const Icon = d === "desktop" ? Monitor : d === "tablet" ? Tablet : Smartphone;
         return (
@@ -152,8 +152,8 @@ export default function PreviewTab({ form }: any) {
             onClick={() => setDevice(d)}
             className={`px-2.5 py-1.5 transition-colors ${
               device === d
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-slate-500 hover:bg-slate-50"
+                ? "bg-primary text-white"
+                : "bg-card text-muted-foreground hover:bg-muted"
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -164,10 +164,10 @@ export default function PreviewTab({ form }: any) {
   );
 
   return (
-    <Card className="rounded-xl border border-slate-200 shadow-sm">
+    <Card className="rounded-xl border border-border shadow-sm">
       <SectionHeader
         title={`Live Preview${debouncing && !loading ? " — Auto-updating…" : ""}`}
-        icon={<Eye className="h-4 w-4 text-indigo-500" />}
+        icon={<Eye className="h-4 w-4 text-foreground" />}
         actions={
           <div className="flex items-center gap-2">
             {deviceToggle}
@@ -178,7 +178,7 @@ export default function PreviewTab({ form }: any) {
               className={`rounded-lg border px-2.5 py-1.5 transition-colors ${
                 darkMode
                   ? "bg-slate-800 text-yellow-300 border-slate-600"
-                  : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                  : "bg-card text-muted-foreground border-border hover:bg-muted"
               }`}
             >
               {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -192,22 +192,22 @@ export default function PreviewTab({ form }: any) {
       />
 
       <CardContent className="p-0">
-        <div className="min-h-[500px] bg-slate-50">
+        <div className="min-h-[500px] bg-muted">
           {loading && !previewHtml && (
-            <div className="flex flex-col items-center justify-center h-[500px] text-slate-400">
+            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
               <RefreshCw className="h-8 w-8 animate-spin mb-2" />
               <p>Rendering preview...</p>
             </div>
           )}
 
           {error && !previewHtml && (
-            <div className="flex flex-col items-center justify-center h-[500px] text-red-500 p-6 text-center">
+            <div className="flex flex-col items-center justify-center h-[500px] text-red-600 p-6 text-center">
               <AlertCircle className="h-10 w-10 mb-2" />
               <p className="font-semibold">Template Error</p>
               <p className="text-sm opacity-80 max-w-md mt-2">{error}</p>
               <Button
                 variant="outline"
-                className="mt-4 border-red-200 text-red-600 hover:bg-red-100"
+                className="mt-4 border-red-200 text-red-600 hover:bg-muted"
                 onClick={handleManualRefresh}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -217,7 +217,7 @@ export default function PreviewTab({ form }: any) {
           )}
 
           {!loading && !error && !previewHtml && (
-            <div className="flex flex-col items-center justify-center h-[500px] text-slate-400">
+            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
               <Eye className="h-8 w-8 mb-2" />
               <p>No layout template to preview.</p>
               <p className="text-xs mt-1">Add a layout template to see a live preview.</p>
@@ -226,21 +226,21 @@ export default function PreviewTab({ form }: any) {
 
           {(previewHtml || (loading && previewHtml)) && (
             <div
-              className={`relative flex justify-center ${device !== "desktop" ? "bg-slate-100 py-4" : ""}`}
+              className={`relative flex justify-center ${device !== "desktop" ? "bg-muted py-4" : ""}`}
             >
               {(loading || debouncing) && (
-                <div className="absolute top-2 right-2 z-10 bg-white/80 backdrop-blur-sm rounded-md px-2 py-1 text-xs text-slate-500 flex items-center gap-1">
+                <div className="absolute top-2 right-2 z-10 bg-card/80 backdrop-blur-sm rounded-md px-2 py-1 text-xs text-muted-foreground flex items-center gap-1">
                   <RefreshCw className="h-3 w-3 animate-spin" />
                   {debouncing && !loading ? "Auto-updating…" : "Updating..."}
                 </div>
               )}
               <div
                 style={{ maxWidth: DEVICE_CONFIG[device].maxWidth, width: "100%" }}
-                className={device !== "desktop" ? "rounded-xl overflow-hidden border border-slate-300 shadow-lg bg-white" : ""}
+                className={device !== "desktop" ? "rounded-xl overflow-hidden border border-border shadow-lg bg-card" : ""}
               >
                 <iframe
                   title="Form preview"
-                  className="h-[600px] w-full border-0 bg-white"
+                  className="h-[600px] w-full border-0 bg-card"
                   sandbox="allow-same-origin allow-scripts"
                   srcDoc={iframeSrcDoc}
                 />
@@ -249,7 +249,7 @@ export default function PreviewTab({ form }: any) {
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-4 border-t border-border">
           <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-xs border border-amber-100 flex gap-3">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <div>

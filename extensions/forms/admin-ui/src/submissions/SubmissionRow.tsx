@@ -43,7 +43,7 @@ export default function SubmissionRow({
 
   return (
     <Tr
-      className={`${selected ? "bg-indigo-50/40 " : ""}cursor-pointer hover:bg-slate-50`}
+      className={`${selected ? "bg-accent/40 " : ""}cursor-pointer hover:bg-muted`}
       onClick={() => onViewDetails(sub)}
     >
       {/* Checkbox */}
@@ -57,16 +57,16 @@ export default function SubmissionRow({
 
       {/* Date */}
       <Td className="whitespace-nowrap">
-        <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
+        <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
           {isUnread ? (
             <span
-              className="inline-block h-2 w-2 rounded-full bg-indigo-500 shrink-0"
+              className="inline-block h-2 w-2 rounded-full bg-accent0 shrink-0"
               title="Unread"
             />
           ) : (
             <Calendar className="h-3 w-3 opacity-40 shrink-0" />
           )}
-          <span className={isUnread ? "font-semibold text-slate-700" : ""}>
+          <span className={isUnread ? "font-semibold text-foreground" : ""}>
             {new Date(sub.created_at).toLocaleString()}
           </span>
         </div>
@@ -81,17 +81,17 @@ export default function SubmissionRow({
 
       {/* Summary */}
       <Td className="max-w-[400px]">
-        <div className="text-[12px] text-slate-500 truncate">
+        <div className="text-[12px] text-muted-foreground truncate">
           {Object.entries(sub.data)
             .slice(0, 3)
             .map(([k, v]) => (
               <span key={k} className="mr-3">
-                <strong className="text-slate-700">{k}:</strong>{" "}
+                <strong className="text-foreground">{k}:</strong>{" "}
                 {typeof v === "object" ? JSON.stringify(v) : String(v)}
               </span>
             ))}
           {Object.keys(sub.data).length > 3 && (
-            <span className="text-slate-400">…</span>
+            <span className="text-muted-foreground">…</span>
           )}
         </div>
       </Td>
@@ -102,7 +102,7 @@ export default function SubmissionRow({
           variant="ghost"
           size="sm"
           onClick={() => onViewDetails(sub)}
-          className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs"
+          className="text-foreground hover:text-foreground hover:bg-accent text-xs"
         >
           <Eye className="mr-1.5 h-3.5 w-3.5" /> View
         </Button>
@@ -126,6 +126,6 @@ export const STATUS_BADGE_VARIANTS: Record<
   },
   archived: {
     label: "Archived",
-    className: "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-100",
+    className: "bg-muted text-muted-foreground border-border hover:bg-muted",
   },
 };

@@ -142,17 +142,17 @@ export default function RolesPage() {
                       slug={role.slug}
                     />
                   </Td>
-                  <Td className="text-slate-600">
+                  <Td className="text-muted-foreground">
                     <span className="block max-w-md truncate" title={role.description || ""}>
-                      {role.description || <span className="text-slate-400">—</span>}
+                      {role.description || <span className="" style={{color: "var(--fg-subtle)"}}>—</span>}
                     </span>
                   </Td>
-                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                  <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
                     {permissionCount(role)}
                   </Td>
                   <Td>
                     {role.is_system ? (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-px text-[11px] font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-[2px]">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-px text-[11px] font-medium text-foreground bg-muted border border-border rounded-[2px]">
                         <Lock className="w-3 h-3" />
                         System
                       </span>

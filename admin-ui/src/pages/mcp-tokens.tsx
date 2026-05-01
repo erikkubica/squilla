@@ -177,7 +177,7 @@ export default function McpTokensPage() {
         onNew={() => setCreateOpen(true)}
       />
 
-      <p className="mb-3 text-[12px] text-slate-500 max-w-3xl">
+      <p className="mb-3 text-[12px] text-muted-foreground max-w-3xl">
         Bearer tokens that let AI clients control this Squilla instance via the Model Context
         Protocol. Each token is shown once at creation — store it somewhere safe.
       </p>
@@ -220,13 +220,13 @@ export default function McpTokensPage() {
                   <Td>
                     <StatusPill status={tokenStatus(t)} label={tokenStatusLabel(t)} />
                   </Td>
-                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                  <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
                     {formatDateTime(t.last_used_at)}
                   </Td>
-                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                  <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
                     {formatDateTime(t.expires_at)}
                   </Td>
-                  <Td className="font-mono text-[12px] text-slate-500 tabular-nums">
+                  <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
                     {formatDateTime(t.created_at)}
                   </Td>
                   <Td align="right" className="whitespace-nowrap">
@@ -252,9 +252,9 @@ export default function McpTokensPage() {
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-700">Name</label>
+              <label className="text-sm font-medium text-foreground">Name</label>
               <input
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none"
                 placeholder="Claude Code (laptop)"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -262,7 +262,7 @@ export default function McpTokensPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">Scope</label>
+              <label className="text-sm font-medium text-foreground">Scope</label>
               <Select value={scope} onValueChange={(v) => setScope(v as "full" | "content" | "read")}>
                 <SelectTrigger className="mt-1 w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -273,12 +273,12 @@ export default function McpTokensPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">
-                Expires at <span className="text-slate-400 font-normal">(optional)</span>
+              <label className="text-sm font-medium text-foreground">
+                Expires at <span className="font-normal" style={{color: "var(--fg-subtle)"}}>(optional)</span>
               </label>
               <input
                 type="datetime-local"
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none"
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
               />
@@ -302,17 +302,17 @@ export default function McpTokensPage() {
             <DialogTitle>Token "{revealed?.record.name}"</DialogTitle>
             <DialogDescription>Store this securely. It won't be shown again.</DialogDescription>
           </DialogHeader>
-          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm">
+          <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 font-mono text-sm">
             <span className="flex-1 break-all">{revealed?.token}</span>
             <Button size="icon" variant="ghost" onClick={copyToken} aria-label="Copy">
               {copied ? (
-                <Check className="h-4 w-4 text-emerald-600" />
+                <Check className="h-4 w-4" style={{color: "var(--success)"}} />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
             </Button>
           </div>
-          <div className="mt-3 rounded-md bg-indigo-50 p-3 text-xs text-indigo-900">
+          <div className="mt-3 rounded-md p-3 text-xs" style={{background: "var(--accent-weak)", color: "var(--accent-strong)"}}>
             <p className="font-medium mb-1">Claude Code setup</p>
             <pre className="whitespace-pre-wrap break-all">
               {`claude mcp add squilla ${window.location.origin}/mcp \\

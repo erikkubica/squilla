@@ -749,7 +749,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-strong)" }} />
       </div>
     );
   }
@@ -902,7 +902,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
             </div>
             <div className="space-y-3">
               {blocks.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 py-12 text-slate-400">
+                <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-12" style={{ color: "var(--fg-subtle)" }}>
                   <Square className="h-10 w-10" />
                   <p className="text-sm font-medium">No blocks yet</p>
                   <p className="text-xs">Add blocks or insert a template to get started</p>
@@ -995,7 +995,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         <button
                           type="button"
                           onClick={() => removeBlock(index)}
-                          className="p-1 rounded hover:bg-red-50"
+                          className="p-1 rounded hover:opacity-80"
                           style={{ color: "var(--danger)" }}
                           title="Delete block"
                         >
@@ -1066,7 +1066,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+                  className="flex-1 rounded-lg border-dashed border-border text-muted-foreground"
                   onClick={() => setShowAddBlock(true)}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -1076,7 +1076,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1 rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+                    className="flex-1 rounded-lg border-dashed border-border text-muted-foreground"
                     onClick={() => setShowInsertTemplate(true)}
                   >
                     <LayoutTemplate className="mr-2 h-4 w-4" />
@@ -1096,7 +1096,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     }
                     setShowRawJson(!showRawJson);
                   }}
-                  className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                  className="flex items-center gap-2 text-xs text-muted-foreground transition-colors"
                 >
                   <CodeIcon className="h-3.5 w-3.5" />
                   <span>Advanced: Raw JSON</span>
@@ -1110,13 +1110,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                       value={rawJson}
                       onChange={(e) => setRawJson(e.target.value)}
                       rows={12}
-                      className="font-mono text-xs rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      className="font-mono text-xs rounded-lg"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="rounded-lg border-slate-300 text-xs"
+                      className="rounded-lg text-xs"
                       onClick={applyRawJson}
                     >
                       Apply JSON
@@ -1157,9 +1157,9 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         className="space-y-2 min-w-0"
                         style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
                       >
-                        <Label className="text-sm font-medium text-slate-700">
+                        <Label className="text-sm font-medium text-foreground">
                           {field.label}
-                          {field.required && <span className="ml-1 text-red-500">*</span>}
+                          {field.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
                         </Label>
                         <CustomFieldInput
                           field={field}
@@ -1242,13 +1242,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           className="space-y-2 min-w-0"
                           style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
                         >
-                          <Label className="text-sm font-medium text-slate-700">
+                          <Label className="text-sm font-medium text-foreground">
                             {field.label}
-                            {field.required && <span className="ml-1 text-red-500">*</span>}
+                            {field.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
                           </Label>
                           {(field as any).default_from && !partialData[fieldKey] && (
-                            <p className="text-xs text-slate-400">
-                              Falls back to <code className="bg-slate-100 px-1 rounded">{(field as any).default_from}</code>
+                            <p className="text-xs" style={{ color: "var(--fg-subtle)" }}>
+                              Falls back to <code className="bg-muted px-1 rounded">{(field as any).default_from}</code>
                             </p>
                           )}
                           <CustomFieldInput
@@ -1278,15 +1278,15 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card>
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
               {/* Status + Language row */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-500">Status</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Status</Label>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="h-9 rounded-lg border-slate-300 text-sm">
+                    <SelectTrigger className="h-9 rounded-lg text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1297,7 +1297,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-500">Language</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Language</Label>
                   <LanguageSelect
                     languages={languages}
                     value={languageCode}
@@ -1308,9 +1308,9 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
 
               {/* Layout */}
               <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-500">Layout</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Layout</Label>
                   <Select value={layoutId || "auto"} onValueChange={(v) => setLayoutId(v === "auto" ? "" : v)}>
-                    <SelectTrigger className="h-9 rounded-lg border-slate-300 text-sm">
+                    <SelectTrigger className="h-9 rounded-lg text-sm">
                       <SelectValue placeholder="Auto" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1327,14 +1327,15 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
 
               {/* Parent */}
               <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-500">Parent</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Parent</Label>
                   {parentNode ? (
-                    <div className="flex items-center gap-2 h-9 rounded-lg border border-indigo-200 bg-indigo-50 px-3">
-                      <span className="flex-1 text-sm font-medium text-slate-800 truncate">{parentNode.title}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">/{parentNode.slug}</span>
+                    <div className="flex items-center gap-2 h-9 rounded-lg border px-3" style={{ borderColor: "var(--accent-mid)", background: "var(--accent-weak)" }}>
+                      <span className="flex-1 text-sm font-medium text-foreground truncate">{parentNode.title}</span>
+                      <span className="text-[10px] font-mono" style={{ color: "var(--fg-subtle)" }}>/{parentNode.slug}</span>
                       <button
                         type="button"
-                        className="text-slate-400 hover:text-red-500 shrink-0"
+                        className="hover:text-destructive shrink-0"
+                        style={{ color: "var(--fg-subtle)" }}
                         onClick={() => { setParentId(""); setParentNode(null); }}
                       >
                         <X className="h-3.5 w-3.5" />
@@ -1351,14 +1352,14 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         }}
                         onFocus={() => setShowParentResults(true)}
                         onBlur={() => setTimeout(() => setShowParentResults(false), 200)}
-                        className="h-9 rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                        className="h-9 rounded-lg text-sm"
                       />
                       {showParentResults && (parentSearch.trim() || parentSearching) && (
-                        <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
+                        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
                           {parentSearching ? (
-                            <div className="px-3 py-2 text-sm text-slate-400">Searching...</div>
+                            <div className="px-3 py-2 text-sm" style={{ color: "var(--fg-subtle)" }}>Searching...</div>
                           ) : parentResults.length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-slate-400">
+                            <div className="px-3 py-2 text-sm" style={{ color: "var(--fg-subtle)" }}>
                               {parentSearch.trim() ? "No results found" : "Type to search..."}
                             </div>
                           ) : (
@@ -1366,7 +1367,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                               <button
                                 key={node.id}
                                 type="button"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-indigo-50 transition-colors"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => {
                                   setParentId(String(node.id));
@@ -1376,8 +1377,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                   setShowParentResults(false);
                                 }}
                               >
-                                <span className="font-medium text-slate-800 truncate">{node.title}</span>
-                                <span className="text-[10px] text-slate-400 font-mono ml-auto shrink-0">/{node.slug}</span>
+                                <span className="font-medium text-foreground truncate">{node.title}</span>
+                                <span className="text-[10px] font-mono ml-auto shrink-0" style={{ color: "var(--fg-subtle)" }}>/{node.slug}</span>
                               </button>
                             ))
                           )}
@@ -1391,7 +1392,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               <div className="flex gap-2 pt-1">
                 <Button
                   type="submit"
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                  className="flex-1 bg-primary hover:opacity-90 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
                   disabled={saving}
                 >
                   <Save className="mr-1.5 h-3.5 w-3.5" />
@@ -1400,7 +1401,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 {status !== "published" && (
                   <Button
                     type="button"
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg h-9 text-sm"
+                    className="flex-1 hover:opacity-90 text-white font-medium rounded-lg h-9 text-sm"
+                    style={{ background: "var(--success)" }}
                     disabled={saving}
                     onClick={(e) => handleSave(e, "published")}
                   >
@@ -1439,7 +1441,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         <Button
                           type="button"
                           variant="outline"
-                          className="flex-1 bg-emerald-100 text-emerald-800 border-emerald-300 rounded-lg font-medium h-8 text-xs cursor-default"
+                          className="flex-1 rounded-lg font-medium h-8 text-xs cursor-default"
+                          style={{ background: "var(--success-bg)", color: "var(--success)", borderColor: "var(--success-border)" }}
                           disabled
                         >
                           <Home className="mr-1.5 h-3.5 w-3.5" />
@@ -1449,7 +1452,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         <Button
                           type="button"
                           variant="outline"
-                          className="flex-1 bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 rounded-lg font-medium h-8 text-xs"
+                          className="flex-1 bg-muted text-foreground border-border rounded-lg font-medium h-8 text-xs"
                           onClick={handleSetHomepage}
                         >
                           <Home className="mr-1.5 h-3.5 w-3.5" />
@@ -1460,7 +1463,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     <Button
                       type="button"
                       variant="outline"
-                      className="flex-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium h-8 text-xs"
+                      className="flex-1 hover:opacity-90 rounded-lg font-medium h-8 text-xs"
+                      style={{ background: "var(--danger-bg)", color: "var(--danger)", borderColor: "var(--danger-border)" }}
                       onClick={() => setShowDelete(true)}
                     >
                       <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -1474,23 +1478,23 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               {isEdit && originalNode && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" style={{ color: "var(--fg-subtle)" }}>
                     <div className="flex justify-between">
                       <span>Version</span>
-                      <span className="font-mono text-slate-600">{originalNode.version}</span>
+                      <span className="font-mono text-muted-foreground">{originalNode.version}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Created</span>
-                      <span className="text-slate-600">{new Date(originalNode.created_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNode.created_at).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Updated</span>
-                      <span className="text-slate-600">{new Date(originalNode.updated_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNode.updated_at).toLocaleDateString()}</span>
                     </div>
                     {originalNode.published_at && (
                       <div className="flex justify-between">
                         <span>Published</span>
-                        <span className="text-slate-600">{new Date(originalNode.published_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalNode.published_at).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -1500,7 +1504,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
           </Card>
 
           {/* Featured Image */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card>
             <SectionHeader title="Featured Image" />
             <CardContent className="space-y-2">
               <CustomFieldInput
@@ -1508,13 +1512,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 value={featuredImage}
                 onChange={(val) => setFeaturedImage(val as Record<string, unknown>)}
               />
-              <p className="text-[11px] text-slate-400">Main image used for listings, sliders, and social sharing.</p>
+              <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>Main image used for listings, sliders, and social sharing.</p>
             </CardContent>
           </Card>
 
           {/* Taxonomies */}
           {nodeTypeDef?.taxonomies && (nodeTypeDef.taxonomies as Array<{slug: string; label: string; multiple?: boolean}>).length > 0 && (
-            <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <Card>
               <SectionHeader title="Taxonomies" />
               <CardContent className="space-y-4">
                 {(nodeTypeDef.taxonomies as Array<{slug: string; label: string; multiple?: boolean}>).map((tax) => {
@@ -1529,16 +1533,16 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
 
                   return (
                     <div key={tax.slug} className="space-y-2">
-                      <Label className="text-xs font-medium text-slate-500">{tax.label}</Label>
+                      <Label className="text-xs font-medium text-muted-foreground">{tax.label}</Label>
                       {/* Selected terms as badges */}
                       {selectedTerms.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                           {selectedTerms.map((term, i) => (
-                            <Badge key={i} variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-100 gap-1 px-2 py-0.5 text-xs">
+                            <Badge key={i} variant="secondary" className="gap-1 px-2 py-0.5 text-xs" style={{ background: "var(--accent-weak)", color: "var(--accent-strong)", borderColor: "var(--accent-mid)" }}>
                               {term}
                               <button
                                 type="button"
-                                className="hover:text-red-500 ml-0.5"
+                                className="hover:text-destructive ml-0.5"
                                 onClick={() => {
                                   const newTerms = [...selectedTerms];
                                   newTerms.splice(i, 1);
@@ -1562,18 +1566,18 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           }}
                           onFocus={() => setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: true }))}
                           onBlur={() => setTimeout(() => setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false })), 200)}
-                          className="h-8 rounded-lg border-slate-300 text-xs focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                          className="h-8 rounded-lg text-xs"
                         />
                         {isOpen && (searchValue.trim() || filtered.length > 0) && (
-                          <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-40 overflow-y-auto">
+                          <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-40 overflow-y-auto">
                             {filtered.length === 0 && !searchValue.trim() && (
-                              <div className="px-3 py-2 text-xs text-slate-400">No terms available</div>
+                              <div className="px-3 py-2 text-xs" style={{ color: "var(--fg-subtle)" }}>No terms available</div>
                             )}
                             {filtered.slice(0, 20).map((term) => (
                               <button
                                 key={term.id}
                                 type="button"
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-indigo-50 transition-colors"
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent transition-colors"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => {
                                   if (!tax.multiple && selectedTerms.length > 0) {
@@ -1585,14 +1589,14 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                   setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
                                 }}
                               >
-                                <Tag className="h-3 w-3 text-slate-400" />
-                                <span className="font-medium text-slate-700">{term.name}</span>
+                                <Tag className="h-3 w-3" style={{ color: "var(--fg-subtle)" }} />
+                                <span className="font-medium text-foreground">{term.name}</span>
                               </button>
                             ))}
                             {searchValue.trim() && !exactMatch && (
                               <button
                                 type="button"
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-emerald-50 transition-colors border-t border-slate-100"
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent transition-colors border-t border-border"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={async () => {
                                   const val = searchValue.trim();
@@ -1626,8 +1630,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                   setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
                                 }}
                               >
-                                <Plus className="h-3 w-3 text-emerald-600" />
-                                <span className="font-medium text-emerald-700">Create: {searchValue.trim()}</span>
+                                <Plus className="h-3 w-3" style={{ color: "var(--success)" }} />
+                                <span className="font-medium" style={{ color: "var(--success)" }}>Create: {searchValue.trim()}</span>
                               </button>
                             )}
                           </div>
@@ -1644,32 +1648,37 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               term editor for consistency across the admin. No flags;
               language names are the canonical identifier. */}
           {isEdit && (
-            <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <Card>
               <SectionHeader title="Translations" />
               <CardContent>
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 rounded-md bg-indigo-50 border border-indigo-100 px-3 py-2">
-                    <span className="text-xs font-medium text-indigo-700 flex-1 truncate">
+                  <div className="flex items-center gap-2 rounded-md border px-3 py-2" style={{ background: "var(--accent-weak)", borderColor: "var(--accent-mid)" }}>
+                    <span className="text-xs font-medium flex-1 truncate" style={{ color: "var(--accent-strong)" }}>
                       <LanguageLabel languages={languages} code={languageCode} />
                     </span>
-                    <Badge className="bg-indigo-100 text-indigo-600 border-0 text-[10px] h-5">Current</Badge>
+                    <Badge className="border-0 text-[10px] h-5" style={{ background: "var(--accent-weak)", color: "var(--accent-strong)" }}>Current</Badge>
                   </div>
                   {translations.map((t) => (
                     <Link
                       key={t.id}
                       to={`${basePath}/${t.id}/edit`}
-                      className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted transition-colors"
                     >
-                      <span className="text-xs font-medium text-slate-700 flex-1 truncate">
+                      <span className="text-xs font-medium text-foreground flex-1 truncate">
                         <LanguageLabel languages={languages} code={t.language_code} />
                       </span>
-                      <Badge className={`border-0 text-[10px] h-5 ${t.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                      <Badge
+                        className="border-0 text-[10px] h-5"
+                        style={t.status === "published"
+                          ? { background: "var(--success-bg)", color: "var(--success)" }
+                          : { background: "var(--muted)", color: "var(--muted-foreground)" }}
+                      >
                         {t.status}
                       </Badge>
                     </Link>
                   ))}
                   {translations.length === 0 && (
-                    <p className="text-[11px] text-slate-400 text-center py-1">No translations yet</p>
+                    <p className="text-[11px] text-center py-1" style={{ color: "var(--fg-subtle)" }}>No translations yet</p>
                   )}
                 </div>
                 <div className="mt-2">
@@ -1690,11 +1699,11 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               revision is itself a save, so the prior state stays
               recoverable. List capped to the most recent 100. */}
           {isEdit && id && (
-            <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <Card>
               <SectionHeader title="Revisions" />
               <CardContent>
                 {revisions.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 text-center py-1">
+                  <p className="text-[11px] text-center py-1" style={{ color: "var(--fg-subtle)" }}>
                     No revisions yet. Save the page to create one.
                   </p>
                 ) : (
@@ -1705,13 +1714,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                       return (
                         <div
                           key={r.id}
-                          className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 hover:bg-slate-50"
+                          className="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-700 truncate">
+                            <p className="text-xs font-medium text-foreground truncate">
                               v{r.version_number || "—"} · {when.toLocaleString()}
                             </p>
-                            <p className="text-[11px] text-slate-400 truncate">
+                            <p className="text-[11px] truncate" style={{ color: "var(--fg-subtle)" }}>
                               {author} · {r.status}
                             </p>
                           </div>
@@ -1719,7 +1728,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 text-[11px] text-indigo-600 hover:text-indigo-700 px-2 shrink-0"
+                            className="h-7 text-[11px] px-2 shrink-0"
+                            style={{ color: "var(--accent-strong)" }}
                             disabled={restoringRevisionID !== null}
                             onClick={() => setShowRestoreConfirm(r)}
                           >
@@ -1735,25 +1745,25 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
           )}
 
           {/* SEO Settings */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card>
             <SectionHeader title="SEO" />
             <CardContent className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-500">
+                  <Label className="text-xs font-medium text-muted-foreground">
                     Meta Title
                   </Label>
                   <Input
                     placeholder={title || "Page title"}
                     value={seoTitle}
                     onChange={(e) => setSeoTitle(e.target.value)}
-                    className="h-9 rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="h-9 rounded-lg text-sm"
                   />
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
                     {seoTitle.length || 0}/60 — Leave empty to use page title
                   </p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-500">
+                  <Label className="text-xs font-medium text-muted-foreground">
                     Meta Description
                   </Label>
                   <Textarea
@@ -1761,23 +1771,23 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     value={seoDescription}
                     onChange={(e) => setSeoDescription(e.target.value)}
                     rows={3}
-                    className="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                    className="rounded-lg text-sm resize-none"
                   />
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
                     {seoDescription.length || 0}/160 recommended
                   </p>
                 </div>
                 {/* Preview */}
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[11px] text-slate-400 mb-1">Search preview</p>
-                  <p className="text-sm font-medium text-indigo-700 truncate">
+                <div className="rounded-lg border border-border bg-muted p-3">
+                  <p className="text-[11px] mb-1" style={{ color: "var(--fg-subtle)" }}>Search preview</p>
+                  <p className="text-sm font-medium truncate" style={{ color: "var(--accent-strong)" }}>
                     {seoTitle || title || "Page Title"}
                   </p>
-                  <p className="text-xs text-emerald-700 truncate">
+                  <p className="text-xs truncate" style={{ color: "var(--success)" }}>
                     {typeof window !== "undefined" ? window.location.origin : ""}
                     {originalNode?.full_url || "/"}
                   </p>
-                  <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                     {seoDescription || "No description set. Search engines will use page content."}
                   </p>
                 </div>
@@ -1879,7 +1889,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
             <Button
               onClick={() => showRestoreConfirm && handleRestoreRevision(showRestoreConfirm)}
               disabled={restoringRevisionID !== null}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="bg-primary hover:opacity-90 text-white"
             >
               {restoringRevisionID !== null ? "Restoring..." : "Restore"}
             </Button>
@@ -1932,7 +1942,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               Cancel
             </Button>
             <Button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="bg-primary hover:opacity-90 text-white"
               onClick={applyTemplate}
               disabled={applyingTemplate}
             >

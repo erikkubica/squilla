@@ -13,7 +13,7 @@ export default function FieldGDPROptions({
 }: FieldGDPROptionsProps) {
   return (
     <div className="space-y-1">
-      <Label className="text-[10px] text-slate-500 uppercase">
+      <Label className="text-[10px] text-muted-foreground uppercase">
         Consent Text
       </Label>
       <Textarea
@@ -28,7 +28,7 @@ export default function FieldGDPROptions({
         rows={2}
         placeholder="I agree to the Privacy Policy..."
       />
-      <p className="text-[9px] text-slate-400">
+      <p className="text-[9px] text-muted-foreground">
         Shown next to the consent checkbox. Include a link to your privacy
         policy.
       </p>

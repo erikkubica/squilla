@@ -65,12 +65,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
         {label}
         {required && <span className="text-rose-500">*</span>}
       </label>
       <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-[11px] text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -117,20 +117,20 @@ export default function MediaDrawer({
     <div className="fixed inset-0 z-40 flex" onMouseDown={onClose}>
       <div className="flex-1 bg-slate-900/30 backdrop-blur-[2px]" />
       <div
-        className="w-[480px] max-w-full bg-white h-full shadow-2xl flex flex-col overflow-hidden"
+        className="w-[480px] max-w-full bg-card h-full shadow-2xl flex flex-col overflow-hidden"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* header */}
-        <div className="h-14 px-4 flex items-center gap-2 border-b border-slate-200 shrink-0">
-          <div className="text-[13px] font-semibold text-slate-900 flex-1 truncate">Edit media</div>
+        <div className="h-14 px-4 flex items-center gap-2 border-b border-border shrink-0">
+          <div className="text-[13px] font-semibold text-foreground flex-1 truncate">Edit media</div>
           <button
             type="button"
             onClick={() => onCopy(file)}
-            className="h-8 px-2.5 rounded-md hover:bg-slate-100 text-slate-500 text-[12px] flex items-center gap-1.5 cursor-pointer"
+            className="h-8 px-2.5 rounded-md hover:bg-muted text-muted-foreground text-[12px] flex items-center gap-1.5 cursor-pointer"
           >
             {copyState === file.id ? (
               <>
-                <Check className="h-3 w-3 text-emerald-600" /> Copied
+                <Check className="h-3 w-3 text-emerald-700" /> Copied
               </>
             ) : (
               <>
@@ -141,7 +141,7 @@ export default function MediaDrawer({
           <button
             type="button"
             onClick={() => onDownload(file)}
-            className="w-8 h-8 rounded-md hover:bg-slate-100 text-slate-500 grid place-items-center cursor-pointer"
+            className="w-8 h-8 rounded-md hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
             title="Download"
           >
             <Download className="h-3.5 w-3.5" />
@@ -149,7 +149,7 @@ export default function MediaDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-md hover:bg-slate-100 text-slate-500 grid place-items-center cursor-pointer"
+            className="w-8 h-8 rounded-md hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -157,7 +157,7 @@ export default function MediaDrawer({
 
         {/* preview */}
         <div className="p-4 pb-2">
-          <div className="relative rounded-lg overflow-hidden bg-slate-100 aspect-[4/3] border border-slate-200">
+          <div className="relative rounded-lg overflow-hidden bg-muted aspect-[4/3] border border-border">
             {isImage(file.mime_type) ? (
               <MediaImage
                 src={imageSize(file.url, "large", file.updated_at)}
@@ -173,8 +173,8 @@ export default function MediaDrawer({
             ) : (
               <div className="absolute inset-0 grid place-items-center">
                 <div className="flex flex-col items-center gap-2">
-                  <FileTypeIcon mime={file.mime_type} className="h-10 w-10 text-slate-400" />
-                  <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-500">
+                  <FileTypeIcon mime={file.mime_type} className="h-10 w-10 text-muted-foreground" />
+                  <span className="rounded bg-border px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                     {ext}
                   </span>
                 </div>
@@ -200,7 +200,7 @@ export default function MediaDrawer({
         </div>
 
         {/* tabs */}
-        <div className="px-4 border-b border-slate-200 flex items-center gap-1">
+        <div className="px-4 border-b border-border flex items-center gap-1">
           {(
             [
               { id: "details", label: "Details" },
@@ -213,8 +213,8 @@ export default function MediaDrawer({
               onClick={() => setTab(t.id)}
               className={`px-3 py-2 text-[12.5px] font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
                 tab === t.id
-                  ? "border-indigo-500 text-slate-900"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
+                  ? "border-border text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               {t.label}
@@ -227,14 +227,14 @@ export default function MediaDrawer({
           {tab === "details" && (
             <>
               <Field label="Filename" required>
-                <div className="flex rounded-lg border border-slate-300 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-colors overflow-hidden bg-white">
+                <div className="flex rounded-lg border border-border focus-within:border-border  transition-colors overflow-hidden bg-card">
                   <input
                     value={base}
                     onChange={(e) => setName(e.target.value + (ext ? "." + ext.toLowerCase() : ""))}
                     className="flex-1 min-w-0 px-3 py-2 text-[13px] outline-none bg-transparent"
                   />
                   {ext && (
-                    <div className="px-2.5 py-2 text-[12px] text-slate-400 border-l border-slate-200 bg-slate-50 font-mono">
+                    <div className="px-2.5 py-2 text-[12px] text-muted-foreground border-l border-border bg-muted font-mono">
                       .{ext.toLowerCase()}
                     </div>
                   )}
@@ -247,26 +247,26 @@ export default function MediaDrawer({
                   onChange={(e) => setAlt(e.target.value)}
                   rows={2}
                   placeholder="A brief description of what's in this image…"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[13px] outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-[13px] outline-none  transition-colors resize-none"
                 />
                 <div className="mt-1 flex items-center justify-end">
-                  <span className="text-[10.5px] font-mono text-slate-400 tabular-nums">{alt.length}/160</span>
+                  <span className="text-[10.5px] font-mono text-muted-foreground tabular-nums">{alt.length}/160</span>
                 </div>
               </Field>
 
               <Field label="Public URL">
-                <div className="flex rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
-                  <code className="flex-1 min-w-0 px-3 py-2 text-[11.5px] text-slate-600 truncate font-mono">
+                <div className="flex rounded-lg border border-border bg-muted overflow-hidden">
+                  <code className="flex-1 min-w-0 px-3 py-2 text-[11.5px] text-muted-foreground truncate font-mono">
                     {fullUrl}
                   </code>
                   <button
                     type="button"
                     onClick={() => onCopy(file)}
                     title="Copy URL"
-                    className="px-2.5 border-l border-slate-200 hover:bg-slate-100 text-slate-600 grid place-items-center cursor-pointer"
+                    className="px-2.5 border-l border-border hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
                   >
                     {copyState === file.id ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      <Check className="h-3.5 w-3.5 text-emerald-700" />
                     ) : (
                       <Copy className="h-3.5 w-3.5" />
                     )}
@@ -276,7 +276,7 @@ export default function MediaDrawer({
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Open in new tab"
-                    className="px-2.5 border-l border-slate-200 hover:bg-slate-100 text-slate-600 grid place-items-center cursor-pointer"
+                    className="px-2.5 border-l border-border hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -285,21 +285,21 @@ export default function MediaDrawer({
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Type">
-                  <div className="text-[12.5px] text-slate-700">{mimeLabel(file.mime_type)}</div>
+                  <div className="text-[12.5px] text-foreground">{mimeLabel(file.mime_type)}</div>
                 </Field>
                 <Field label="Size">
-                  <div className="font-mono text-[12.5px] text-slate-700 tabular-nums">{humanFileSize(file.size)}</div>
+                  <div className="font-mono text-[12.5px] text-foreground tabular-nums">{humanFileSize(file.size)}</div>
                 </Field>
                 {file.width && file.height && (
                   <Field label="Dimensions">
-                    <div className="font-mono text-[12.5px] text-slate-700 tabular-nums">
+                    <div className="font-mono text-[12.5px] text-foreground tabular-nums">
                       {file.width} × {file.height} px
                     </div>
                   </Field>
                 )}
                 <Field label="Uploaded">
-                  <div className="text-[12.5px] text-slate-700">{new Date(file.created_at).toLocaleDateString()}</div>
-                  <div className="text-[10.5px] text-slate-400 font-mono">
+                  <div className="text-[12.5px] text-foreground">{new Date(file.created_at).toLocaleDateString()}</div>
+                  <div className="text-[10.5px] text-muted-foreground font-mono">
                     {new Date(file.created_at).toLocaleTimeString()}
                   </div>
                 </Field>
@@ -313,9 +313,9 @@ export default function MediaDrawer({
                 >
                   <div className="flex items-start gap-2">
                     {file.is_optimized ? (
-                      <Zap className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <Zap className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
                     ) : (
-                      <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <Sparkles className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
                     )}
                     <div className="flex-1 min-w-0">
                       <p
@@ -338,7 +338,7 @@ export default function MediaDrawer({
                         type="button"
                         onClick={onRestore}
                         disabled={restoring || reoptimizing}
-                        className="flex-1 h-8 rounded-md text-[11.5px] text-amber-700 border border-amber-200 hover:bg-amber-50 font-medium flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 h-8 rounded-md text-[11.5px] text-amber-700 border border-amber-200 hover:bg-muted font-medium flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
                         Restore original
@@ -348,7 +348,7 @@ export default function MediaDrawer({
                       type="button"
                       onClick={onReoptimize}
                       disabled={restoring || reoptimizing}
-                      className="flex-1 h-8 rounded-md text-[11.5px] text-emerald-700 border border-emerald-200 hover:bg-emerald-50 font-medium flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 h-8 rounded-md text-[11.5px] text-emerald-700 border border-emerald-200 hover:bg-muted font-medium flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {reoptimizing ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -365,7 +365,7 @@ export default function MediaDrawer({
 
           {tab === "variants" && (
             <div className="space-y-3">
-              <div className="text-[11.5px] text-slate-500">
+              <div className="text-[11.5px] text-muted-foreground">
                 Auto-generated responsive sizes served from the image cache.
               </div>
               {VARIANT_SIZES.map((v) => {
@@ -374,25 +374,25 @@ export default function MediaDrawer({
                 return (
                   <div
                     key={v.label}
-                    className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white"
+                    className="flex items-center gap-3 p-2.5 rounded-lg border border-border hover:border-border bg-card"
                   >
-                    <div className="w-10 h-10 rounded-md overflow-hidden border border-slate-200 bg-slate-50 grid place-items-center shrink-0">
+                    <div className="w-10 h-10 rounded-md overflow-hidden border border-border bg-muted grid place-items-center shrink-0">
                       {isImage(file.mime_type) ? (
                         <MediaImage src={url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <FileTypeIcon mime={file.mime_type} className="h-4 w-4 text-slate-400" />
+                        <FileTypeIcon mime={file.mime_type} className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12.5px] font-medium text-slate-800 capitalize">{v.label}</div>
-                      <div className="text-[10.5px] font-mono text-slate-400 truncate">{url}</div>
+                      <div className="text-[12.5px] font-medium text-foreground capitalize">{v.label}</div>
+                      <div className="text-[10.5px] font-mono text-muted-foreground truncate">{url}</div>
                     </div>
                     <a
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="px-2 h-7 rounded-md border border-slate-200 hover:border-slate-300 text-[11px] text-slate-600 flex items-center gap-1 cursor-pointer"
+                      className="px-2 h-7 rounded-md border border-border hover:border-border text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer"
                     >
                       <ExternalLink className="h-3 w-3" /> {isOriginal ? "Open" : "View"}
                     </a>
@@ -404,11 +404,11 @@ export default function MediaDrawer({
         </div>
 
         {/* footer */}
-        <div className="border-t border-slate-200 p-3 flex items-center gap-2 shrink-0 bg-white">
+        <div className="border-t border-border p-3 flex items-center gap-2 shrink-0 bg-card">
           <button
             type="button"
             onClick={() => onDelete(file)}
-            className="px-3 h-9 rounded-lg text-red-600 hover:bg-red-50 text-[12.5px] font-medium flex items-center gap-1.5 cursor-pointer"
+            className="px-3 h-9 rounded-lg text-red-600 hover:bg-muted text-[12.5px] font-medium flex items-center gap-1.5 cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5" /> Delete
           </button>
@@ -416,7 +416,7 @@ export default function MediaDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 h-9 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[12.5px] font-medium cursor-pointer"
+            className="px-3 h-9 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-[12.5px] font-medium cursor-pointer"
           >
             Cancel
           </button>
@@ -429,7 +429,7 @@ export default function MediaDrawer({
               onSave(patch);
             }}
             disabled={!dirty || saving}
-            className="px-3.5 h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white text-[12.5px] font-medium shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 h-9 rounded-lg bg-primary hover:bg-primary/90 disabled:bg-border disabled:text-muted-foreground disabled:cursor-not-allowed text-white text-[12.5px] font-medium shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             Save changes

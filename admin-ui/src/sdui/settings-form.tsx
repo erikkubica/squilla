@@ -79,19 +79,19 @@ export interface SettingsFormProps {
 }
 
 const ICON_COLORS: Record<string, string> = {
-  Globe: "text-indigo-500",
-  Home: "text-emerald-500",
-  FileText: "text-amber-500",
-  Code: "text-amber-500",
-  Settings: "text-slate-500",
+  Globe: "var(--accent-strong)",
+  Home: "var(--success)",
+  FileText: "var(--warning)",
+  Code: "var(--warning)",
+  Settings: "var(--muted-foreground)",
 };
 
 function renderIcon(name: string | undefined) {
   if (!name) return null;
   const Icon = iconMap[name];
   if (!Icon) return null;
-  const color = ICON_COLORS[name] || "text-indigo-500";
-  return <Icon className={`h-4 w-4 ${color}`} />;
+  const color = ICON_COLORS[name] || "var(--accent-strong)";
+  return <Icon className="h-4 w-4" style={{color}} />;
 }
 
 export function SettingsForm({
@@ -204,7 +204,7 @@ export function SettingsForm({
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -213,9 +213,9 @@ export function SettingsForm({
     <div className="space-y-4">
       {/* Title row — spans the full width above the 2-col grid. */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
         {description && (
-          <p className="text-sm text-slate-500 mt-0.5">{description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
 
@@ -225,12 +225,12 @@ export function SettingsForm({
           {schema.map((section, idx) => (
             <Card
               key={idx}
-              className="rounded-xl border border-slate-200 shadow-sm"
+              className="rounded-xl border border-border shadow-sm"
             >
               <SectionHeader title={section.title} icon={renderIcon(section.icon)} />
               <CardContent className="space-y-4">
                 {section.description && (
-                  <p className="text-xs text-slate-500 -mt-1">{section.description}</p>
+                  <p className="text-xs text-muted-foreground -mt-1">{section.description}</p>
                 )}
                 <div className="space-y-4">
                   {section.fields.map((field) => (
@@ -254,7 +254,7 @@ export function SettingsForm({
           <SidebarCard title="Publish">
             {!language_agnostic && languages.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">
+                <Label className="text-xs font-medium text-muted-foreground">
                   Language
                 </Label>
                 <LanguageSelect
@@ -262,7 +262,7 @@ export function SettingsForm({
                   value={pageLocale}
                   onChange={setPageLocale}
                 />
-                <p className="text-[11px] leading-snug text-slate-500">
+                <p className="text-[11px] leading-snug text-muted-foreground">
                   Each setting stores a separate value per language. Languages
                   without an override read from the default language.
                 </p>
@@ -272,7 +272,7 @@ export function SettingsForm({
             <Button
               onClick={handleSave}
               disabled={saving || !hasChanges}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+              className="w-full bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
             >
               <Save className="mr-2 h-4 w-4" />
               {saving ? "Saving..." : "Save Changes"}
@@ -310,11 +310,11 @@ function SettingsField({
   onChange: (v: string) => void;
 }) {
   const inputClasses =
-    "rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
+    "rounded-lg focus:ring-2";
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+      <Label className="text-sm font-medium text-foreground">{field.label}</Label>
       {field.type === "text" && (
         <Input
           placeholder={field.placeholder}
@@ -343,7 +343,7 @@ function SettingsField({
               checked={checked}
               onCheckedChange={(v: boolean) => onChange(v ? trueVal : falseVal)}
             />
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted-foreground">
               {checked ? "On" : "Off"}
             </span>
           </div>
@@ -381,11 +381,11 @@ function SettingsField({
           </SelectContent>
         </Select>
       )}
-      {field.help && <p className="text-[11px] text-slate-400">{field.help}</p>}
+      {field.help && <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>{field.help}</p>}
       {field.warning && (
-        <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5">
-          <span className="text-amber-600 text-[11px] leading-tight" aria-hidden="true">⚠</span>
-          <p className="text-[11px] leading-snug text-amber-800">{field.warning}</p>
+        <div className="flex gap-2 rounded-md border px-2.5 py-1.5" style={{borderColor: "var(--warning)", background: "var(--warning-bg)"}}>
+          <span className="text-[11px] leading-tight" style={{color: "var(--warning)"}} aria-hidden="true">⚠</span>
+          <p className="text-[11px] leading-snug" style={{color: "var(--warning)"}}>{field.warning}</p>
         </div>
       )}
     </div>

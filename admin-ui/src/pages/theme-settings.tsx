@@ -118,7 +118,7 @@ export function ThemeSettingsPage() {
     return (
       <SduiAdminShell>
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
         </div>
       </SduiAdminShell>
     );
@@ -127,9 +127,9 @@ export function ThemeSettingsPage() {
   if (error || !data) {
     return (
       <SduiAdminShell>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border p-4 text-sm" style={{background: "var(--danger-bg)", borderColor: "var(--danger-border)", color: "var(--danger)"}}>
           <p className="font-medium">Failed to load theme settings</p>
-          {error && <p className="mt-1 text-red-600">{error}</p>}
+          {error && <p className="mt-1" style={{color: "var(--danger)"}}>{error}</p>}
         </div>
       </SduiAdminShell>
     );
@@ -140,11 +140,11 @@ export function ThemeSettingsPage() {
       <div className="space-y-4">
         {/* Title row — spans the full width above the 2-col grid. */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-foreground">
             {data.page.name}
           </h1>
           {data.page.description && (
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {data.page.description}
             </p>
           )}
@@ -153,10 +153,10 @@ export function ThemeSettingsPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           {/* Main content — fields card */}
           <div className="space-y-4 min-w-0">
-            <Card className="rounded-xl border border-slate-200 shadow-sm">
+            <Card className="rounded-xl border border-border shadow-sm">
               <SectionHeader
                 title="Fields"
-                icon={<Palette className="h-4 w-4 text-indigo-500" />}
+                icon={<Palette className="h-4 w-4" style={{color: "var(--accent-strong)"}} />}
               />
               <CardContent className="space-y-4">
                 {adaptedFields.map((field, idx) => {
@@ -172,14 +172,14 @@ export function ThemeSettingsPage() {
                         </Label>
                         {originalField.translatable ? (
                           <span
-                            className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                            className="rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset" style={{background: "var(--accent-weak)", boxShadow: "0 0 0 1px var(--accent-mid)", color: "var(--accent-strong)"}}
                             title="This field stores a separate value per language"
                           >
                             Translatable
                           </span>
                         ) : (
                           <span
-                            className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 ring-1 ring-inset ring-slate-200"
+                            className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-slate-200"
                             title="This field applies to every language"
                           >
                             Global
@@ -197,12 +197,12 @@ export function ThemeSettingsPage() {
                         }
                       />
                       {incompatible && (
-                        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                        <div className="flex items-start gap-2 rounded-md border p-2 text-xs" style={{background: "var(--warning-bg)", borderColor: "var(--border)", color: "var(--warning)"}}>
                           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                           <div>
                             Previous value was incompatible with the new field
                             type and will be replaced when you save:&nbsp;
-                            <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">
+                            <code className="rounded px-1 py-0.5 font-mono" style={{background: "var(--warning-bg)"}}>
                               {v.raw}
                             </code>
                           </div>
@@ -220,11 +220,11 @@ export function ThemeSettingsPage() {
             <SidebarCard title="Publish">
               {languages.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-500">
+                  <Label className="text-xs font-medium text-muted-foreground">
                     Language
                   </Label>
                   <Select value={pageLocale} onValueChange={setPageLocale}>
-                    <SelectTrigger className="h-9 rounded-lg border-slate-300 text-sm">
+                    <SelectTrigger className="h-9 rounded-lg border-border text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -235,7 +235,7 @@ export function ThemeSettingsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-[11px] leading-snug text-slate-500">
+                  <p className="text-[11px] leading-snug text-muted-foreground">
                     Each field stores a separate value per language. Languages
                     without an override read from the default language.
                   </p>
@@ -245,7 +245,7 @@ export function ThemeSettingsPage() {
               <Button
                 onClick={handleSave}
                 disabled={saving || !hasChanges}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+                className="w-full bg-primary text-white shadow-sm rounded-lg font-medium"
               >
                 {saving ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

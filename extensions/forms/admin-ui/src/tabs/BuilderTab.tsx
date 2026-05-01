@@ -123,7 +123,7 @@ export default function BuilderTab({ form, setForm }: any) {
       ) : (
         <Button
           variant="outline"
-          className="w-full border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 cursor-pointer"
+          className="w-full border-dashed border-border text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent/50 cursor-pointer"
           onClick={() => setAddingField(true)}
         >
           <Plus className="mr-2 h-4 w-4" /> Add Field

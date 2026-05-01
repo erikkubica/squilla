@@ -228,11 +228,13 @@ export function Th({
   width,
   align = "left",
   className = "",
+  style: extraStyle,
 }: {
   children?: ReactNode;
   width?: string | number;
   align?: "left" | "right" | "center";
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const style: React.CSSProperties = {
     textAlign: align,
@@ -247,6 +249,7 @@ export function Th({
     color: "var(--fg-subtle)",
     whiteSpace: "nowrap",
     userSelect: "none",
+    ...extraStyle,
   };
   if (width) style.width = typeof width === "number" ? `${width}px` : width;
   return (
@@ -260,18 +263,20 @@ export function Tr({
   children,
   className = "",
   onClick,
+  style: extraStyle,
 }: {
   children: ReactNode;
   className?: string;
   onClick?: (e: ReactMouseEvent<HTMLTableRowElement>) => void;
+  style?: React.CSSProperties;
 }) {
   return (
     <tr
       className={`group ${className}`}
       onClick={onClick}
-      style={{ background: "var(--card-bg)", cursor: onClick ? "pointer" : undefined, transition: "background 80ms ease" }}
+      style={{ background: "var(--card-bg)", cursor: onClick ? "pointer" : undefined, transition: "background 80ms ease", ...extraStyle }}
       onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sub-bg)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card-bg)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = (extraStyle?.background as string) || "var(--card-bg)")}
     >
       {children}
     </tr>
@@ -283,15 +288,20 @@ export function Td({
   className = "",
   align = "left",
   onClick,
+  style: extraStyle,
+  colSpan,
 }: {
   children?: ReactNode;
   className?: string;
   align?: "left" | "right" | "center";
   onClick?: (e: ReactMouseEvent<HTMLTableCellElement>) => void;
+  style?: React.CSSProperties;
+  colSpan?: number;
 }) {
   return (
     <td
       onClick={onClick}
+      colSpan={colSpan}
       className={`group-last:border-0 ${className}`}
       style={{
         padding: "11px 14px",
@@ -300,6 +310,7 @@ export function Td({
         color: "var(--fg-2)",
         textAlign: align,
         verticalAlign: "middle",
+        ...extraStyle,
       }}
     >
       {children}

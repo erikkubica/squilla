@@ -20,7 +20,7 @@ interface EnrichedSubmission extends Submission {
 
 function renderFieldValue(value: unknown): React.ReactNode {
   if (value === true) return <span className="text-green-600 font-medium">✓</span>;
-  if (value === false) return <span className="text-red-500 font-medium">✗</span>;
+  if (value === false) return <span className="text-red-600 font-medium">✗</span>;
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ("label" in obj && "value" in obj && Object.keys(obj).length === 2) {
@@ -43,11 +43,11 @@ function renderFieldValue(value: unknown): React.ReactNode {
           <a
             href={obj.url as string}
             download={obj.name as string}
-            className="text-indigo-600 hover:underline text-sm"
+            className="text-foreground hover:underline text-sm"
           >
             {obj.name as string}
           </a>
-          {sizeKB && <span className="text-xs text-slate-400">{sizeKB}</span>}
+          {sizeKB && <span className="text-xs text-muted-foreground">{sizeKB}</span>}
         </div>
       );
     }
@@ -154,7 +154,7 @@ export default function SubmissionDetailDialog({
                 </Badge>
               )}
             </span>
-            <Badge variant="outline" className="ml-4 font-normal text-xs text-slate-400">
+            <Badge variant="outline" className="ml-4 font-normal text-xs text-muted-foreground">
               ID: #{submission?.id}
             </Badge>
           </DialogTitle>
@@ -163,20 +163,20 @@ export default function SubmissionDetailDialog({
         {submission && (
           <div className="space-y-5 py-3">
             {/* Meta grid */}
-            <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100 text-sm">
+            <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg border border-border text-sm">
               <div>
-                <p className="text-slate-400 uppercase text-[10px] tracking-wider mb-1">
+                <p className="text-muted-foreground uppercase text-[10px] tracking-wider mb-1">
                   Date Submitted
                 </p>
-                <p className="font-medium text-slate-900">
+                <p className="font-medium text-foreground">
                   {new Date(submission.created_at).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-slate-400 uppercase text-[10px] tracking-wider mb-1">
+                <p className="text-muted-foreground uppercase text-[10px] tracking-wider mb-1">
                   Form Name
                 </p>
-                <p className="font-medium text-slate-900">
+                <p className="font-medium text-foreground">
                   {submission.form_name || "N/A"}
                 </p>
               </div>
@@ -184,17 +184,17 @@ export default function SubmissionDetailDialog({
 
             {/* Submitted data */}
             <div className="space-y-3">
-              <h4 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
-                <Filter className="h-4 w-4 text-indigo-500" />
+              <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                <Filter className="h-4 w-4 text-foreground" />
                 Submitted Data
               </h4>
-              <div className="divide-y divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+              <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
                 {Object.entries(submission.data).map(([key, value]) => (
                   <div key={key} className="grid grid-cols-3 p-3 text-sm">
-                    <div className="font-medium text-slate-600 capitalize">
+                    <div className="font-medium text-muted-foreground capitalize">
                       {labelMap[key] || key.replace(/_/g, " ")}
                     </div>
-                    <div className="col-span-2 text-slate-900 bg-white p-1 rounded min-h-[1.5rem] break-words">
+                    <div className="col-span-2 text-foreground bg-card p-1 rounded min-h-[1.5rem] break-words">
                       {renderFieldValue(value)}
                     </div>
                   </div>
@@ -204,10 +204,10 @@ export default function SubmissionDetailDialog({
 
             {Object.keys(submission.metadata || {}).length > 0 && (
               <div className="space-y-2">
-                <h4 className="font-semibold text-slate-900 text-sm">
+                <h4 className="font-semibold text-foreground text-sm">
                   Technical Metadata
                 </h4>
-                <pre className="p-3 bg-slate-900 text-indigo-300 rounded-lg text-[11px] font-mono overflow-x-auto">
+                <pre className="p-3 bg-slate-900 text-foreground rounded-lg text-[11px] font-mono overflow-x-auto">
                   {JSON.stringify(submission.metadata, null, 2)}
                 </pre>
               </div>

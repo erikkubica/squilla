@@ -213,16 +213,16 @@ export default function LanguagesPage() {
               {filteredLanguages.map((lang) => (
                 <Tr key={lang.id}>
                   <Td className="text-xl leading-none">{lang.flag}</Td>
-                  <Td className="font-mono text-[12px] text-slate-700">{lang.code}</Td>
-                  <Td className="font-mono text-[12px] text-indigo-600">/{lang.slug}/</Td>
+                  <Td className="font-mono text-[12px] text-foreground">{lang.code}</Td>
+                  <Td className="font-mono text-[12px]" style={{color: "var(--accent-strong)"}}>/{lang.slug}/</Td>
                   <Td>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[13px] font-medium text-slate-900">{lang.name}</span>
+                      <span className="text-[13px] font-medium text-foreground">{lang.name}</span>
                       {lang.is_default && <Chip>Default</Chip>}
                       {lang.hide_prefix && <Chip>No prefix</Chip>}
                     </div>
                   </Td>
-                  <Td className="text-slate-600">{lang.native_name}</Td>
+                  <Td className="text-muted-foreground">{lang.native_name}</Td>
                   <Td>
                     {lang.is_default ? (
                       <StatusPill status="success" label="default" />
@@ -258,7 +258,7 @@ export default function LanguagesPage() {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="lang-code" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="lang-code" className="text-sm font-medium text-foreground">
                   Code (ISO)
                 </Label>
                 <Input
@@ -271,19 +271,19 @@ export default function LanguagesPage() {
                   }}
                   required
                   disabled={!!editingLanguage}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
-                {editingLanguage && <p className="text-xs text-slate-400">Code cannot be changed</p>}
+                {editingLanguage && <p className="text-xs" style={{color: "var(--fg-subtle)"}}>Code cannot be changed</p>}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="lang-slug" className="text-sm font-medium text-slate-700">
+                  <Label htmlFor="lang-slug" className="text-sm font-medium text-foreground">
                     URL Slug
                   </Label>
                   {!editingLanguage && (
                     <button
                       type="button"
-                      className="text-xs text-indigo-600 hover:underline"
+                      className="text-xs hover:underline" style={{color: "var(--accent-strong)"}}
                       onClick={() => setAutoSlug(!autoSlug)}
                     >
                       {autoSlug ? "Edit" : "Auto"}
@@ -300,14 +300,14 @@ export default function LanguagesPage() {
                   }}
                   disabled={autoSlug && !editingLanguage}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs" style={{color: "var(--fg-subtle)"}}>
                   Used in URLs: /{formSlug || formCode}/page-slug
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lang-flag" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="lang-flag" className="text-sm font-medium text-foreground">
                   Flag
                 </Label>
                 <Input
@@ -315,14 +315,14 @@ export default function LanguagesPage() {
                   placeholder="e.g. 🇺🇸, 🇪🇸"
                   value={formFlag}
                   onChange={(e) => setFormFlag(e.target.value)}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="lang-name" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="lang-name" className="text-sm font-medium text-foreground">
                   Name
                 </Label>
                 <Input
@@ -331,11 +331,11 @@ export default function LanguagesPage() {
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lang-native-name" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="lang-native-name" className="text-sm font-medium text-foreground">
                   Native Name
                 </Label>
                 <Input
@@ -343,7 +343,7 @@ export default function LanguagesPage() {
                   placeholder="e.g. English"
                   value={formNativeName}
                   onChange={(e) => setFormNativeName(e.target.value)}
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border focus:ring-2"
                 />
               </div>
             </div>
@@ -351,19 +351,19 @@ export default function LanguagesPage() {
             <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch checked={formIsDefault} onCheckedChange={setFormIsDefault} />
-                <span className="text-sm font-medium text-slate-700">Default language</span>
+                <span className="text-sm font-medium text-foreground">Default language</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch checked={formIsActive} onCheckedChange={setFormIsActive} />
-                <span className="text-sm font-medium text-slate-700">Active</span>
+                <span className="text-sm font-medium text-foreground">Active</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch checked={formHidePrefix} onCheckedChange={setFormHidePrefix} />
-                <span className="text-sm font-medium text-slate-700">Hide URL prefix</span>
+                <span className="text-sm font-medium text-foreground">Hide URL prefix</span>
               </label>
             </div>
             {formHidePrefix && (
-              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              <p className="text-xs rounded-lg px-3 py-2" style={{background: "var(--warning-bg)", color: "var(--warning)"}}>
                 URLs for this language won't have a prefix:{" "}
                 <span className="font-mono">/page-slug</span> instead of{" "}
                 <span className="font-mono">/{formSlug || formCode}/page-slug</span>. Typically used
@@ -377,13 +377,13 @@ export default function LanguagesPage() {
                 variant="outline"
                 onClick={() => setShowEditor(false)}
                 disabled={saving}
-                className="rounded-lg border-slate-300"
+                className="rounded-lg border-border"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg"
+                className="bg-primary text-white font-medium rounded-lg"
                 disabled={saving}
               >
                 {saving ? (

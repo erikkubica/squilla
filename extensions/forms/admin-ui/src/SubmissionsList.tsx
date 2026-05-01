@@ -179,7 +179,7 @@ export default function SubmissionsList() {
           ? "Export submissions as CSV"
           : "Select a specific form to enable CSV export"
       }
-      className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-indigo-600 border border-indigo-600 rounded hover:bg-indigo-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-primary border border-primary rounded hover:bg-primary/90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <Download className="w-3 h-3" />
       {exporting ? "Exporting…" : "Export CSV"}
@@ -195,7 +195,7 @@ export default function SubmissionsList() {
             <button
               type="button"
               onClick={() => navigate("/admin/ext/forms")}
-              className="w-[26px] h-[26px] grid place-items-center text-slate-500 hover:bg-slate-100 rounded border-0 bg-transparent cursor-pointer"
+              className="w-[26px] h-[26px] grid place-items-center text-muted-foreground hover:bg-muted rounded border-0 bg-transparent cursor-pointer"
               aria-label="Back to forms"
             >
               <ArrowLeft className="h-4 w-4" />

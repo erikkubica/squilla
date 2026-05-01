@@ -56,9 +56,10 @@ function ToolbarButton({
       title={title}
       className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
         active
-          ? "bg-indigo-100 text-indigo-700"
-          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          ? "bg-accent"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+      style={active ? { color: "var(--accent-strong)" } : undefined}
     >
       {children}
     </button>
@@ -66,7 +67,7 @@ function ToolbarButton({
 }
 
 function ToolbarDivider() {
-  return <div className="mx-1 h-6 w-px bg-slate-200" />;
+  return <div className="mx-1 h-6 w-px" style={{ background: "var(--border)" }} />;
 }
 
 function Toolbar({ editor }: { editor: Editor }) {
@@ -82,7 +83,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   }, [editor]);
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-slate-50/80 px-2 py-1.5 rounded-t-lg">
+    <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted px-2 py-1.5 rounded-t-lg">
       {/* Headings */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -295,7 +296,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
   if (!editor) return null;
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white overflow-hidden focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       <style>{`
         .vibe-rte-content {
           padding: 0.75rem 1rem;

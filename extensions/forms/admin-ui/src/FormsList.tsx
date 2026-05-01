@@ -242,7 +242,7 @@ export default function FormsList() {
                   <Td>
                     <Chip>[form slug=&quot;{form.slug}&quot;]</Chip>
                   </Td>
-                  <Td className="font-mono text-[12px] text-slate-500">
+                  <Td className="font-mono text-[12px] text-muted-foreground">
                     {new Date(form.created_at).toLocaleDateString()}
                   </Td>
                   <Td align="center">
@@ -252,15 +252,15 @@ export default function FormsList() {
                         onClick={() =>
                           navigate(`/admin/ext/forms/submissions?form_id=${form.id}`)
                         }
-                        className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-semibold hover:bg-indigo-200 transition-colors cursor-pointer border-0"
+                        className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-accent text-foreground text-[11px] font-semibold hover:bg-accent transition-colors cursor-pointer border-0"
                       >
                         {form.submission_count}
                       </button>
                     ) : (
-                      <span className="text-slate-300 text-[12px]">—</span>
+                      <span className="text-muted-foreground text-[12px]">—</span>
                     )}
                   </Td>
-                  <Td className="text-[12px] text-slate-500">
+                  <Td className="text-[12px] text-muted-foreground">
                     {relativeTime(form.last_submission_at)}
                   </Td>
                   <Td align="right">
@@ -277,7 +277,7 @@ export default function FormsList() {
                               )
                             }
                             title="View Submissions"
-                            className="w-[26px] h-[26px] grid place-items-center text-slate-500 hover:bg-slate-100 hover:border-slate-200 border border-transparent rounded-[2px] cursor-pointer bg-transparent"
+                            className="w-[26px] h-[26px] grid place-items-center text-muted-foreground hover:bg-muted hover:border-border border border-transparent rounded-[2px] cursor-pointer bg-transparent"
                           >
                             <ExternalLink className="w-3 h-3" />
                           </button>
@@ -286,7 +286,7 @@ export default function FormsList() {
                             onClick={() => handleDuplicate(form)}
                             disabled={duplicating === form.id}
                             title="Duplicate Form"
-                            className="w-[26px] h-[26px] grid place-items-center text-slate-500 hover:bg-slate-100 hover:border-slate-200 border border-transparent rounded-[2px] cursor-pointer bg-transparent disabled:opacity-40"
+                            className="w-[26px] h-[26px] grid place-items-center text-muted-foreground hover:bg-muted hover:border-border border border-transparent rounded-[2px] cursor-pointer bg-transparent disabled:opacity-40"
                           >
                             <Copy className="w-3 h-3" />
                           </button>

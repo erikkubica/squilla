@@ -156,7 +156,7 @@ export default function TaxonomyEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -279,10 +279,10 @@ export default function TaxonomyEditorPage() {
             </TabsList>
 
             <TabsContent value="fields" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <Card className="rounded-xl border border-border shadow-sm">
                 <SectionHeader title="Term Custom Fields" />
                 <CardContent>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-xs text-muted-foreground mb-4">
                     Fields that appear when editing terms in this taxonomy.
                   </p>
                   <FieldSchemaEditor fields={fields} onChange={setFields} />
@@ -291,22 +291,22 @@ export default function TaxonomyEditorPage() {
             </TabsContent>
 
             <TabsContent value="content-types" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <Card className="rounded-xl border border-border shadow-sm">
                 <SectionHeader title="Assigned Content Types" />
                 <CardContent>
-                  <p className="text-xs text-slate-500 mb-4">Select which content types can use this taxonomy.</p>
+                  <p className="text-xs text-muted-foreground mb-4">Select which content types can use this taxonomy.</p>
                   {availableNodeTypes.length === 0 ? (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No content types available.</p>
+                    <p className="text-sm italic text-center py-4" style={{color: "var(--fg-subtle)"}}>No content types available.</p>
                   ) : (
                     <div className="grid gap-2 sm:grid-cols-2">
                       {availableNodeTypes.map((type) => (
                         <label
                           key={type.slug}
-                          className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors"
+                          className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-border bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="text-sm font-medium text-slate-800 truncate">{type.label}</span>
-                            <span className="text-[10px] font-mono text-slate-400 shrink-0">{type.slug}</span>
+                            <span className="text-sm font-medium text-foreground truncate">{type.label}</span>
+                            <span className="text-[10px] font-mono shrink-0" style={{color: "var(--fg-subtle)"}}>{type.slug}</span>
                           </div>
                           <Switch
                             id={`type-${type.slug}`}
@@ -332,12 +332,12 @@ export default function TaxonomyEditorPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Publish card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
               <Button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                className="w-full bg-primary text-white font-medium rounded-lg shadow-sm h-9 text-sm"
                 disabled={saving}
               >
                 <Save className="mr-1.5 h-3.5 w-3.5" />
@@ -350,7 +350,7 @@ export default function TaxonomyEditorPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium h-8 text-xs"
+                    className="w-full hover: rounded-lg font-medium h-8 text-xs" style={{background: "var(--danger-bg)", borderColor: "var(--danger-border)", color: "var(--danger)"}}
                     onClick={() => setShowDeleteDialog(true)}
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -362,21 +362,21 @@ export default function TaxonomyEditorPage() {
           </Card>
 
           {/* Settings card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Settings" />
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="label_plural" className="text-xs font-medium text-slate-500">Label (plural)</Label>
+                <Label htmlFor="label_plural" className="text-xs font-medium text-muted-foreground">Label (plural)</Label>
                 <Input
                   id="label_plural"
                   placeholder="e.g. Categories, Tags"
                   value={labelPlural}
                   onChange={(e) => setLabelPlural(e.target.value)}
                 />
-                <p className="text-[11px] text-slate-400">Used in list headings.</p>
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>Used in list headings.</p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-xs font-medium text-slate-500">Description</Label>
+                <Label htmlFor="description" className="text-xs font-medium text-muted-foreground">Description</Label>
                 <Textarea
                   id="description"
                   placeholder="What is this taxonomy used for?"
@@ -388,8 +388,8 @@ export default function TaxonomyEditorPage() {
               <Separator />
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-0.5 min-w-0 flex-1">
-                  <Label htmlFor="hierarchical" className="text-xs font-medium text-slate-700">Hierarchical</Label>
-                  <p className="text-[11px] text-slate-400">
+                  <Label htmlFor="hierarchical" className="text-xs font-medium text-foreground">Hierarchical</Label>
+                  <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
                     Terms can have a parent term (categories).
                     Disable for flat taxonomies (tags).
                   </p>

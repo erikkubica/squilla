@@ -46,15 +46,15 @@ export default function BulkActionsBar({
   }
 
   return (
-    <div className="flex items-center gap-2 mb-2.5 flex-wrap px-2.5 h-[30px] rounded border border-indigo-200 bg-indigo-50/70">
-      <span className="text-[12px] font-medium text-indigo-700">
+    <div className="flex items-center gap-2 mb-2.5 flex-wrap px-2.5 h-[30px] rounded border border-border bg-accent/70">
+      <span className="text-[12px] font-medium text-foreground">
         {count} selected
       </span>
-      <div className="h-3 w-px bg-indigo-200" />
+      <div className="h-3 w-px bg-accent" />
       <Button
         variant="ghost"
         size="sm"
-        className="text-indigo-700 hover:bg-indigo-100 text-xs gap-1.5"
+        className="text-foreground hover:bg-accent text-xs gap-1.5"
         onClick={() => executeBulk("mark_read")}
       >
         <CheckCircle className="h-3.5 w-3.5" />
@@ -63,7 +63,7 @@ export default function BulkActionsBar({
       <Button
         variant="ghost"
         size="sm"
-        className="text-indigo-700 hover:bg-indigo-100 text-xs gap-1.5"
+        className="text-foreground hover:bg-accent text-xs gap-1.5"
         onClick={() => executeBulk("mark_unread")}
       >
         <Circle className="h-3.5 w-3.5" />
@@ -72,7 +72,7 @@ export default function BulkActionsBar({
       <Button
         variant="ghost"
         size="sm"
-        className="text-indigo-700 hover:bg-indigo-100 text-xs gap-1.5"
+        className="text-foreground hover:bg-accent text-xs gap-1.5"
         onClick={() => executeBulk("archive")}
       >
         <Archive className="h-3.5 w-3.5" />
@@ -81,7 +81,7 @@ export default function BulkActionsBar({
       <Button
         variant="ghost"
         size="sm"
-        className="text-red-600 hover:bg-red-50 text-xs gap-1.5"
+        className="text-red-600 hover:bg-muted text-xs gap-1.5"
         onClick={() => executeBulk("delete")}
       >
         <Trash2 className="h-3.5 w-3.5" />
@@ -91,7 +91,7 @@ export default function BulkActionsBar({
         <Button
           variant="ghost"
           size="sm"
-          className="text-slate-500 text-xs"
+          className="text-muted-foreground text-xs"
           onClick={onClearSelection}
         >
           Clear selection

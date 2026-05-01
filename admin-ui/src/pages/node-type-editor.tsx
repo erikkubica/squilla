@@ -247,7 +247,7 @@ export default function NodeTypeEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -375,10 +375,10 @@ export default function NodeTypeEditorPage() {
             </TabsList>
 
             <TabsContent value="fields" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <Card className="rounded-xl border border-border shadow-sm">
                 <SectionHeader title="Custom Fields" />
                 <CardContent>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-xs text-muted-foreground mb-4">
                     Define editable fields for this content type. They appear in the node editor sidebar.
                   </p>
                   <FieldSchemaEditor fields={fields} onChange={setFields} />
@@ -387,10 +387,10 @@ export default function NodeTypeEditorPage() {
             </TabsContent>
 
             <TabsContent value="taxonomies" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <Card className="rounded-xl border border-border shadow-sm">
                 <SectionHeader title="Taxonomies" />
                 <CardContent className="space-y-4">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Register taxonomies (e.g. Categories, Tags, Genres) to classify content of this type.
                   </p>
 
@@ -416,15 +416,15 @@ export default function NodeTypeEditorPage() {
                             <span className="font-mono" style={{ fontSize: 11, color: "var(--fg-muted)" }}>
                               {tax.slug}
                             </span>
-                            <Badge className={`border-0 text-[10px] ${tax.multiple ? "bg-violet-100 text-violet-700 hover:bg-violet-100" : "bg-slate-100 text-slate-600 hover:bg-slate-100"}`}>
+                            <Badge className={`border-0 text-[10px] ${tax.multiple ? "bg-violet-100 text-violet-700 hover:bg-violet-100" : "bg-muted text-muted-foreground hover:bg-muted"}`}>
                               {tax.multiple ? "Multiple" : "Single"}
                             </Badge>
                             <div className="flex-1" />
                             <button
                               type="button"
                               onClick={() => setTaxonomies(taxArray.filter((_, i) => i !== index))}
-                              className="p-1 rounded hover:bg-red-50"
-                              style={{ color: "var(--danger)" }}
+                              className="p-1 rounded hover:"
+                              style={{ color: "var(--danger)", background: "var(--danger-bg)"}}
                               title="Remove"
                             >
                               <X className="h-3.5 w-3.5" />
@@ -434,16 +434,16 @@ export default function NodeTypeEditorPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-400 italic text-center py-4">No taxonomies registered.</p>
+                    <p className="text-sm italic text-center py-4" style={{color: "var(--fg-subtle)"}}>No taxonomies registered.</p>
                   )}
 
                   <Separator />
 
-                  <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4">
-                    <p className="text-sm font-semibold text-slate-700">Add Taxonomy</p>
+                  <div className="space-y-3 rounded-lg border p-4" style={{background: "var(--accent-weak)", borderColor: "var(--accent-mid)"}}>
+                    <p className="text-sm font-semibold text-foreground">Add Taxonomy</p>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-slate-700">Label</Label>
+                        <Label className="text-xs font-medium text-foreground">Label</Label>
                         <Input
                           placeholder="e.g. Category"
                           value={newTaxLabel}
@@ -453,10 +453,10 @@ export default function NodeTypeEditorPage() {
                       </div>
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <Label className="text-xs font-medium text-slate-700">Key (slug)</Label>
+                          <Label className="text-xs font-medium text-foreground">Key (slug)</Label>
                           <button
                             type="button"
-                            className="text-[10px] text-indigo-600 hover:underline"
+                            className="text-[10px] hover:underline" style={{color: "var(--accent-strong)"}}
                             onClick={() => setAutoTaxKey(!autoTaxKey)}
                           >
                             {autoTaxKey ? "Edit manually" : "Auto"}
@@ -480,12 +480,12 @@ export default function NodeTypeEditorPage() {
                         checked={newTaxMultiple}
                         onCheckedChange={setNewTaxMultiple}
                       />
-                      <span className="text-sm text-slate-700">Allow multiple terms per node</span>
+                      <span className="text-sm text-foreground">Allow multiple terms per node</span>
                     </label>
                     <Button
                       type="button"
                       size="sm"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      className="bg-primary text-white"
                       onClick={addTaxonomy}
                     >
                       <Plus className="mr-1.5 h-4 w-4" /> Add Taxonomy
@@ -496,18 +496,18 @@ export default function NodeTypeEditorPage() {
             </TabsContent>
 
             <TabsContent value="urls" className="mt-4 ring-offset-white focus-visible:outline-none">
-              <Card className="rounded-xl border border-slate-200 shadow-sm">
+              <Card className="rounded-xl border border-border shadow-sm">
                 <SectionHeader title="URL Prefixes" />
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     Set the URL prefix per language. Leave empty to use the type slug as prefix.
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {languages.map((lang) => (
                       <div key={lang.code} className="space-y-1.5">
-                        <Label className="text-xs font-medium text-slate-600">{lang.name} ({lang.code})</Label>
-                        <div className="flex items-center rounded-lg border border-slate-300 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 overflow-hidden">
-                          <span className="shrink-0 bg-slate-100 px-2 py-2 text-sm text-slate-500 border-r border-slate-300">
+                        <Label className="text-xs font-medium text-muted-foreground">{lang.name} ({lang.code})</Label>
+                        <div className="flex items-center rounded-lg border border-border overflow-hidden">
+                          <span className="shrink-0 bg-muted px-2 py-2 text-sm text-muted-foreground border-r border-border">
                             /{lang.code}/
                           </span>
                           <input
@@ -521,7 +521,7 @@ export default function NodeTypeEditorPage() {
                             }
                             className="flex-1 bg-transparent px-2 py-2 text-sm outline-none"
                           />
-                          <span className="shrink-0 text-sm text-slate-400 pr-2">/slug</span>
+                          <span className="shrink-0 text-sm pr-2" style={{color: "var(--fg-subtle)"}}>/slug</span>
                         </div>
                       </div>
                     ))}
@@ -535,12 +535,12 @@ export default function NodeTypeEditorPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Publish card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
               <Button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                className="w-full bg-primary text-white font-medium rounded-lg shadow-sm h-9 text-sm"
                 disabled={saving}
               >
                 <Save className="mr-1.5 h-3.5 w-3.5" />
@@ -553,7 +553,7 @@ export default function NodeTypeEditorPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium h-8 text-xs"
+                    className="w-full hover: rounded-lg font-medium h-8 text-xs" style={{background: "var(--danger-bg)", borderColor: "var(--danger-border)", color: "var(--danger)"}}
                     onClick={() => setShowDelete(true)}
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -565,14 +565,14 @@ export default function NodeTypeEditorPage() {
               {isEdit && originalNodeType && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" style={{color: "var(--fg-subtle)"}}>
                     <div className="flex justify-between">
                       <span>Created</span>
-                      <span className="text-slate-600">{new Date(originalNodeType.created_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNodeType.created_at).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Updated</span>
-                      <span className="text-slate-600">{new Date(originalNodeType.updated_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNodeType.updated_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </>
@@ -581,21 +581,21 @@ export default function NodeTypeEditorPage() {
           </Card>
 
           {/* Settings card */}
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Settings" />
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="label_plural" className="text-xs font-medium text-slate-500">Label (plural)</Label>
+                <Label htmlFor="label_plural" className="text-xs font-medium text-muted-foreground">Label (plural)</Label>
                 <Input
                   id="label_plural"
                   placeholder="e.g. Products, Events"
                   value={labelPlural}
                   onChange={(e) => setLabelPlural(e.target.value)}
                 />
-                <p className="text-[11px] text-slate-400">Used in menus and list headings.</p>
+                <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>Used in menus and list headings.</p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-xs font-medium text-slate-500">Description</Label>
+                <Label htmlFor="description" className="text-xs font-medium text-muted-foreground">Description</Label>
                 <Textarea
                   id="description"
                   placeholder="What is this content type for?"
@@ -605,7 +605,7 @@ export default function NodeTypeEditorPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">Icon</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Icon</Label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {ICON_OPTIONS.map((opt) => {
                     const IconComp = opt.icon;
@@ -618,9 +618,10 @@ export default function NodeTypeEditorPage() {
                         title={opt.label}
                         className={`flex items-center justify-center rounded-lg border-2 p-2 transition-all ${
                           isSelected
-                            ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                            : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50"
+                            ? "border-border"
+                            : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted"
                         }`}
+                        style={isSelected ? {borderColor: "var(--accent-mid)", background: "var(--accent-weak)", color: "var(--accent-strong)"} : undefined}
                       >
                         <IconComp className="h-4 w-4" />
                       </button>
@@ -630,8 +631,8 @@ export default function NodeTypeEditorPage() {
               </div>
               <label className="flex items-center justify-between gap-3 pt-1 cursor-pointer">
                 <div className="space-y-0.5 min-w-0">
-                  <span className="block text-sm text-slate-700">Supports blocks</span>
-                  <span className="block text-[11px] text-slate-400">Block-based composition on nodes.</span>
+                  <span className="block text-sm text-foreground">Supports blocks</span>
+                  <span className="block text-[11px]" style={{color: "var(--fg-subtle)"}}>Block-based composition on nodes.</span>
                 </div>
                 <Switch
                   checked={supportsBlocks}

@@ -42,20 +42,20 @@ import { iconMap } from "./sdui-components";
 // locale and posts diffs back to /admin/api/settings/schemas/<id>.
 
 const ICON_COLORS: Record<string, string> = {
-  Globe: "text-indigo-500",
-  Home: "text-emerald-500",
-  FileText: "text-amber-500",
-  Code: "text-amber-500",
-  Settings: "text-slate-500",
-  Shield: "text-rose-500",
+  Globe: "var(--accent-strong)",
+  Home: "var(--success)",
+  FileText: "var(--warning)",
+  Code: "var(--warning)",
+  Settings: "var(--muted-foreground)",
+  Shield: "var(--danger)",
 };
 
 function renderIcon(name: string | undefined) {
   if (!name) return null;
   const Icon = iconMap[name];
   if (!Icon) return null;
-  const color = ICON_COLORS[name] || "text-indigo-500";
-  return <Icon className={`h-4 w-4 ${color}`} />;
+  const color = ICON_COLORS[name] || "var(--accent-strong)";
+  return <Icon className="h-4 w-4" style={{color}} />;
 }
 
 export interface SchemaSettingsProps {
@@ -181,7 +181,7 @@ export function SchemaSettings({
   if (loading || !schema) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -191,9 +191,9 @@ export function SchemaSettings({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{schema.title}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{schema.title}</h1>
         {schema.description && (
-          <p className="text-sm text-slate-500 mt-0.5">{schema.description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{schema.description}</p>
         )}
       </div>
 
@@ -202,12 +202,12 @@ export function SchemaSettings({
           {schema.sections.map((section, idx) => (
             <Card
               key={idx}
-              className="rounded-xl border border-slate-200 shadow-sm"
+              className="rounded-xl border border-border shadow-sm"
             >
               <SectionHeader title={section.title} icon={renderIcon(section.icon)} />
               <CardContent className="space-y-4">
                 {section.description && (
-                  <p className="text-xs text-slate-500 -mt-1">{section.description}</p>
+                  <p className="text-xs text-muted-foreground -mt-1">{section.description}</p>
                 )}
                 <div className="space-y-4">
                   {section.fields.map((field) => (
@@ -232,7 +232,7 @@ export function SchemaSettings({
           <SidebarCard title="Publish">
             {hasTranslatable && languages.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-500">
+                <Label className="text-xs font-medium text-muted-foreground">
                   Language
                 </Label>
                 <LanguageSelect
@@ -240,14 +240,14 @@ export function SchemaSettings({
                   value={pageLocale}
                   onChange={setPageLocale}
                 />
-                <p className="text-[11px] leading-snug text-slate-500">
+                <p className="text-[11px] leading-snug text-muted-foreground">
                   Translatable fields store a separate value per language.
                   Fields marked “Global” apply to every language.
                 </p>
               </div>
             )}
             {!hasTranslatable && (
-              <p className="text-[11px] leading-snug text-slate-500">
+              <p className="text-[11px] leading-snug text-muted-foreground">
                 These settings apply to every language.
               </p>
             )}
@@ -255,7 +255,7 @@ export function SchemaSettings({
             <Button
               onClick={handleSave}
               disabled={saving || !hasChanges}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+              className="w-full bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
             >
               <Save className="mr-2 h-4 w-4" />
               {saving ? "Saving..." : "Save Changes"}
@@ -293,7 +293,7 @@ function SchemaField({
   onChange: (v: string) => void;
 }) {
   const inputClasses =
-    "rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
+    "rounded-lg focus:ring-2";
 
   // Always render translatability — operators repeatedly asked "did
   // it actually take effect?" and an absent badge isn't proof. On
@@ -303,17 +303,18 @@ function SchemaField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+        <Label className="text-sm font-medium text-foreground">{field.label}</Label>
         {field.translatable ? (
           <span
-            className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
+            className="rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset"
+            style={{background: "var(--accent-weak)", color: "var(--accent-strong)", boxShadow: "inset 0 0 0 1px var(--accent-mid)"}}
             title="This field stores a separate value per language"
           >
             Translatable
           </span>
         ) : (
           <span
-            className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 ring-1 ring-inset ring-slate-200"
+            className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-border"
             title="This field applies to every language"
           >
             Global
@@ -348,7 +349,7 @@ function SchemaField({
               checked={checked}
               onCheckedChange={(v: boolean) => onChange(v ? trueVal : falseVal)}
             />
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted-foreground">
               {checked ? "On" : "Off"}
             </span>
           </div>
@@ -400,11 +401,11 @@ function SchemaField({
           </SelectContent>
         </Select>
       )}
-      {field.help && <p className="text-[11px] text-slate-400">{field.help}</p>}
+      {field.help && <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>{field.help}</p>}
       {field.warning && (
-        <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5">
-          <span className="text-amber-600 text-[11px] leading-tight" aria-hidden="true">⚠</span>
-          <p className="text-[11px] leading-snug text-amber-800">{field.warning}</p>
+        <div className="flex gap-2 rounded-md border px-2.5 py-1.5" style={{borderColor: "var(--warning)", background: "var(--warning-bg)"}}>
+          <span className="text-[11px] leading-tight" style={{color: "var(--warning)"}} aria-hidden="true">⚠</span>
+          <p className="text-[11px] leading-snug" style={{color: "var(--warning)"}}>{field.warning}</p>
         </div>
       )}
     </div>

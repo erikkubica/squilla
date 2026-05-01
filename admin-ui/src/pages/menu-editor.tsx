@@ -190,7 +190,7 @@ export default function MenuEditorPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{color: "var(--accent-strong)"}} />
       </div>
     );
   }
@@ -294,7 +294,7 @@ export default function MenuEditorPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1 rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+              className="flex-1 rounded-lg border-dashed border-border text-muted-foreground hover:" style={{color: "var(--accent-strong)"}}
               onClick={() => addItem("node")}
             >
               <LinkIcon className="mr-2 h-4 w-4" />
@@ -302,7 +302,7 @@ export default function MenuEditorPage() {
             </Button>
             <Button
               variant="outline"
-              className="flex-1 rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+              className="flex-1 rounded-lg border-dashed border-border text-muted-foreground hover:" style={{color: "var(--accent-strong)"}}
               onClick={() => addItem("custom")}
             >
               <Globe className="mr-2 h-4 w-4" />
@@ -313,11 +313,11 @@ export default function MenuEditorPage() {
 
       {/* Sidebar */}
       <div className="space-y-6">
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader title="Menu Details" />
           <CardContent className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Language</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Language</label>
               <Select
                 value={languageId === null ? "all" : String(languageId)}
                 onValueChange={(v) => setLanguageId(v === "all" ? null : Number(v))}
@@ -336,7 +336,7 @@ export default function MenuEditorPage() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+              className="w-full bg-primary text-white font-medium rounded-lg shadow-sm h-9 text-sm"
             >
               {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
               {saving ? "Saving..." : "Save Menu"}

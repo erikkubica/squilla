@@ -11,7 +11,7 @@ export function ExtensionPageLoader() {
   if (loading || !slug) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-strong)" }} />
       </div>
     );
   }
@@ -19,7 +19,7 @@ export function ExtensionPageLoader() {
   const ext = loaded.get(slug);
   if (!ext) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
+      <div className="flex h-64 flex-col items-center justify-center gap-2" style={{ color: "var(--fg-subtle)" }}>
         <p className="text-lg font-medium">Extension not found</p>
         <p className="text-sm">The extension &quot;{slug}&quot; is not loaded.</p>
       </div>
@@ -44,7 +44,7 @@ export function ExtensionPageLoader() {
               key={route.path}
               path={routePath}
               element={
-                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>}>
+                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-strong)" }} /></div>}>
                   <Component />
                 </Suspense>
               }

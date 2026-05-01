@@ -160,7 +160,7 @@ export default function EmailRuleEditor() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -175,14 +175,14 @@ export default function EmailRuleEditor() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-foreground">
             {isEdit ? "Edit Email Rule" : "New Email Rule"}
           </h1>
         </div>
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+          className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
         >
           <Save className="mr-2 h-4 w-4" />
           {saving ? "Saving..." : "Save"}
@@ -190,15 +190,15 @@ export default function EmailRuleEditor() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-slate-800">Rule Configuration</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">Rule Configuration</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Action</Label>
+              <Label className="text-sm font-medium text-foreground">Action</Label>
               <Select value={formAction} onValueChange={setFormAction}>
-                <SelectTrigger className="rounded-lg border-slate-300">
+                <SelectTrigger className="rounded-lg border-border">
                   <SelectValue placeholder="Select an action..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,9 +212,9 @@ export default function EmailRuleEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Node Type (optional)</Label>
+              <Label className="text-sm font-medium text-foreground">Node Type (optional)</Label>
               <Select value={formNodeType || "__all__"} onValueChange={(v) => setFormNodeType(v === "__all__" ? "" : v)}>
-                <SelectTrigger className="rounded-lg border-slate-300">
+                <SelectTrigger className="rounded-lg border-border">
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -229,9 +229,9 @@ export default function EmailRuleEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Template</Label>
+              <Label className="text-sm font-medium text-foreground">Template</Label>
               <Select value={formTemplateId} onValueChange={setFormTemplateId}>
-                <SelectTrigger className="rounded-lg border-slate-300">
+                <SelectTrigger className="rounded-lg border-border">
                   <SelectValue placeholder="Select a template..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -246,12 +246,12 @@ export default function EmailRuleEditor() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Recipient Type</Label>
+                <Label className="text-sm font-medium text-foreground">Recipient Type</Label>
                 <Select value={formRecipientType} onValueChange={(v) => {
                   setFormRecipientType(v);
                   setFormRecipientValue("");
                 }}>
-                  <SelectTrigger className="rounded-lg border-slate-300">
+                  <SelectTrigger className="rounded-lg border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -265,9 +265,9 @@ export default function EmailRuleEditor() {
 
               {formRecipientType === "role" && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Role</Label>
+                  <Label className="text-sm font-medium text-foreground">Role</Label>
                   <Select value={formRecipientValue} onValueChange={setFormRecipientValue}>
-                    <SelectTrigger className="rounded-lg border-slate-300">
+                    <SelectTrigger className="rounded-lg border-border">
                       <SelectValue placeholder="Select a role..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -283,12 +283,12 @@ export default function EmailRuleEditor() {
 
               {formRecipientType === "fixed" && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Email Address(es)</Label>
+                  <Label className="text-sm font-medium text-foreground">Email Address(es)</Label>
                   <Input
                     placeholder="email1@example.com, email2@example.com"
                     value={formRecipientValue}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormRecipientValue(e.target.value)}
-                    className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="rounded-lg border-border "
                   />
                 </div>
               )}
@@ -299,9 +299,9 @@ export default function EmailRuleEditor() {
                 type="checkbox"
                 checked={formEnabled}
                 onChange={(e) => setFormEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-border text-foreground "
               />
-              <span className="text-sm font-medium text-slate-700">Enabled</span>
+              <span className="text-sm font-medium text-foreground">Enabled</span>
             </label>
           </CardContent>
         </Card>

@@ -102,17 +102,17 @@ export default function EmailTemplates() {
         <ListSearch value={search} onChange={setSearch} placeholder="Search templates…" />
       </ListToolbar>
 
-      <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-foreground" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center gap-3 text-slate-400">
+          <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
             <Mail className="h-12 w-12" />
-            <p className="text-[15px] font-medium text-slate-600">No email templates found</p>
+            <p className="text-[15px] font-medium text-muted-foreground">No email templates found</p>
             {templates.length === 0 && (
-              <p className="text-[13px] text-slate-400">Click &ldquo;Add Template&rdquo; to get started.</p>
+              <p className="text-[13px] text-muted-foreground">Click &ldquo;Add Template&rdquo; to get started.</p>
             )}
           </div>
         ) : (
@@ -120,30 +120,30 @@ export default function EmailTemplates() {
             <Table className="w-full border-separate border-spacing-0">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="px-3 py-2.5 bg-slate-50 border-b border-slate-200 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-500 whitespace-nowrap">Name</TableHead>
-                  <TableHead className="px-3 py-2.5 bg-slate-50 border-b border-slate-200 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-500 whitespace-nowrap">Slug</TableHead>
-                  <TableHead className="px-3 py-2.5 bg-slate-50 border-b border-slate-200 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-500 whitespace-nowrap">Subject</TableHead>
-                  <TableHead className="px-3 py-2.5 bg-slate-50 border-b border-slate-200 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-500 whitespace-nowrap text-right">Actions</TableHead>
+                  <TableHead className="px-3 py-2.5 bg-muted border-b border-border text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground whitespace-nowrap">Name</TableHead>
+                  <TableHead className="px-3 py-2.5 bg-muted border-b border-border text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground whitespace-nowrap">Slug</TableHead>
+                  <TableHead className="px-3 py-2.5 bg-muted border-b border-border text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground whitespace-nowrap">Subject</TableHead>
+                  <TableHead className="px-3 py-2.5 bg-muted border-b border-border text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground whitespace-nowrap text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((tpl) => (
-                  <TableRow key={tpl.id} className="group bg-white hover:bg-slate-50">
-                    <TableCell className="px-3 py-2.5 border-b border-slate-100 text-[13px] font-medium text-slate-900">
+                  <TableRow key={tpl.id} className="group bg-card hover:bg-muted">
+                    <TableCell className="px-3 py-2.5 border-b border-border text-[13px] font-medium text-foreground">
                       {tpl.name}
                     </TableCell>
-                    <TableCell className="px-3 py-2.5 border-b border-slate-100">
-                      <span className="font-mono text-[11px] text-indigo-600">{tpl.slug}</span>
+                    <TableCell className="px-3 py-2.5 border-b border-border">
+                      <span className="font-mono text-[11px] text-foreground">{tpl.slug}</span>
                     </TableCell>
-                    <TableCell className="px-3 py-2.5 border-b border-slate-100 text-[13px] text-slate-600 max-w-xs truncate">
+                    <TableCell className="px-3 py-2.5 border-b border-border text-[13px] text-muted-foreground max-w-xs truncate">
                       {tpl.subject_template}
                     </TableCell>
-                    <TableCell className="px-3 py-2.5 border-b border-slate-100 text-right whitespace-nowrap">
+                    <TableCell className="px-3 py-2.5 border-b border-border text-right whitespace-nowrap">
                       <div className="inline-flex gap-0.5 opacity-55 group-hover:opacity-100 transition-opacity">
                         <Link
                           to={`/admin/ext/email-manager/templates/${tpl.id}`}
                           title="Edit"
-                          className="w-[26px] h-[26px] grid place-items-center text-slate-500 hover:bg-slate-100 hover:border-slate-200 border border-transparent rounded-[2px]"
+                          className="w-[26px] h-[26px] grid place-items-center text-muted-foreground hover:bg-muted hover:border-border border border-transparent rounded-[2px]"
                         >
                           <Pencil className="w-3 h-3" />
                         </Link>
@@ -151,7 +151,7 @@ export default function EmailTemplates() {
                           type="button"
                           title="Delete"
                           onClick={() => openDeleteDialog(tpl)}
-                          className="w-[26px] h-[26px] grid place-items-center text-red-500/80 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border border-transparent rounded-[2px] cursor-pointer bg-transparent"
+                          className="w-[26px] h-[26px] grid place-items-center text-red-600/80 hover:text-foreground hover:bg-muted hover:border-border border border-transparent rounded-[2px] cursor-pointer bg-transparent"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>

@@ -34,7 +34,7 @@ describe("ConditionBuilder", () => {
 
   it("shows ANY mode when group has any key", () => {
     renderBuilder({ any: [] });
-    // The ANY button should appear selected (bg-indigo-600 class)
+    // The ANY button should appear selected (bg-primary class)
     const anyBtn = screen.getByText("ANY (OR)");
     expect(anyBtn).toBeInTheDocument();
   });

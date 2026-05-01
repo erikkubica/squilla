@@ -61,10 +61,10 @@ export default function NotificationsTab({ form, setForm }: any) {
     <div className="space-y-6">
       <NotificationVariablesPanel />
 
-      <Card className="rounded-xl border border-slate-200 shadow-sm">
+      <Card className="rounded-xl border border-border shadow-sm">
         <SectionHeader
           title={`Email Notifications (${(form.notifications || []).length})`}
-          icon={<Mail className="h-4 w-4 text-indigo-500" />}
+          icon={<Mail className="h-4 w-4 text-foreground" />}
           actions={
             <Button variant="outline" size="sm" onClick={addNotification}>
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Notification

@@ -44,7 +44,7 @@ export function AccordionRow({
         )}
       </div>
       {open && children && (
-        <div className="bg-slate-50/70 px-4 py-4 space-y-3">{children}</div>
+        <div className="px-4 py-4 space-y-3" style={{ background: "var(--sub-bg)" }}>{children}</div>
       )}
     </div>
   );

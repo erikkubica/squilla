@@ -84,7 +84,7 @@ function ImgWithFallback({
   if (failed || !src) {
     return (
       <div
-        className={`flex items-center justify-center bg-slate-100 text-slate-400 ${className ?? ""}`}
+        className={`flex items-center justify-center bg-muted text-muted-foreground ${className ?? ""}`}
         aria-label={typeof alt === "string" ? alt : "Image unavailable"}
       >
         <svg
@@ -194,11 +194,11 @@ function SingleMediaPreview({
   onAltChange?: (alt: string) => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
+    <div className="rounded-lg border border-border bg-muted overflow-hidden">
       <div className="flex items-start gap-3 p-3">
         {/* Thumbnail */}
         {isImage(media.mime_type) ? (
-          <div className="shrink-0 h-20 w-20 rounded-md overflow-hidden border border-slate-200 bg-white">
+          <div className="shrink-0 h-20 w-20 rounded-md overflow-hidden border border-border bg-card">
             <ImgWithFallback
               src={media.url}
               alt={media.alt || ""}
@@ -206,25 +206,25 @@ function SingleMediaPreview({
             />
           </div>
         ) : (
-          <div className="shrink-0 h-20 w-20 rounded-md border border-slate-200 bg-white flex items-center justify-center">
-            <FileIcon mime={media.mime_type} className="h-8 w-8 text-slate-400" />
+          <div className="shrink-0 h-20 w-20 rounded-md border border-border bg-card flex items-center justify-center">
+            <FileIcon mime={media.mime_type} className="h-8 w-8 text-muted-foreground" />
           </div>
         )}
 
         {/* Info */}
         <div className="flex-1 min-w-0 space-y-2">
-          <p className="text-sm font-medium text-slate-700 truncate">
+          <p className="text-sm font-medium text-foreground truncate">
             {media.filename || media.url.split("/").pop() || "File"}
           </p>
           {media.width && media.height && (
-            <p className="text-xs text-slate-400">{media.width} x {media.height}px</p>
+            <p className="text-xs text-muted-foreground">{media.width} x {media.height}px</p>
           )}
           {onAltChange && isImage(media.mime_type) && (
             <Input
               placeholder="Alt text..."
               value={media.alt || ""}
               onChange={(e) => onAltChange(e.target.value)}
-              className="h-8 text-xs rounded-md border-slate-300"
+              className="h-8 text-xs rounded-md border-border"
             />
           )}
         </div>
@@ -234,7 +234,7 @@ function SingleMediaPreview({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-7 w-7 shrink-0 text-slate-400 hover:text-red-500"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
           onClick={onRemove}
         >
           <X className="h-4 w-4" />
@@ -284,12 +284,12 @@ function GalleryItem({
 
   return (
     <div
-      className={`group relative aspect-square rounded-lg border-2 bg-white cursor-grab active:cursor-grabbing transition-all ${
+      className={`group relative aspect-square rounded-lg border-2 bg-card cursor-grab active:cursor-grabbing transition-all ${
         editing ? "overflow-visible z-50" : "overflow-hidden"
       } ${
         isDragTarget
-          ? "border-indigo-400 scale-[1.02] shadow-md"
-          : "border-slate-200 hover:border-slate-300"
+          ? "border-border scale-[1.02] shadow-md"
+          : "border-border hover:border-border"
       }`}
       draggable
       onDragStart={(e) => onDragStart(e, index)}
@@ -307,8 +307,8 @@ function GalleryItem({
         />
       ) : (
         <div className="h-full w-full flex flex-col items-center justify-center p-2">
-          <FileIcon mime={media.mime_type} className="h-8 w-8 text-slate-400" />
-          <span className="text-[10px] text-slate-500 mt-1 truncate w-full text-center">
+          <FileIcon mime={media.mime_type} className="h-8 w-8 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground mt-1 truncate w-full text-center">
             {media.filename || "File"}
           </span>
         </div>
@@ -325,7 +325,7 @@ function GalleryItem({
       <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           type="button"
-          className="bg-black/60 hover:bg-indigo-600 text-white rounded-full p-1 transition-colors"
+          className="bg-black/60 hover:bg-primary text-white rounded-full p-1 transition-colors"
           onClick={handleOpenEdit}
           title="Edit details"
         >
@@ -354,28 +354,28 @@ function GalleryItem({
           <div className="fixed inset-0 z-40" onClick={() => setEditing(false)} />
           <div
             ref={popupRef}
-            className="absolute z-50 bottom-full left-0 mb-1 w-56 bg-white rounded-lg border border-slate-200 shadow-xl p-3 space-y-2"
+            className="absolute z-50 bottom-full left-0 mb-1 w-56 bg-card rounded-lg border border-border shadow-xl p-3 space-y-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-xs font-semibold text-slate-700">Image Settings</p>
+            <p className="text-xs font-semibold text-foreground">Image Settings</p>
             <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-500">Alt Text</label>
+              <label className="text-[11px] font-medium text-muted-foreground">Alt Text</label>
               <Input
                 placeholder="Describe this image..."
                 value={editAlt}
                 onChange={(e) => setEditAlt(e.target.value)}
-                className="h-7 text-xs rounded-md border-slate-300"
+                className="h-7 text-xs rounded-md border-border"
                 autoFocus
                 onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); }}
               />
             </div>
             {media.filename && (
-              <p className="text-[10px] text-slate-400 truncate">
+              <p className="text-[10px] text-muted-foreground truncate">
                 {media.filename}
               </p>
             )}
             {media.width && media.height && (
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-muted-foreground">
                 {media.width} × {media.height}px
               </p>
             )}
@@ -392,7 +392,7 @@ function GalleryItem({
               <Button
                 type="button"
                 size="sm"
-                className="flex-1 h-6 text-[11px] rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="flex-1 h-6 text-[11px] rounded-md bg-primary hover:bg-primary/90 text-white"
                 onClick={handleSaveEdit}
               >
                 Done
@@ -492,7 +492,7 @@ export default function MediaFieldInput({ field, value, onChange }: MediaFieldIn
         <Button
           type="button"
           variant="outline"
-          className="w-full rounded-lg border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"
+          className="w-full rounded-lg border-dashed border-border text-muted-foreground hover:border-border hover:text-foreground"
           onClick={() => setPickerOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -536,10 +536,10 @@ export default function MediaFieldInput({ field, value, onChange }: MediaFieldIn
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="w-full rounded-lg border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50 hover:bg-indigo-50/50 transition-colors p-6 flex flex-col items-center gap-2"
+          className="w-full rounded-lg border-2 border-dashed border-border hover:border-border bg-muted hover:bg-accent/50 transition-colors p-6 flex flex-col items-center gap-2"
         >
-          <ImagePlus className="h-8 w-8 text-slate-400" />
-          <span className="text-sm text-slate-500">
+          <ImagePlus className="h-8 w-8 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
             Click to select {field.type === "file" ? "a file" : "an image"}
           </span>
         </button>

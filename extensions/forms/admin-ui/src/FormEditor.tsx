@@ -385,7 +385,7 @@ export default function FormEditor() {
                   <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400 border border-white z-10" />
                 )}
                 <Button
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
                   onClick={handleSave}
                   disabled={saving}
                 >
@@ -399,7 +399,7 @@ export default function FormEditor() {
                   <Separator />
                   <Button
                     variant="outline"
-                    className="w-full bg-red-50 text-red-700 border-red-200 hover:bg-red-100 rounded-lg font-medium h-8 text-xs"
+                    className="w-full bg-red-50 text-red-600 border-red-200 hover:bg-muted rounded-lg font-medium h-8 text-xs"
                     onClick={() => setShowDelete(true)}
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -411,21 +411,21 @@ export default function FormEditor() {
               {isEdit && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Fields</span>
-                      <span className="text-slate-600">{form.fields?.length || 0}</span>
+                      <span className="text-muted-foreground">{form.fields?.length || 0}</span>
                     </div>
                     {form.created_at && (
                       <div className="flex justify-between">
                         <span>Created</span>
-                        <span className="text-slate-600">{new Date(form.created_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(form.created_at).toLocaleDateString()}</span>
                       </div>
                     )}
                     {form.updated_at && (
                       <div className="flex justify-between">
                         <span>Updated</span>
-                        <span className="text-slate-600">{new Date(form.updated_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(form.updated_at).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
@@ -442,7 +442,7 @@ export default function FormEditor() {
                 {form.fields.map((f: any, i: number) => (
                   <div key={i} className="flex items-center gap-2 text-[12px] min-w-0">
                     <div className="flex-1 min-w-0">
-                      <div className="truncate text-slate-700 font-medium">{f.label || "Untitled"}</div>
+                      <div className="truncate text-foreground font-medium">{f.label || "Untitled"}</div>
                       <div className="truncate text-[10.5px] font-mono" style={{ color: "var(--fg-subtle)" }}>{f.id || f.key || "—"}</div>
                     </div>
                     <Chip>{typeLabelMap[f.type] || f.type}</Chip>
@@ -460,7 +460,7 @@ export default function FormEditor() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start text-slate-500 hover:text-indigo-600"
+                  className="w-full justify-start text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     window.location.href = `/admin/api/ext/forms/${id}/export`;
                   }}

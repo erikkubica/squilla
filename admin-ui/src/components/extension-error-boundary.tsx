@@ -30,16 +30,16 @@ export class ExtensionErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <Card className="border-red-200 bg-red-50 rounded-xl">
+        <Card className="rounded-xl" style={{ borderColor: "var(--danger-border)", background: "var(--danger-bg)" }}>
           <CardContent className="p-6 text-center">
-            <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-            <h3 className="font-medium text-red-800">Extension Error</h3>
-            <p className="text-sm text-red-600 mt-1">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2" style={{ color: "var(--danger)" }} />
+            <h3 className="font-medium" style={{ color: "var(--danger)" }}>Extension Error</h3>
+            <p className="text-sm mt-1" style={{ color: "var(--danger)" }}>
               {this.props.extensionName
                 ? `"${this.props.extensionName}" encountered an error.`
                 : "This extension encountered an error."}
             </p>
-            <p className="text-xs text-red-500 mt-1 font-mono">
+            <p className="text-xs mt-1 font-mono" style={{ color: "var(--danger)" }}>
               {this.state.error?.message}
             </p>
             <Button

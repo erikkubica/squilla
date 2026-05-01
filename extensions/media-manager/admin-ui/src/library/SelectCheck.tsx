@@ -14,7 +14,7 @@ export default function SelectCheck({ checked, indeterminate, onClick, size = 18
       aria-checked={checked}
       role="checkbox"
       className={`grid place-items-center rounded-md border transition-all cursor-pointer ${
-        checked ? "bg-indigo-600 border-indigo-600" : "bg-white/95 border-slate-300 hover:border-indigo-500"
+        checked ? "bg-primary border-primary" : "bg-card/95 border-border hover:border-border"
       } ${className}`}
       style={{ width: size, height: size }}
     >
@@ -23,7 +23,7 @@ export default function SelectCheck({ checked, indeterminate, onClick, size = 18
           <path d="M5 12l5 5L20 7" />
         </svg>
       )}
-      {indeterminate && <div className="w-2 h-[2px] bg-white rounded" />}
+      {indeterminate && <div className="w-2 h-[2px] bg-card rounded" />}
     </button>
   );
 }

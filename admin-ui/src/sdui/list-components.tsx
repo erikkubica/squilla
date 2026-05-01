@@ -43,28 +43,28 @@ export function ContentTypeCard({
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300">
+    <div className="rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-border">
       <div className="p-6">
         {/* Header row: icon + label + slug badge */}
         <div className="flex items-center gap-3">
           {IconComp && (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-              <IconComp className="h-5 w-5 text-slate-600" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <IconComp className="h-5 w-5 text-muted-foreground" />
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-slate-900">
+            <h3 className="text-base font-semibold text-foreground">
               {displayName}
             </h3>
           </div>
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-slate-500">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
             {slug}
           </span>
         </div>
 
         {/* Description */}
         {description && (
-          <p className="mt-3 text-sm text-slate-500">{description}</p>
+          <p className="mt-3 text-sm text-muted-foreground">{description}</p>
         )}
 
         {/* Footer badges */}
@@ -72,7 +72,7 @@ export function ContentTypeCard({
           (taxonomyCount !== undefined && taxonomyCount > 0)) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {supportsBlocks && (
-              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium" style={{background: "var(--success-bg)", color: "var(--success)"}}>
                 Supports blocks
               </span>
             )}
@@ -86,16 +86,17 @@ export function ContentTypeCard({
         )}
 
         {/* Action buttons */}
-        <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-4 flex items-center gap-2 border-t border-border pt-4">
           <button
             onClick={handleEdit}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             Edit
           </button>
           <button
             onClick={onDelete}
-            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+            style={{color: "var(--danger)"}}
           >
             Delete
           </button>
@@ -144,23 +145,23 @@ export function TaxonomyCard({
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300">
+    <div className="rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-border">
       <div className="p-6">
         {/* Header row: label + slug badge */}
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-slate-900">
+            <h3 className="text-base font-semibold text-foreground">
               {displayName}
             </h3>
           </div>
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-slate-500">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
             {slug}
           </span>
         </div>
 
         {/* Description */}
         {description && (
-          <p className="mt-3 text-sm text-slate-500">{description}</p>
+          <p className="mt-3 text-sm text-muted-foreground">{description}</p>
         )}
 
         {/* Footer badges: hierarchical + node types */}
@@ -175,7 +176,7 @@ export function TaxonomyCard({
               nodeTypes.map((type) => (
                 <span
                   key={type}
-                  className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                  className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                 >
                   {type}
                 </span>
@@ -184,16 +185,17 @@ export function TaxonomyCard({
         )}
 
         {/* Action buttons */}
-        <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-4 flex items-center gap-2 border-t border-border pt-4">
           <button
             onClick={handleEdit}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             Edit
           </button>
           <button
             onClick={onDelete}
-            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+            style={{color: "var(--danger)"}}
           >
             Delete
           </button>

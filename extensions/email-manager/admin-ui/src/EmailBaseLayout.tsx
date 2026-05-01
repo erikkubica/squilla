@@ -265,14 +265,14 @@ export default function EmailBaseLayout() {
   function getLanguageLabel(languageId: number | null): React.ReactNode {
     if (!languageId) {
       return (
-        <span className="flex items-center gap-1.5 text-slate-500">
+        <span className="flex items-center gap-1.5 text-muted-foreground">
           <Globe className="h-3.5 w-3.5" />
           Universal
         </span>
       );
     }
     const lang = languages.find((l) => l.id === languageId);
-    if (!lang) return <span className="text-slate-400">Unknown</span>;
+    if (!lang) return <span className="text-muted-foreground">Unknown</span>;
     return (
       <span>
         {lang.flag} {lang.name}
@@ -295,7 +295,7 @@ export default function EmailBaseLayout() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -317,7 +317,7 @@ export default function EmailBaseLayout() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-bold text-foreground">
               {editId ? formName || "Edit Layout" : "New Layout"}
             </h1>
           </div>
@@ -335,7 +335,7 @@ export default function EmailBaseLayout() {
             {editId && currentLayout && !currentLayout.is_default && (
               <Button
                 variant="outline"
-                className="rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="rounded-lg text-red-600 hover:text-foreground hover:bg-muted"
                 onClick={() => handleDelete(currentLayout)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -345,7 +345,7 @@ export default function EmailBaseLayout() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm rounded-lg font-medium"
+              className="bg-primary hover:bg-primary/90 text-white shadow-sm rounded-lg font-medium"
             >
               <Save className="mr-2 h-4 w-4" />
               {saving ? "Saving..." : "Save"}
@@ -354,14 +354,14 @@ export default function EmailBaseLayout() {
         </div>
 
         {/* Form Fields */}
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
+        <Card className="rounded-xl border border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-slate-800">Layout Details</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">Layout Details</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="layout-name" className="text-sm font-medium text-slate-700">
+                <Label htmlFor="layout-name" className="text-sm font-medium text-foreground">
                   Name
                 </Label>
                 <Input
@@ -370,13 +370,13 @@ export default function EmailBaseLayout() {
                   value={formName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
                   required
-                  className="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  className="rounded-lg border-border "
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Language</Label>
+                <Label className="text-sm font-medium text-foreground">Language</Label>
                 <Select value={formLanguageId} onValueChange={setFormLanguageId}>
-                  <SelectTrigger className="rounded-lg border-slate-300">
+                  <SelectTrigger className="rounded-lg border-border">
                     <SelectValue placeholder="Universal" />
                   </SelectTrigger>
                   <SelectContent>
@@ -395,28 +395,28 @@ export default function EmailBaseLayout() {
 
         {/* Split pane: Body Template + Preview */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base font-semibold text-slate-800">Body Template</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">Body Template</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={formBody}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormBody(e.target.value)}
-                className="min-h-[500px] font-mono text-sm rounded-lg border-slate-300"
+                className="min-h-[500px] font-mono text-sm rounded-lg border-border"
                 placeholder="<!DOCTYPE html>..."
               />
             </CardContent>
           </Card>
-          <Card className="rounded-xl border border-slate-200 shadow-sm">
+          <Card className="rounded-xl border border-border shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-slate-500" />
-                <CardTitle className="text-base font-semibold text-slate-800">Preview</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base font-semibold text-foreground">Preview</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border border-slate-300 bg-white overflow-auto" style={{ height: "500px" }}>
+              <div className="rounded-lg border border-border bg-card overflow-auto" style={{ height: "500px" }}>
                 <PreviewIframe html={getPreviewHtml()} title="Layout Preview" />
               </div>
             </CardContent>
@@ -432,13 +432,13 @@ export default function EmailBaseLayout() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Base Layouts</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-foreground">Base Layouts</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             HTML wrappers applied to outgoing emails. The universal layout is used as fallback when no language-specific layout exists.
           </p>
         </div>
         <Button
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm"
+          className="bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-sm"
           onClick={() => openEditor()}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -448,33 +448,33 @@ export default function EmailBaseLayout() {
 
       {/* Layout Cards */}
       {layouts.length === 0 ? (
-        <Card className="rounded-xl border border-slate-200 shadow-sm">
-          <CardContent className="py-12 text-center text-slate-400">
+        <Card className="rounded-xl border border-border shadow-sm">
+          <CardContent className="py-12 text-center text-muted-foreground">
             No base layouts found. Click "New Layout" to get started.
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {layouts.map((layout) => (
-            <Card key={layout.id} className="rounded-xl border border-slate-200 shadow-sm">
+            <Card key={layout.id} className="rounded-xl border border-border shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold text-slate-800">
+                  <CardTitle className="text-base font-semibold text-foreground">
                     {layout.name}
                   </CardTitle>
                   {layout.is_default && (
-                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                    <Badge variant="secondary" className="bg-accent text-foreground border-border">
                       Default
                     </Badge>
                   )}
                 </div>
-                <CardDescription className="text-sm text-slate-500">
+                <CardDescription className="text-sm text-muted-foreground">
                   {getLanguageLabel(layout.language_id)}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-xs text-slate-400 space-y-0.5">
+                  <div className="text-xs text-muted-foreground space-y-0.5">
                     <div>Created: {formatDate(layout.created_at)}</div>
                     <div>Updated: {formatDate(layout.updated_at)}</div>
                   </div>
@@ -482,7 +482,7 @@ export default function EmailBaseLayout() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-slate-500 hover:text-indigo-600"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       onClick={() => openEditor(layout)}
                     >
                       <Pencil className="h-4 w-4" />
@@ -490,7 +490,7 @@ export default function EmailBaseLayout() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-slate-500 hover:text-red-600"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       disabled={layout.is_default}
                       onClick={() => handleDelete(layout)}
                     >

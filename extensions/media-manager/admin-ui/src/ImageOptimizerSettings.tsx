@@ -459,7 +459,7 @@ export default function ImageOptimizerSettings() {
   if (settingsLoading && sizesLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -474,20 +474,20 @@ export default function ImageOptimizerSettings() {
       {/* Page header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-accent text-foreground">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Image Optimizer</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-xl font-semibold text-foreground">Image Optimizer</h2>
+            <p className="text-sm text-muted-foreground">
               Shrink uploads, pre-render responsive variants, keep the library fast.
             </p>
           </div>
         </div>
         {optStats && optStats.total_images > 0 && optStats.total_savings > 0 && (
           <div className="hidden sm:flex flex-col items-end">
-            <span className="text-[11px] uppercase tracking-wide text-slate-400">You've saved</span>
-            <span className="font-mono text-base font-semibold text-indigo-600">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">You've saved</span>
+            <span className="font-mono text-base font-semibold text-foreground">
               {formatBytes(optStats.total_savings)}
             </span>
           </div>
@@ -499,14 +499,14 @@ export default function ImageOptimizerSettings() {
         <Card>
           <SectionHeader
             title="Overview"
-            icon={<Sparkles className="h-4 w-4 text-indigo-500" />}
+            icon={<Sparkles className="h-4 w-4 text-foreground" />}
             actions={
               <>
                 {optStats.unoptimized_count > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                    className="h-7 text-xs text-foreground border-border hover:bg-accent"
                     onClick={handleOptimizePending}
                     disabled={busy}
                   >
@@ -520,7 +520,7 @@ export default function ImageOptimizerSettings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                  className="h-7 text-xs text-emerald-700 border-emerald-200 hover:bg-muted"
                   onClick={() => setReoptimizeAllConfirm(true)}
                   disabled={busy}
                 >
@@ -530,7 +530,7 @@ export default function ImageOptimizerSettings() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs text-amber-700 border-amber-200 hover:bg-amber-50"
+                    className="h-7 text-xs text-amber-700 border-amber-200 hover:bg-muted"
                     onClick={() => setRestoreAllConfirm(true)}
                     disabled={busy}
                   >
@@ -546,23 +546,23 @@ export default function ImageOptimizerSettings() {
           />
           <CardContent className="space-y-4 p-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">Total</p>
-                <p className="text-2xl font-bold text-slate-800 mt-0.5">{optStats.total_images}</p>
+              <div className="rounded-lg bg-muted border border-border p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold text-foreground mt-0.5">{optStats.total_images}</p>
               </div>
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                 <p className="text-[11px] uppercase tracking-wide text-emerald-700">Optimized</p>
                 <p className="text-2xl font-bold text-emerald-700 mt-0.5">{optStats.optimized_count}</p>
               </div>
-              <div className={`rounded-lg border p-3 ${optStats.unoptimized_count > 0 ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200"}`}>
-                <p className={`text-[11px] uppercase tracking-wide ${optStats.unoptimized_count > 0 ? "text-amber-700" : "text-slate-500"}`}>Pending</p>
-                <p className={`text-2xl font-bold mt-0.5 ${optStats.unoptimized_count > 0 ? "text-amber-700" : "text-slate-400"}`}>
+              <div className={`rounded-lg border p-3 ${optStats.unoptimized_count > 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border"}`}>
+                <p className={`text-[11px] uppercase tracking-wide ${optStats.unoptimized_count > 0 ? "text-amber-700" : "text-muted-foreground"}`}>Pending</p>
+                <p className={`text-2xl font-bold mt-0.5 ${optStats.unoptimized_count > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
                   {optStats.unoptimized_count}
                 </p>
               </div>
-              <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-indigo-700">Saved</p>
-                <p className="text-2xl font-bold text-indigo-700 mt-0.5">{formatBytes(optStats.total_savings)}</p>
+              <div className="rounded-lg bg-accent border border-border p-3">
+                <p className="text-[11px] uppercase tracking-wide text-foreground">Saved</p>
+                <p className="text-2xl font-bold text-foreground mt-0.5">{formatBytes(optStats.total_savings)}</p>
               </div>
             </div>
 
@@ -570,12 +570,12 @@ export default function ImageOptimizerSettings() {
             {reoptimizeJob?.running ? (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                  <Loader2 className="h-4 w-4 animate-spin text-emerald-700" />
                   <span className="text-sm font-medium text-emerald-800">
                     Re-optimizing {reoptimizeJob.processed + reoptimizeJob.failed} / {reoptimizeJob.total}
                   </span>
                   {reoptimizeJob.total_saved > 0 && (
-                    <span className="text-xs text-emerald-600 ml-auto">
+                    <span className="text-xs text-emerald-700 ml-auto">
                       {formatBytes(reoptimizeJob.total_saved)} saved so far
                     </span>
                   )}
@@ -593,7 +593,7 @@ export default function ImageOptimizerSettings() {
             ) : restoreJob?.running ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                  <Loader2 className="h-4 w-4 animate-spin text-amber-700" />
                   <span className="text-sm font-medium text-amber-800">
                     Restoring {restoreJob.processed + restoreJob.failed} / {restoreJob.total}
                   </span>
@@ -610,18 +610,18 @@ export default function ImageOptimizerSettings() {
               </div>
             ) : (
               <div>
-                <div className="flex justify-between text-[11px] text-slate-500 mb-1.5">
+                <div className="flex justify-between text-[11px] text-muted-foreground mb-1.5">
                   <span>{optPercent}% optimized</span>
                   <span>{optStats.with_backup} with backup</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                <div className="h-2 rounded-full bg-border overflow-hidden">
                   <div
                     className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                     style={{ width: `${optPercent}%` }}
                   />
                 </div>
                 {optStats.unoptimized_count === 0 && optStats.total_images > 0 && (
-                  <p className="text-[11px] text-emerald-600 mt-2 flex items-center gap-1">
+                  <p className="text-[11px] text-emerald-700 mt-2 flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> Every image in the library has been processed.
                   </p>
                 )}
@@ -635,7 +635,7 @@ export default function ImageOptimizerSettings() {
       <Card>
         <SectionHeader
           title="Upload &amp; Encoding"
-          icon={<Settings className="h-4 w-4 text-slate-500" />}
+          icon={<Settings className="h-4 w-4 text-muted-foreground" />}
           actions={
             <Button size="sm" className="h-7 text-xs" onClick={handleSaveSettings} disabled={settingsSaving}>
               {settingsSaving && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
@@ -648,7 +648,7 @@ export default function ImageOptimizerSettings() {
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-medium">Upload Normalization</Label>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Automatically downscale, strip metadata, and compress on upload
               </p>
             </div>
@@ -660,11 +660,11 @@ export default function ImageOptimizerSettings() {
                 setSettings((s) => ({ ...s, normalize_enabled: !s.normalize_enabled }))
               }
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.normalize_enabled ? "bg-indigo-600" : "bg-slate-200"
+                settings.normalize_enabled ? "bg-primary" : "bg-border"
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                className={`inline-block h-4 w-4 rounded-full bg-card transition-transform ${
                   settings.normalize_enabled ? "translate-x-6" : "translate-x-1"
                 }`}
               />
@@ -685,13 +685,13 @@ export default function ImageOptimizerSettings() {
                   setSettings((s) => ({ ...s, normalize_max_dimension: parseInt(e.target.value) || 5000 }))
                 }
               />
-              <p className="text-xs text-slate-400">Images exceeding this are downscaled on upload</p>
+              <p className="text-xs text-muted-foreground">Images exceeding this are downscaled on upload</p>
             </div>
 
             {/* Upload JPEG Quality */}
             <div className="space-y-1.5">
               <Label htmlFor="upload-quality" className="text-sm">
-                Upload Quality: <span className="font-mono text-indigo-600">{settings.upload_quality}</span>
+                Upload Quality: <span className="font-mono text-foreground">{settings.upload_quality}</span>
               </Label>
               <input
                 id="upload-quality"
@@ -702,9 +702,9 @@ export default function ImageOptimizerSettings() {
                 onChange={(e) =>
                   setSettings((s) => ({ ...s, upload_quality: parseInt(e.target.value) }))
                 }
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-foreground"
               />
-              <p className="text-xs text-slate-400">100 = lossless (metadata strip only). Lower = lossy compression (JPEG + PNG)</p>
+              <p className="text-xs text-muted-foreground">100 = lossless (metadata strip only). Lower = lossy compression (JPEG + PNG)</p>
             </div>
           </div>
 
@@ -714,7 +714,7 @@ export default function ImageOptimizerSettings() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="cache-quality" className="text-sm">
-                Cache JPEG Quality: <span className="font-mono text-indigo-600">{settings.jpeg_quality}</span>
+                Cache JPEG Quality: <span className="font-mono text-foreground">{settings.jpeg_quality}</span>
               </Label>
               <input
                 id="cache-quality"
@@ -725,15 +725,15 @@ export default function ImageOptimizerSettings() {
                 onChange={(e) =>
                   setSettings((s) => ({ ...s, jpeg_quality: parseInt(e.target.value) }))
                 }
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-foreground"
               />
-              <p className="text-xs text-slate-400">Quality for resized/cached variants</p>
+              <p className="text-xs text-muted-foreground">Quality for resized/cached variants</p>
             </div>
 
             {/* WebP Quality */}
             <div className="space-y-1.5">
               <Label htmlFor="webp-quality" className="text-sm">
-                WebP Quality: <span className="font-mono text-indigo-600">{settings.webp_quality}</span>
+                WebP Quality: <span className="font-mono text-foreground">{settings.webp_quality}</span>
               </Label>
               <input
                 id="webp-quality"
@@ -744,9 +744,9 @@ export default function ImageOptimizerSettings() {
                 onChange={(e) =>
                   setSettings((s) => ({ ...s, webp_quality: parseInt(e.target.value) }))
                 }
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-foreground"
               />
-              <p className="text-xs text-slate-400">Quality for WebP variants served to supported browsers</p>
+              <p className="text-xs text-muted-foreground">Quality for WebP variants served to supported browsers</p>
             </div>
           </div>
 
@@ -754,7 +754,7 @@ export default function ImageOptimizerSettings() {
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-medium">WebP Auto-Conversion</Label>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Serve WebP variants to browsers that support it
               </p>
             </div>
@@ -766,11 +766,11 @@ export default function ImageOptimizerSettings() {
                 setSettings((s) => ({ ...s, webp_enabled: !s.webp_enabled }))
               }
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.webp_enabled ? "bg-indigo-600" : "bg-slate-200"
+                settings.webp_enabled ? "bg-primary" : "bg-border"
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                className={`inline-block h-4 w-4 rounded-full bg-card transition-transform ${
                   settings.webp_enabled ? "translate-x-6" : "translate-x-1"
                 }`}
               />
@@ -784,7 +784,7 @@ export default function ImageOptimizerSettings() {
       <Card>
         <SectionHeader
           title="Image Sizes"
-          icon={<ImageIcon className="h-4 w-4 text-slate-500" />}
+          icon={<ImageIcon className="h-4 w-4 text-muted-foreground" />}
           actions={
             <Button
               variant="outline"
@@ -800,7 +800,7 @@ export default function ImageOptimizerSettings() {
         <CardContent className="p-6">
           {/* Add Size Form */}
           {showAddForm && (
-            <div className="mb-4 p-4 border border-slate-200 rounded-lg bg-slate-50 space-y-3">
+            <div className="mb-4 p-4 border border-border rounded-lg bg-muted space-y-3">
               <div className="grid grid-cols-4 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Name</Label>
@@ -864,10 +864,10 @@ export default function ImageOptimizerSettings() {
           {/* Sizes Table */}
           {sizesLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : sizes.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-sm">
+            <div className="text-center py-8 text-muted-foreground text-sm">
               <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
               No image sizes registered
             </div>
@@ -875,21 +875,21 @@ export default function ImageOptimizerSettings() {
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b text-left">
-                    <th className="px-4 py-2.5 font-medium text-slate-600">Name</th>
-                    <th className="px-4 py-2.5 font-medium text-slate-600">Dimensions</th>
-                    <th className="px-4 py-2.5 font-medium text-slate-600">Mode</th>
-                    <th className="px-4 py-2.5 font-medium text-slate-600">Source</th>
-                    <th className="px-4 py-2.5 font-medium text-slate-600 text-right">Actions</th>
+                  <tr className="bg-muted border-b text-left">
+                    <th className="px-4 py-2.5 font-medium text-muted-foreground">Name</th>
+                    <th className="px-4 py-2.5 font-medium text-muted-foreground">Dimensions</th>
+                    <th className="px-4 py-2.5 font-medium text-muted-foreground">Mode</th>
+                    <th className="px-4 py-2.5 font-medium text-muted-foreground">Source</th>
+                    <th className="px-4 py-2.5 font-medium text-muted-foreground text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sizes.map((size) => (
-                    <tr key={size.name} className="border-b last:border-b-0 hover:bg-slate-50/50">
+                    <tr key={size.name} className="border-b last:border-b-0 hover:bg-muted/50">
                       <td className="px-4 py-2.5">
-                        <span className="font-mono text-sm font-medium text-slate-800">{size.name}</span>
+                        <span className="font-mono text-sm font-medium text-foreground">{size.name}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-slate-600">
+                      <td className="px-4 py-2.5 text-muted-foreground">
                         {size.width}&times;{size.height}
                       </td>
                       <td className="px-4 py-2.5">
@@ -897,13 +897,13 @@ export default function ImageOptimizerSettings() {
                           {size.mode}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2.5 text-slate-500">{size.source}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{size.source}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs text-slate-500 hover:text-indigo-600"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                             disabled={clearingSizeName === size.name}
                             onClick={() => handleClearCacheForSize(size.name)}
                           >
@@ -917,7 +917,7 @@ export default function ImageOptimizerSettings() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="h-7 px-2 text-xs text-red-600 hover:text-foreground hover:bg-muted"
                             onClick={() => setDeleteConfirm(size.name)}
                           >
                             <Trash2 className="h-3 w-3" />
@@ -937,12 +937,12 @@ export default function ImageOptimizerSettings() {
       <Card>
         <SectionHeader
           title="Cache Storage"
-          icon={<HardDrive className="h-4 w-4 text-slate-500" />}
+          icon={<HardDrive className="h-4 w-4 text-muted-foreground" />}
           actions={
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+              className="h-7 text-xs text-red-600 border-red-200 hover:bg-muted hover:text-foreground"
               onClick={() => setClearAllConfirm(true)}
               disabled={cacheStats.total_files === 0}
             >
@@ -953,15 +953,15 @@ export default function ImageOptimizerSettings() {
         />
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-100">
-              <HardDrive className="h-5 w-5 text-slate-500" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
+              <HardDrive className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-800">
+              <p className="text-sm font-medium text-foreground">
                 {formatBytes(cacheStats.total_size)} across{" "}
-                <span className="font-mono text-indigo-600">{cacheStats.total_files}</span> cached file{cacheStats.total_files !== 1 ? "s" : ""}
+                <span className="font-mono text-foreground">{cacheStats.total_files}</span> cached file{cacheStats.total_files !== 1 ? "s" : ""}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {sizes.length} registered size{sizes.length !== 1 ? "s" : ""}
               </p>
             </div>

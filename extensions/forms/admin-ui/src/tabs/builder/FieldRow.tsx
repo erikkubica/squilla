@@ -85,7 +85,7 @@ export default function FieldRow({
     >
       <button
         type="button"
-        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded flex-shrink-0 border-0 bg-transparent p-0"
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded flex-shrink-0 border-0 bg-transparent p-0"
         aria-label="Drag to reorder"
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -94,17 +94,17 @@ export default function FieldRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <span className="text-[13px] font-medium text-slate-800 truncate">
+      <span className="text-[13px] font-medium text-foreground truncate">
         {field.label || "Untitled Field"}
       </span>
-      <span className="text-[11px] text-slate-400 font-mono shrink-0">{field.id}</span>
+      <span className="text-[11px] text-muted-foreground font-mono shrink-0">{field.id}</span>
       <Chip>{typeLabelMap[field.type] || field.type}</Chip>
       {field.required && (
         <span className="text-[9px] text-rose-500 font-bold shrink-0">REQ</span>
       )}
       {field.display_when &&
         (field.display_when.all?.length || field.display_when.any?.length) ? (
-        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-600 shrink-0">
+        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">
           COND
         </span>
       ) : null}
@@ -116,7 +116,7 @@ export default function FieldRow({
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 text-slate-400 hover:text-slate-600"
+        className="h-7 w-7 text-muted-foreground hover:text-muted-foreground"
         onClick={onDuplicate}
         title="Duplicate field"
       >
