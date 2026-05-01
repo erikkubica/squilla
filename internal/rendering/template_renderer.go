@@ -115,6 +115,37 @@ func (r *TemplateRenderer) SetImageURLPrefix(prefix string) {
 	r.mu.Unlock()
 }
 
+// RegisterFuncMap merges the given helpers into the renderer's funcMap so
+// extensions can contribute template helpers without core hardcoding a
+// specific extension's conventions. Last writer wins for any given key —
+// activation order decides which extension owns image_url, image_srcset,
+// and friends. Cached parsed templates are purged so the next render
+// re-parses against the new funcMap (already-rendered output stays
+// untouched). Safe to call from any goroutine; serialised against renders.
+//
+// Phase 2 of the kernel/extension cleanup uses this to move /media/cache/
+// URL routing out of core into media-manager. Until then it's purely
+// additive — extensions can still register helpers core doesn't ship.
+func (r *TemplateRenderer) RegisterFuncMap(fns template.FuncMap) {
+	if len(fns) == 0 {
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.funcMap == nil {
+		r.funcMap = template.FuncMap{}
+	}
+	for k, v := range fns {
+		r.funcMap[k] = v
+	}
+	// Purge parse caches. Helpers are baked into the parsed *template.Template
+	// at parse time; without this purge a previously-cached template that
+	// referenced an old version of the helper would keep using it forever.
+	r.cache.Purge()
+	r.layoutCache.Purge()
+	r.blockCache.Purge()
+}
+
 // imagePrefixSnapshot returns the current prefix under read-lock. The
 // helper closures use it on every call so a runtime SetImageURLPrefix
 // is picked up without rebuilding the funcMap (which would require

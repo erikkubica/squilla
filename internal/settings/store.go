@@ -10,6 +10,58 @@ import (
 	"squilla/internal/secrets"
 )
 
+// validateNodeSelect ensures a translatable node_select field's chosen
+// node lives in the locale being saved. Without this guard an operator
+// can wire the German homepage to the English root URL, the kernel
+// happily serves a node whose language_code says "de" at "/", and every
+// downstream signal (og:locale, the language switcher's "current"
+// pointer, hreflang) goes wrong because they all read from the node.
+//
+// Empty values clear the setting and skip validation. Non-node_select
+// fields and non-translatable selects skip too — only the
+// translatable/picker pair needs the locale check.
+//
+// Errors return a fmt.Errorf the handler maps to a 400 with a body the
+// admin UI can surface inline next to the picker.
+func validateNodeSelect(db *gorm.DB, f *Field, locale, raw string) error {
+	if f.Type != "node_select" || !f.Translatable {
+		return nil
+	}
+	raw = trimSpace(raw)
+	if raw == "" || raw == "0" {
+		return nil
+	}
+	var nodeLang string
+	err := db.Table("content_nodes").
+		Select("language_code").
+		Where("id = ?", raw).
+		Limit(1).
+		Scan(&nodeLang).Error
+	if err != nil {
+		return fmt.Errorf("settings: %q: failed to look up node %q: %w", f.Key, raw, err)
+	}
+	if nodeLang == "" {
+		return fmt.Errorf("settings: %q: node %q does not exist", f.Key, raw)
+	}
+	if nodeLang != locale {
+		return fmt.Errorf("settings: %q: node %q is in language %q but you're saving for language %q — pick a node from the matching translation",
+			f.Key, raw, nodeLang, locale)
+	}
+	return nil
+}
+
+// trimSpace is the imported strings.TrimSpace, kept inline to avoid
+// adding the strings import for one call site. Pure cosmetics.
+func trimSpace(s string) string {
+	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t' || s[0] == '\n' || s[0] == '\r') {
+		s = s[1:]
+	}
+	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t' || s[len(s)-1] == '\n' || s[len(s)-1] == '\r') {
+		s = s[:len(s)-1]
+	}
+	return s
+}
+
 // Store loads and saves schema-driven values against the existing
 // site_settings table. Per-field locale routing is the whole point: a
 // translatable field reads/writes the row at the admin's current locale,
@@ -113,13 +165,22 @@ func (s *Store) Save(schema Schema, locale string, values map[string]string) err
 	if len(values) == 0 {
 		return nil
 	}
-	for key := range values {
+	for key, raw := range values {
 		f := schema.FieldByKey(key)
 		if f == nil {
 			return fmt.Errorf("settings: %q: unknown field %q", schema.ID, key)
 		}
 		if f.Translatable && locale == "" {
 			return fmt.Errorf("settings: %q: field %q is translatable but no locale was supplied", schema.ID, key)
+		}
+		// Translatable node_select fields point at content_node rows.
+		// The selected node MUST live in the locale being saved —
+		// otherwise the operator picks a German page as the English
+		// homepage, /en serves a German node, and the SEO/og:locale
+		// signals end up contradicting the URL. Enforce here so the
+		// admin UI can't slip through with a mismatched picker.
+		if err := validateNodeSelect(s.db, f, locale, raw); err != nil {
+			return err
 		}
 	}
 

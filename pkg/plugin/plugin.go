@@ -15,6 +15,27 @@ var Handshake = plugin.HandshakeConfig{
 	MagicCookieValue: "squilla",
 }
 
+// maxGRPCMessageSize bumps gRPC's default 4 MB receive cap to 256 MB so
+// the plugin <-> host channel can carry full-size media uploads. Without
+// this, any mp4 / large image / zip extension > 4 MB fails the
+// plugin-side HandleHTTPRequest reception silently and the admin UI
+// just sees "upload failed". Mirrored on the broker callback path
+// (plugin → host StoreFile) below.
+const maxGRPCMessageSize = 256 * 1024 * 1024
+
+// NewGRPCServer is the goplugin.ServeConfig.GRPCServer factory plugins
+// pass to goplugin.Serve. It raises the default 4 MB call-message cap
+// to maxGRPCMessageSize so HandleHTTPRequest receives full-size media
+// payloads instead of failing the upload silently. Used in place of
+// goplugin.DefaultGRPCServer.
+func NewGRPCServer(opts []grpc.ServerOption) *grpc.Server {
+	opts = append(opts,
+		grpc.MaxRecvMsgSize(maxGRPCMessageSize),
+		grpc.MaxSendMsgSize(maxGRPCMessageSize),
+	)
+	return grpc.NewServer(opts...)
+}
+
 // PluginMap is the map of plugins we can dispense.
 var PluginMap = map[string]plugin.Plugin{
 	"extension": &ExtensionGRPCPlugin{},
@@ -86,9 +107,17 @@ func (c *GRPCClient) Initialize(hostConn *grpc.ClientConn) error {
 // InitializeHost starts a gRPC host service on the broker and tells the plugin
 // where to connect back. registerServer is called with the *grpc.Server so
 // the caller can register the SquillaHost service implementation.
+//
+// Message-size limits match the plugin side (maxGRPCMessageSize) so the
+// plugin can call back into StoreFile with a multi-megabyte mp4 body
+// without tripping the default 4 MB cap.
 func (c *GRPCClient) InitializeHost(registerServer func(s *grpc.Server)) error {
 	hostServiceID := c.broker.NextId()
 	go c.broker.AcceptAndServe(hostServiceID, func(opts []grpc.ServerOption) *grpc.Server {
+		opts = append(opts,
+			grpc.MaxRecvMsgSize(maxGRPCMessageSize),
+			grpc.MaxSendMsgSize(maxGRPCMessageSize),
+		)
 		s := grpc.NewServer(opts...)
 		registerServer(s)
 		return s

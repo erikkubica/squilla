@@ -6,6 +6,7 @@
   "description": "Premium collection of 40 content blocks and 10 page templates for building multipurpose pages. Includes text, media, CTA, features, pricing, social proof, layout, conversion, and AJAX-powered blocks.",
   "priority": 10,
   "provides": ["blocks", "templates"],
+  "auto_activate": true,
   "capabilities": [],
   "blocks": [
     { "slug": "cb-paragraph", "dir": "cb-paragraph" },

@@ -125,7 +125,7 @@ func (s *Server) registerUploadTools() {
 			return nil, readErr
 		}
 		var out any
-		if proxied, perr := s.uploadViaMediaManager(ctx, filename, mimeType, buf); perr != nil {
+		if proxied, perr := s.uploadViaMediaProvider(ctx, filename, mimeType, buf); perr != nil {
 			return nil, perr
 		} else if proxied != nil {
 			out = proxied

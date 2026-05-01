@@ -317,50 +317,9 @@ func TestE2E_PartialSavePreservesUntouched(t *testing.T) {
 	}
 }
 
-// TestE2E_RobotsHonoursIndexingMasterSwitch is the operator-panicking
-// staging-environment scenario: someone configured detailed AI bot
-// rules, then needed to hide the staging deployment from search. They
-// flip seo_robots_index off; every other rule must collapse into a
-// single Disallow: / so search engines that just read the top of
-// robots.txt don't index the staging URL.
-func TestE2E_RobotsHonoursIndexingMasterSwitch(t *testing.T) {
-	db := testutil.NewSQLiteDB(t)
-	if err := db.AutoMigrate(&models.SiteSetting{}); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
-	settings := map[string]string{
-		"seo_robots_index":         "false",
-		"robots_allow_ai_training": "true",
-		"robots_allow_ai_search":   "true",
-		"site_url":                 "https://staging.example.com",
-		"robots_custom":            "User-agent: SpecialBot\nCrawl-delay: 5",
-	}
-	for k, v := range settings {
-		val := v
-		if err := db.Create(&models.SiteSetting{Key: k, LanguageCode: "", Value: &val}).Error; err != nil {
-			t.Fatalf("seed %q: %v", k, err)
-		}
-	}
-
-	app := fiber.New()
-	NewRobotsHandler(db).RegisterRoutes(app)
-	req := httptest.NewRequest("GET", "/robots.txt", nil)
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatalf("test request: %v", err)
-	}
-	body, _ := io.ReadAll(resp.Body)
-	text := string(body)
-
-	if !strings.Contains(text, "Disallow: /") {
-		t.Errorf("staging kill-switch missing Disallow: /:\n%s", text)
-	}
-	for _, leaked := range []string{"GPTBot", "ChatGPT-User", "SpecialBot", "Sitemap:", "Crawl-delay:"} {
-		if strings.Contains(text, leaked) {
-			t.Errorf("kill-switch leaked %q (should be a clean blanket disallow):\n%s", leaked, text)
-		}
-	}
-}
+// The kernel-side robots.txt test moved to the seo-extension package
+// alongside the handler itself. The kernel no longer ships a robots.txt
+// route — disabling the seo-extension cleanly removes it.
 
 // --- helpers ---
 

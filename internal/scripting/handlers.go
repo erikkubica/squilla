@@ -392,8 +392,17 @@ func (e *ScriptEngine) MountWellKnown(reg WellKnownRegistrar) {
 // slug + capabilities are the caller info recorded when the route was
 // registered — they tell the CoreAPI capability guard who is making
 // requests during this script's execution.
+//
+// The closure consults the engine's active-baseDir set on every request
+// so deactivating an extension actually disables its routes. Fiber
+// doesn't support runtime route unmounting, so this gate is the
+// mechanism that makes hot-deactivate stop responses cold instead of
+// silently leaking the handler.
 func (e *ScriptEngine) makeHTTPHandler(scriptPath, slug string, capabilities map[string]bool, baseDir string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		if !e.isBaseDirActive(baseDir) {
+			return c.Status(fiber.StatusNotFound).SendString("not found")
+		}
 		query := make(map[string]interface{})
 		c.Request().URI().QueryArgs().VisitAll(func(key, value []byte) {
 			query[string(key)] = string(value)

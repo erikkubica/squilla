@@ -19,21 +19,24 @@ import (
 	pb "squilla/pkg/plugin/proto"
 )
 
-// mediaManagerSlug is the extension slug we proxy media uploads through so
-// MCP and the admin UI share one upload pipeline (validation, normalisation,
-// WebP, optimiser settings, owner tagging, etc.). Falls back to the kernel
-// cms.MediaService path when the extension isn't active.
-const mediaManagerSlug = "media-manager"
+// mediaProviderTag names the manifest's `provides` slot the kernel uses
+// to find whichever extension currently owns media uploads. The bundled
+// media-manager fills it, but operators can replace the implementation
+// (S3, Cloudinary, custom CDN) by activating an extension declaring the
+// same tag with a higher priority — the plugin manager's GetProvider
+// helper resolves to the highest-priority active match.
+const mediaProviderTag = "media-provider"
 
-// uploadViaMediaManager proxies (filename, mime_type, body) through the
-// media-manager extension's POST /upload handler — the same code path the
-// admin UI uses. Returns nil, nil when the extension is unavailable so the
-// caller can fall through to the kernel fallback.
-func (s *Server) uploadViaMediaManager(ctx context.Context, filename, mimeType string, body []byte) (map[string]any, error) {
+// uploadViaMediaProvider proxies (filename, mime_type, body) through the
+// active media-provider extension's POST /upload handler — the same code
+// path the admin UI uses. Returns nil, nil when no provider is active so
+// the caller can surface a clear error (the kernel keeps no bytes-on-disk
+// fallback per the kernel/extensions hard rule).
+func (s *Server) uploadViaMediaProvider(ctx context.Context, filename, mimeType string, body []byte) (map[string]any, error) {
 	if s.deps.PluginManager == nil {
 		return nil, nil
 	}
-	client := s.deps.PluginManager.GetClient(mediaManagerSlug)
+	client := s.deps.PluginManager.GetProvider(mediaProviderTag)
 	if client == nil {
 		return nil, nil
 	}
@@ -64,21 +67,21 @@ func (s *Server) uploadViaMediaManager(ctx context.Context, filename, mimeType s
 		Headers:     map[string]string{"Content-Type": mw.FormDataContentType()},
 		Body:        buf.Bytes(),
 		QueryParams: map[string]string{},
-		PathParams:  map[string]string{"slug": mediaManagerSlug, "path": "upload"},
+		PathParams:  map[string]string{"path": "upload"},
 	}
 	resp, err := client.HandleHTTPRequest(req)
 	if err != nil {
-		return nil, fmt.Errorf("media-manager upload: %w", err)
+		return nil, fmt.Errorf("media provider upload: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("media-manager returned status %d: %s", resp.StatusCode, string(resp.Body))
+		return nil, fmt.Errorf("media provider returned status %d: %s", resp.StatusCode, string(resp.Body))
 	}
 	var out map[string]any
 	if err := json.Unmarshal(resp.Body, &out); err != nil {
-		return nil, fmt.Errorf("media-manager response not JSON: %w", err)
+		return nil, fmt.Errorf("media provider response not JSON: %w", err)
 	}
-	// media-manager wraps single-object responses as {"data": {...}} — unwrap
-	// for the MCP caller so the shape stays {id, url, ...}.
+	// Media providers wrap single-object responses as {"data": {...}} —
+	// unwrap for the MCP caller so the shape stays {id, url, ...}.
 	if data, ok := out["data"].(map[string]any); ok {
 		return data, nil
 	}
@@ -125,7 +128,7 @@ func (s *Server) registerMediaTools() {
 		// Prefer the extension path so optimiser / WebP / original backup
 		// flows fire identically to a manual upload. Fall through to the
 		// kernel fallback only when the extension is inactive.
-		if out, err := s.uploadViaMediaManager(ctx, filename, mimeType, raw); err != nil {
+		if out, err := s.uploadViaMediaProvider(ctx, filename, mimeType, raw); err != nil {
 			return nil, err
 		} else if out != nil {
 			return out, nil
@@ -194,7 +197,7 @@ func (s *Server) registerMediaTools() {
 
 		// Same proxy strategy as core.media.upload — go through media-manager
 		// so the imported URL gets the same normalisation as a manual upload.
-		if out, err := s.uploadViaMediaManager(ctx, filename, mimeType, buf.Bytes()); err != nil {
+		if out, err := s.uploadViaMediaProvider(ctx, filename, mimeType, buf.Bytes()); err != nil {
 			return nil, err
 		} else if out != nil {
 			return out, nil

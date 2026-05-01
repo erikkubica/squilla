@@ -95,7 +95,9 @@ func TestRegisterBuiltinsValid(t *testing.T) {
 	t.Parallel()
 	r := NewRegistry()
 	RegisterBuiltins(r)
-	for _, want := range []string{"security", "site.general", "site.seo", "site.advanced"} {
+	// SEO and robots schemas moved to the seo-extension manifest — the
+	// kernel-only set is identity, security, and code injection.
+	for _, want := range []string{"security", "site.general", "site.advanced"} {
 		if _, ok := r.Get(want); !ok {
 			t.Errorf("expected built-in schema %q", want)
 		}

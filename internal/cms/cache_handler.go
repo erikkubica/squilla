@@ -27,10 +27,14 @@ func (h *CacheHandler) RegisterRoutes(router fiber.Router) {
 	router.Post("/cache/clear", auth.CapabilityRequired("manage_settings"), h.ClearAll)
 }
 
-// ClearAll handles POST /cache/clear — clears all template and data caches.
+// ClearAll handles POST /cache/clear — clears all template and data caches
+// and emits a generic cache.cleared event so any extension that wants to
+// rebuild downstream caches (sitemap-generator, search index, etc.) can
+// react. The kernel doesn't know what extensions are listening — that's
+// the whole point of the event bus.
 func (h *CacheHandler) ClearAll(c *fiber.Ctx) error {
 	h.publicHandler.ClearCache()
-	go h.eventBus.Publish("sitemap.rebuild", events.Payload{})
+	go h.eventBus.Publish("cache.cleared", events.Payload{"scope": "all"})
 	return api.Success(c, fiber.Map{"message": "All caches cleared"})
 }
 

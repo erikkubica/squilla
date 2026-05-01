@@ -16,18 +16,11 @@ import (
 
 // ThemeBlockDef is defined in theme_loader.go — reused here for extension block definitions.
 
-// builtinActiveExtensions lists extension slugs that should be auto-activated
-// on fresh install. On existing installations the is_active column is not in
-// the ON CONFLICT update set, so re-scanning won't override user choices.
-var builtinActiveExtensions = map[string]bool{
-	"media-manager":     true,
-	"email-manager":     true,
-	"sitemap-generator": true,
-	"smtp-provider":     true,
-	"resend-provider":   true,
-	"forms":             true,
-	"content-blocks":    true,
-}
+// Extension auto-activation now reads the manifest's `auto_activate`
+// field directly — the kernel no longer carries a hardcoded list of
+// "official" extension slugs. Bundled extensions opt into auto-activation
+// in their own extension.json, which keeps the kernel ignorant of which
+// extensions exist (the entire point of the kernel/extensions split).
 
 // AdminUISlot describes a component injected into a named slot.
 type AdminUISlot struct {
@@ -97,14 +90,19 @@ type PublicRouteEntry struct {
 }
 
 type ExtensionManifest struct {
-	Name           string                   `json:"name"`
-	Slug           string                   `json:"slug"`
-	Version        string                   `json:"version"`
-	Author         string                   `json:"author"`
-	Description    string                   `json:"description"`
-	Priority       int                      `json:"priority"`
-	Provides       []string                 `json:"provides"`
-	Capabilities   []string                 `json:"capabilities"`
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Version     string `json:"version"`
+	Author      string `json:"author"`
+	Description string `json:"description"`
+	Priority    int    `json:"priority"`
+	Provides    []string `json:"provides"`
+	// AutoActivate=true means the extension flips is_active=true on fresh
+	// installs. The flag is ignored on existing installations (the
+	// is_active column is not in the ON CONFLICT update set, so user
+	// choices stick). Replaces the kernel-side hardcoded list of slugs.
+	AutoActivate bool                     `json:"auto_activate"`
+	Capabilities []string                 `json:"capabilities"`
 	// DataOwnedTables enumerates the database tables this extension
 	// is allowed to read/write through the Data* CoreAPI methods. The
 	// kernel default-denies any table not on this list (see
@@ -252,7 +250,7 @@ func (l *ExtensionLoader) scanDir(root string, isData bool) int {
 			Path:        extDir,
 			Priority:    manifest.Priority,
 			Manifest:    models.JSONB(data),
-			IsActive:    builtinActiveExtensions[manifest.Slug],
+			IsActive:    manifest.AutoActivate,
 		}
 
 		result := l.db.Clauses(clause.OnConflict{

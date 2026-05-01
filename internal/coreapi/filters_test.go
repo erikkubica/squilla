@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"squilla/internal/cms"
-	"squilla/internal/email"
 	"squilla/internal/events"
 
 	"github.com/gofiber/fiber/v2"
@@ -94,7 +93,6 @@ func TestFilters_ApplyValidation(t *testing.T) {
 // for the compile-time check below.
 var (
 	_ = cms.NewContentService
-	_ = email.NewLogService
 	_ = events.New
 	_ = (&fiber.Ctx{})
 )

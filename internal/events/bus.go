@@ -18,6 +18,13 @@ type Handler func(action string, payload Payload)
 // for templates via {{event "forms:render" ...}}).
 type ResultHandler func(action string, payload Payload) string
 
+// ErrHandler is a callback that processes an event and returns an error to
+// be surfaced back through PublishRequest. Used when the kernel needs to
+// know whether an extension successfully handled a request — e.g. an
+// email-provider plugin reporting that SMTP refused the message, so the
+// caller of CoreAPI.SendEmail can propagate that to the user.
+type ErrHandler func(action string, payload Payload) error
+
 // UnsubscribeFunc removes the corresponding subscription. Calling it more
 // than once is safe and a no-op.
 type UnsubscribeFunc func()
@@ -36,12 +43,18 @@ type resultEntry struct {
 	fn ResultHandler
 }
 
+type errEntry struct {
+	id uint64
+	fn ErrHandler
+}
+
 // EventBus is a thread-safe publish/subscribe event dispatcher.
 type EventBus struct {
 	mu             sync.RWMutex
 	nextID         atomic.Uint64
 	handlers       map[string][]handlerEntry
 	resultHandlers map[string][]resultEntry
+	errHandlers    map[string][]errEntry
 	allHandlers    []handlerEntry
 }
 
@@ -50,6 +63,7 @@ func New() *EventBus {
 	return &EventBus{
 		handlers:       make(map[string][]handlerEntry),
 		resultHandlers: make(map[string][]resultEntry),
+		errHandlers:    make(map[string][]errEntry),
 	}
 }
 
@@ -84,6 +98,19 @@ func (b *EventBus) SubscribeResult(action string, handler ResultHandler) Unsubsc
 	b.resultHandlers[action] = append(b.resultHandlers[action], resultEntry{id: id, fn: handler})
 	b.mu.Unlock()
 	return func() { b.removeResult(action, id) }
+}
+
+// SubscribeErr registers a handler that may return an error. Used by
+// extensions that fulfil kernel requests where failure must propagate —
+// e.g. an email-provider plugin reporting an SMTP refusal back through
+// CoreAPI.SendEmail. Err handlers run synchronously via PublishRequest,
+// separately from regular Subscribe / SubscribeResult handlers.
+func (b *EventBus) SubscribeErr(action string, handler ErrHandler) UnsubscribeFunc {
+	id := b.nextID.Add(1)
+	b.mu.Lock()
+	b.errHandlers[action] = append(b.errHandlers[action], errEntry{id: id, fn: handler})
+	b.mu.Unlock()
+	return func() { b.removeErr(action, id) }
 }
 
 func (b *EventBus) removeAction(action string, id uint64) {
@@ -121,6 +148,18 @@ func (b *EventBus) removeResult(action string, id uint64) {
 	}
 }
 
+func (b *EventBus) removeErr(action string, id uint64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	list := b.errHandlers[action]
+	for i, e := range list {
+		if e.id == id {
+			b.errHandlers[action] = append(list[:i], list[i+1:]...)
+			return
+		}
+	}
+}
+
 // Publish fires an event. Handlers run in goroutines (non-blocking).
 // Panics in handlers are recovered and logged.
 func (b *EventBus) Publish(action string, payload Payload) {
@@ -140,10 +179,17 @@ func (b *EventBus) Publish(action string, payload Payload) {
 }
 
 // HasHandlers returns true if there are any registered handlers for the given action.
+// Counts every flavour (Subscribe, SubscribeAll, SubscribeResult, SubscribeErr)
+// because callers use this to gate "is anyone listening" decisions — e.g.
+// CoreAPI.SendEmail short-circuits with a clear error when nothing handles
+// email.send, and disabling password reset depends on the same signal.
 func (b *EventBus) HasHandlers(action string) bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-	return len(b.handlers[action]) > 0 || len(b.allHandlers) > 0
+	return len(b.handlers[action]) > 0 ||
+		len(b.allHandlers) > 0 ||
+		len(b.resultHandlers[action]) > 0 ||
+		len(b.errHandlers[action]) > 0
 }
 
 // PublishSync fires an event and waits for all handlers to complete.
@@ -172,6 +218,30 @@ func (b *EventBus) PublishSync(action string, payload Payload) {
 		}(e.fn)
 	}
 	wg.Wait()
+}
+
+// PublishRequest runs all err handlers for an action synchronously and returns
+// the first non-nil error encountered (in registration order). Regular
+// Subscribe / SubscribeResult handlers are NOT invoked — callers that want
+// both should pair this with Publish.
+//
+// Returns nil when every handler succeeded OR when no err handler is
+// registered. Callers that need to distinguish "no handler" from "success"
+// should check HasHandlers first; CoreAPI.SendEmail does exactly that to
+// surface a clear "no email provider configured" error instead of silently
+// dropping the request.
+func (b *EventBus) PublishRequest(action string, payload Payload) error {
+	b.mu.RLock()
+	entries := make([]errEntry, len(b.errHandlers[action]))
+	copy(entries, b.errHandlers[action])
+	b.mu.RUnlock()
+
+	for _, e := range entries {
+		if err := safeCallErr(e.fn, action, payload); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // PublishCollect runs all result handlers for an action synchronously and
@@ -213,4 +283,28 @@ func safeCallResult(h ResultHandler, action string, payload Payload) (result str
 		}
 	}()
 	return h(action, payload)
+}
+
+// safeCallErr runs an err handler and converts a panic into an error so a
+// crashing extension surfaces the same way as a returned error rather than
+// taking down the kernel goroutine that called PublishRequest.
+func safeCallErr(h ErrHandler, action string, payload Payload) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[events] panic in err handler for %q: %v", action, r)
+			err = panicError{action: action, value: r}
+		}
+	}()
+	return h(action, payload)
+}
+
+// panicError wraps a recovered panic value so PublishRequest callers see a
+// real error rather than nil after a handler crash.
+type panicError struct {
+	action string
+	value  interface{}
+}
+
+func (p panicError) Error() string {
+	return "events: panic in handler for " + p.action
 }

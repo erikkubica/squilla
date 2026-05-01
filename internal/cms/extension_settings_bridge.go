@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"squilla/internal/events"
 	"squilla/internal/settings"
@@ -16,20 +17,37 @@ import (
 // in-process settings registry. Extensions declare settings schemas in
 // their extension.json `settings` array (each entry is a complete
 // settings.Schema). On activation the bridge reads the manifest and
-// registers every schema under "ext.<slug>.<id>"; on deactivation it
-// unregisters everything with that prefix. Boot replay registers
-// schemas for already-active extensions so the registry survives
-// process restarts without requiring a deactivate/activate cycle.
+// registers each schema; on deactivation it unregisters whatever it
+// previously registered for that slug. Boot replay registers schemas
+// for already-active extensions so the registry survives process
+// restarts without requiring a deactivate/activate cycle.
+//
+// Schema ID namespacing: by default the bridge prefixes simple IDs
+// (like "settings" or "config") with `ext.<slug>.` so two extensions
+// can declare schemas with the same local ID without colliding. An
+// extension that wants to claim a kernel-known ID — e.g. seo-extension
+// owning `site.seo` after the SEO/robots schemas were extracted from
+// core — declares the schema with a dotted ID and the bridge uses it
+// verbatim. Last-write-wins resolves any cross-extension collisions on
+// claimed IDs; tracking what each slug registered lets us unregister
+// the right rows on deactivation regardless of how they were named.
 type ExtensionSettingsBridge struct {
-	loader   *ExtensionLoader
-	registry *settings.Registry
-	eventBus *events.EventBus
+	loader     *ExtensionLoader
+	registry   *settings.Registry
+	eventBus   *events.EventBus
+	mu         sync.Mutex
+	registered map[string][]string // slug → schema IDs we registered, used by UnregisterAll
 }
 
 // NewExtensionSettingsBridge constructs the bridge. Subscribe still has
 // to be called explicitly so wiring order in main.go stays controllable.
 func NewExtensionSettingsBridge(loader *ExtensionLoader, registry *settings.Registry, eventBus *events.EventBus) *ExtensionSettingsBridge {
-	return &ExtensionSettingsBridge{loader: loader, registry: registry, eventBus: eventBus}
+	return &ExtensionSettingsBridge{
+		loader:     loader,
+		registry:   registry,
+		eventBus:   eventBus,
+		registered: make(map[string][]string),
+	}
 }
 
 // Subscribe attaches handlers to extension.activated / extension.deactivated.
@@ -86,6 +104,12 @@ func (b *ExtensionSettingsBridge) RegisterFromDisk(slug string) error {
 	if err := json.Unmarshal(data, &m); err != nil {
 		return fmt.Errorf("parse manifest: %w", err)
 	}
+
+	// Drop any prior registrations from a previous activation cycle so
+	// re-activating an extension doesn't double-register or leak old IDs.
+	b.UnregisterAll(slug)
+
+	var registered []string
 	for i, raw := range m.Settings {
 		var schema settings.Schema
 		if err := json.Unmarshal(raw, &schema); err != nil {
@@ -96,24 +120,38 @@ func (b *ExtensionSettingsBridge) RegisterFromDisk(slug string) error {
 			log.Printf("[settings-bridge] %s settings[%d]: missing id", slug, i)
 			continue
 		}
-		schema.ID = fmt.Sprintf("ext.%s.%s", slug, schema.ID)
+		// Dotted IDs are absolute — the extension is intentionally
+		// claiming a kernel-known namespace (e.g. seo-extension owning
+		// "site.seo" after SEO settings moved out of core). Simple IDs
+		// get the "ext.<slug>." prefix so two extensions with a
+		// "settings" schema don't collide.
+		if !strings.Contains(schema.ID, ".") {
+			schema.ID = fmt.Sprintf("ext.%s.%s", slug, schema.ID)
+		}
 		if err := b.registry.Register(schema); err != nil {
 			log.Printf("[settings-bridge] %s register %q: %v", slug, schema.ID, err)
+			continue
 		}
+		registered = append(registered, schema.ID)
 	}
+
+	b.mu.Lock()
+	b.registered[slug] = registered
+	b.mu.Unlock()
 	return nil
 }
 
-// UnregisterAll removes every schema registered under the extension's
-// namespace. Called on deactivation. We snapshot the current registry
-// list to find matches because the registry exposes Get/List rather
-// than range iteration.
+// UnregisterAll removes every schema this slug registered. Tracking the
+// IDs explicitly (rather than reverse-engineering them from a prefix)
+// is what lets extensions claim absolute IDs like "site.seo" — we still
+// know which IDs to drop on deactivation.
 func (b *ExtensionSettingsBridge) UnregisterAll(slug string) {
-	prefix := fmt.Sprintf("ext.%s.", slug)
-	for _, s := range b.registry.List() {
-		if strings.HasPrefix(s.ID, prefix) {
-			b.registry.Unregister(s.ID)
-		}
+	b.mu.Lock()
+	ids := b.registered[slug]
+	delete(b.registered, slug)
+	b.mu.Unlock()
+	for _, id := range ids {
+		b.registry.Unregister(id)
 	}
 }
 

@@ -135,10 +135,11 @@ func (h *PublicHandler) RegisterRoutes(app *fiber.App) {
 	// middleware reads the default-language row at request time;
 	// per-page rendering can override on a per-locale basis via the
 	// .app.head_meta block which uses loadSiteSettingsForLocale.
-	app.Use(func(c *fiber.Ctx) error {
-		c.Set("X-Robots-Tag", robotsDirective(h.loadSiteSettings()))
-		return c.Next()
-	})
+	// X-Robots-Tag is owned by whichever extension answers the
+	// render.head_meta hook (the bundled seo-extension does). The
+	// crawler-visible meta robots tag is emitted in <head> via the
+	// extension; the redundant header is left to the extension or to
+	// operator-level CDN config.
 	app.Get("/", h.HomePage)
 	// Catch-all for public pages: match by full_url stored in DB
 	app.Get("/*", h.PageByFullURL)

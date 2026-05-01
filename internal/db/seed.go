@@ -200,12 +200,8 @@ func Seed(db *gorm.DB) error {
 	if err := seedAuthPages(db); err != nil {
 		return err
 	}
-	if err := seedEmailTemplates(db); err != nil {
-		return err
-	}
-	if err := seedEmailRules(db); err != nil {
-		return err
-	}
+	// Email defaults (templates + rules + layouts) are seeded by the
+	// email-manager extension's migrations on activation, not by core.
 	// Seed default site name setting
 	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_name', 'Squilla', NOW()) ON CONFLICT (key) DO NOTHING`)
 	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_url', 'http://localhost:8099', NOW()) ON CONFLICT (key) DO NOTHING`)
@@ -227,10 +223,15 @@ func Seed(db *gorm.DB) error {
 
 func seedRoles(db *gorm.DB) error {
 	roles := []models.Role{
-		{Slug: "admin", Name: "Administrator", Description: "Full system access", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":true,"manage_roles":true,"manage_settings":true,"manage_menus":true,"manage_layouts":true,"manage_email":true,"default_node_access":{"access":"write","scope":"all"},"email_subscriptions":["user.registered","user.deleted","node.created","node.updated","node.published","node.deleted"]}`)},
-		{Slug: "editor", Name: "Editor", Description: "Can manage all content", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":true,"manage_layouts":false,"manage_email":false,"default_node_access":{"access":"write","scope":"all"},"email_subscriptions":["node.created","node.published"]}`)},
-		{Slug: "author", Name: "Author", Description: "Can manage own content", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":false,"manage_layouts":false,"manage_email":false,"default_node_access":{"access":"write","scope":"own"},"email_subscriptions":["node.published"]}`)},
-		{Slug: "member", Name: "Member", Description: "Public member, no admin access", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":false,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":false,"manage_layouts":false,"manage_email":false,"default_node_access":{"access":"read","scope":"all"},"email_subscriptions":[]}`)},
+		// Capabilities here are the kernel-only set. manage_email and
+		// email_subscriptions are added by the email-manager extension
+		// on activation — keeping them out of the kernel seed is what
+		// makes "disable the extension and see the kernel still work"
+		// actually true.
+		{Slug: "admin", Name: "Administrator", Description: "Full system access", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":true,"manage_roles":true,"manage_settings":true,"manage_menus":true,"manage_layouts":true,"default_node_access":{"access":"write","scope":"all"}}`)},
+		{Slug: "editor", Name: "Editor", Description: "Can manage all content", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":true,"manage_layouts":false,"default_node_access":{"access":"write","scope":"all"}}`)},
+		{Slug: "author", Name: "Author", Description: "Can manage own content", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":false,"manage_layouts":false,"default_node_access":{"access":"write","scope":"own"}}`)},
+		{Slug: "member", Name: "Member", Description: "Public member, no admin access", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":false,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":false,"manage_layouts":false,"default_node_access":{"access":"read","scope":"all"}}`)},
 	}
 	for _, role := range roles {
 		var existing models.Role

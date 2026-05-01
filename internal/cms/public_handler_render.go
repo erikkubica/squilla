@@ -49,10 +49,8 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	// Load site settings
 	// Site settings are per-language (migration 0038). Resolve scoped to
 	// the node's locale with default-language fallback so per-locale
-	// overrides (e.g. seo_robots_index=false on a staging es subsite)
-	// reach both the head_meta and the X-Robots-Tag header.
+	// overrides reach the head_meta extension hook.
 	settings := h.loadSiteSettingsForLocale(node.LanguageCode)
-	c.Set("X-Robots-Tag", robotsDirective(settings))
 
 	// Load menus
 	menus := h.renderCtx.LoadMenus(languageID)
@@ -66,10 +64,20 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	appData.Menus = menus
 
 	nodeData := h.renderCtx.BuildNodeData(node, blocksHTML, languages)
-	// Compose SEO meta tags into a single template.HTML string so the
-	// theme's <head> can drop them in with one expression. Per-node SEO
-	// wins; site_settings supply the fallbacks. See head_meta.go.
-	appData.HeadMeta = BuildHeadMeta(node, nodeData.SEO, settings, nodeData.Translations, languages)
+	// Render-time hook surface for extensions: head, body_start,
+	// body_end, footer. Each fires a PublishCollect on a render.* event
+	// and joins what subscribers return. Kernel-only deploys get empty
+	// strings on every slot — themes can call them unconditionally.
+	appData.HeadMeta = h.renderHead(node, nodeData, settings)
+	appData.BodyStart = h.renderBodyStart(node, nodeData, settings)
+	extensionBodyEnd := h.renderBodyEnd(node, nodeData, settings)
+	appData.Footer = h.renderFooter(node, nodeData, settings)
+	// Composite slots fold kernel-rendered asset tags into the same
+	// HTML block extensions contribute to, so themes can drop
+	// {{.app.head}} / {{.app.body_end}} once instead of iterating
+	// arrays manually.
+	appData.Head = composeHead(appData)
+	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 
 	templateData := TemplateData{
 		App:           appData,
@@ -340,7 +348,12 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 		LanguageCode: nodeData.LanguageCode,
 		NodeType:     nodeData.NodeType,
 	}
-	appData.HeadMeta = BuildHeadMeta(syntheticNode, nodeData.SEO, notFoundSettings, nil, languages)
+	appData.HeadMeta = h.renderHead(syntheticNode, nodeData, notFoundSettings)
+	appData.BodyStart = h.renderBodyStart(syntheticNode, nodeData, notFoundSettings)
+	extensionBodyEnd := h.renderBodyEnd(syntheticNode, nodeData, notFoundSettings)
+	appData.Footer = h.renderFooter(syntheticNode, nodeData, notFoundSettings)
+	appData.Head = composeHead(appData)
+	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 
 	user := h.currentUser(c)
 	templateData := TemplateData{
@@ -416,7 +429,12 @@ func (h *PublicHandler) RenderWithLayout(c *fiber.Ctx, title string, innerHTML t
 		LanguageCode: nodeData.LanguageCode,
 		NodeType:     nodeData.NodeType,
 	}
-	appData.HeadMeta = BuildHeadMeta(syntheticNode, nodeData.SEO, settings, nil, languages)
+	appData.HeadMeta = h.renderHead(syntheticNode, nodeData, settings)
+	appData.BodyStart = h.renderBodyStart(syntheticNode, nodeData, settings)
+	extensionBodyEnd := h.renderBodyEnd(syntheticNode, nodeData, settings)
+	appData.Footer = h.renderFooter(syntheticNode, nodeData, settings)
+	appData.Head = composeHead(appData)
+	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 
 	templateData := TemplateData{
 		App:           appData,

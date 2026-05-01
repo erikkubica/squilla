@@ -1,6 +1,7 @@
 package events
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -178,5 +179,128 @@ func TestHasHandlers(t *testing.T) {
 	unsub()
 	if bus.HasHandlers("known") {
 		t.Fatal("expected no handlers after Unsubscribe")
+	}
+
+	// SubscribeErr must register as a handler too — CoreAPI.SendEmail uses
+	// HasHandlers to decide whether to short-circuit with "no provider".
+	unsub = bus.SubscribeErr("email.send", func(_ string, _ Payload) error { return nil })
+	if !bus.HasHandlers("email.send") {
+		t.Fatal("expected SubscribeErr to register as a handler")
+	}
+	unsub()
+	if bus.HasHandlers("email.send") {
+		t.Fatal("expected SubscribeErr handler to drop on unsubscribe")
+	}
+
+	// SubscribeResult should also count.
+	unsub = bus.SubscribeResult("forms:render", func(_ string, _ Payload) string { return "" })
+	if !bus.HasHandlers("forms:render") {
+		t.Fatal("expected SubscribeResult to register as a handler")
+	}
+	unsub()
+}
+
+func TestPublishRequest_ReturnsFirstError(t *testing.T) {
+	bus := New()
+	first := errors.New("first failure")
+	called := atomic.Int32{}
+
+	bus.SubscribeErr("email.send", func(_ string, _ Payload) error {
+		called.Add(1)
+		return first
+	})
+	// Second handler must NOT run once the first errors — callers expect
+	// short-circuit semantics (the first provider's failure is the result;
+	// fanning out to a backup provider is the extension's job, not the bus's).
+	bus.SubscribeErr("email.send", func(_ string, _ Payload) error {
+		called.Add(1)
+		return errors.New("second failure")
+	})
+
+	err := bus.PublishRequest("email.send", Payload{"to": "alice@example.com"})
+	if !errors.Is(err, first) {
+		t.Fatalf("expected first error, got %v", err)
+	}
+	if got := called.Load(); got != 1 {
+		t.Fatalf("expected short-circuit after first failure; got %d calls", got)
+	}
+}
+
+func TestPublishRequest_NilOnAllSuccess(t *testing.T) {
+	bus := New()
+	bus.SubscribeErr("ok", func(_ string, _ Payload) error { return nil })
+	bus.SubscribeErr("ok", func(_ string, _ Payload) error { return nil })
+
+	if err := bus.PublishRequest("ok", nil); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+}
+
+func TestPublishRequest_NilWhenNoHandler(t *testing.T) {
+	bus := New()
+	// No handler registered. Returning nil here is intentional — callers
+	// that need to distinguish "no provider" from "succeeded" are required
+	// to consult HasHandlers first (see CoreAPI.SendEmail).
+	if err := bus.PublishRequest("nobody.listening", nil); err != nil {
+		t.Fatalf("expected nil when no handler registered, got %v", err)
+	}
+}
+
+func TestPublishRequest_PanicBecomesError(t *testing.T) {
+	bus := New()
+	bus.SubscribeErr("crashy", func(_ string, _ Payload) error { panic("boom") })
+
+	err := bus.PublishRequest("crashy", nil)
+	if err == nil {
+		t.Fatal("expected non-nil error after handler panic")
+	}
+}
+
+func TestSubscribeErr_Unsubscribe(t *testing.T) {
+	bus := New()
+	hits := atomic.Int32{}
+	unsub := bus.SubscribeErr("ping", func(_ string, _ Payload) error {
+		hits.Add(1)
+		return nil
+	})
+
+	_ = bus.PublishRequest("ping", nil)
+	if hits.Load() != 1 {
+		t.Fatalf("expected 1 hit before unsubscribe, got %d", hits.Load())
+	}
+	unsub()
+	_ = bus.PublishRequest("ping", nil)
+	if hits.Load() != 1 {
+		t.Fatalf("handler still firing after unsubscribe (got %d)", hits.Load())
+	}
+	// Calling unsub twice must be safe.
+	unsub()
+}
+
+// TestPublishRequest_BlocksUntilDone proves the Sync semantics — the call
+// returns only after every handler has finished. The email-manager
+// extraction depends on this so SendEmail propagates SMTP errors before
+// the request handler returns 200 to the client.
+func TestPublishRequest_BlocksUntilDone(t *testing.T) {
+	bus := New()
+	completed := make(chan struct{})
+
+	bus.SubscribeErr("slow.send", func(_ string, _ Payload) error {
+		time.Sleep(15 * time.Millisecond)
+		close(completed)
+		return nil
+	})
+
+	start := time.Now()
+	_ = bus.PublishRequest("slow.send", nil)
+	elapsed := time.Since(start)
+
+	if elapsed < 15*time.Millisecond {
+		t.Fatalf("PublishRequest returned before handler completed (%v)", elapsed)
+	}
+	select {
+	case <-completed:
+	default:
+		t.Fatal("handler did not complete before PublishRequest returned")
 	}
 }

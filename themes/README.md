@@ -283,36 +283,49 @@ Note the dual usage:
 
 ### Layout `<head>` checklist
 
-Every layout that wraps a public page should drop these lines in `<head>` so the
-kernel-composed SEO chrome and theme/extension assets land where they belong:
+Modern themes use four composite slots — one per HTML injection point. The
+kernel renders its own theme/block asset tags AND collects extension
+contributions for each slot, so a theme drops a single template variable per
+location instead of iterating arrays:
 
 ```html
+<!doctype html>
+<html lang="{{.node.language_code}}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ if and .node.seo .node.seo.meta_title }}{{ .node.seo.meta_title }}{{ else }}{{ .node.title }}{{ end }}</title>
-
-  {{.app.head_meta}}                                   {{/* canonical, og:*, twitter:*, hreflang, robots */}}
-
-  {{- range .app.head_styles -}}
-    <link rel="stylesheet" href="{{.}}">
-  {{- end -}}
-  {{.app.block_styles}}                                {{/* per-block scoped CSS for blocks on this page */}}
+  {{.app.head}}              {{/* stylesheets + block CSS + scripts + extension <meta>/<link> */}}
 </head>
+<body>
+  {{.app.body_start}}        {{/* extension contributions immediately after <body> */}}
+
+  <!-- … your layout … -->
+
+  <footer>
+    {{.app.footer}}          {{/* extension contributions inside the footer area */}}
+  </footer>
+
+  {{.app.body_end}}          {{/* foot scripts + block JS + extension scripts (analytics, etc.) */}}
+</body>
+</html>
 ```
 
-`head_meta` is computed once per render in the kernel — it pulls per-node SEO
-first (`.node.seo.meta_title`, `.node.seo.meta_description`, `.node.seo.og_image`),
-falls back to site-wide defaults from `Site Settings → SEO` (`seo_default_meta_title`,
-`seo_default_meta_description`, `seo_default_og_image`, `seo_og_site_name`,
-`seo_twitter_handle`, `seo_robots_index`), and finally to the node's title /
-excerpt and the featured image. `og:image` automatically uses the node's
-`featured_image` when no explicit `og_image` is set. Translations on the node
-emit `<link rel="alternate" hreflang="…">` automatically.
+Each composite slot fires a `render.<slot>` event. The bundled `seo-extension`
+hooks `render.head` and emits OG / Twitter / canonical / robots tags from the
+per-node `seo` JSONB plus site settings. With no extension active the slot
+still works — it just emits the kernel's own theme assets and nothing else.
 
-**Don't** hand-roll `<meta property="og:*">` tags in your layout — anything you
-write there will duplicate what the kernel already emitted. If you need a
-single override, set the per-node SEO field instead.
+**Granular slots** (back-compat for themes that want fine-grained control):
+`{{range .app.head_styles}}<link rel="stylesheet" href="{{.}}">{{end}}`,
+`{{.app.head_meta}}`, `{{.app.block_styles}}`, `{{range .app.head_scripts}}…{{end}}`,
+`{{range .app.foot_scripts}}…{{end}}`, `{{.app.block_scripts}}`. **Don't combine
+these with the composite slots or you'll double-emit.** Pick one approach per
+layout.
+
+**Don't** hand-roll `<meta property="og:*">` tags in your layout — the SEO
+extension already emits them via `render.head`. If you need a single override,
+set the per-node SEO field on the node editor.
 
 ### `404.html` — theme-supplied Page Not Found
 

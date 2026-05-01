@@ -17,7 +17,6 @@ import (
 	"squilla/internal/config"
 	"squilla/internal/coreapi"
 	"squilla/internal/db"
-	"squilla/internal/email"
 	"squilla/internal/events"
 	"squilla/internal/logging"
 	"squilla/internal/mcp"
@@ -194,14 +193,12 @@ func main() {
 		return ""
 	})
 
-	// Email services.
-	emailRuleSvc := email.NewRuleService(database)
-	emailLogSvc := email.NewLogService(database)
-	emailDispatcher := email.NewDispatcher(database, emailRuleSvc, emailLogSvc)
-	eventBus.SubscribeAll(emailDispatcher.HandleEvent)
-	// Daily sweep of email_logs older than email_log_retention_days
-	// (default 30). Stops the table from growing unbounded.
-	emailLogSvc.StartCleanupLoop(bgCtx, 24*time.Hour)
+	// Email is owned by the email-manager extension — the kernel only
+	// exposes coreapi.SendEmail, which routes to whichever provider
+	// extension is configured via the event bus. Rule matching, template
+	// rendering, recipient resolution, and log retention live in
+	// extensions/email-manager/cmd/plugin/. The kernel doesn't need to
+	// know what those things are.
 
 	// Daily sweep of content_node_revisions, keeping the most recent N
 	// per node (default 50). Without this, chatty editors fill the table
@@ -279,15 +276,26 @@ func main() {
 	// extension plugins (gRPC) and theme/extension scripts (Tengo) see.
 	// The guard reads CallerInfo from context and denies any non-internal
 	// caller that lacks the required capability declared in extension.json.
-	// MediaService backs core.media.* MCP tools and the CoreAPI media methods
-	// for callers that go through CoreAPI directly (Tengo via the guarded
-	// adapter, internal seed paths, MCP). The media-manager extension owns the
-	// admin UI / public optimization pipeline via its own gRPC HTTP routes;
-	// this service is the bare-bones path that doesn't depend on the extension
-	// being active. Both write to the same `media_files` table and the same
-	// `storage/media` directory served by `app.Static("/media", ...)` below.
-	mediaSvc := cms.NewMediaService(database, "storage/media")
-	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, mediaSvc, nodeTypeSvc, emailDispatcher, app, secretsSvc)
+	//
+	// Media is owned by whichever extension declares
+	// provides:["media-provider"] — the bundled media-manager fills that
+	// slot by default, but operators can hot-swap an S3/R2/Cloudinary
+	// extension by activating it with a higher priority. The resolver
+	// looks up the active provider lazily on every call so swaps don't
+	// require a process restart. With no provider active CoreAPI media
+	// methods return a clear "no provider configured" error — kernel
+	// has no fallback bytes-on-disk path on purpose.
+	//
+	// pluginManager is constructed further down (it depends on the
+	// guarded CoreAPI for its host registrar callback). The resolver
+	// captures a pointer that's nil here and assigned just before
+	// extensions start; the closure-based lookup means CoreAPI calls
+	// before assignment safely return "no provider configured" rather
+	// than nil-deref. In practice no caller exercises media before
+	// extensions are up.
+	var pluginManager *cms.PluginManager
+	mediaResolver := coreapi.NewMediaProviderResolver(func() *cms.PluginManager { return pluginManager })
+	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, mediaResolver, nodeTypeSvc, app, secretsSvc)
 	guardedAPI := coreapi.NewCapabilityGuard(coreAPI)
 	themeSettingsHandler := cms.NewThemeSettingsHandler(themeLoader.SettingsRegistry, coreAPI, database, secretsSvc, eventBus)
 
@@ -439,7 +447,7 @@ func main() {
 			pb.RegisterSquillaHostServer(s, hostServer)
 		}
 	})
-	pluginManager := cms.NewPluginManager(eventBus, hostRegistrar, database)
+	pluginManager = cms.NewPluginManager(eventBus, hostRegistrar, database)
 	defer pluginManager.StopAll()
 
 	// Start plugins for already-active extensions.
@@ -469,35 +477,12 @@ func main() {
 		log.Printf("WARN: purge inactive themes: %v", err)
 	}
 
-	// Wire email dispatcher's send function to call the provider plugin directly.
-	// This bypasses the event bus for synchronous error propagation.
-	emailDispatcher.SetSendFunc(func(req email.SendRequest) error {
-		providerSlug := req.Settings["provider"]
-		if providerSlug == "" {
-			return fmt.Errorf("no email provider configured")
-		}
-		client := pluginManager.GetClient(providerSlug)
-		if client == nil {
-			return fmt.Errorf("email provider %s is not running", providerSlug)
-		}
-		payload, err := json.Marshal(map[string]interface{}{
-			"to":       req.To,
-			"subject":  req.Subject,
-			"html":     req.HTML,
-			"settings": req.Settings,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to marshal email payload: %w", err)
-		}
-		resp, err := client.HandleEvent("email.send", payload)
-		if err != nil {
-			return fmt.Errorf("provider plugin error: %w", err)
-		}
-		if resp.Error != "" {
-			return fmt.Errorf("%s", resp.Error)
-		}
-		return nil
-	})
+	// Provider plugins (smtp-provider, resend-provider, …) declare
+	// `events: ["email.send"]` in their manifest, which makes the plugin
+	// manager auto-subscribe them via SubscribeErr. coreapi.SendEmail
+	// publishes via PublishRequest and the first non-nil error from the
+	// active provider propagates back to the caller. No bespoke
+	// SetSendFunc bridge is needed.
 
 	// Extension HTTP proxy (forwards /admin/api/ext/:slug/* to gRPC plugins).
 	extensionProxy := cms.NewExtensionProxy(pluginManager)
@@ -516,6 +501,15 @@ func main() {
 
 	// Theme deploy webhook (public, authenticated by secret).
 	themeHandler.RegisterWebhook(app)
+
+	// One-shot startup audit of optional features that depend on
+	// extensions. We log clearly rather than failing — a kernel-only
+	// install IS a valid deployment, but admins shouldn't have to grep
+	// the source to discover that password reset silently won't work
+	// because no email provider is wired.
+	if !eventBus.HasHandlers("email.send") {
+		log.Printf("[startup] no email provider extension is active — password reset, welcome emails, and other event-driven mail are DISABLED. Install smtp-provider or resend-provider (and the email-manager extension) to enable. Use 'squilla reset-password <email> <new-password>' for admin recovery in the meantime.")
+	}
 
 	// --- Public extension route proxy (before static routes) ---
 	publicProxy := cms.NewPublicExtensionProxy(pluginManager)
@@ -539,10 +533,10 @@ func main() {
 	scriptEngine.MountWellKnown(wellKnown)
 	wellKnown.Mount(app)
 
-	// /robots.txt — generated from settings (SEO toggle, AI bot
-	// policies, sitemap URL). Mounted before the public catch-all so
-	// the renderer doesn't try to resolve it as a node.
-	cms.NewRobotsHandler(database).RegisterRoutes(app)
+	// /robots.txt is owned by the seo-extension via its public_routes.
+	// When the extension is inactive there's no robots.txt — that's the
+	// correct behaviour for a kernel-only deployment per the
+	// kernel/extensions hard rule.
 
 	// --- Public content routes (must be last) ---
 	publicHandler.RegisterRoutes(app)

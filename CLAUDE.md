@@ -46,12 +46,12 @@ Single Go interface providing all CMS capabilities to extensions:
 - **Nodes:** CRUD + query
 - **Node Types:** register, get, list, update, delete (extensions define custom post types)
 - **Settings:** get, set, get-all
-- **Events:** emit, subscribe
-- **Email:** send (via event bus → provider plugin)
+- **Events:** emit, subscribe (Subscribe / SubscribeResult / SubscribeErr; PublishRequest for sync request/reply with error propagation)
+- **Email:** send (kernel routes via event bus → provider plugin; rule matching, template rendering, recipient resolution, and log retention live in the email-manager extension)
 - **Menus:** CRUD
 - **Routes:** register, remove (Tengo HTTP endpoints)
 - **Filters:** register, apply
-- **Media:** upload, get, query, delete
+- **Media:** upload, get, query, delete (kernel keeps no bytes-on-disk fallback — operations route through whichever extension declares `provides:["media-provider"]`; the bundled media-manager fills the slot, but operators can hot-swap an S3/R2/Cloudinary extension by activating it with a higher priority)
 - **Users:** get, query (read-only)
 - **HTTP:** outbound fetch
 - **Log:** leveled logging with caller prefix
@@ -79,21 +79,20 @@ Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plu
 - `cmd/squilla/`: Application entry point
 - `internal/`: Core kernel:
     - `coreapi/`: CoreAPI interface, implementations, adapters (Tengo, gRPC, capability guard)
-    - `cms/`: Content service, plugin manager, extension loader/proxy/migrations
+    - `cms/`: Content service, plugin manager (with provider-tag lookup for `media-provider`/`email.provider`/etc.), extension loader/proxy/migrations
     - `scripting/`: Tengo VM runtime, script callbacks, handler mounting
     - `models/`: GORM models (content_node, menu, user, role, etc.)
-    - `email/`: Email dispatcher (core infrastructure, not admin management)
-    - `events/`: Event bus (publish/subscribe)
-    - `auth/`: Session auth, RBAC middleware
+    - `events/`: Event bus (Subscribe / SubscribeResult / SubscribeErr; Publish / PublishSync / PublishCollect / PublishRequest)
+    - `auth/`: Session auth, RBAC middleware (password reset gracefully degrades when no email provider is active)
     - `db/`: Core migrations and connection pooling
     - `api/`: Response helpers
 - `extensions/`: All feature extensions:
-    - `media-manager/`: Media library (gRPC plugin + React micro-frontend)
-    - `email-manager/`: Email templates, rules, logs (gRPC plugin + React micro-frontend)
-    - `sitemap-generator/`: Yoast-style sitemaps (gRPC plugin + Tengo scripts)
-    - `smtp-provider/`: SMTP delivery (gRPC plugin)
-    - `resend-provider/`: Resend delivery (Tengo script)
-    - `hello-extension/`: Demo extension
+    - `media-manager/`: Media library, optimizer, WebP, owns `media_files` (gRPC plugin + React micro-frontend; declares `provides:["media-provider"]`)
+    - `email-manager/`: Owns email templates, rules, logs, layouts AND the dispatcher itself — the plugin subscribes to `*` (all events) and matches admin-defined rules (gRPC plugin + React micro-frontend)
+    - `seo-extension/`: Owns `/robots.txt`, SEO defaults, AI-crawler policy (gRPC plugin)
+    - `sitemap-generator/`: Yoast-style XML sitemaps (gRPC plugin + Tengo scripts)
+    - `smtp-provider/` / `resend-provider/`: Email delivery (declare `provides:["email.provider"]`)
+    - `forms/`, `content-blocks/`, `hello-extension/`: Reference implementations
 - `themes/`: Theme repository (layouts, partials, blocks, assets, `.tgo` scripts)
 - `admin-ui/`: React SPA shell (Vite, Tailwind CSS, shadcn/ui)
     - `public/shims/`: Import map shims for extension micro-frontends

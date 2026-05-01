@@ -7,6 +7,7 @@
   "priority": 50,
   "capabilities": ["settings:read", "events:subscribe", "http:fetch", "log:write"],
   "provides": ["email.provider"],
+  "auto_activate": true,
   "admin_ui": {
     "entry": "admin-ui/dist/index.js",
     "slots": {

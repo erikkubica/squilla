@@ -57,6 +57,15 @@ type ScriptEngine struct {
 	filterHandlers map[string][]scriptHandler // filter name -> handlers sorted by priority
 	httpRoutes     []httpRoute
 	wellKnown      []wellKnownRoute
+
+	// activeBaseDirs tracks which scripts/ roots are currently "live"
+	// (their owning extension or theme is active). Fiber doesn't support
+	// runtime route unmounting, so deactivating an extension can't tear
+	// down the routes it declared via routes.register — instead the
+	// handler closure consults this set on every request and returns
+	// 404 when the baseDir is no longer live. Same trick for
+	// .well-known handlers.
+	activeBaseDirs map[string]bool
 }
 
 // WellKnownRegistrar is satisfied by cms.WellKnownRegistry. Declared here
@@ -89,7 +98,18 @@ func NewScriptEngine(
 		themeSettingsRegistry: themeSettingsRegistry,
 		eventHandlers:         make(map[string][]scriptHandler),
 		filterHandlers:        make(map[string][]scriptHandler),
+		activeBaseDirs:        make(map[string]bool),
 	}
+}
+
+// isBaseDirActive reports whether scripts loaded from baseDir are still
+// considered live. Used by HTTP and .well-known handlers to short-circuit
+// requests that target a deactivated extension. Holds the read lock for
+// the duration of the lookup; safe to call from any request goroutine.
+func (e *ScriptEngine) isBaseDirActive(baseDir string) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.activeBaseDirs[baseDir]
 }
 
 // scriptCallbacks returns a ScriptCallbacks that wires into the engine's
@@ -178,6 +198,10 @@ func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
 	}
 	numRoutes := len(e.httpRoutes)
 	e.mu.RUnlock()
+
+	e.mu.Lock()
+	e.activeBaseDirs[e.scriptsDir] = true
+	e.mu.Unlock()
 
 	log.Printf("[script] theme scripts loaded: %d event handlers, %d filters, %d HTTP routes", numEvents, numFilters, numRoutes)
 
@@ -307,11 +331,23 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string, capabili
 	// Wire any new event handlers to the EventBus
 	e.subscribeEventHandlers()
 
+	// Mark this baseDir live so the route-gating closure lets requests
+	// through. Without this, routes registered via routes.register would
+	// 404 immediately because the closure can't tell they're active.
+	e.mu.Lock()
+	e.activeBaseDirs[extScriptsDir] = true
+	e.mu.Unlock()
+
 	log.Printf("[script] extension %s scripts loaded", slug)
 	return nil
 }
 
-// UnloadExtensionScripts removes all event and filter handlers registered by an extension.
+// UnloadExtensionScripts removes all event, filter, HTTP route, and
+// .well-known registrations contributed by an extension. Fiber doesn't
+// support runtime route unmounting, so the route entries themselves are
+// dropped from the engine's slice AND the baseDir is marked inactive —
+// the makeHTTPHandler closure consults the active set on every request
+// and 404s when its baseDir was deactivated.
 func (e *ScriptEngine) UnloadExtensionScripts(extDir string, slug string) {
 	extScriptsDir := filepath.Join(extDir, "scripts")
 
@@ -339,6 +375,30 @@ func (e *ScriptEngine) UnloadExtensionScripts(extDir string, slug string) {
 		}
 		e.filterHandlers[name] = filtered
 	}
+
+	// Drop HTTP route entries so a future MountRoutes (e.g. on next
+	// restart) doesn't re-register them. Mounted routes on the running
+	// Fiber app stay — the active-baseDir gate below handles them.
+	filteredRoutes := make([]httpRoute, 0, len(e.httpRoutes))
+	for _, r := range e.httpRoutes {
+		if r.baseDir != extScriptsDir {
+			filteredRoutes = append(filteredRoutes, r)
+		}
+	}
+	e.httpRoutes = filteredRoutes
+
+	// Same for .well-known.
+	filteredWellKnown := make([]wellKnownRoute, 0, len(e.wellKnown))
+	for _, r := range e.wellKnown {
+		if r.baseDir != extScriptsDir {
+			filteredWellKnown = append(filteredWellKnown, r)
+		}
+	}
+	e.wellKnown = filteredWellKnown
+
+	// Mark inactive — this is what actually disables in-flight Fiber
+	// routes that were mounted before deactivation.
+	delete(e.activeBaseDirs, extScriptsDir)
 
 	log.Printf("[script] extension %s scripts unloaded", slug)
 }
@@ -385,6 +445,17 @@ func (e *ScriptEngine) UnloadThemeScripts() {
 		}
 	}
 	e.httpRoutes = filteredRoutes
+
+	// Same for .well-known so a theme switch doesn't leave stale handlers.
+	filteredWellKnown := make([]wellKnownRoute, 0, len(e.wellKnown))
+	for _, r := range e.wellKnown {
+		if r.baseDir != scriptsDir {
+			filteredWellKnown = append(filteredWellKnown, r)
+		}
+	}
+	e.wellKnown = filteredWellKnown
+
+	delete(e.activeBaseDirs, scriptsDir)
 
 	e.themeDir = ""
 	e.scriptsDir = ""

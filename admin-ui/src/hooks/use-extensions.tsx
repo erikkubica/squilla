@@ -36,6 +36,8 @@ interface ExtensionsContextValue {
   ) => Array<{ slug: string; label: string; Component: React.ComponentType<unknown> }>;
   getFieldTypes: () => ResolvedFieldType[];
   getFieldComponent: (fieldType: string) => { Component: React.ComponentType<unknown>; extensionSlug: string } | null;
+  /** Returns true when at least one active extension declares the given tag in its manifest's `provides` array. */
+  hasProvider: (tag: string) => boolean;
   routes: Array<AdminUIRoute & { slug: string }>;
   menus: Array<AdminUIMenu & { slug: string }>;
   settingsMenuItems: Array<AdminUIMenuItem & { slug: string }>;
@@ -48,6 +50,7 @@ const ExtensionsContext = createContext<ExtensionsContextValue>({
   getSlotExtensions: () => [],
   getFieldTypes: () => [],
   getFieldComponent: () => null,
+  hasProvider: () => false,
   routes: [],
   menus: [],
   settingsMenuItems: [],
@@ -137,6 +140,17 @@ export function ExtensionsProvider({ children }: { children: ReactNode }) {
     return results;
   }
 
+  function hasProvider(tag: string): boolean {
+    if (!tag) return false;
+    for (const entry of manifests) {
+      const provides = entry.manifest?.provides;
+      if (Array.isArray(provides) && provides.includes(tag)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function getFieldComponent(fieldType: string): { Component: React.ComponentType<unknown>; extensionSlug: string } | null {
     for (const [slug, ext] of loaded) {
       const fieldTypes = ext.entry.manifest.admin_ui?.field_types;
@@ -181,7 +195,7 @@ export function ExtensionsProvider({ children }: { children: ReactNode }) {
 
   return (
     <ExtensionsContext.Provider
-      value={{ manifests, loaded, loading, getSlotExtensions, getFieldTypes, getFieldComponent, routes, menus, settingsMenuItems }}
+      value={{ manifests, loaded, loading, getSlotExtensions, getFieldTypes, getFieldComponent, hasProvider, routes, menus, settingsMenuItems }}
     >
       {children}
     </ExtensionsContext.Provider>

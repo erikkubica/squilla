@@ -108,6 +108,10 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 	extDev := []NavItem{}
 	extSettings := []NavItem{}
 	extTopLevel := []NavItem{}
+	// extSiteSettings folds into the kernel's "Site Settings" group as
+	// children. Extensions like seo-extension contribute SEO and Robots
+	// pages here without the kernel having to hardcode their slugs.
+	extSiteSettings := []NavItem{}
 
 	for _, ext := range exts {
 		var manifest struct {
@@ -127,6 +131,11 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 					Route string `json:"route"`
 					Icon  string `json:"icon"`
 				} `json:"settings_menu"`
+				SiteSettingsMenu []struct {
+					Label string `json:"label"`
+					Route string `json:"route"`
+					Icon  string `json:"icon"`
+				} `json:"site_settings_menu"`
 			} `json:"admin_ui"`
 		}
 		_ = json.Unmarshal(ext.Manifest, &manifest)
@@ -177,6 +186,15 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		for _, item := range manifest.AdminUI.SettingsMenu {
 			extSettings = append(extSettings, NavItem{
 				ID:    "nav-ext-" + ext.Slug + "-settings-" + item.Route,
+				Label: item.Label,
+				Icon:  item.Icon,
+				Path:  item.Route,
+			})
+		}
+
+		for _, item := range manifest.AdminUI.SiteSettingsMenu {
+			extSiteSettings = append(extSiteSettings, NavItem{
+				ID:    "nav-ext-" + ext.Slug + "-site-settings-" + item.Route,
 				Label: item.Label,
 				Icon:  item.Icon,
 				Path:  item.Route,
@@ -270,18 +288,25 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 	// (with sub-pages). Extension-contributed settings still slot in
 	// after the built-in groups via extSettings.
 	nav = append(nav, NavItem{ID: "section-settings", Label: "Settings", IsSection: true})
+	// Site Settings children = kernel-owned pages (General, Advanced,
+	// Languages) plus whatever active extensions contribute via their
+	// admin_ui.site_settings_menu entries. The kernel knows nothing
+	// about SEO, robots, or any other feature-specific page — those land
+	// here only when an extension is active and declares them.
+	siteChildren := []NavItem{
+		{ID: "nav-site-settings-general", Label: "General", Icon: "Globe", Path: "/admin/settings/site/general"},
+	}
+	siteChildren = append(siteChildren, extSiteSettings...)
+	siteChildren = append(siteChildren,
+		NavItem{ID: "nav-site-settings-advanced", Label: "Advanced", Icon: "FileCode", Path: "/admin/settings/site/advanced"},
+		NavItem{ID: "nav-site-settings-languages", Label: "Languages", Icon: "Languages", Path: "/admin/settings/site/languages"},
+	)
 	nav = append(nav, NavItem{
-		ID:    "nav-site-settings",
-		Label: "Site Settings",
-		Icon:  "Globe",
-		Path:  "/admin/settings/site/general",
-		Children: []NavItem{
-			{ID: "nav-site-settings-general", Label: "General", Icon: "Globe", Path: "/admin/settings/site/general"},
-			{ID: "nav-site-settings-seo", Label: "SEO", Icon: "Globe", Path: "/admin/settings/site/seo"},
-			{ID: "nav-site-settings-robots", Label: "Robots & AI", Icon: "Shield", Path: "/admin/settings/site/robots"},
-			{ID: "nav-site-settings-advanced", Label: "Advanced", Icon: "FileCode", Path: "/admin/settings/site/advanced"},
-			{ID: "nav-site-settings-languages", Label: "Languages", Icon: "Languages", Path: "/admin/settings/site/languages"},
-		},
+		ID:       "nav-site-settings",
+		Label:    "Site Settings",
+		Icon:     "Globe",
+		Path:     "/admin/settings/site/general",
+		Children: siteChildren,
 	})
 	nav = append(nav, NavItem{
 		ID:    "nav-security",

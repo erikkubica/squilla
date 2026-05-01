@@ -5,6 +5,7 @@
   "author": "Squilla",
   "description": "Automatic XML sitemap generation. Rebuilds when content changes.",
   "provides": ["sitemap"],
+  "auto_activate": true,
   "capabilities": [
     "nodes:read",
     "settings:read",

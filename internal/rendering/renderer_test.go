@@ -183,3 +183,58 @@ func TestConcurrentRender_NoRace(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestRegisterFuncMap_AddsHelper(t *testing.T) {
+	r := NewTemplateRenderer(t.TempDir(), false)
+	r.RegisterFuncMap(template.FuncMap{
+		"shout": func(s string) string { return strings.ToUpper(s) + "!" },
+	})
+
+	got := renderFunc(t, r, `{{shout "hello"}}`, nil)
+	if got != "HELLO!" {
+		t.Fatalf("registered helper not invoked; got %q", got)
+	}
+}
+
+// TestRegisterFuncMap_OverridesAndPurgesCache pins the behaviour
+// extensions need: a re-registration replaces the previous helper AND
+// any previously-cached parsed template gets re-parsed against the new
+// funcMap. Without the cache purge, an extension activating after first
+// render would never get its overrides picked up for hot paths.
+func TestRegisterFuncMap_OverridesAndPurgesCache(t *testing.T) {
+	r := NewTemplateRenderer(t.TempDir(), false)
+	r.RegisterFuncMap(template.FuncMap{
+		"label": func() string { return "core" },
+	})
+
+	var buf bytes.Buffer
+	if err := r.RenderParsed(&buf, "labelled", `{{label}}`, nil, nil); err != nil {
+		t.Fatalf("first render: %v", err)
+	}
+	if buf.String() != "core" {
+		t.Fatalf("expected 'core' first render, got %q", buf.String())
+	}
+
+	r.RegisterFuncMap(template.FuncMap{
+		"label": func() string { return "extension" },
+	})
+
+	buf.Reset()
+	if err := r.RenderParsed(&buf, "labelled", `{{label}}`, nil, nil); err != nil {
+		t.Fatalf("second render: %v", err)
+	}
+	if buf.String() != "extension" {
+		t.Fatalf("registration override not picked up after cache purge; got %q", buf.String())
+	}
+}
+
+func TestRegisterFuncMap_NilOrEmptyIsSafe(t *testing.T) {
+	r := NewTemplateRenderer(t.TempDir(), false)
+	r.RegisterFuncMap(nil)
+	r.RegisterFuncMap(template.FuncMap{})
+	// Should not panic, should not disturb existing helpers.
+	got := renderFunc(t, r, `{{add 2 3}}`, nil)
+	if got != "5" {
+		t.Fatalf("baseline helper broken after no-op registration: %q", got)
+	}
+}

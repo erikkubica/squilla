@@ -50,6 +50,7 @@ import { Separator } from "@/components/ui/separator";
 import CustomFieldInput from "@/components/ui/custom-field-input";
 import BlockPicker from "@/components/ui/block-picker";
 import { usePageMeta } from "@/components/layout/page-meta";
+import { useExtensions } from "@/hooks/use-extensions";
 import { toast } from "sonner";
 import {
   getNode,
@@ -170,7 +171,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const [parentSearching, setParentSearching] = useState(false);
   const [showParentResults, setShowParentResults] = useState(false);
 
-  // SEO
+  // SEO. The per-node SEO panel only renders when an extension declares
+  // provides:["seo"] in its manifest (the bundled seo-extension does).
+  // Without an active SEO provider the editor doesn't surface the tab —
+  // matches the kernel/extensions hard rule that disabling the extension
+  // should remove the feature, not leave dead UI behind.
+  const { hasProvider } = useExtensions();
+  const seoEnabled = hasProvider("seo");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
 
@@ -222,8 +229,18 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     getLanguages(true).then(setLanguages).catch(() => {});
     getBlockTypes().then(setBlockTypes).catch(() => {});
     getTemplates().then(setTemplates).catch(() => {});
-    getHomepageId().then(setHomepageId).catch(() => {});
   }, []);
+
+  // Refetch the homepage_node_id whenever the editor switches to a
+  // different node language — homepage_node_id is per-locale, so the
+  // "Current homepage" / "Set as homepage" button has to consult the
+  // row for THIS node's language. Without this, switching from EN to
+  // DE in the language picker would show the EN homepage's flag on
+  // the DE node.
+  useEffect(() => {
+    if (!languageCode) return;
+    getHomepageId(languageCode).then(setHomepageId).catch(() => {});
+  }, [languageCode]);
 
   // Fetch layouts (all — filtering by language happens at render time via cascade)
   useEffect(() => {
@@ -733,11 +750,18 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   async function handleSetHomepage() {
     if (!id) return;
     try {
-      await setHomepage(id);
+      // Always write the homepage for this node's locale — never the
+      // admin's current locale. Otherwise saving the German node as
+      // homepage from an English admin context lands the node id in
+      // the EN row and /en serves a German page (the kernel's
+      // validateNodeSelect would now reject this anyway, but routing
+      // the write to the right locale up front avoids the round-trip).
+      await setHomepage(id, languageCode);
       setHomepageId(Number(id));
       toast.success("Homepage updated successfully");
-    } catch {
-      toast.error("Failed to set homepage");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to set homepage";
+      toast.error(msg);
     }
   }
 
@@ -1164,7 +1188,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 </div>
               </>),
               },
-              {
+              ...(seoEnabled ? [{
                 value: "seo",
                 label: "SEO",
                 content: (<>
@@ -1219,7 +1243,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   </div>
                 </div>
               </>),
-              },
+              }] : []),
               {
                 value: "custom",
                 label: "Custom Fields",

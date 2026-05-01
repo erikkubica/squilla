@@ -44,6 +44,8 @@ type runningPlugin struct {
 	client     *goplugin.Client
 	impl       vibeplugin.ExtensionPlugin
 	eventNames []string
+	provides   []string      // manifest's `provides` array — used by GetProvider lookups
+	priority   int           // manifest's `priority` (default 50, higher wins)
 	stopped    chan struct{} // closed when plugin is stopped; handlers check this before RPC
 }
 
@@ -80,12 +82,19 @@ func NewPluginManager(eventBus *events.EventBus, hostRegistrar HostServerRegistr
 // deny). Both flow into the per-extension CallerInfo when the host
 // gRPC service is registered.
 func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json.RawMessage, capabilities map[string]bool, ownedTables map[string]bool) error {
-	// Parse plugins from manifest
+	// Parse plugins from manifest. `provides` and `priority` feed the
+	// provider-lookup helpers (GetProvider) so coreapi callers can ask
+	// "who handles 'media-provider'?" without knowing slug names.
 	var m struct {
-		Plugins []PluginManifestEntry `json:"plugins"`
+		Plugins  []PluginManifestEntry `json:"plugins"`
+		Provides []string              `json:"provides"`
+		Priority int                   `json:"priority"`
 	}
 	if err := json.Unmarshal(manifest, &m); err != nil {
 		return fmt.Errorf("parsing manifest plugins: %w", err)
+	}
+	if m.Priority == 0 {
+		m.Priority = 50 // matches the default convention used in extension manifests
 	}
 
 	if len(m.Plugins) == 0 {
@@ -121,7 +130,12 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 			continue
 		}
 
-		// Start the plugin process
+		// Start the plugin process. GRPCDialOptions raises the default
+		// 4 MB call message-size limit so HandleHTTPRequest can carry
+		// multi-megabyte uploads (mp4, large images, zipped extension
+		// payloads). Mirrors the limits the plugin side sets on its
+		// gRPC server in pkg/plugin (maxGRPCMessageSize).
+		const maxGRPCMessageSize = 256 * 1024 * 1024
 		client := goplugin.NewClient(&goplugin.ClientConfig{
 			HandshakeConfig: vibeplugin.Handshake,
 			VersionedPlugins: map[int]goplugin.PluginSet{
@@ -129,6 +143,12 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 			},
 			Cmd:              exec.Command(binaryPath),
 			AllowedProtocols: []goplugin.Protocol{goplugin.ProtocolGRPC},
+			GRPCDialOptions: []grpc.DialOption{
+				grpc.WithDefaultCallOptions(
+					grpc.MaxCallRecvMsgSize(maxGRPCMessageSize),
+					grpc.MaxCallSendMsgSize(maxGRPCMessageSize),
+				),
+			},
 		})
 
 		rpcClient, err := client.Client()
@@ -173,72 +193,114 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 		}
 
 		rp := &runningPlugin{
-			slug:    slug,
-			binary:  pe.Binary,
-			client:  client,
-			impl:    impl,
-			stopped: make(chan struct{}),
+			slug:     slug,
+			binary:   pe.Binary,
+			client:   client,
+			impl:     impl,
+			provides: append([]string(nil), m.Provides...),
+			priority: m.Priority,
+			stopped:  make(chan struct{}),
 		}
 
-		// Register event subscriptions
+		// Register event subscriptions. The plugin manager wires three
+		// dispatch flavours per declared event so the kernel side can
+		// pick whichever Publish* method makes sense at the call site
+		// without each plugin needing to declare separate subscriptions:
+		//   • Subscribe        — fire-and-forget, errors logged only
+		//   • SubscribeResult  — sync request/reply for {{event}} templates
+		//   • SubscribeErr     — sync request with error propagation back
+		//                        to the kernel caller (CoreAPI.SendEmail)
+		//
+		// The wildcard subscription ("*") routes via SubscribeAll so an
+		// extension that owns a cross-cutting concern (e.g. email-manager
+		// matching arbitrary admin-defined rules to any system event) can
+		// receive every event without enumerating them in the manifest.
 		for _, sub := range subs {
 			eventName := sub.EventName
 			rp.eventNames = append(rp.eventNames, eventName)
 
-			// Create a closure that calls the plugin's HandleEvent
 			pluginImpl := impl // capture for closure
-			pm.eventBus.Subscribe(eventName, func(action string, payload events.Payload) {
-				// Bail out if the plugin was stopped — avoids RPC errors on
-				// stale handlers that outlived the plugin process.
+
+			// dispatchEvent invokes the plugin's HandleEvent over gRPC.
+			// Returns ("", nil) when the plugin was already stopped —
+			// callers treat that as no-op rather than an error so a
+			// shutting-down extension doesn't taint kernel publish paths.
+			dispatchEvent := func(action string, payload events.Payload) (handled bool, result []byte, errStr string, callErr error) {
 				select {
 				case <-rp.stopped:
-					return
+					return false, nil, "", nil
 				default:
 				}
-
 				payloadBytes, err := json.Marshal(payload)
 				if err != nil {
-					log.Printf("[plugins] failed to marshal payload for %s: %v", action, err)
-					return
+					return false, nil, "", fmt.Errorf("marshal payload: %w", err)
 				}
-
 				resp, err := pluginImpl.HandleEvent(action, payloadBytes)
 				if err != nil {
-					log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, err)
+					return false, nil, "", err
+				}
+				return resp.Handled, resp.Result, resp.Error, nil
+			}
+
+			if eventName == "*" {
+				// Wildcard fan-out via SubscribeAll. Result/Err variants
+				// are skipped because PublishCollect / PublishRequest
+				// dispatch on action-specific maps; subscribing the
+				// wildcard there would require a separate "all" surface
+				// the kernel doesn't currently need.
+				pm.eventBus.SubscribeAll(func(action string, payload events.Payload) {
+					_, _, errStr, callErr := dispatchEvent(action, payload)
+					if callErr != nil {
+						log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, callErr)
+						return
+					}
+					if errStr != "" {
+						log.Printf("[plugins] %s/%s reported error for %s: %s", slug, pe.Binary, action, errStr)
+					}
+				})
+				continue
+			}
+
+			pm.eventBus.Subscribe(eventName, func(action string, payload events.Payload) {
+				_, _, errStr, callErr := dispatchEvent(action, payload)
+				if callErr != nil {
+					log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, callErr)
 					return
 				}
-				if resp.Error != "" {
-					log.Printf("[plugins] %s/%s reported error for %s: %s", slug, pe.Binary, action, resp.Error)
+				if errStr != "" {
+					log.Printf("[plugins] %s/%s reported error for %s: %s", slug, pe.Binary, action, errStr)
 				}
 			})
 
-			// Also register a result handler so templates calling
-			// {{event "..."}} can receive the plugin's rendered output
-			// (e.g. forms:render returns form HTML).
 			pm.eventBus.SubscribeResult(eventName, func(action string, payload events.Payload) string {
-				select {
-				case <-rp.stopped:
-					return ""
-				default:
-				}
-				payloadBytes, err := json.Marshal(payload)
-				if err != nil {
-					log.Printf("[plugins] failed to marshal payload for %s: %v", action, err)
+				handled, result, errStr, callErr := dispatchEvent(action, payload)
+				if callErr != nil {
+					log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, callErr)
 					return ""
 				}
-				resp, err := pluginImpl.HandleEvent(action, payloadBytes)
-				if err != nil {
-					log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, err)
+				if errStr != "" {
+					log.Printf("[plugins] %s/%s reported error for %s: %s", slug, pe.Binary, action, errStr)
 					return ""
 				}
-				if resp.Error != "" {
-					log.Printf("[plugins] %s/%s reported error for %s: %s", slug, pe.Binary, action, resp.Error)
+				if !handled {
 					return ""
 				}
-				if !resp.Handled {
-					return ""
+				return string(result)
+			})
+
+			// SubscribeErr lets the kernel surface a plugin-reported
+			// error (resp.Error) back through PublishRequest. Used by
+			// CoreAPI.SendEmail so an SMTP refusal propagates to the
+			// HTTP caller instead of being swallowed in a log line.
+			pm.eventBus.SubscribeErr(eventName, func(action string, payload events.Payload) error {
+				_, _, errStr, callErr := dispatchEvent(action, payload)
+				if callErr != nil {
+					return callErr
 				}
-				return string(resp.Result)
+				if errStr != "" {
+					return fmt.Errorf("%s: %s", slug, errStr)
+				}
+				return nil
 			})
 		}
 
@@ -303,6 +365,60 @@ func (pm *PluginManager) GetClient(slug string) *vibeplugin.GRPCClient {
 		return client
 	}
 	return nil
+}
+
+// GetProvider returns the highest-priority running plugin whose manifest
+// declares the given tag in its `provides` array, or nil when no
+// extension is providing it. Used by CoreAPI to resolve which extension
+// owns a feature class (e.g. "media-provider", "search-provider") so
+// operators can swap in a custom implementation by activating their own
+// extension with a higher priority.
+//
+// The result intentionally exposes the GRPCClient so callers can speak
+// HTTP to the plugin via HandleHTTPRequest — the same path the admin UI
+// uses, which keeps the request shape consistent (validation,
+// optimisation, etc. all run identically regardless of caller).
+func (pm *PluginManager) GetProvider(tag string) *vibeplugin.GRPCClient {
+	if tag == "" {
+		return nil
+	}
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+
+	var best *runningPlugin
+	for _, plugins := range pm.plugins {
+		for _, rp := range plugins {
+			if !pluginProvides(rp.provides, tag) {
+				continue
+			}
+			if best == nil || rp.priority > best.priority {
+				best = rp
+			}
+		}
+	}
+	if best == nil {
+		return nil
+	}
+	if client, ok := best.impl.(*vibeplugin.GRPCClient); ok {
+		return client
+	}
+	return nil
+}
+
+// HasProvider returns true if any active extension declares the given tag.
+// Cheap probe used by callers that want to short-circuit with a clear
+// "no provider configured" message (CoreAPI media methods do this).
+func (pm *PluginManager) HasProvider(tag string) bool {
+	return pm.GetProvider(tag) != nil
+}
+
+func pluginProvides(provides []string, tag string) bool {
+	for _, p := range provides {
+		if p == tag {
+			return true
+		}
+	}
+	return false
 }
 
 // RunningCount returns the number of running plugin processes.

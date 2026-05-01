@@ -11,6 +11,22 @@ import (
 )
 
 // AppData holds the .App namespace for layout templates.
+//
+// Two layers of slots, by design:
+//
+//  1. Composite slots (.app.head / .app.body_start / .app.body_end /
+//     .app.footer). The kernel pre-renders <link>/<script>/<style> tags
+//     from the theme's own assets AND collects extension contributions
+//     from the matching render.* event. Modern themes drop a single
+//     {{.app.head}} into <head> and {{.app.body_end}} before </body>
+//     and they're done — no iteration, no <meta name="robots"> bespoke
+//     handling.
+//
+//  2. Granular arrays / inline blobs (head_styles, head_scripts,
+//     foot_scripts, head_meta, block_styles, block_scripts). Same
+//     content, exposed individually for themes that want fine-grained
+//     control over ordering or want to skip something. Themes that use
+//     these should NOT also drop the composites or they'll double-emit.
 type AppData struct {
 	Menus        map[string]interface{}
 	Settings     map[string]string
@@ -19,7 +35,11 @@ type AppData struct {
 	HeadStyles   []string
 	HeadScripts  []string
 	FootScripts  []string
-	HeadMeta     template.HTML // Composed SEO meta tags (og:*, twitter:*, hreflang, canonical, robots).
+	HeadMeta     template.HTML // extension contributions from render.head
+	Head         template.HTML // composite: head_styles + block_styles + head_scripts + head_meta
+	BodyStart    template.HTML // extension contributions from render.body_start
+	BodyEnd      template.HTML // composite: foot_scripts + block_scripts + extension render.body_end
+	Footer       template.HTML // extension contributions from render.footer
 	BlockStyles  template.HTML
 	BlockScripts template.HTML
 	ThemeURL     string
@@ -78,6 +98,10 @@ func (td TemplateData) ToMap() map[string]interface{} {
 			"head_scripts":  td.App.HeadScripts,
 			"foot_scripts":  td.App.FootScripts,
 			"head_meta":     td.App.HeadMeta,
+			"head":          td.App.Head,
+			"body_start":    td.App.BodyStart,
+			"body_end":      td.App.BodyEnd,
+			"footer":        td.App.Footer,
 			"block_styles":  td.App.BlockStyles,
 			"block_scripts": td.App.BlockScripts,
 			"theme_url":     td.App.ThemeURL,

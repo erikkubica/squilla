@@ -281,6 +281,6 @@ func main() {
 		VersionedPlugins: map[int]goplugin.PluginSet{
 			2: {"extension": &vibeplugin.ExtensionGRPCPlugin{Impl: &SitemapPlugin{}}},
 		},
-		GRPCServer: goplugin.DefaultGRPCServer,
+		GRPCServer: vibeplugin.NewGRPCServer,
 	})
 }

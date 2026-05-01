@@ -5,6 +5,7 @@
   "author": "Squilla",
   "description": "Production-grade form builder with file uploads, CAPTCHA, conditional logic, webhooks, GDPR compliance, and email notifications.",
   "provides": ["forms"],
+  "auto_activate": true,
   "capabilities": [
     "data:read",
     "data:write",

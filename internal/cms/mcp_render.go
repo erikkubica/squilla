@@ -176,7 +176,12 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides
 	appData := h.renderCtx.BuildAppData(settings, languages, currentLang, usedSlugs)
 	appData.Menus = menus
 	nodeData := h.renderCtx.BuildNodeData(&node, blocksHTML, languages)
-	appData.HeadMeta = BuildHeadMeta(&node, nodeData.SEO, settings, nodeData.Translations, languages)
+	appData.HeadMeta = h.renderHead(&node, nodeData, settings)
+	appData.BodyStart = h.renderBodyStart(&node, nodeData, settings)
+	extensionBodyEnd := h.renderBodyEnd(&node, nodeData, settings)
+	appData.Footer = h.renderFooter(&node, nodeData, settings)
+	appData.Head = composeHead(appData)
+	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 
 	templateData := TemplateData{
 		App:           appData,

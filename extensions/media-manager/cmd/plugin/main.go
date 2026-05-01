@@ -386,7 +386,7 @@ func main() {
 		VersionedPlugins: map[int]goplugin.PluginSet{
 			2: {"extension": &vibeplugin.ExtensionGRPCPlugin{Impl: &MediaManagerPlugin{}}},
 		},
-		GRPCServer: goplugin.DefaultGRPCServer,
+		GRPCServer: vibeplugin.NewGRPCServer,
 	})
 }
 

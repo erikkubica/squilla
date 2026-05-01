@@ -218,13 +218,23 @@ export async function restoreNodeRevision(
   return res.data;
 }
 
-export async function getHomepageId(): Promise<number> {
-  const settings = await getSiteSettings();
+// getHomepageId returns the homepage node id configured for the given
+// locale. homepage_node_id is a translatable setting — each locale has
+// its own row in site_settings, so a node-editor showing a German page
+// must consult the German row to know whether THIS node is the
+// language's homepage. Pass the node's language_code, not the admin's
+// current locale.
+export async function getHomepageId(locale?: string): Promise<number> {
+  const settings = await getSiteSettings(locale);
   return Number(settings.homepage_node_id) || 0;
 }
 
-export async function setHomepage(nodeId: number | string): Promise<void> {
-  await updateSiteSettings({ homepage_node_id: String(nodeId) });
+// setHomepage writes the homepage_node_id for the given locale. Always
+// pass the node's language_code so the German node lands in the
+// language="de" row. Saving cross-locale (English homepage = German
+// node) is rejected server-side by validateNodeSelect.
+export async function setHomepage(nodeId: number | string, locale?: string): Promise<void> {
+  await updateSiteSettings({ homepage_node_id: String(nodeId) }, locale);
 }
 
 export interface NodeTypeField {

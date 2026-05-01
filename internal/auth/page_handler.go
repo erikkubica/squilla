@@ -299,12 +299,33 @@ func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
 }
 
 // ProcessForgotPassword issues a password reset token for a real account
-// and publishes user.password_reset_requested so the email dispatcher
-// (or whichever provider is wired) can deliver the reset link. Always
-// returns the same generic success flash regardless of whether the
-// email exists — never confirm or deny account existence to the
-// requester (that's a username enumeration oracle).
+// and publishes user.password_reset_requested so the email-manager
+// extension's dispatcher can deliver the reset link via whichever email
+// provider is configured. Always returns the same generic success flash
+// regardless of whether the email exists — never confirm or deny account
+// existence to the requester (that's a username enumeration oracle).
+//
+// Graceful degradation: if no email provider is wired (kernel-only deploy,
+// or email-manager removed), the endpoint surfaces a clear "feature
+// disabled" message. This is NOT an enumeration oracle — the disabled
+// state is global, not per-account, so an attacker can't learn anything
+// about specific emails from it. Admins recovering from this state can
+// either install an email provider extension or use the CLI:
+//
+//	squilla reset-password <email> <new-password>
 func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
+	// Email is an extension-provided feature now — without an active
+	// provider plugin nothing can deliver the reset link, so disable the
+	// endpoint outright instead of pretending it worked. The check is
+	// HasHandlers("email.send") because that's what coreapi.SendEmail
+	// requires; the upstream user.password_reset_requested handler
+	// (email-manager dispatcher) is downstream of email.send so checking
+	// here is sufficient.
+	if h.eventBus == nil || !h.eventBus.HasHandlers("email.send") {
+		setFlash(c, "Password reset is disabled — no email provider is configured. Contact your administrator (the CLI 'squilla reset-password' command is available for recovery).", "error")
+		return c.Redirect("/forgot-password", fiber.StatusFound)
+	}
+
 	if !h.forgotLimiter.Allow(c.IP()) {
 		// Same generic message — don't tell attackers they're rate-limited
 		// (still an oracle that the endpoint is reachable).
@@ -337,21 +358,19 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 
 	resetURL := buildResetURL(c, rawToken)
 
-	if h.eventBus != nil {
-		// Sync publish so the email-sending rule chain runs before we
-		// redirect — otherwise the user could refresh the success page
-		// and re-submit before the email is dispatched. Failure to
-		// dispatch isn't surfaced to the user (oracle).
-		h.eventBus.PublishSync("user.password_reset_requested", events.Payload{
-			"user_id":      user.ID,
-			"user_email":   user.Email,
-			"actor_email":  user.Email,
-			"reset_url":    resetURL,
-			"reset_token":  rawToken, // template variable; persisted in email log if logging is enabled
-			"expires_at":   expires.Format(time.RFC3339),
-			"ip_address":   c.IP(),
-		})
-	}
+	// Sync publish so the email-sending rule chain runs before we
+	// redirect — otherwise the user could refresh the success page
+	// and re-submit before the email is dispatched. Failure to
+	// dispatch isn't surfaced to the user (oracle).
+	h.eventBus.PublishSync("user.password_reset_requested", events.Payload{
+		"user_id":     user.ID,
+		"user_email":  user.Email,
+		"actor_email": user.Email,
+		"reset_url":   resetURL,
+		"reset_token": rawToken, // template variable; persisted in email log if logging is enabled
+		"expires_at":  expires.Format(time.RFC3339),
+		"ip_address":  c.IP(),
+	})
 
 	setFlash(c, successMsg, "success")
 	return c.Redirect("/forgot-password", fiber.StatusFound)

@@ -1,0 +1,107 @@
+{
+    "name": "SEO",
+    "slug": "seo-extension",
+    "version": "1.0.0",
+    "author": "Squilla",
+    "description": "Owns /robots.txt, SEO defaults (meta title/description/OG/Twitter), and AI-crawler policy. Pairs with sitemap-generator for the full search-engine surface.",
+    "provides": ["seo"],
+    "priority": 50,
+    "auto_activate": true,
+    "capabilities": [
+        "settings:read",
+        "settings:write",
+        "events:subscribe",
+        "events:emit",
+        "log:write"
+    ],
+    "plugins": [
+        {
+            "binary": "bin/seo-extension",
+            "events": ["render.head"]
+        }
+    ],
+    "public_routes": [
+        {"method": "GET", "path": "/robots.txt"}
+    ],
+    "admin_ui": {
+        "site_settings_menu": [
+            {"label": "SEO", "route": "/admin/settings/site/seo", "icon": "Globe"},
+            {"label": "Robots & AI", "route": "/admin/settings/site/robots", "icon": "Shield"}
+        ]
+    },
+    "settings": [
+        {
+            "id": "site.seo",
+            "title": "SEO",
+            "description": "Search engine and social-card defaults. Per-node SEO settings always win.",
+            "capability": "manage_settings",
+            "sections": [
+                {
+                    "title": "SEO",
+                    "icon": "Globe",
+                    "description": "Site-wide SEO defaults. Per-node SEO settings always win.",
+                    "full_width": true,
+                    "fields": [
+                        {"key": "seo_default_meta_title", "label": "Default Meta Title", "type": "text", "translatable": true,
+                            "placeholder": "Site title fallback",
+                            "help": "Used when a page has no Meta Title set. ≤60 chars recommended."},
+                        {"key": "seo_default_meta_description", "label": "Default Meta Description", "type": "textarea", "translatable": true,
+                            "rows": 2, "placeholder": "Brief site description",
+                            "help": "Fallback meta description. ≤160 chars recommended."},
+                        {"key": "seo_default_og_image", "label": "Default OG Image", "type": "text", "translatable": true,
+                            "placeholder": "https://example.com/og.png", "font_mono": true,
+                            "help": "Fallback for og:image / twitter:image when a page has no featured image. 1200×630 recommended."},
+                        {"key": "seo_og_site_name", "label": "OG Site Name", "type": "text", "translatable": true,
+                            "placeholder": "Defaults to Site Name",
+                            "help": "Emitted as og:site_name. Falls back to Site Name when blank."},
+                        {"key": "seo_twitter_handle", "label": "Twitter Handle", "type": "text", "translatable": true,
+                            "placeholder": "@yoursite", "help": "Emitted as twitter:site for cards."},
+                        {"key": "seo_robots_index", "label": "Allow search engines to index this site", "type": "toggle",
+                            "translatable": true, "true_value": "true", "false_value": "false", "default": "true",
+                            "help": "When off, every public page emits noindex,nofollow (and the X-Robots-Tag header). Use OFF during staging.",
+                            "warning": "This setting is per-language. To hide the entire site from search, switch the language picker and toggle this OFF for every active language."}
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "site.robots",
+            "title": "Robots & AI Crawlers",
+            "description": "Controls /robots.txt — what classic search engines and AI crawlers may do with your content. The SEO indexing master switch (Site Settings → SEO) overrides everything here when off.",
+            "capability": "manage_settings",
+            "sections": [
+                {
+                    "title": "AI Crawler Policy",
+                    "icon": "Shield",
+                    "description": "Two distinct cohorts. Training crawlers feed model corpora. Search crawlers fetch live when a user asks an AI assistant.",
+                    "fields": [
+                        {"key": "robots_allow_ai_training", "label": "Allow AI training crawlers", "type": "toggle",
+                            "true_value": "true", "false_value": "false", "default": "true",
+                            "help": "Off blocks GPTBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot, Meta-ExternalAgent, Bytespider, Amazonbot, and ~15 other training crawlers.",
+                            "warning": "Training opt-out is best-effort: it relies on each vendor honouring robots.txt. Sticky badges only — no enforcement."},
+                        {"key": "robots_allow_ai_search", "label": "Allow AI answer-engine crawlers", "type": "toggle",
+                            "true_value": "true", "false_value": "false", "default": "true",
+                            "help": "Off blocks ChatGPT-User, OAI-SearchBot, PerplexityBot, Perplexity-User, MistralAI-User, DuckAssistBot, etc."}
+                    ]
+                },
+                {
+                    "title": "Custom Rules",
+                    "icon": "FileText",
+                    "description": "Operator escape hatch.",
+                    "full_width": true,
+                    "fields": [
+                        {"key": "robots_disallow_paths", "label": "Additional Disallow paths", "type": "textarea", "rows": 4, "font_mono": true,
+                            "placeholder": "/private/\n/internal/\n/search?",
+                            "help": "One path per line. Appended to the User-agent: * block alongside the built-in /admin, /auth, /api defaults."},
+                        {"key": "robots_custom", "label": "Custom robots.txt block", "type": "textarea", "rows": 6, "font_mono": true,
+                            "placeholder": "# Slow this one bot down\nUser-agent: SpecialBot\nCrawl-delay: 10",
+                            "help": "Appended verbatim at the end. Use for vendor-specific directives, Crawl-delay, or comments."},
+                        {"key": "robots_sitemap_url", "label": "Sitemap URL override", "type": "text", "font_mono": true,
+                            "placeholder": "https://example.com/sitemap.xml",
+                            "help": "Defaults to <site_url>/sitemap.xml. Override if your sitemap lives elsewhere."}
+                    ]
+                }
+            ]
+        }
+    ]
+}

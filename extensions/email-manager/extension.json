@@ -5,6 +5,7 @@
     "author": "Squilla",
     "description": "Manage email templates, rules, delivery logs, and provider settings.",
     "provides": ["email-management"],
+    "auto_activate": true,
     "capabilities": [
         "data:read",
         "data:write",
@@ -23,7 +24,7 @@
     "plugins": [
         {
             "binary": "bin/email-manager",
-            "events": []
+            "events": ["*"]
         }
     ],
     "admin_ui": {

@@ -21,10 +21,27 @@ type EmailManagerPlugin struct {
 }
 
 func (p *EmailManagerPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
-	return nil, nil
+	// "*" is the wildcard subscription understood by the kernel's
+	// plugin manager (see internal/cms/plugin_manager.go). It routes
+	// EVERY system event to this plugin's HandleEvent so the dispatcher
+	// can match arbitrary admin-defined rules without enumerating every
+	// possible action in the manifest. The runtime cost of the extra
+	// dispatch is negligible because dispatcher.go short-circuits
+	// before any DB lookups when no rule matches.
+	return []*pb.Subscription{{EventName: "*", Priority: 50}}, nil
 }
 
+// HandleEvent runs the email-rules dispatcher for every kernel event.
+// Returns Handled=false so the kernel doesn't treat this plugin's
+// participation as the canonical responder for any specific event —
+// that's still the provider plugin's role on email.send. Errors are
+// returned via EventResponse.Error rather than the Go error so the
+// kernel logs them under [plugins] uniformly with other extensions.
 func (p *EmailManagerPlugin) HandleEvent(action string, payload []byte) (*pb.EventResponse, error) {
+	ctx := context.Background()
+	if err := p.dispatchEvent(ctx, action, payload); err != nil {
+		return &pb.EventResponse{Handled: false, Error: err.Error()}, nil
+	}
 	return &pb.EventResponse{Handled: false}, nil
 }
 
@@ -370,6 +387,6 @@ func main() {
 		VersionedPlugins: map[int]goplugin.PluginSet{
 			2: {"extension": &vibeplugin.ExtensionGRPCPlugin{Impl: &EmailManagerPlugin{}}},
 		},
-		GRPCServer: goplugin.DefaultGRPCServer,
+		GRPCServer: vibeplugin.NewGRPCServer,
 	})
 }

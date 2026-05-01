@@ -326,13 +326,17 @@ func (e *Engine) dashboardLayout(userName string) *LayoutNode {
 					{
 						Type: "QuickActions",
 						Props: map[string]interface{}{
+							// Quick actions only link to kernel-owned admin pages.
+							// Extension-specific links (forms, media, etc.) are
+							// surfaced through each extension's manifest menu —
+							// hardcoding extension paths here would tie the
+							// dashboard to extensions that may not be installed.
 							"actions": []map[string]interface{}{
 								{"label": "Pages", "path": "/admin/content/page", "icon": "FileText"},
-								{"label": "Forms", "path": "/admin/ext/forms", "icon": "FormInput"},
-								{"label": "Media", "path": "/admin/ext/media-manager", "icon": "Image"},
 								{"label": "Users", "path": "/admin/users", "icon": "Users"},
 								{"label": "Themes", "path": "/admin/themes", "icon": "Palette"},
 								{"label": "Extensions", "path": "/admin/extensions", "icon": "Puzzle"},
+								{"label": "Settings", "path": "/admin/settings", "icon": "Settings"},
 							},
 						},
 					},

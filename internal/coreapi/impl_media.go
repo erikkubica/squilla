@@ -1,83 +1,60 @@
 package coreapi
 
-import (
-	"context"
-	"fmt"
-)
+import "context"
+
+// SendEmail's twin for media: route every operation through the
+// MediaProviderResolver. The kernel deliberately ships no fallback —
+// per the kernel/extensions hard rule, the bytes-on-disk path lives in
+// the media-manager extension (or whichever extension takes over the
+// "media-provider" tag) and disabling all such extensions disables
+// media. Errors from the resolver are wrapped as NewValidation so the
+// admin UI surfaces a recognisable "install / activate the extension"
+// message rather than a 500.
 
 func (c *coreImpl) UploadMedia(ctx context.Context, req MediaUploadRequest) (*MediaFile, error) {
-	if c.mediaSvc == nil {
-		return nil, NewInternal("media service not wired into CoreAPI (mediaSvc is nil at coreImpl construction). Check cmd/squilla/main.go: NewCoreImpl must receive a non-nil *cms.MediaService.")
+	if c.mediaResolver == nil {
+		return nil, NewValidation(noMediaProviderMessage())
 	}
-
-	mf, err := c.mediaSvc.Upload(req.Body, req.Filename, req.MimeType, 0)
-	if err != nil {
-		return nil, NewInternal(fmt.Sprintf("media upload failed: %v", err))
+	provider := c.mediaResolver()
+	if provider == nil {
+		return nil, NewValidation(noMediaProviderMessage())
 	}
-
-	return &MediaFile{
-		ID:        mf.ID,
-		Filename:  mf.OriginalName,
-		MimeType:  mf.MimeType,
-		Size:      mf.Size,
-		URL:       mf.URL,
-		CreatedAt: mf.CreatedAt,
-	}, nil
+	return provider.Upload(ctx, req)
 }
 
 func (c *coreImpl) GetMedia(ctx context.Context, id uint) (*MediaFile, error) {
-	if c.mediaSvc == nil {
-		return nil, NewInternal("media service not configured")
+	if c.mediaResolver == nil {
+		return nil, NewValidation(noMediaProviderMessage())
 	}
-
-	mf, err := c.mediaSvc.GetByID(id)
-	if err != nil {
-		return nil, NewNotFound("media_file", id)
+	provider := c.mediaResolver()
+	if provider == nil {
+		return nil, NewValidation(noMediaProviderMessage())
 	}
-
-	return &MediaFile{
-		ID:        mf.ID,
-		Filename:  mf.OriginalName,
-		MimeType:  mf.MimeType,
-		Size:      mf.Size,
-		URL:       mf.URL,
-		CreatedAt: mf.CreatedAt,
-	}, nil
+	return provider.Get(ctx, id)
 }
 
 func (c *coreImpl) QueryMedia(ctx context.Context, query MediaQuery) ([]*MediaFile, error) {
-	if c.mediaSvc == nil {
-		return nil, NewInternal("media service not configured")
+	if c.mediaResolver == nil {
+		return nil, NewValidation(noMediaProviderMessage())
 	}
-
-	files, _, err := c.mediaSvc.List(query.MimeType, query.Search, query.Limit, query.Offset)
-	if err != nil {
-		return nil, NewInternal(fmt.Sprintf("media query failed: %v", err))
+	provider := c.mediaResolver()
+	if provider == nil {
+		return nil, NewValidation(noMediaProviderMessage())
 	}
-
-	result := make([]*MediaFile, len(files))
-	for i, mf := range files {
-		result[i] = &MediaFile{
-			ID:        mf.ID,
-			Filename:  mf.OriginalName,
-			MimeType:  mf.MimeType,
-			Size:      mf.Size,
-			URL:       mf.URL,
-			CreatedAt: mf.CreatedAt,
-		}
-	}
-
-	return result, nil
+	return provider.Query(ctx, query)
 }
 
 func (c *coreImpl) DeleteMedia(ctx context.Context, id uint) error {
-	if c.mediaSvc == nil {
-		return NewInternal("media service not configured")
+	if c.mediaResolver == nil {
+		return NewValidation(noMediaProviderMessage())
 	}
-
-	if err := c.mediaSvc.Delete(id); err != nil {
-		return NewInternal(fmt.Sprintf("media delete failed: %v", err))
+	provider := c.mediaResolver()
+	if provider == nil {
+		return NewValidation(noMediaProviderMessage())
 	}
+	return provider.Delete(ctx, id)
+}
 
-	return nil
+func noMediaProviderMessage() string {
+	return "no media provider configured — install and activate an extension that declares provides:[\"media-provider\"] (the bundled media-manager covers most cases)"
 }

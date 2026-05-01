@@ -230,6 +230,6 @@ func main() {
 		Plugins: map[string]goplugin.Plugin{
 			"extension": &vibeplugin.ExtensionGRPCPlugin{Impl: p},
 		},
-		GRPCServer: goplugin.DefaultGRPCServer,
+		GRPCServer: vibeplugin.NewGRPCServer,
 	})
 }

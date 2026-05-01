@@ -4,7 +4,9 @@
     "version": "1.0.0",
     "author": "Squilla",
     "description": "Upload, organize, and manage media files. Supports images, documents, and other file types.",
-    "provides": ["media"],
+    "provides": ["media-provider"],
+    "priority": 50,
+    "auto_activate": true,
     "capabilities": [
         "media:read",
         "media:write",

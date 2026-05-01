@@ -500,3 +500,66 @@ mcp-cli squilla/core.theme.deploy_finalize "{\"upload_token\":\"$TOK\",\"activat
 | 409 | Already uploaded (single-use) or upload in progress (race) |
 | 413 | Body exceeded `max_bytes` |
 
+## 10. Migration Ownership Transfer
+
+When a feature is being **extracted from the kernel into an extension** (the
+historical case for `email-manager`, `media-manager`, and `seo-extension`),
+the extension takes over a table the kernel previously created. The transfer
+must be lossless on existing installs and a clean greenfield on fresh ones.
+
+**The pattern (one-time, per extracted table):**
+
+1. **Declare ownership in the manifest.** Add the table to
+   `data_owned_tables` in `extension.json`. CoreAPI's data-access guard
+   reads this at every `Data*` call — without the entry, the extension's
+   own queries would be denied.
+
+2. **Move the migration file.** Copy the `CREATE TABLE` (and any subsequent
+   `ALTER`s for that table) from `internal/db/migrations/NNNN_*.sql` into
+   `extensions/<slug>/migrations/NNN_*.sql`. Rewrite as idempotent:
+   ```sql
+   CREATE TABLE IF NOT EXISTS the_table (...);
+
+   DO $$ BEGIN
+       IF NOT EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_name = 'the_table' AND column_name = 'new_column'
+       ) THEN
+           ALTER TABLE the_table ADD COLUMN new_column TEXT;
+       END IF;
+   END $$;
+   ```
+
+3. **Delete the kernel migration file.** The runner (`internal/db/postgres.go`'s
+   `RunMigrations`) only runs files it finds on disk; missing files referenced
+   by stale `schema_migrations` rows are harmless, so existing installs are
+   unaffected. New installs simply won't run the migration there — the
+   extension creates the table on activation.
+
+4. **Idempotent seeds in the extension.** Move any `seedX` calls from
+   `internal/db/seed*.go` into the extension. Seeders MUST be idempotent
+   (`INSERT ... WHERE NOT EXISTS`, `ON CONFLICT DO NOTHING`, or
+   `FirstOrCreate`) so re-activation doesn't duplicate rows on installs
+   where the kernel previously seeded.
+
+5. **Drop kernel-side code.** Models, services, handlers, and any field on
+   `coreImpl` that referenced the table. The CoreAPI surface (e.g.
+   `SendEmail`, `UploadMedia`) stays — its implementation now routes
+   through `eventBus.PublishRequest` so the extension provides behaviour.
+
+6. **Verify.** Disable the extension and confirm the kernel still boots,
+   public pages still render, and the relevant CoreAPI methods return a
+   clear "no provider" error instead of panicking.
+
+**Why this works on existing installs:**
+- The kernel `schema_migrations` row referencing the now-deleted file is
+  ignored (the runner skips applied entries).
+- The extension migration's `IF NOT EXISTS` makes the table creation a
+  no-op when the kernel previously created it.
+- The idempotent seeders skip rows that already exist.
+
+**Why this works on fresh installs:**
+- The kernel migration is gone, so no table is created at boot.
+- Extension activation runs the migration and seed → table exists with
+  default content, ready for use.
+
