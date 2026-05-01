@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { PublishActions } from "@/components/ui/publish-actions";
 import { Switch } from "@/components/ui/switch";
 import { Titlebar } from "@/components/ui/titlebar";
 import { MetaRow, MetaList } from "@/components/ui/meta-row";
@@ -344,7 +344,7 @@ export default function BlockTypeEditorPage() {
           <Card className="rounded-xl border border-border shadow-sm">
             <SectionHeader title="Publish" />
             <CardContent className="space-y-4">
-              {isManaged ? (
+              {isManaged && (
                 <Button
                   type="button"
                   className="w-full font-medium rounded-lg shadow-sm h-9 text-sm" style={{background: "var(--warning)", color: "#fff"}}
@@ -354,30 +354,33 @@ export default function BlockTypeEditorPage() {
                   <Unplug className="mr-1.5 h-3.5 w-3.5" />
                   {detaching ? "Detaching..." : "Detach"}
                 </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={saving}
-                >
-                  <Save className="mr-1.5 h-3.5 w-3.5" />
-                  {saving ? "Saving..." : "Save"}
-                </Button>
               )}
 
-              {isEdit && !isManaged && (
+              {!isManaged && (
                 <>
-                  <Separator />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full"
-                    style={{ color: "var(--danger)" }}
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                    Delete
-                  </Button>
+                  <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
+                  <PublishActions>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={saving}
+                    >
+                      <Save className="mr-1.5 h-3.5 w-3.5" />
+                      {saving ? "Saving..." : "Save"}
+                    </Button>
+                    {isEdit && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full"
+                        style={{ color: "var(--danger)" }}
+                        onClick={() => setShowDeleteDialog(true)}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    )}
+                  </PublishActions>
                 </>
               )}
 

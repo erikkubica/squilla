@@ -12,6 +12,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Titlebar } from "@/components/ui/titlebar";
 import { MetaRow, MetaList } from "@/components/ui/meta-row";
+import { PublishActions } from "@/components/ui/publish-actions";
 import { toast } from "sonner";
 import { usePageMeta } from "@/components/layout/page-meta";
 import {
@@ -267,14 +268,17 @@ export default function MenuEditorPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full"
-            >
-              {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
-              {saving ? "Saving..." : "Save Menu"}
-            </Button>
+            <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
+            <PublishActions>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full"
+              >
+                {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
+                {saving ? "Saving..." : "Save Menu"}
+              </Button>
+            </PublishActions>
             {!isNew && originalMenu && (
               <>
                 <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />

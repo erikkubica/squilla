@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SidebarCard } from "@/components/ui/sidebar-card";
+import { PublishActions } from "@/components/ui/publish-actions";
 import {
   Dialog,
   DialogContent,
@@ -363,26 +364,29 @@ export default function TermEditorPage() {
             </div>
           )}
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={saving}
-          >
-            {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
-            {saving ? "Saving..." : "Save Term"}
-          </Button>
-          {isEdit && (
+          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
+          <PublishActions>
             <Button
-              type="button"
-              variant="ghost"
+              type="submit"
               className="w-full"
-              style={{ color: "var(--danger)" }}
-              onClick={() => setShowDeleteDialog(true)}
+              disabled={saving}
             >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-              Delete
+              {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1.5 h-3.5 w-3.5" />}
+              {saving ? "Saving..." : "Save Term"}
             </Button>
-          )}
+            {isEdit && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                style={{ color: "var(--danger)" }}
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Delete
+              </Button>
+            )}
+          </PublishActions>
           {isEdit && originalTerm && (
             <>
               <div style={{ height: 1, background: "var(--divider)", margin: "4px 0" }} />
