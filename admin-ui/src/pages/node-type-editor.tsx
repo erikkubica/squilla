@@ -568,11 +568,11 @@ export default function NodeTypeEditorPage() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs" style={{color: "var(--fg-subtle)"}}>
                     <div className="flex justify-between">
                       <span>Created</span>
-                      <span className="text-muted-foreground">{new Date(originalNodeType.created_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNodeType.created_at).toLocaleDateString("en-GB")}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Updated</span>
-                      <span className="text-muted-foreground">{new Date(originalNodeType.updated_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNodeType.updated_at).toLocaleDateString("en-GB")}</span>
                     </div>
                   </div>
                 </>

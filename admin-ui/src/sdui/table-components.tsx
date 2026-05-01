@@ -103,6 +103,7 @@ const LANG_FLAGS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export function PageHeader({
+  title,
   newLabel,
   newPath,
   backPath,
@@ -129,36 +130,158 @@ export function PageHeader({
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
 
+  const totalCount =
+    tabs && tabs.length > 0
+      ? tabs.find((t) => t.value === "all")?.count ??
+        tabs.reduce((acc, t) => acc + (t.count ?? 0), 0)
+      : undefined;
+
+  const titleStr = title ? title.charAt(0).toUpperCase() + title.slice(1) : "";
+
   return (
-    <div className="flex items-center gap-0 border-b border-border mb-3">
-      {tabs && tabs.length > 0 ? (
-        <nav className="flex-1 flex items-center gap-0.5 -mb-px">
-          {tabs.map((t) => {
-            const active = t.value === activeTab;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => {
-                  setSearchParams((prev) => {
-                    if (t.value === "all") prev.delete(tabParam);
-                    else prev.set(tabParam, t.value);
-                    prev.delete("page");
-                    return prev;
-                  });
+    <>
+      {/* Title row — H1 + count + actions, sits above the connected list card */}
+      {(title || newPath || onNew || backPath || onBack) && (
+        <div className="flex items-end justify-between" style={{ gap: 16, marginBottom: 14 }}>
+          <h1
+            className="flex items-center"
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              letterSpacing: "-0.025em",
+              color: "var(--fg)",
+              gap: 10,
+              margin: 0,
+            }}
+          >
+            {titleStr}
+            {totalCount !== undefined && (
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  padding: "2px 8px",
+                  borderRadius: 11,
+                  background: "var(--sub-bg)",
+                  color: "var(--fg-muted)",
+                  letterSpacing: 0,
                 }}
-                  className={`px-2.5 pt-[7px] pb-[9px] inline-flex items-center gap-1.5 text-[12.5px] cursor-pointer border-b-2 bg-transparent ${
-                    active
-                      ? "font-semibold text-foreground"
-                      : "font-medium text-muted-foreground border-transparent hover:text-foreground"
-                  }`}
-                  style={active ? {borderColor: "var(--accent-strong)"} : undefined}
+              >
+                {totalCount}
+              </span>
+            )}
+          </h1>
+          <div className="flex items-center" style={{ gap: 6 }}>
+            {(backPath || onBack) && (
+              <button
+                type="button"
+                onClick={() => (onBack ? onBack() : navigate(backPath!))}
+                className="inline-flex items-center cursor-pointer"
+                style={{
+                  height: 32,
+                  padding: "0 12px",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  color: "var(--fg)",
+                  background: "var(--card-bg)",
+                  border: "none",
+                  gap: 6,
+                  letterSpacing: "-0.005em",
+                  boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04)",
+                }}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back
+              </button>
+            )}
+            {(newPath || onNew) && (
+              <button
+                type="button"
+                onClick={() => (newPath ? navigate(newPath) : onNew?.())}
+                className="inline-flex items-center cursor-pointer"
+                style={{
+                  height: 32,
+                  padding: "0 12px",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  color: "var(--accent-fg)",
+                  background: "var(--accent)",
+                  border: "none",
+                  gap: 6,
+                  letterSpacing: "-0.005em",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
+                }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {newLabel ?? "New"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tabs row — connected top of list card */}
+      {tabs && tabs.length > 0 && (
+        <div
+          data-slot="list-tabs"
+          className="flex items-center"
+          style={{
+            background: "var(--card-bg)",
+            borderTopLeftRadius: "var(--radius-lg)",
+            borderTopRightRadius: "var(--radius-lg)",
+            borderBottom: "1px solid var(--divider)",
+            padding: "0 14px",
+            gap: 0,
+          }}
+        >
+          <nav className="flex-1 flex items-center" style={{ gap: 0, marginBottom: -1 }}>
+            {tabs.map((t) => {
+              const active = t.value === activeTab;
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => {
+                    setSearchParams((prev) => {
+                      if (t.value === "all") prev.delete(tabParam);
+                      else prev.set(tabParam, t.value);
+                      prev.delete("page");
+                      return prev;
+                    });
+                  }}
+                  className="inline-flex items-center cursor-pointer"
+                  style={{
+                    padding: "12px 14px",
+                    fontSize: 12.5,
+                    fontWeight: active ? 600 : 500,
+                    color: active ? "var(--fg)" : "var(--fg-muted)",
+                    borderBottom: `1.5px solid ${active ? "var(--fg)" : "transparent"}`,
+                    background: "transparent",
+                    border: "none",
+                    borderBottomWidth: 1.5,
+                    borderBottomStyle: "solid",
+                    borderBottomColor: active ? "var(--fg)" : "transparent",
+                    transition: "color 0.12s, border-color 0.12s",
+                    letterSpacing: "-0.005em",
+                    gap: 6,
+                    marginBottom: -1,
+                  }}
                 >
                   {t.label}
                   {t.count !== undefined && (
                     <span
-                      className="font-mono text-[10.5px] px-1.5 py-px rounded-full border border-border"
-                      style={active ? {background: "var(--accent-weak)", color: "var(--accent-strong)"} : {background: "var(--muted)", color: "var(--muted-foreground)"}}
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10,
+                        fontWeight: 500,
+                        padding: "1px 5px",
+                        borderRadius: 8,
+                        background: active ? "var(--accent-mid)" : "var(--sub-bg)",
+                        color: active ? "var(--accent-strong)" : "var(--fg-muted)",
+                      }}
                     >
                       {t.count}
                     </span>
@@ -167,83 +290,37 @@ export function PageHeader({
               );
             })}
           </nav>
-      ) : (
-        <div className="flex-1" />
+          {languages && languages.length > 0 && (
+            <div className="flex items-center" style={{ paddingTop: 6, paddingBottom: 6 }}>
+              <Select
+                value={activeLanguage || "all"}
+                onValueChange={(val) => {
+                  setSearchParams((prev) => {
+                    if (val === "all") prev.delete("language");
+                    else prev.set("language", val);
+                    prev.delete("page");
+                    return prev;
+                  });
+                }}
+              >
+                <SelectTrigger size="sm" className="w-[160px]">
+                  <Globe className="w-3.5 h-3.5 mr-1" style={{ color: "var(--fg-subtle)" }} />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All languages</SelectItem>
+                  {languages.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.id != null ? String(lang.id) : lang.code}>
+                      {lang.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       )}
-      <div className="flex gap-1.5 pb-1.5">
-        {(backPath || onBack) &&
-          (backPath ? (
-            <button
-              type="button"
-              onClick={() => (onBack ? onBack() : navigate(backPath))}
-              className="h-[26px] px-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground bg-card border rounded hover:bg-muted cursor-pointer"
-              style={{borderColor: "var(--border-input)"}}
-            >
-              <ArrowLeft className="w-3 h-3" />
-              Back
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onBack}
-              className="h-[26px] px-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-foreground bg-card border rounded hover:bg-muted cursor-pointer"
-              style={{borderColor: "var(--border-input)"}}
-            >
-              <ArrowLeft className="w-3 h-3" />
-              Back
-            </button>
-          ))}
-        {(newPath || onNew) &&
-          (newPath ? (
-            <button
-              type="button"
-              onClick={() => navigate(newPath)}
-              className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-primary border border-primary rounded hover:bg-primary/90 cursor-pointer"
-            >
-              <Plus className="w-3 h-3" />
-              {newLabel ?? "New"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onNew}
-              className="h-[26px] px-2.5 inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-primary border border-primary rounded hover:bg-primary/90 cursor-pointer"
-            >
-              <Plus className="w-3 h-3" />
-              {newLabel ?? "New"}
-            </button>
-          ))}
-        {languages && languages.length > 0 && (
-          <Select
-            value={activeLanguage || "all"}
-            onValueChange={(val) => {
-              setSearchParams((prev) => {
-                if (val === "all") prev.delete("language");
-                else prev.set("language", val);
-                prev.delete("page");
-                return prev;
-              });
-            }}
-          >
-            <SelectTrigger size="sm" className="w-[160px]">
-              <Globe className="w-3.5 h-3.5 mr-1" style={{color: "var(--fg-subtle)"}} />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All languages</SelectItem>
-              {languages.map((lang) => (
-                <SelectItem
-                  key={lang.code}
-                  value={lang.id != null ? String(lang.id) : lang.code}
-                >
-                  {lang.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -289,7 +366,16 @@ export const SearchToolbar = memo(
     }, [localSearch]);
 
     return (
-      <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+      <div
+        data-slot="list-toolbar"
+        className="flex items-center flex-wrap"
+        style={{
+          gap: 8,
+          padding: "10px 14px",
+          background: "var(--card-bg)",
+          borderBottom: "1px solid var(--divider)",
+        }}
+      >
         <ListSearch
           value={localSearch}
           onChange={(v) => {
@@ -576,7 +662,7 @@ export function ContentNodeTable({
                   )}
                 </Td>
                 <Td className="font-mono text-[12px] text-muted-foreground tabular-nums">
-                  {new Date(row.updated_at).toLocaleDateString()}
+                  {new Date(row.updated_at).toLocaleDateString("en-GB")}
                 </Td>
                 <Td align="right" className="whitespace-nowrap">
                   <RowActions

@@ -198,6 +198,7 @@ export function ListSearch({
 export function ListCard({ children }: { children: ReactNode }) {
   return (
     <div
+      data-slot="list-card"
       style={{
         background: "var(--card-bg)",
         borderRadius: "var(--radius-lg)",

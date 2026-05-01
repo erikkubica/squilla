@@ -27,7 +27,7 @@ import { toast } from "sonner";
 // as the kebab-case aliases themes/extensions may pass ("image-down").
 // ---------------------------------------------------------------------------
 
-type IconComponent = React.ComponentType<{ className?: string; size?: number; style?: React.CSSProperties }>;
+type IconComponent = React.ComponentType<{ className?: string; size?: number; style?: React.CSSProperties; strokeWidth?: number | string }>;
 const lucideIcons = Lucide as unknown as Record<string, IconComponent>;
 
 function toPascalCase(name: string): string {
@@ -225,7 +225,7 @@ function SidebarNav({
               <IconComp
                 size={15}
                 className="shrink-0"
-                style={{color: childActive ? "var(--accent)" : "var(--sb-fg-muted)"}}
+                style={{color: childActive ? "var(--sb-fg-active)" : "var(--sb-fg-muted)", opacity: childActive ? 1 : 0.7}}
               />
             )}
             {!collapsed && (
@@ -261,19 +261,15 @@ function SidebarNav({
     // Leaf item
     const linkContent = (
       <>
-        {active && !collapsed && (
-          <span
-            className={`absolute left-0 w-[2px] ${
-              isChild ? "top-0 bottom-0" : "top-1 bottom-1 rounded"
-            }`}
-            style={{background: "var(--accent)"}}
-          />
-        )}
         {IconComp && (
           <IconComp
-            size={15}
+            size={14.5}
+            strokeWidth={1.6}
             className="shrink-0"
-            style={{color: active ? "var(--accent)" : "var(--sb-fg-muted)"}}
+            style={{
+              color: active ? "var(--sb-fg-active)" : "var(--sb-fg-muted)",
+              opacity: active ? 1 : 0.7,
+            }}
           />
         )}
         {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
@@ -541,29 +537,26 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
       {/* ----------------------------------------------------------------- */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4">
-          <div className="flex items-center gap-2">
-            {/* Mobile hamburger */}
+        <header
+          className="flex shrink-0 items-center justify-between"
+          style={{ height: 48, padding: "0 22px", background: "var(--app-bg)", borderBottom: "1px solid var(--divider)" }}
+        >
+          <div className="flex items-center" style={{ gap: 8 }}>
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+              className="flex h-7 w-7 items-center justify-center rounded-md lg:hidden"
+              style={{ color: "var(--fg-muted)" }}
               onClick={() => setSidebarOpen(true)}
             >
               <Menu size={18} />
             </button>
-
-            {/* Breadcrumbs */}
-            <nav className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Home size={12} style={{color: "var(--fg-subtle)"}} />
+            <nav className="flex items-center" style={{ gap: 6, fontSize: 12.5, color: "var(--fg-muted)", letterSpacing: "-0.005em" }}>
+              <Home size={12} style={{ color: "var(--fg-subtle)" }} />
               {breadcrumbs.map((crumb, i) => {
                 const last = i === breadcrumbs.length - 1;
                 return (
-                  <span key={i} className="flex items-center gap-1">
-                    <ChevronRight size={10} style={{color: "var(--fg-subtle)"}} />
-                    <span
-                      className={`rounded px-1 py-0.5 ${
-                        last ? "font-medium text-foreground" : "text-muted-foreground"
-                      }`}
-                    >
+                  <span key={i} className="flex items-center" style={{ gap: 6 }}>
+                    <span style={{ color: "var(--fg-hint)", fontSize: 12, opacity: 0.7 }}>/</span>
+                    <span style={{ color: last ? "var(--fg)" : "var(--fg-muted)", fontWeight: last ? 500 : 400 }}>
                       {crumb}
                     </span>
                   </span>
@@ -572,18 +565,20 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Admin language selector — picks which locale the admin is
-                editing. Every translatable surface (settings pages, content
-                lists) uses this as its default; the per-page selector can
-                override it. */}
+          <div className="flex items-center" style={{ gap: 4 }}>
             {languages.length > 0 && (
-              <label className="hidden h-7 items-center gap-1.5 rounded-md border border-border pl-2 pr-1 text-xs font-medium text-muted-foreground sm:flex">
-                <Globe size={12} className="text-muted-foreground" />
+              <label
+                className="hidden sm:flex items-center"
+                style={{ height: 28, padding: "0 10px", borderRadius: 6, gap: 6, fontSize: 12.5, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.005em", transition: "background 0.12s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <Globe size={12} style={{ opacity: 0.6 }} />
                 <select
                   value={currentCode}
                   onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="bg-transparent pr-1 text-xs font-medium text-foreground outline-none"
+                  className="bg-transparent outline-none"
+                  style={{ fontSize: 12.5, color: "var(--fg-2)" }}
                   aria-label="Admin language"
                 >
                   {languages.map((lang) => (
@@ -595,42 +590,57 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
               </label>
             )}
 
-            {/* Clear cache — invalidates the public-render layout/asset
-                caches; useful after editing templates or activating themes. */}
             <button
               onClick={handleClearCache}
               disabled={clearingCache}
-              className="hidden h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50 sm:flex"
+              className="hidden sm:flex items-center"
+              style={{ height: 28, padding: "0 10px", borderRadius: 6, gap: 6, fontSize: 12.5, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.005em", opacity: clearingCache ? 0.5 : 1, transition: "background 0.12s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               title="Clear all caches"
             >
-              <RefreshCw
-                size={12}
-                className={clearingCache ? "animate-spin" : ""}
-              />
-              {clearingCache ? "Clearing..." : "Clear Cache"}
+              <RefreshCw size={12} style={{ opacity: 0.6 }} className={clearingCache ? "animate-spin" : ""} />
+              {clearingCache ? "Clearing…" : "Clear cache"}
             </button>
 
-            {/* Visit site */}
             <button
               onClick={() => window.open("/", "_blank")}
-              className="hidden h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted sm:flex"
+              className="hidden sm:flex items-center"
+              style={{ height: 28, padding: "0 10px", borderRadius: 6, gap: 6, fontSize: 12.5, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.005em", transition: "background 0.12s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <ExternalLink size={12} />
-              Visit Site
+              <ExternalLink size={12} style={{ opacity: 0.6 }} />
+              Visit site
             </button>
 
-            {/* Notifications placeholder */}
-            <button className="relative flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
-              <Bell size={15} />
-            </button>
-
-            {/* User avatar */}
             <button
-              className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold"
-              style={{background: "var(--accent-weak)", color: "var(--accent-strong)"}}
+              className="flex items-center justify-center"
+              style={{ width: 28, height: 28, borderRadius: 6, color: "var(--fg-muted)", background: "transparent", border: "none", transition: "background 0.12s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <Bell size={14} style={{ opacity: 0.7 }} />
+            </button>
+
+            <div style={{ width: 1, height: 18, background: "var(--divider)", margin: "0 4px" }} />
+
+            <button
+              className="flex items-center"
+              style={{ height: 28, padding: "0 10px 0 4px", borderRadius: 14, gap: 8, background: "transparent", border: "none", transition: "background 0.1s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               title={user?.email}
             >
-              {(user?.full_name || user?.email || "A").charAt(0).toUpperCase()}
+              <span
+                className="grid place-items-center shrink-0"
+                style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--accent)", color: "var(--accent-fg)", fontSize: 10, fontWeight: 600 }}
+              >
+                {(user?.full_name || user?.email || "A").charAt(0).toUpperCase()}
+              </span>
+              <span className="hidden sm:inline" style={{ fontSize: 12.5, fontWeight: 500, color: "var(--fg-2)" }}>
+                {user?.full_name || (user?.email ? user.email.split("@")[0] : "Admin")}
+              </span>
             </button>
           </div>
         </header>

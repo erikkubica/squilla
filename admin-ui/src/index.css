@@ -449,6 +449,30 @@
     opacity: 1 !important;
   }
 
+  /* ─── LIST PAGE — visually connect tabs + toolbar + table into one card ─── */
+  [data-slot="list-tabs"] + [data-slot="list-toolbar"] {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+  }
+  [data-slot="list-tabs"] + [data-slot="list-card"],
+  [data-slot="list-toolbar"] + [data-slot="list-card"] {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    box-shadow: 0 1px 0 rgba(20,18,15,0.04), 0 4px 12px -3px rgba(20,18,15,0.05) !important;
+  }
+  /* Toolbar that doesn't follow tabs is a standalone card piece */
+  [data-slot="list-toolbar"]:first-child {
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+  }
+  /* Tabs without a following toolbar/card stand alone (rare) */
+  [data-slot="list-tabs"]:last-child {
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+    border-bottom: none !important;
+    box-shadow: var(--shadow-card);
+  }
+
   /* ─── HEADINGS — paper-aware, tighter tracking ─── */
   main :where(h1) {
     font-size: 22px;

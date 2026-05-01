@@ -530,13 +530,13 @@ export default function TemplateEditorPage() {
                     {originalTemplate.created_at && (
                       <div className="flex justify-between">
                         <span>Created</span>
-                        <span className="text-muted-foreground">{new Date(originalTemplate.created_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalTemplate.created_at).toLocaleDateString("en-GB")}</span>
                       </div>
                     )}
                     {originalTemplate.updated_at && (
                       <div className="flex justify-between">
                         <span>Updated</span>
-                        <span className="text-muted-foreground">{new Date(originalTemplate.updated_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalTemplate.updated_at).toLocaleDateString("en-GB")}</span>
                       </div>
                     )}
                   </div>

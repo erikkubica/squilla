@@ -285,7 +285,14 @@ function SduiProviders({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-createRoot(document.getElementById("root")!).render(
+// Guard against React 19 + Vite HMR double-mount: createRoot() is rejected
+// when called twice on the same container, which leaves the page blank
+// on full reloads. Cache the root on the container and re-render on rerun.
+type RootContainer = HTMLElement & { __squillaRoot?: ReturnType<typeof createRoot> };
+const container = document.getElementById("root") as RootContainer;
+const root = container.__squillaRoot ?? createRoot(container);
+container.__squillaRoot = root;
+root.render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -293,16 +300,6 @@ createRoot(document.getElementById("root")!).render(
         <SduiProviders>
           <App />
           <ConfirmDialogHost />
-          {/* Toasts:
-              - top-center keeps them out of the corner glance and on the
-                eyeline path between editor and sidebar.
-              - visibleToasts={1} stops the stacking that was burying old
-                toasts under new ones during chatty save flows.
-              - duration 2.2s makes successes feel snappy without missing
-                them; errors stay around longer (Sonner default 4s for
-                error level, kept via duration override per-call when
-                callers want it).
-              - closeButton renders a manual dismiss in every toast. */}
           <Toaster
             position="top-center"
             richColors

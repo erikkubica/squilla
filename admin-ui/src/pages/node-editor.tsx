@@ -820,23 +820,50 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               <span style={{ fontSize: 12, color: "var(--fg-muted)", letterSpacing: "-0.005em" }}>
                 Drag, expand, or remove blocks. Changes are saved on Save.
               </span>
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 text-[12px]"
                 onClick={openLoadTemplate}
+                className="inline-flex items-center cursor-pointer"
+                style={{
+                  height: 26,
+                  padding: "0 8px",
+                  borderRadius: 6,
+                  background: "transparent",
+                  color: "var(--fg-muted)",
+                  fontSize: 11.5,
+                  fontWeight: 500,
+                  gap: 5,
+                  border: "none",
+                  transition: "background 0.12s, color 0.12s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--hover-bg)";
+                  e.currentTarget.style.color = "var(--fg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--fg-muted)";
+                }}
               >
-                <LayoutTemplate className="mr-1.5 h-3.5 w-3.5" />
+                <LayoutTemplate size={12} style={{ opacity: 0.65 }} />
                 Load template
-              </Button>
+              </button>
             </div>
-            <div className="space-y-3">
+            <div>
               {blocks.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-12" style={{ color: "var(--fg-subtle)" }}>
-                  <Square className="h-10 w-10" />
-                  <p className="text-sm font-medium">No blocks yet</p>
-                  <p className="text-xs">Add blocks or insert a template to get started</p>
+                <div
+                  className="flex flex-col items-center justify-center"
+                  style={{
+                    gap: 8,
+                    padding: "44px 0",
+                    borderRadius: "var(--radius-lg)",
+                    background: "var(--sub-bg)",
+                    color: "var(--fg-subtle)",
+                  }}
+                >
+                  <Square style={{ width: 28, height: 28, color: "var(--fg-subtle)" }} />
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg-muted)", margin: 0 }}>No blocks yet</p>
+                  <p style={{ fontSize: 12, color: "var(--fg-subtle)", margin: 0 }}>Add a block or load a template to get started</p>
                 </div>
               )}
 
@@ -1021,27 +1048,75 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 );
               })}
 
-              {/* Add Block / Insert Template buttons */}
-              <div className="flex gap-2 pt-1">
-                <Button
+              {/* Add Block / Insert Template — ghosted, type-led, full-width row */}
+              <div
+                className="flex"
+                style={{
+                  gap: 4,
+                  marginTop: 6,
+                  paddingTop: 8,
+                  borderTop: "1px solid var(--divider)",
+                }}
+              >
+                <button
                   type="button"
-                  variant="outline"
-                  className="flex-1 rounded-lg border-dashed border-border text-muted-foreground"
                   onClick={() => setShowAddBlock(true)}
+                  className="inline-flex items-center justify-center"
+                  style={{
+                    flex: 1,
+                    height: 34,
+                    borderRadius: 7,
+                    background: "transparent",
+                    color: "var(--fg-muted)",
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    gap: 6,
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "background 0.12s, color 0.12s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--hover-bg)";
+                    e.currentTarget.style.color = "var(--fg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--fg-muted)";
+                  }}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Block
-                </Button>
+                  <Plus size={13} style={{ opacity: 0.7 }} />
+                  Add block
+                </button>
                 {templates.length > 0 && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    className="flex-1 rounded-lg border-dashed border-border text-muted-foreground"
                     onClick={() => setShowInsertTemplate(true)}
+                    className="inline-flex items-center justify-center"
+                    style={{
+                      flex: 1,
+                      height: 34,
+                      borderRadius: 7,
+                      background: "transparent",
+                      color: "var(--fg-muted)",
+                      fontSize: 12.5,
+                      fontWeight: 500,
+                      gap: 6,
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "background 0.12s, color 0.12s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                      e.currentTarget.style.color = "var(--fg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--fg-muted)";
+                    }}
                   >
-                    <LayoutTemplate className="mr-2 h-4 w-4" />
-                    Insert Template
-                  </Button>
+                    <LayoutTemplate size={13} style={{ opacity: 0.7 }} />
+                    Insert template
+                  </button>
                 )}
               </div>
 
@@ -1300,7 +1375,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               originalNode?.updated_at ? (
                 <>
                   <ChevronDown size={12} style={{ display: "none" }} />
-                  Last updated {new Date(originalNode.updated_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  Last updated {new Date(originalNode.updated_at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </>
               ) : (
                 <>Unsaved draft</>
@@ -1567,16 +1642,16 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                     </div>
                     <div className="flex justify-between">
                       <span>Created</span>
-                      <span className="text-muted-foreground">{new Date(originalNode.created_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNode.created_at).toLocaleDateString("en-GB")}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Updated</span>
-                      <span className="text-muted-foreground">{new Date(originalNode.updated_at).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground">{new Date(originalNode.updated_at).toLocaleDateString("en-GB")}</span>
                     </div>
                     {originalNode.published_at && (
                       <div className="flex justify-between">
                         <span>Published</span>
-                        <span className="text-muted-foreground">{new Date(originalNode.published_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalNode.published_at).toLocaleDateString("en-GB")}</span>
                       </div>
                     )}
                   </div>

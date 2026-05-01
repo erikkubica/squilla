@@ -501,13 +501,13 @@ export default function LayoutEditorPage() {
                     {originalLayout.created_at && (
                       <div className="flex justify-between">
                         <span>Created</span>
-                        <span className="text-muted-foreground">{new Date(originalLayout.created_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalLayout.created_at).toLocaleDateString("en-GB")}</span>
                       </div>
                     )}
                     {originalLayout.updated_at && (
                       <div className="flex justify-between">
                         <span>Updated</span>
-                        <span className="text-muted-foreground">{new Date(originalLayout.updated_at).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{new Date(originalLayout.updated_at).toLocaleDateString("en-GB")}</span>
                       </div>
                     )}
                   </div>
