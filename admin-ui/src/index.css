@@ -13,8 +13,8 @@
    effect because no rule was generated for it. */
 @source "../../extensions/*/admin-ui/src/**/*.{ts,tsx}";
 
-/* Fonts */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Fonts — Geist + Geist Mono, the v2 typeface system */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 
 @theme {
   --color-background: var(--app-bg);
@@ -24,7 +24,7 @@
   --color-popover: var(--card-bg);
   --color-popover-foreground: var(--fg);
   --color-primary: var(--accent);
-  --color-primary-foreground: #ffffff;
+  --color-primary-foreground: var(--accent-fg);
   --color-secondary: var(--sub-bg);
   --color-secondary-foreground: var(--fg-2);
   --color-muted: var(--sub-bg);
@@ -34,79 +34,107 @@
   --color-destructive: var(--danger);
   --color-destructive-foreground: #ffffff;
   --color-border: var(--border);
-  --color-input: var(--border-strong);
+  --color-input: var(--border-input);
   --color-ring: var(--accent);
 
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-300: #a5b4fc;
-  --color-primary-400: #818cf8;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
-  --color-primary-950: #1e1b4b;
+  /* Accent ramp — kept for any code that still references --color-primary-NNN. */
+  --color-primary-50: #f4f4f5;
+  --color-primary-100: #e4e4e7;
+  --color-primary-200: #d4d4d8;
+  --color-primary-300: #a1a1aa;
+  --color-primary-400: #71717a;
+  --color-primary-500: #52525b;
+  --color-primary-600: #3f3f46;
+  --color-primary-700: #27272a;
+  --color-primary-800: #18181b;
+  --color-primary-900: #09090b;
+  --color-primary-950: #050507;
 
   --color-sidebar: var(--sb-bg);
   --color-sidebar-hover: var(--sb-hover);
   --color-sidebar-active: var(--sb-active);
 
-  --radius-sm: 3px;
-  --radius-md: 5px;
-  --radius-lg: 7px;
-  --radius-xl: 10px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
 :root {
-  /* Accent + radii (tweakable) */
-  --accent: #4f46e5;
-  --accent-weak: color-mix(in oklab, var(--accent) 12%, transparent);
-  --accent-strong: color-mix(in oklab, var(--accent) 85%, black);
-  --radius: 5px;
-  --radius-sm: 3px;
-  --radius-lg: 7px;
+  /* ── Accent — graphite default; overridable at runtime ── */
+  --accent:        #1f1f22;
+  --accent-fg:     #ffffff;
+  --accent-weak:   color-mix(in oklab, var(--accent) 8%,  transparent);
+  --accent-mid:    color-mix(in oklab, var(--accent) 16%, transparent);
+  --accent-strong: color-mix(in oklab, var(--accent) 88%, #000);
 
-  /* Typography */
-  --font-body: 'IBM Plex Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* ── Radii ── */
+  --radius:    7px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 
-  /* Sidebar (tinted by default) */
-  --sb-bg: #14161d;
-  --sb-bg-2: #181a22;
-  --sb-border: #242833;
-  --sb-fg: #c8cbd2;
-  --sb-fg-muted: #7a8090;
-  --sb-fg-active: #ffffff;
-  --sb-hover: rgba(255, 255, 255, 0.08);
-  --sb-active: color-mix(in oklab, var(--accent) 18%, transparent);
+  /* ── Typography ── */
+  --font-body: 'Geist', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ── Sidebar — dark, warm-cool ── */
+  --sb-bg:           #131418;
+  --sb-bg-2:         #181a1f;
+  --sb-border:       rgba(255,255,255,0.05);
+  --sb-section-sep:  rgba(255,255,255,0.05);
+  --sb-fg:           #b3b6bd;
+  --sb-fg-muted:     #6a6e78;
+  --sb-fg-active:    #ffffff;
+  --sb-hover:        rgba(255,255,255,0.05);
+  --sb-active:       rgba(255,255,255,0.08);
   --sb-active-border: var(--accent);
-  --sb-logo-bg: color-mix(in oklab, var(--accent) 22%, transparent);
+  --sb-logo-bg:      var(--accent);
 
-  /* Surfaces */
-  --app-bg: #f6f7f9;
-  --card-bg: #ffffff;
-  --panel-bg: #ffffff;
-  --sub-bg: #f7f8fa;
-  --hover-bg: #f3f4f6;
-  --border: #e5e7eb;
-  --border-strong: #d4d7dc;
-  --border-soft: #eef0f3;
-  --fg: #0b0d12;
-  --fg-2: #353a44;
-  --fg-muted: #6b7280;
-  --fg-subtle: #9aa0a8;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --success: #059669;
-  --warning: #d97706;
+  /* ── Surfaces — warm paper neutral ── */
+  --app-bg:    #F5F4F1;     /* warm off-white canvas */
+  --card-bg:   #FDFCFA;     /* paper, slight warmth */
+  --panel-bg:  #FDFCFA;
+  --sub-bg:    #F0EFEB;     /* sub-surfaces */
+  --hover-bg:  #ECEBE6;
 
-  /* Shadows — Stripe-style: 1px line + tiny lift */
-  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08), 0 0 0 1px var(--border);
-  --shadow-pop: 0 10px 32px rgba(16, 24, 40, 0.12), 0 0 0 1px var(--border);
+  /* ── Borders — hairline, depth comes from shadow ── */
+  --border:        rgba(20,18,15,0.08);
+  --border-strong: rgba(20,18,15,0.13);
+  --border-input:  rgba(20,18,15,0.16);
+  --border-soft:   rgba(20,18,15,0.05);
+  --divider:       rgba(20,18,15,0.06);
+
+  /* ── Text ── */
+  --fg:        #131211;
+  --fg-2:      #2c2a27;
+  --fg-muted:  #6e6a64;
+  --fg-subtle: #95918a;
+  --fg-hint:   #b0aca4;
+
+  /* ── Status ── */
+  --danger:        #c53030;
+  --danger-bg:     #fdf2f2;
+  --danger-border: color-mix(in oklab, #c53030 22%, transparent);
+  --success:       #2f7a4a;
+  --success-bg:    #f0f7f3;
+  --success-border:color-mix(in oklab, #2f7a4a 22%, transparent);
+  --warning:       #b45309;
+  --warning-bg:    #fdf6e8;
+  --info:          #1f6feb;
+  --info-bg:       #eef4ff;
+
+  /* ── Shadows — paper-lift, the workhorse for v2 depth ── */
+  --shadow-card:       0 0.5px 0 rgba(20,18,15,0.04), 0 1px 2px rgba(20,18,15,0.04), 0 4px 12px -3px rgba(20,18,15,0.05);
+  --shadow-sm:         0 1px 2px rgba(20,18,15,0.04);
+  --shadow-md:         0 0.5px 0 rgba(20,18,15,0.04), 0 2px 4px rgba(20,18,15,0.04), 0 8px 24px -6px rgba(20,18,15,0.08);
+  --shadow-lift:       0 0.5px 0 rgba(20,18,15,0.04), 0 2px 4px rgba(20,18,15,0.04), 0 8px 24px -6px rgba(20,18,15,0.08);
+  --shadow-pop:        0 0.5px 0 rgba(20,18,15,0.06), 0 4px 12px rgba(20,18,15,0.08), 0 24px 48px -12px rgba(20,18,15,0.12);
+  --shadow-inset-soft: inset 0 0 0 1px var(--border);
 }
 
 @layer base {
@@ -119,97 +147,178 @@
     background: var(--app-bg);
     color: var(--fg);
     font-size: 13px;
-    line-height: 1.45;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
   }
   button { font-family: inherit; color: inherit; }
-  input, select, textarea { font-family: inherit; color: inherit; font-size: 13px; }
-  ::placeholder { color: var(--fg-subtle); }
+  input, select, textarea { font-family: inherit; color: inherit; font-size: 13px; letter-spacing: -0.005em; }
+  ::placeholder { color: var(--fg-hint); }
 
-  /* Cards: Stripe-style hairline + tiny lift */
+  /* ─── CARDS — paper, lifted by shadow (no border) ─── */
   [data-slot="card"] {
-    border-color: var(--border) !important;
-    box-shadow: var(--shadow-sm) !important;
+    background-color: var(--card-bg) !important;
+    border: none !important;
+    box-shadow: var(--shadow-card) !important;
     border-radius: var(--radius-lg) !important;
+    overflow: hidden;
+  }
+  [data-slot="card-header"] {
+    padding: 13px 16px 11px !important;
+    border-bottom: 1px solid var(--divider) !important;
+  }
+  [data-slot="card-title"] {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: var(--fg) !important;
+    letter-spacing: -0.005em !important;
+  }
+  [data-slot="card-description"] {
+    font-size: 11.5px !important;
+    color: var(--fg-muted) !important;
+  }
+  [data-slot="card-content"] {
+    padding: 14px 16px 16px !important;
+  }
+  [data-slot="card-footer"] {
+    padding: 11px 16px 13px !important;
+    border-top: 1px solid var(--divider) !important;
   }
 
-  /* Tables */
+  /* ─── TABLES — sub-bg headers, sub-bg hover, soft dividers ─── */
   [data-slot="table"] {
-    font-size: 12.5px;
+    font-size: 13px;
   }
   [data-slot="table-header"] tr {
-    background-color: #eef0f3 !important;
-    border-bottom: 1px solid var(--border-strong) !important;
+    background-color: var(--sub-bg) !important;
+    border-bottom: 1px solid var(--divider) !important;
   }
   [data-slot="table-head"] {
-    color: var(--fg-2) !important;
-    font-weight: 600 !important;
-    font-size: 12.5px !important;
+    color: var(--fg-subtle) !important;
+    font-weight: 500 !important;
+    font-size: 10.5px !important;
+    font-family: var(--font-mono) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.07em !important;
     height: auto !important;
-    padding: 10px 14px !important;
+    padding: 9px 14px !important;
   }
   [data-slot="table-row"] {
-    border-bottom: 1px solid var(--border-soft) !important;
+    border-bottom: 1px solid var(--divider) !important;
+    transition: background-color 80ms ease;
   }
   [data-slot="table-row"]:last-child { border-bottom: none !important; }
   [data-slot="table-row"]:hover {
     background-color: var(--sub-bg) !important;
   }
   [data-slot="table-cell"] {
-    padding: 6px 14px !important;
+    padding: 11px 14px !important;
+    color: var(--fg-2) !important;
     vertical-align: middle !important;
   }
   /* Shrink oversized cell content that inflates rows */
   [data-slot="table-cell"] .h-10 { height: 28px !important; }
-  [data-slot="table-cell"] .h-9 { height: 26px !important; }
+  [data-slot="table-cell"] .h-9  { height: 26px !important; }
   [data-slot="table-cell"] .w-10 { width: 28px !important; }
-  [data-slot="table-cell"] .w-9 { width: 26px !important; }
+  [data-slot="table-cell"] .w-9  { width: 26px !important; }
   [data-slot="table-cell"] [data-slot="button"] { height: 26px !important; }
   [data-slot="table-cell"] [data-slot="badge"] {
-    padding: 1px 6px !important;
+    padding: 1.5px 7px !important;
     font-size: 10.5px !important;
   }
 
   /* Remove card content padding when it contains a table */
   [data-slot="card-content"]:has([data-slot="table-container"]) {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    padding-bottom: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Buttons */
+  /* ─── BUTTONS ─── */
   [data-slot="button"] {
-    border-radius: var(--radius) !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 500 !important;
+    font-size: 12.5px !important;
+    letter-spacing: -0.005em !important;
+    transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease !important;
   }
   [data-slot="button"][data-variant="default"] {
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08) !important;
+    background-color: var(--accent) !important;
+    color: var(--accent-fg) !important;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 1px 2px rgba(20,18,15,0.18) !important;
+  }
+  [data-slot="button"][data-variant="default"]:hover {
+    background-color: var(--accent-strong) !important;
+  }
+  [data-slot="button"][data-variant="outline"] {
+    background-color: var(--card-bg) !important;
+    color: var(--fg) !important;
+    border: none !important;
+    box-shadow: 0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04) !important;
+  }
+  [data-slot="button"][data-variant="outline"]:hover {
+    background-color: var(--hover-bg) !important;
+    box-shadow: 0 0 0 1px var(--border-strong), 0 1px 2px rgba(20,18,15,0.06) !important;
+  }
+  [data-slot="button"][data-variant="secondary"] {
+    background-color: var(--sub-bg) !important;
+    color: var(--fg-2) !important;
+    box-shadow: none !important;
+  }
+  [data-slot="button"][data-variant="secondary"]:hover {
+    background-color: var(--hover-bg) !important;
+    color: var(--fg) !important;
+  }
+  [data-slot="button"][data-variant="ghost"] {
+    background-color: transparent !important;
+    color: var(--fg-muted) !important;
+  }
+  [data-slot="button"][data-variant="ghost"]:hover {
+    background-color: var(--hover-bg) !important;
+    color: var(--fg) !important;
+  }
+  [data-slot="button"][data-variant="destructive"] {
+    background-color: var(--danger) !important;
+    color: #fff !important;
+  }
+  [data-slot="button"][data-variant="link"] {
+    color: var(--accent-strong) !important;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
-  /* Inputs */
+  /* ─── INPUTS — hairline border + tiny inner shadow ─── */
   [data-slot="input"],
   [data-slot="textarea"],
   [data-slot="select-trigger"] {
-    border-color: var(--border-strong) !important;
-    border-radius: var(--radius) !important;
     background-color: var(--card-bg) !important;
+    border: 1px solid var(--border-input) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--fg) !important;
+    box-shadow: 0 1px 1px rgba(20,18,15,0.02) inset !important;
     transition: border-color 0.12s ease, box-shadow 0.12s ease !important;
   }
   [data-slot="input"],
   [data-slot="select-trigger"][data-size="default"] {
-    height: 30px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+    height: 32px !important;
+    padding: 0 11px !important;
     font-size: 13px !important;
   }
   [data-slot="select-trigger"][data-size="sm"] {
-    height: 26px !important;
+    height: 28px !important;
     font-size: 12.5px !important;
   }
   [data-slot="textarea"] {
-    padding: 6px 10px !important;
+    padding: 8px 11px !important;
     font-size: 13px !important;
-    min-height: 60px !important;
+    min-height: 70px !important;
+    line-height: 1.55 !important;
+  }
+  [data-slot="input"]:hover,
+  [data-slot="textarea"]:hover,
+  [data-slot="select-trigger"]:hover {
+    border-color: var(--border-strong) !important;
   }
   [data-slot="input"]:focus,
   [data-slot="input"]:focus-visible,
@@ -218,21 +327,25 @@
   [data-slot="select-trigger"]:focus,
   [data-slot="select-trigger"]:focus-visible {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent) !important;
+    box-shadow:
+      0 0 0 3px var(--accent-mid),
+      0 1px 1px rgba(20,18,15,0.02) inset !important;
     outline: none !important;
   }
 
-  /* Badges */
+  /* ─── BADGES ─── */
   [data-slot="badge"] {
-    padding: 0.2rem 0.55rem !important;
+    padding: 2.5px 8px !important;
     font-weight: 500 !important;
-    letter-spacing: 0.01em !important;
-    border-radius: var(--radius-sm) !important;
+    font-size: 11px !important;
+    letter-spacing: -0.003em !important;
+    border-radius: 11px !important;
+    border: none !important;
   }
 
-  /* Separator */
+  /* ─── SEPARATOR ─── */
   [data-slot="separator"] {
-    background-color: var(--border) !important;
+    background-color: var(--divider) !important;
   }
 
   /* Pointer cursor on every interactive element — Tailwind v4 / preflight
@@ -247,13 +360,22 @@
     cursor: pointer;
   }
 
-  /* Dropdown menu items: visible hover + pointer cursor */
+  /* ─── DROPDOWN / SELECT MENUS ─── */
+  [data-slot="dropdown-menu-content"],
+  [data-slot="popover-content"],
+  [data-slot="select-content"] {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-pop) !important;
+  }
   [data-slot="dropdown-menu-item"],
   [data-slot="dropdown-menu-checkbox-item"],
   [data-slot="dropdown-menu-radio-item"],
   [data-slot="dropdown-menu-sub-trigger"] {
     cursor: pointer !important;
     font-size: 13px !important;
+    border-radius: var(--radius-sm) !important;
   }
   [data-slot="dropdown-menu-item"]:hover,
   [data-slot="dropdown-menu-item"][data-highlighted],
@@ -263,74 +385,81 @@
   [data-slot="dropdown-menu-radio-item"][data-highlighted],
   [data-slot="dropdown-menu-sub-trigger"]:hover,
   [data-slot="dropdown-menu-sub-trigger"][data-highlighted] {
-    background-color: color-mix(in oklab, var(--accent) 14%, transparent) !important;
-    color: var(--accent-strong) !important;
+    background-color: var(--hover-bg) !important;
+    color: var(--fg) !important;
   }
   [data-slot="select-item"] {
     cursor: pointer !important;
     font-size: 13px !important;
+    border-radius: var(--radius-sm) !important;
   }
   [data-slot="select-item"]:hover,
   [data-slot="select-item"][data-highlighted] {
-    background-color: color-mix(in oklab, var(--accent) 14%, transparent) !important;
-    color: var(--accent-strong) !important;
+    background-color: var(--hover-bg) !important;
+    color: var(--fg) !important;
   }
 
-  /* Tabs — accent-aware segmented control */
+  /* ─── TABS — underlined bottom-border style (v2) ─── */
   [data-slot="tabs-list"] {
-    background-color: var(--sub-bg) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: var(--radius-lg) !important;
-    padding: 3px !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--divider) !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
     height: auto !important;
-    min-height: 34px !important;
-    gap: 2px !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+    justify-content: flex-start !important;
   }
   [data-slot="tabs-trigger"] {
+    background-color: transparent !important;
     font-size: 12.5px !important;
     font-weight: 500 !important;
     color: var(--fg-muted) !important;
-    border-radius: var(--radius) !important;
-    padding: 5px 12px !important;
+    border: none !important;
+    border-bottom: 1.5px solid transparent !important;
+    border-radius: 0 !important;
+    padding: 12px 14px !important;
+    margin-bottom: -1px !important;
     height: auto !important;
-    border: 1px solid transparent !important;
-    transition:
-      background-color 150ms ease,
-      color 150ms ease,
-      box-shadow 150ms ease !important;
+    box-shadow: none !important;
+    transition: color 0.12s ease, border-color 0.12s ease !important;
     cursor: pointer !important;
+    letter-spacing: -0.005em !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
   }
   [data-slot="tabs-trigger"]:hover:not([data-state="active"]) {
-    background-color: color-mix(in oklab, var(--card-bg) 55%, transparent) !important;
     color: var(--fg) !important;
   }
   [data-slot="tabs-trigger"][data-state="active"] {
-    background-color: var(--card-bg) !important;
-    color: var(--accent-strong) !important;
+    color: var(--fg) !important;
+    border-bottom-color: var(--fg) !important;
     font-weight: 600 !important;
-    box-shadow:
-      0 1px 2px rgba(16, 24, 40, 0.06),
-      0 0 0 1px color-mix(in oklab, var(--accent) 18%, transparent) !important;
+    box-shadow: none !important;
   }
   [data-slot="tabs-trigger"] svg {
-    transition: transform 150ms ease, color 150ms ease !important;
+    transition: color 150ms ease !important;
+    opacity: 0.75 !important;
   }
   [data-slot="tabs-trigger"][data-state="active"] svg {
-    color: var(--accent) !important;
+    color: var(--fg) !important;
+    opacity: 1 !important;
   }
 
-  /* Admin page headings — compact, token-colored.
-     :where() keeps specificity at (0,1,0) so any utility class can override. */
+  /* ─── HEADINGS — paper-aware, tighter tracking ─── */
   main :where(h1) {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 600;
     color: var(--fg);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.025em;
   }
   main :where(h2) {
     font-size: 14px;
     font-weight: 600;
     color: var(--fg);
+    letter-spacing: -0.01em;
   }
 
   /* Listing "filters" raw div (rounded-xl border p-4) — tighten */
@@ -338,49 +467,41 @@
     border-radius: var(--radius-lg);
   }
 
-  /* Scrollbars — app default. Tied to the accent color (violet by
-     default, but the user's chosen accent flows through) so the
-     primary brand colour shows up everywhere there's overflow. Idle
-     state uses a faint accent tint so the bar reads as part of the
-     UI, not a system chrome artefact; hover deepens to the full
-     accent. */
+  /* ─── SCROLLBARS — neutral, not accent-tinted (warmer to paper) ─── */
   * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklab, var(--accent) 55%, transparent) transparent;
+    scrollbar-color: rgba(20,18,15,0.18) transparent;
   }
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--accent) 55%, transparent);
+    background: rgba(20,18,15,0.16);
     border-radius: 8px;
-    border: 2px solid var(--app-bg);
+    border: 2.5px solid transparent;
+    background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
+    background: rgba(20,18,15,0.28);
+    border: 2.5px solid transparent;
+    background-clip: padding-box;
   }
 
-  /* Sidebar scroll — slim, accent-tinted to match the rest of the app
-     while keeping the "auto-hides until you hover the sidebar"
-     behaviour. */
+  /* Sidebar scrollbar — light on dark */
   .sb-scroll {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklab, var(--accent) 35%, transparent) transparent;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
     scrollbar-gutter: stable;
   }
-  .sb-scroll::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+  .sb-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
   .sb-scroll::-webkit-scrollbar-track { background: transparent; }
   .sb-scroll::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--accent) 25%, transparent);
+    background: rgba(255,255,255,0.12);
     border-radius: 3px;
-    border: none;
   }
   .sb-scroll:hover::-webkit-scrollbar-thumb {
-    background: color-mix(in oklab, var(--accent) 55%, transparent);
+    background: rgba(255,255,255,0.22);
   }
   .sb-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
+    background: rgba(255,255,255,0.32);
   }
 }
