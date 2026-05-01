@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useMemo, useState } from "react";
 import {
   Save,
-  ArrowLeft,
   Layout,
   Settings,
   Mail,
@@ -31,6 +30,10 @@ const {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Titlebar,
+  SaveBar,
+  MetaRow,
+  MetaList,
 } = (window as any).__SQUILLA_SHARED__.ui;
 const { useParams, useNavigate } = (window as any).__SQUILLA_SHARED__
   .ReactRouterDOM;
@@ -251,77 +254,23 @@ export default function FormEditor() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Main content (col 1): pill + tabs */}
         <div className="space-y-4 min-w-0">
-      {/* Compact pill header */}
-      <div
-        className="flex items-center gap-1.5"
-        style={{
-          padding: 6,
-          background: "var(--card-bg)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "var(--shadow-sm)",
+      <Titlebar
+        title={form.name}
+        onTitleChange={(v: string) => handleNameChange(v)}
+        titleLabel="Form name"
+        titlePlaceholder="Contact Us"
+        slug={form.slug}
+        onSlugChange={(v: string) => {
+          setAutoSlug(false);
+          setForm((prev: any) => ({ ...prev, slug: v.replace(/\s+/g, "-").toLowerCase() }));
+          if (fieldErrors.slug) setFieldErrors((p) => ({ ...p, slug: "" }));
         }}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleCancel}
-          className="h-7 w-7 shrink-0"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" style={{ color: "var(--fg-muted)" }} />
-        </Button>
-
-        <div className="flex items-center gap-1.5 flex-[1_1_60%] min-w-0 px-1">
-          <span
-            className="shrink-0 uppercase"
-            style={{ fontSize: 10.5, fontWeight: 600, color: "var(--fg-muted)", letterSpacing: "0.06em" }}
-          >
-            Form Name
-          </span>
-          <input
-            placeholder="Contact Us"
-            value={form.name}
-            onChange={(e: any) => handleNameChange(e.target.value)}
-            required
-            className="flex-1 min-w-0 bg-transparent outline-none"
-            style={{ border: "none", padding: "6px 4px", fontSize: 14, fontWeight: 500, color: "var(--fg)" }}
-          />
-        </div>
-
-        <div className="w-px h-5 shrink-0" style={{ background: "var(--border)" }} />
-
-        <div className="flex items-center gap-1 flex-[1_1_40%] min-w-0 px-1">
-          <span className="shrink-0" style={{ fontSize: 11, color: "var(--fg-subtle)", fontFamily: "var(--font-mono)" }}>/</span>
-          <input
-            placeholder="auto-generated"
-            value={form.slug}
-            onChange={(e: any) => {
-              setAutoSlug(false);
-              setForm((prev: any) => ({ ...prev, slug: e.target.value.replace(/\s+/g, "-").toLowerCase() }));
-              if (fieldErrors.slug) setFieldErrors((p) => ({ ...p, slug: "" }));
-            }}
-            disabled={autoSlug}
-            required
-            className="flex-1 min-w-0 bg-transparent outline-none disabled:opacity-60"
-            style={{ border: "none", padding: "6px 0", fontSize: 12.5, color: "var(--fg)", fontFamily: "var(--font-mono)" }}
-          />
-          <button
-            type="button"
-            className="shrink-0 px-1.5 py-0.5 rounded text-[10.5px] font-medium uppercase"
-            style={{
-              color: autoSlug ? "var(--accent)" : "var(--fg-muted)",
-              background: autoSlug ? "color-mix(in oklab, var(--accent) 12%, transparent)" : "var(--sub-bg)",
-              border: "1px solid var(--border)",
-              letterSpacing: "0.04em",
-            }}
-            onClick={() => setAutoSlug(!autoSlug)}
-            title={autoSlug ? "Click to edit slug manually" : "Click to auto-generate from name"}
-          >
-            {autoSlug ? "Auto" : "Edit"}
-          </button>
-        </div>
-      </div>
+        slugPrefix="/"
+        autoSlug={autoSlug}
+        onAutoSlugToggle={() => setAutoSlug(!autoSlug)}
+        id={form.id ? Number(form.id) : undefined}
+        onBack={handleCancel}
+      />
 
       {/* Field errors below pill */}
       {(fieldErrors.name || fieldErrors.slug) && (

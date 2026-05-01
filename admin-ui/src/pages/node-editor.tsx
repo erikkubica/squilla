@@ -29,6 +29,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Titlebar } from "@/components/ui/titlebar";
 import { SaveBar } from "@/components/ui/save-bar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PublishActions } from "@/components/ui/publish-actions";
 import {
   Select,
   SelectContent,
@@ -1560,90 +1561,88 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   )}
                 </div>
 
-              {/* Save buttons */}
-              <div className="flex gap-2 pt-1">
-                <Button
-                  type="submit"
-                  className="flex-1 bg-primary hover:opacity-90 text-white font-medium rounded-lg shadow-sm h-9 text-sm"
-                  disabled={saving}
-                >
+              <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
+
+              {/* Publish actions — 2-col grid: Save+Publish/Unpublish, Preview+Delete */}
+              <PublishActions>
+                <Button type="submit" className="w-full" disabled={saving}>
                   <Save className="mr-1.5 h-3.5 w-3.5" />
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? "Saving…" : "Save"}
                 </Button>
-                {status !== "published" && (
+                {status !== "published" ? (
                   <Button
                     type="button"
-                    className="flex-1 hover:opacity-90 text-white font-medium rounded-lg h-9 text-sm"
-                    style={{ background: "var(--success)" }}
+                    className="w-full"
+                    style={{ background: "var(--success)", color: "#fff" }}
                     disabled={saving}
                     onClick={(e) => handleSave(e, "published")}
                   >
                     <Globe className="mr-1.5 h-3.5 w-3.5" />
                     Publish
                   </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={saving}
+                    onClick={(e) => handleSave(e, "draft")}
+                  >
+                    <Globe className="mr-1.5 h-3.5 w-3.5" />
+                    Unpublish
+                  </Button>
                 )}
-              </div>
+                {isEdit && id && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={saving}
+                    onClick={handlePreview}
+                    title="Save and open the rendered page in a new tab."
+                  >
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />
+                    Preview
+                  </Button>
+                )}
+                {isEdit && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    style={{ color: "var(--danger)" }}
+                    onClick={() => setShowDelete(true)}
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                )}
+              </PublishActions>
 
-              {/* Preview — saves the in-flight form state first, then
-                  opens the rendered node in a new tab. Editors can click
-                  Preview without remembering to Save first; what they
-                  see in the tab matches what they're looking at on
-                  screen. */}
-              {isEdit && id && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full rounded-lg font-medium h-8 text-xs"
-                  disabled={saving}
-                  onClick={handlePreview}
-                  title="Save and open the rendered page in a new tab."
-                >
-                  <Eye className="mr-1.5 h-3.5 w-3.5" />
-                  Preview
-                </Button>
-              )}
-
-              {/* Actions (edit mode) */}
-              {isEdit && (
-                <>
-                  <Separator />
-                  <div className="flex gap-2">
-                    {nodeTypeProp === "page" && (
-                      homepageId === Number(id) ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1 rounded-lg font-medium h-8 text-xs cursor-default"
-                          style={{ background: "var(--success-bg)", color: "var(--success)", borderColor: "var(--success-border)" }}
-                          disabled
-                        >
-                          <Home className="mr-1.5 h-3.5 w-3.5" />
-                          Current Homepage
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1 bg-muted text-foreground border-border rounded-lg font-medium h-8 text-xs"
-                          onClick={handleSetHomepage}
-                        >
-                          <Home className="mr-1.5 h-3.5 w-3.5" />
-                          Set as Homepage
-                        </Button>
-                      )
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1 hover:opacity-90 rounded-lg font-medium h-8 text-xs"
-                      style={{ background: "var(--danger-bg)", color: "var(--danger)", borderColor: "var(--danger-border)" }}
-                      onClick={() => setShowDelete(true)}
-                    >
-                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                      Delete
-                    </Button>
-                  </div>
-                </>
+              {/* Set as Homepage — separate row for pages only */}
+              {isEdit && nodeTypeProp === "page" && (
+                homepageId === Number(id) ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full cursor-default"
+                    style={{ background: "var(--success-bg)", color: "var(--success)" }}
+                    disabled
+                  >
+                    <Home className="mr-1.5 h-3.5 w-3.5" />
+                    Current homepage
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={handleSetHomepage}
+                  >
+                    <Home className="mr-1.5 h-3.5 w-3.5" />
+                    Set as homepage
+                  </Button>
+                )
               )}
 
               {/* Metadata (edit mode) */}

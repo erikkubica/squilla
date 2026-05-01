@@ -216,44 +216,41 @@ export function ThemeSettingsPage() {
           </div>
 
           {/* Sidebar — Publish-style card matching the node editor */}
-          <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <aside className="lg:sticky lg:top-4 lg:self-start" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <SidebarCard title="Publish">
-              {languages.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Language
-                  </Label>
-                  <Select value={pageLocale} onValueChange={setPageLocale}>
-                    <SelectTrigger className="h-9 rounded-lg border-border text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {languages.map((lang) => (
-                        <SelectItem key={lang.code} value={lang.code}>
-                          {lang.name || lang.code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] leading-snug text-muted-foreground">
-                    Each field stores a separate value per language. Languages
-                    without an override read from the default language.
-                  </p>
-                </div>
-              )}
-
-              <Button
-                onClick={handleSave}
-                disabled={saving || !hasChanges}
-                className="w-full bg-primary text-white shadow-sm rounded-lg font-medium"
-              >
-                {saving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+                {languages.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em" }}>Language</Label>
+                    <Select value={pageLocale} onValueChange={setPageLocale}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {languages.map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {lang.name || lang.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span style={{ fontSize: 11.5, color: "var(--fg-muted)", lineHeight: 1.45, letterSpacing: "-0.005em" }}>
+                      Each field stores a separate value per language. Languages without an override read from the default language.
+                    </span>
+                  </div>
                 )}
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
+
+                <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "4px 0" }} />
+
+                <Button onClick={handleSave} disabled={saving || !hasChanges} className="w-full">
+                  {saving ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {saving ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
             </SidebarCard>
           </aside>
         </div>

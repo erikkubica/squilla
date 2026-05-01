@@ -45,6 +45,12 @@ import {
 // Generic layout helpers
 import { AccordionRow } from "@/components/ui/accordion-row";
 import { SectionHeader } from "@/components/ui/section-header";
+import { Titlebar } from "@/components/ui/titlebar";
+import { SaveBar } from "@/components/ui/save-bar";
+import { MetaRow, MetaList } from "@/components/ui/meta-row";
+import { PageHeader } from "@/components/ui/page-header";
+import { SidebarCard } from "@/components/ui/sidebar-card";
+import { PublishActions } from "@/components/ui/publish-actions";
 
 // shadcn/ui components — explicit named imports for reliable sharing
 import { Button } from "@/components/ui/button";
@@ -127,6 +133,13 @@ import RichTextEditor from "@/components/ui/rich-text-editor";
 import CodeViewer from "@/components/ui/code-viewer";
 import { CodeWindow } from "@/components/ui/code-window";
 
+// Form-schema and language helpers shared across the admin and extensions
+import { LanguageSelect, LanguageLabel } from "@/components/ui/language-select";
+import CustomFieldInput from "@/components/ui/custom-field-input";
+import FieldSchemaEditor from "@/components/ui/field-schema-editor";
+import FieldTypePicker from "@/components/ui/field-type-picker";
+import SubFieldsEditor from "@/components/ui/sub-fields-editor";
+
 // shadcn Command (combobox primitive)
 import {
   Command,
@@ -181,6 +194,13 @@ window.__SQUILLA_SHARED__ = {
     // Layout helpers
     AccordionRow,
     SectionHeader,
+    SidebarCard,
+    PageHeader,
+    Titlebar,
+    SaveBar,
+    MetaRow,
+    MetaList,
+    PublishActions,
     // shadcn/ui primitives
     Button,
     Card,
@@ -249,6 +269,13 @@ window.__SQUILLA_SHARED__ = {
     RichTextEditor,
     CodeViewer,
     CodeWindow,
+    // Form-schema + language helpers
+    LanguageSelect,
+    LanguageLabel,
+    CustomFieldInput,
+    FieldSchemaEditor,
+    FieldTypePicker,
+    SubFieldsEditor,
     // Command (combobox)
     Command,
     CommandDialog,
