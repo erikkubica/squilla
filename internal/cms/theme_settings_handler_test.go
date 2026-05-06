@@ -73,7 +73,7 @@ func makeField(t *testing.T, key, label, fieldType string, dflt any) ThemeSettin
 		}
 		raw = b
 	}
-	return ThemeSettingsField{Key: key, Label: label, Type: fieldType, Default: raw}
+	return ThemeSettingsField{Name: key, Title: label, Type: fieldType, InitialValue: raw}
 }
 
 func decodeData(t *testing.T, resp *http.Response, into any) {
@@ -125,7 +125,7 @@ func TestList_TwoPages(t *testing.T) {
 	reg := NewThemeSettingsRegistry()
 	reg.SetActive("hello-vietnam", []ThemeSettingsPage{
 		{Slug: "header", Name: "Header Settings", Icon: "panel-top"},
-		{Slug: "api-keys", Name: "API Keys", Icon: "key"},
+		{Slug: "api-keys", Name: "API Keys", Icon: "name"},
 	})
 	h := NewThemeSettingsHandler(reg, newFakeAPI(), nil, nil, nil)
 	app := newTestApp(h)
@@ -168,8 +168,8 @@ func TestGet_ReturnsSchemaPlusValues(t *testing.T) {
 		Slug: "header",
 		Name: "Header",
 		Fields: []ThemeSettingsField{
-			makeField(t, "a", "A", "text", nil),
-			makeField(t, "b", "B", "text", nil),
+			makeField(t, "a", "A", "string", nil),
+			makeField(t, "b", "B", "string", nil),
 		},
 	}})
 	api := newFakeAPI()
@@ -256,7 +256,7 @@ func TestSave_PersistsAllProvidedFields(t *testing.T) {
 		Slug: "p",
 		Name: "P",
 		Fields: []ThemeSettingsField{
-			makeField(t, "tagline", "Tag", "text", nil),
+			makeField(t, "tagline", "Tag", "string", nil),
 			makeField(t, "count", "Count", "number", nil),
 			makeField(t, "logo", "Logo", "image", nil),
 		},
@@ -306,7 +306,7 @@ func TestSave_TextFieldStoresRawString(t *testing.T) {
 	reg := NewThemeSettingsRegistry()
 	reg.SetActive("hv", []ThemeSettingsPage{{
 		Slug:   "p",
-		Fields: []ThemeSettingsField{makeField(t, "tagline", "T", "text", nil)},
+		Fields: []ThemeSettingsField{makeField(t, "tagline", "T", "string", nil)},
 	}})
 	api := newFakeAPI()
 	h := NewThemeSettingsHandler(reg, api, nil, nil, nil)
@@ -393,7 +393,7 @@ func TestSave_FieldNotInPagesIgnored(t *testing.T) {
 	reg := NewThemeSettingsRegistry()
 	reg.SetActive("hv", []ThemeSettingsPage{{
 		Slug:   "p",
-		Fields: []ThemeSettingsField{makeField(t, "tagline", "T", "text", nil)},
+		Fields: []ThemeSettingsField{makeField(t, "tagline", "T", "string", nil)},
 	}})
 	api := newFakeAPI()
 	h := NewThemeSettingsHandler(reg, api, nil, nil, nil)
@@ -449,8 +449,8 @@ func TestSave_OmittedFieldsNotTouched(t *testing.T) {
 	reg.SetActive("hv", []ThemeSettingsPage{{
 		Slug: "p",
 		Fields: []ThemeSettingsField{
-			makeField(t, "a", "A", "text", nil),
-			makeField(t, "b", "B", "text", nil),
+			makeField(t, "a", "A", "string", nil),
+			makeField(t, "b", "B", "string", nil),
 		},
 	}})
 	api := newFakeAPI()

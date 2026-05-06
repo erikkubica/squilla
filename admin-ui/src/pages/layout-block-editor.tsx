@@ -124,7 +124,7 @@ export default function LayoutBlockEditorPage() {
       setDescription(data.description || "");
       setLanguageId(data.language_id);
       setTemplateCode(data.template_code || "");
-      setFieldSchema(data.field_schema || []);
+      setFieldSchema(data.fields || []);
       setSource(data.source || "custom");
       setThemeName(data.theme_name || null);
       setCreatedAt(data.created_at || null);
@@ -181,7 +181,7 @@ export default function LayoutBlockEditorPage() {
         description: description.trim(),
         language_id: languageId,
         template_code: templateCode,
-        field_schema: fieldSchema,
+        fields: fieldSchema,
       };
 
       if (isNew) {

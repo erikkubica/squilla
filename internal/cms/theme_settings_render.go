@@ -92,11 +92,11 @@ func BuildThemeSettingsContextForLocale(
 		for _, f := range p.Fields {
 			var stored string
 			if f.IsTranslatable() {
-				stored = raw[p.Slug+":"+f.Key]
+				stored = raw[p.Slug+":"+f.Name]
 			} else if globals != nil {
-				stored = globals[p.Slug+":"+f.Key]
+				stored = globals[p.Slug+":"+f.Name]
 			}
-			page[f.Key] = CoerceWithDefault(f, stored).Value
+			page[f.Name] = CoerceWithDefault(f, stored).Value
 		}
 		out[p.Slug] = page
 	}

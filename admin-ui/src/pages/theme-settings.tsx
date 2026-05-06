@@ -19,18 +19,19 @@ import {
 import { SduiAdminShell } from "@/sdui/admin-shell";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
 
-// Adapt the theme-settings schema (key/label/type/default/config) to the
-// NodeTypeField shape that CustomFieldInput already understands. Config keys
-// (options, min, max, sub_fields, placeholder, ...) are spread directly into
-// the field record so CustomFieldInput's switch on `type` picks them up.
+// Adapt the theme-settings schema (name/title/type/initialValue/description/
+// config) to the NodeTypeField shape that CustomFieldInput already
+// understands. Config keys (options, min, max, fields, placeholder, ...) are
+// spread directly into the field record so CustomFieldInput's switch on
+// `type` picks them up.
 function toNodeTypeField(f: ThemeSettingsField): NodeTypeField {
   const config = (f.config || {}) as Record<string, unknown>;
   return {
-    name: f.key,
-    key: f.key,
-    label: f.label,
+    name: f.name,
+    title: f.title,
     type: f.type,
-    default_value: f.default,
+    initialValue: f.initialValue,
+    description: f.description,
     ...config,
   } as NodeTypeField;
 }
@@ -64,7 +65,7 @@ export function ThemeSettingsPage() {
         setData(resp);
         const initial: Record<string, unknown> = {};
         for (const f of resp.page.fields) {
-          initial[f.key] = resp.values[f.key]?.value ?? null;
+          initial[f.name] = resp.values[f.name]?.value ?? null;
         }
         setValues(initial);
         setOriginal(initial);
@@ -90,7 +91,7 @@ export function ThemeSettingsPage() {
       setData(fresh);
       const refreshed: Record<string, unknown> = {};
       for (const f of fresh.page.fields) {
-        refreshed[f.key] = fresh.values[f.key]?.value ?? null;
+        refreshed[f.name] = fresh.values[f.name]?.value ?? null;
       }
       setValues(refreshed);
       setOriginal(refreshed);
@@ -155,14 +156,14 @@ export function ThemeSettingsPage() {
               <CardContent className="space-y-4">
                 {adaptedFields.map((field, idx) => {
                   const originalField = data.page.fields[idx];
-                  const v = data.values[originalField.key];
+                  const v = data.values[originalField.name];
                   const incompatible =
                     v && v.compatible === false && v.raw !== "";
                   return (
-                    <div key={originalField.key} className="space-y-2">
+                    <div key={originalField.name} className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor={`tf-${originalField.key}`}>
-                          {originalField.label}
+                        <Label htmlFor={`tf-${originalField.name}`}>
+                          {originalField.title}
                         </Label>
                         {originalField.translatable ? (
                           <span
@@ -182,11 +183,11 @@ export function ThemeSettingsPage() {
                       </div>
                       <CustomFieldInput
                         field={field}
-                        value={values[originalField.key]}
+                        value={values[originalField.name]}
                         onChange={(val) =>
                           setValues((prev) => ({
                             ...prev,
-                            [originalField.key]: val,
+                            [originalField.name]: val,
                           }))
                         }
                       />

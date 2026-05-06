@@ -90,7 +90,7 @@ export default function TaxonomyEditorPage() {
           setSlug(t.slug);
           setDescription(t.description || "");
           setNodeTypes(t.node_types || []);
-          setFields(t.field_schema || []);
+          setFields(t.fields || []);
           setHierarchical(!!t.hierarchical);
           setAutoSlug(false);
         })
@@ -121,7 +121,7 @@ export default function TaxonomyEditorPage() {
       slug,
       description,
       node_types: nodeTypes,
-      field_schema: fields,
+      fields: fields,
       hierarchical,
     };
 

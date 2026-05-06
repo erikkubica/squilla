@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccordionRow } from "@/components/ui/accordion-row";
-import SubFieldsEditor from "@/components/ui/sub-fields-editor";
+import NestedFieldsEditor from "@/components/ui/nested-fields-editor";
 import FieldTypePicker from "@/components/ui/field-type-picker";
 import { toast } from "sonner";
 import type { NodeTypeField } from "@/api/client";
@@ -159,31 +159,29 @@ export default function FieldSchemaEditor({
       return;
     }
 
-    if (fields.some((f) => f.key === newFieldKey)) {
+    if (fields.some((f) => f.name === newFieldKey)) {
       toast.error("A field with this key already exists");
       return;
     }
 
     const sf: NodeTypeField = {
       name: newFieldKey,
-      key: newFieldKey,
       title: newFieldLabel,
-      label: newFieldLabel,
       type: newFieldType,
       required: newFieldRequired || undefined,
     };
 
     if (newFieldPlaceholder.trim()) sf.placeholder = newFieldPlaceholder.trim();
-    if (newFieldDefaultValue.trim()) sf.default_value = newFieldDefaultValue.trim();
-    if (newFieldHelpText.trim()) sf.help = newFieldHelpText.trim();
+    if (newFieldDefaultValue.trim()) sf.initialValue = newFieldDefaultValue.trim();
+    if (newFieldHelpText.trim()) sf.description = newFieldHelpText.trim();
 
     if ((newFieldType === "select" || newFieldType === "radio" || newFieldType === "checkbox") && newFieldOptions.trim()) {
       sf.options = newFieldOptions.split(",").map((o) => o.trim()).filter(Boolean);
     }
-    if ((newFieldType === "group" || newFieldType === "repeater") && newFieldSubFields.length > 0) {
-      sf.sub_fields = newFieldSubFields;
+    if ((newFieldType === "object" || newFieldType === "array") && newFieldSubFields.length > 0) {
+      sf.fields = newFieldSubFields;
     }
-    if (newFieldType === "node") {
+    if (newFieldType === "reference") {
       if (newFieldNodeTypeFilter.trim()) sf.node_type_filter = newFieldNodeTypeFilter.trim();
       if (newFieldMultiple) sf.multiple = true;
     }
@@ -252,10 +250,10 @@ export default function FieldSchemaEditor({
               headerLeft={
                 <>
                   <span className="font-semibold min-w-0 truncate" style={{ fontSize: 12.5, color: "var(--fg)" }}>
-                    {field.label}
+                    {field.title}
                   </span>
                   <span className="font-mono shrink-0" style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-                    {field.key}
+                    {field.name}
                   </span>
                   <Badge className={`${fieldTypeBadgeClass(field.type)} border-0 text-[10px] shrink-0`}>{field.type}</Badge>
                   {field.required && <Badge className="border-0 text-[10px] shrink-0" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>Required</Badge>}
@@ -299,11 +297,11 @@ export default function FieldSchemaEditor({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label className="text-xs font-medium text-muted-foreground">Label</Label>
-                  <Input value={field.label} onChange={(e) => updateField(index, { label: e.target.value })} disabled={disabled} className="h-8 text-sm" />
+                  <Input value={field.title} onChange={(e) => updateField(index, { title: e.target.value })} disabled={disabled} className="h-8 text-sm" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-medium text-muted-foreground">Key</Label>
-                  <Input value={field.key} onChange={(e) => updateField(index, { key: e.target.value })} disabled={disabled} className="h-8 text-sm font-mono" />
+                  <Input value={field.name} onChange={(e) => updateField(index, { name: e.target.value })} disabled={disabled} className="h-8 text-sm font-mono" />
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -348,14 +346,14 @@ export default function FieldSchemaEditor({
                   <Input value={(field.options || []).join(", ")} disabled={disabled} onChange={(e) => updateField(index, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })} className="h-8 text-sm" />
                 </div>
               )}
-              {(field.type === "group" || field.type === "repeater") && (
-                <SubFieldsEditor
-                  value={field.sub_fields || []}
-                  onChange={(sf) => updateField(index, { sub_fields: sf })}
-                  label={field.type === "group" ? "Group sub-fields" : "Repeater row fields"}
+              {(field.type === "object" || field.type === "array") && (
+                <NestedFieldsEditor
+                  value={field.fields || []}
+                  onChange={(sf) => updateField(index, { fields: sf })}
+                  label={field.type === "object" ? "Object fields" : "Array item fields"}
                 />
               )}
-              {field.type === "node" && (
+              {field.type === "reference" && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label className="text-xs font-medium text-muted-foreground">Node Type Filter</Label>
@@ -370,21 +368,21 @@ export default function FieldSchemaEditor({
                   </div>
                 </div>
               )}
-              {["text", "textarea", "number", "email", "url"].includes(field.type) && (
+              {["string", "textarea", "number", "email", "url"].includes(field.type) && (
                 <div className="space-y-1">
                   <Label className="text-xs font-medium text-muted-foreground">Placeholder</Label>
                   <Input value={field.placeholder || ""} disabled={disabled} onChange={(e) => updateField(index, { placeholder: e.target.value || undefined })} placeholder="Placeholder text" className="h-8 text-sm" />
                 </div>
               )}
-              {!["group", "repeater"].includes(field.type) && (
+              {!["object", "array"].includes(field.type) && (
                 <div className="space-y-1">
                   <Label className="text-xs font-medium text-muted-foreground">Default Value</Label>
-                  <Input value={field.default_value || ""} disabled={disabled} onChange={(e) => updateField(index, { default_value: e.target.value || undefined })} placeholder="Default value" className="h-8 text-sm" />
+                  <Input value={field.initialValue || ""} disabled={disabled} onChange={(e) => updateField(index, { initialValue: e.target.value || undefined })} placeholder="Default value" className="h-8 text-sm" />
                 </div>
               )}
               <div className="space-y-1">
                 <Label className="text-xs font-medium text-muted-foreground">Help Text</Label>
-                <Input value={field.help || ""} disabled={disabled} onChange={(e) => updateField(index, { help: e.target.value || undefined })} placeholder="Instructions for content editors" className="h-8 text-sm" />
+                <Input value={field.description || ""} disabled={disabled} onChange={(e) => updateField(index, { description: e.target.value || undefined })} placeholder="Instructions for content editors" className="h-8 text-sm" />
               </div>
               {(field.type === "radio" || field.type === "checkbox") && (
                 <div className="space-y-1">
@@ -527,7 +525,7 @@ export default function FieldSchemaEditor({
             )}
 
             {(newFieldType === "group" || newFieldType === "repeater") && (
-              <SubFieldsEditor
+              <NestedFieldsEditor
                 value={newFieldSubFields}
                 onChange={setNewFieldSubFields}
                 label={newFieldType === "group" ? "Group sub-fields" : "Repeater row fields"}
@@ -581,7 +579,7 @@ export default function FieldSchemaEditor({
               </div>
             )}
 
-            {["text", "textarea", "number", "email", "url"].includes(newFieldType) && (
+            {["string", "textarea", "number", "email", "url"].includes(newFieldType) && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">Placeholder</Label>
                 <Input
@@ -592,7 +590,7 @@ export default function FieldSchemaEditor({
               </div>
             )}
 
-            {!["group", "repeater"].includes(newFieldType) && (
+            {!["object", "array"].includes(newFieldType) && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">Default Value</Label>
                 <Input

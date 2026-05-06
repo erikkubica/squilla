@@ -144,7 +144,7 @@ export default function NodeTypeEditorPage() {
         setIcon(nt.icon || "file-text");
         const taxes = nt.taxonomies || [];
         setTaxonomies(Array.isArray(taxes) ? taxes : []);
-        setFields(nt.field_schema || []);
+        setFields(nt.fields || []);
         setUrlPrefixes(nt.url_prefixes || {});
         setSupportsBlocks(nt.supports_blocks !== false);
         setAutoSlug(false);
@@ -207,7 +207,7 @@ export default function NodeTypeEditorPage() {
       description,
       icon,
       taxonomies,
-      field_schema: fields,
+      fields: fields,
       url_prefixes: urlPrefixes,
       supports_blocks: supportsBlocks,
     };

@@ -96,12 +96,14 @@ type listResponse struct {
 
 // fieldDTO is the wire shape of a settings field. We don't encode the
 // loader's Raw blob or expose Config as raw map keys mixed with reserved
-// keys — clients see a clean { key, label, type, default, config } object.
+// keys — clients see a clean { name, title, type, initialValue, description,
+// config } object.
 type fieldDTO struct {
-	Key          string          `json:"key"`
-	Label        string          `json:"label"`
+	Name         string          `json:"name"`
+	Title        string          `json:"title"`
 	Type         string          `json:"type"`
-	Default      json.RawMessage `json:"default,omitempty"`
+	InitialValue json.RawMessage `json:"initialValue,omitempty"`
+	Description  string          `json:"description,omitempty"`
 	Translatable bool            `json:"translatable"`
 	Config       map[string]any  `json:"config,omitempty"`
 }
@@ -203,12 +205,12 @@ func (h *ThemeSettingsHandler) Get(c *fiber.Ctx) error {
 	for _, field := range page.Fields {
 		var raw string
 		if field.IsTranslatable() {
-			raw = rawAll[page.Slug+":"+field.Key]
+			raw = rawAll[page.Slug+":"+field.Name]
 		} else {
-			raw = rawGlobal[page.Slug+":"+field.Key]
+			raw = rawGlobal[page.Slug+":"+field.Name]
 		}
 		res := CoerceWithDefault(field, raw)
-		values[field.Key] = valueDTO{Value: res.Value, Compatible: res.Compatible, Raw: res.Raw}
+		values[field.Name] = valueDTO{Value: res.Value, Compatible: res.Compatible, Raw: res.Raw}
 	}
 
 	return api.Success(c, getResponse{
@@ -253,7 +255,7 @@ func (h *ThemeSettingsHandler) Save(c *fiber.Ctx) error {
 		fieldLoc = def
 	}
 	for _, field := range page.Fields {
-		raw, present := body.Values[field.Key]
+		raw, present := body.Values[field.Name]
 		if !present {
 			continue
 		}
@@ -261,7 +263,7 @@ func (h *ThemeSettingsHandler) Save(c *fiber.Ctx) error {
 		if err != nil {
 			return api.Error(c, fiber.StatusBadRequest, "ENCODE_FAILED", "Failed to encode field value")
 		}
-		key := SettingKey(themeSlug, page.Slug, field.Key)
+		key := SettingKey(themeSlug, page.Slug, field.Name)
 		// Per-field locale routing: translatable fields land in the
 		// admin's locale, non-translatable in language_code='' so
 		// every locale reads the same value.
@@ -273,7 +275,7 @@ func (h *ThemeSettingsHandler) Save(c *fiber.Ctx) error {
 		// and exercise the SetSetting fallback so they stay DB-free.
 		if h.db != nil {
 			toStore := stored
-			if h.secrets != nil && secrets.IsSecretKey(field.Key) {
+			if h.secrets != nil && secrets.IsSecretKey(field.Name) {
 				enc, err := h.secrets.MaybeEncrypt(toStore)
 				if err != nil {
 					return api.Error(c, fiber.StatusInternalServerError, "ENCRYPT_FAILED", "Failed to encrypt secret setting")
@@ -313,10 +315,11 @@ func toPageDTO(p ThemeSettingsPage) pageDTO {
 	fields := make([]fieldDTO, 0, len(p.Fields))
 	for _, f := range p.Fields {
 		fields = append(fields, fieldDTO{
-			Key:          f.Key,
-			Label:        f.Label,
+			Name:         f.Name,
+			Title:        f.Title,
 			Type:         f.Type,
-			Default:      f.Default,
+			InitialValue: f.InitialValue,
+			Description:  f.Description,
 			Translatable: f.IsTranslatable(),
 			Config:       f.Config,
 		})
@@ -335,8 +338,7 @@ func toPageDTO(p ThemeSettingsPage) pageDTO {
 // so numbers, booleans, and structured values round-trip cleanly through
 // CoerceValue on the read path.
 var textFamilyTypes = map[string]struct{}{
-	"string":   {}, // canonical alias for "text"
-	"text":     {},
+	"string":   {},
 	"textarea": {},
 	"richtext": {},
 	"email":    {},

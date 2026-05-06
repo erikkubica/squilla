@@ -16,7 +16,6 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		return nil, NewValidation("label is required")
 	}
 
-	input.Fields = NormalizeFieldSchema(input.Fields)
 	fieldSchemaJSON, err := json.Marshal(input.Fields)
 	if err != nil {
 		return nil, NewInternal("failed to marshal field_schema: " + err.Error())
@@ -195,11 +194,11 @@ func nodeTypeFromModel(nt *models.NodeType) *NodeType {
 		result.Taxonomies = []TaxonomyDefinition{}
 	}
 
-	// Parse FieldSchema from JSONB
+	// Parse field schema from JSONB.
 	if len(nt.Fields) > 0 {
 		var fields []NodeTypeField
 		if err := json.Unmarshal([]byte(nt.Fields), &fields); err == nil {
-			result.Fields = NormalizeFieldSchema(fields)
+			result.Fields = fields
 		}
 	}
 	if result.Fields == nil {

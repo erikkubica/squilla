@@ -42,9 +42,9 @@ func newRegistryWithPage() *cms.ThemeSettingsRegistry {
 			Name: "Header",
 			Icon: "panel-top",
 			Fields: []cms.ThemeSettingsField{
-				{Key: "tagline", Label: "Tagline", Type: "text"},
-				{Key: "show", Label: "Show", Type: "toggle"},
-				{Key: "count", Label: "Count", Type: "number", Default: []byte(`7`)},
+				{Name: "tagline", Title: "Tagline", Type: "string"},
+				{Name: "show", Title: "Show", Type: "toggle"},
+				{Name: "count", Title: "Count", Type: "number", InitialValue: []byte(`7`)},
 			},
 		},
 	})

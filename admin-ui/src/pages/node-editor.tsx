@@ -256,7 +256,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     getLayoutPartials(layoutId)
       .then((partials) => {
         // Only keep partials that have field_schema
-        setLayoutPartials(partials.filter((p) => p.field_schema && p.field_schema.length > 0));
+        setLayoutPartials(partials.filter((p) => p.fields && p.fields.length > 0));
       })
       .catch(() => setLayoutPartials([]));
   }, [layoutId]);
@@ -461,7 +461,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     }
   }, [blocks, showRawJson]);
 
-  const customFields: NodeTypeField[] = (nodeTypeDef?.field_schema ?? []).map(f => ({ ...f, key: f.key || f.name }));
+  const customFields: NodeTypeField[] = (nodeTypeDef?.fields ?? []).map(f => ({ ...f, key: f.name || f.name }));
 
   // Resolve whether block composition is enabled for this node.
   // Precedence: explicit layout setting > node type setting. Default true.
@@ -859,7 +859,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               {blocks.map((block, index) => {
                 const blockTypeDef = getBlockTypeDef(block.type);
                 const isCollapsed = collapsedBlocks.has(index);
-                const blockFields = blockTypeDef?.field_schema || [];
+                const blockFields = blockTypeDef?.fields || [];
 
                 const typeCategory = block.type.split("-")[0];
                 return (
@@ -1001,10 +1001,10 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           <div className="flex flex-wrap" style={{ gap: "11px 14px" }}>
                             {blockFields.map((field) => {
                               const w = getFieldWidth(field);
-                              const fieldKey = field.key;
+                              const fieldKey = field.name;
                               return (
                                 <div
-                                  key={field.key}
+                                  key={field.name}
                                   className="min-w-0 flex flex-col"
                                   style={{
                                     flex: `0 0 calc(${w}% - 14px)`,
@@ -1013,7 +1013,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                   }}
                                 >
                                   <Label className="flex items-center" style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em", gap: 5 }}>
-                                    {field.label}
+                                    {field.title}
                                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-subtle)", fontWeight: 400, marginLeft: 4 }}>{fieldKey}</span>
                                     {field.required && <span style={{ color: "var(--danger)" }}>*</span>}
                                   </Label>
@@ -1022,8 +1022,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                   )}
                                   <CustomFieldInput
                                     field={field}
-                                    value={block.fields[field.key]}
-                                    onChange={(val) => updateBlockField(index, field.key, val)}
+                                    value={block.fields[field.name]}
+                                    onChange={(val) => updateBlockField(index, field.name, val)}
                                     languageCode={languageCode}
                                   />
                                 </div>
@@ -1257,22 +1257,22 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   <div className="flex flex-wrap" style={{ gap: "16px 14px" }}>
                     {customFields.map((field) => {
                       const w = getFieldWidth(field);
-                      const fieldKey = field.key || field.name;
+                      const fieldKey = field.name || field.name;
                       return (
                         <div
-                          key={field.key}
+                          key={field.name}
                           className="space-y-1.5 min-w-0"
                           style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
                         >
                           <Label className="flex items-center" style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em", gap: 5 }}>
-                            {field.label}
+                            {field.title}
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-subtle)", fontWeight: 400, marginLeft: 4 }}>{fieldKey}</span>
                             {field.required && <span style={{ color: "var(--danger)" }}>*</span>}
                           </Label>
                           <CustomFieldInput
                             field={field}
-                            value={fieldsData[field.key]}
-                            onChange={(val) => updateFieldValue(field.key, val)}
+                            value={fieldsData[field.name]}
+                            onChange={(val) => updateFieldValue(field.name, val)}
                             languageCode={languageCode}
                           />
                         </div>
@@ -1342,8 +1342,8 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
               {!partialCollapsed && (
                 <div style={{ padding: "12px 14px 14px" }}>
                   <div className="flex flex-wrap" style={{ gap: "16px 14px" }}>
-                    {(partial.field_schema || []).map((field) => {
-                      const fieldKey = field.key || field.name;
+                    {(partial.fields || []).map((field) => {
+                      const fieldKey = field.name || field.name;
                       const partialData = layoutData[partial.slug] || {};
                       const w = getFieldWidth(field);
                       return (
@@ -1353,7 +1353,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
                         >
                           <Label className="text-sm font-medium text-foreground">
-                            {field.label}
+                            {field.title}
                             {field.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
                           </Label>
                           {(field as any).default_from && !partialData[fieldKey] && (
@@ -1644,7 +1644,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
             <SectionHeader title="Featured Image" />
             <CardContent className="space-y-2">
               <CustomFieldInput
-                field={{ name: "featured_image", key: "featured_image", title: "Featured Image", label: "Featured Image", type: "image" }}
+                field={{ name: "featured_image", title: "Featured Image", type: "image" }}
                 value={featuredImage}
                 onChange={(val) => setFeaturedImage(val as Record<string, unknown>)}
               />

@@ -1,9 +1,6 @@
 package models
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 // LayoutBlock represents a reusable layout block (partial) template in the CMS.
 type LayoutBlock struct {
@@ -23,19 +20,3 @@ type LayoutBlock struct {
 
 // TableName overrides the default GORM table name.
 func (LayoutBlock) TableName() string { return "layout_blocks" }
-
-// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
-func (l *LayoutBlock) UnmarshalJSON(data []byte) error {
-	type alias LayoutBlock
-	raw := struct {
-		*alias
-		LegacyFieldSchema JSONB `json:"field_schema,omitempty"`
-	}{alias: (*alias)(l)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(l.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
-		l.Fields = raw.LegacyFieldSchema
-	}
-	return nil
-}

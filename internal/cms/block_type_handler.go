@@ -1,7 +1,6 @@
 package cms
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
@@ -172,7 +171,6 @@ func (h *BlockTypeHandler) Get(c *fiber.Ctx) error {
 }
 
 // createBlockTypeRequest represents the JSON body for creating a block type.
-// UnmarshalJSON also accepts the legacy `field_schema` key for `Fields`.
 type createBlockTypeRequest struct {
 	Slug         string       `json:"slug"`
 	Label        string       `json:"label"`
@@ -181,21 +179,6 @@ type createBlockTypeRequest struct {
 	Fields       models.JSONB `json:"fields"`
 	HTMLTemplate string       `json:"html_template"`
 	Source       string       `json:"source"`
-}
-
-func (r *createBlockTypeRequest) UnmarshalJSON(data []byte) error {
-	type alias createBlockTypeRequest
-	raw := struct {
-		*alias
-		LegacyFieldSchema models.JSONB `json:"field_schema,omitempty"`
-	}{alias: (*alias)(r)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(r.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
-		r.Fields = raw.LegacyFieldSchema
-	}
-	return nil
 }
 
 // Create handles POST /block-types to create a new block type.

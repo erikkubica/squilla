@@ -134,7 +134,6 @@ func mergeRegisteredTaxonomies(db *gorm.DB, nt *models.NodeType) {
 }
 
 // createNodeTypeRequest represents the JSON body for creating a node type.
-// UnmarshalJSON also accepts the legacy `field_schema` key for `Fields`.
 type createNodeTypeRequest struct {
 	Slug           string       `json:"slug"`
 	Label          string       `json:"label"`
@@ -145,21 +144,6 @@ type createNodeTypeRequest struct {
 	Fields         models.JSONB `json:"fields"`
 	URLPrefixes    models.JSONB `json:"url_prefixes"`
 	SupportsBlocks *bool        `json:"supports_blocks"`
-}
-
-func (r *createNodeTypeRequest) UnmarshalJSON(data []byte) error {
-	type alias createNodeTypeRequest
-	raw := struct {
-		*alias
-		LegacyFieldSchema models.JSONB `json:"field_schema,omitempty"`
-	}{alias: (*alias)(r)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(r.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
-		r.Fields = raw.LegacyFieldSchema
-	}
-	return nil
 }
 
 // Create handles POST /node-types to create a new node type.

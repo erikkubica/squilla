@@ -20,25 +20,18 @@ type ThemeSettingsPage struct {
 
 // ThemeSettingsField describes one field on a settings page.
 //
-// Default uses json.RawMessage so any default value (string, number, bool,
-// object) round-trips without coercion.
-//
-// The struct fields use the legacy names (Key, Label, Default, Help) and
-// the wire format keeps `"key"`, `"label"`, `"default"`, `"help"` so the
-// admin UI continues to read the same shape. UnmarshalJSON accepts the
-// canonical aliases (`name`, `title`, `initialValue`, `description`) plus
-// legacy type aliases so disk JSON files written with the modern
-// vocabulary load correctly.
+// InitialValue uses json.RawMessage so any default value (string, number,
+// bool, object) round-trips without coercion.
 //
 // Config and Raw are populated post-unmarshal so renderer-specific extras
-// (options, min/max, help, placeholder, etc.) survive without core having
-// to enumerate them. They're skipped on encode so wire format matches input.
+// (options, min/max, placeholder, etc.) survive without core having to
+// enumerate them. They're skipped on encode so wire format matches input.
 type ThemeSettingsField struct {
-	Key     string          `json:"key"`
-	Label   string          `json:"label"`
-	Type    string          `json:"type"`
-	Default json.RawMessage `json:"default,omitempty"`
-	Help    string          `json:"help,omitempty"`
+	Name         string          `json:"name"`
+	Title        string          `json:"title"`
+	Type         string          `json:"type"`
+	InitialValue json.RawMessage `json:"initialValue,omitempty"`
+	Description  string          `json:"description,omitempty"`
 	// Translatable controls per-language storage routing. When unset
 	// (nil) the legacy default of true applies — every theme setting
 	// has been per-language since v0.1, and changing the default
@@ -48,50 +41,6 @@ type ThemeSettingsField struct {
 
 	Config map[string]any  `json:"-"`
 	Raw    json.RawMessage `json:"-"`
-}
-
-// UnmarshalJSON accepts both the legacy vocabulary (key/label/help/default)
-// and the canonical Sanity-style vocabulary (name/title/description/
-// initialValue), so disk JSON files in either shape load correctly.
-// Legacy type aliases (text, repeater, group, node) are normalized to
-// the canonical type names.
-func (f *ThemeSettingsField) UnmarshalJSON(data []byte) error {
-	type alias ThemeSettingsField
-	raw := struct {
-		*alias
-		// Canonical aliases (newer vocabulary).
-		AliasName         string          `json:"name,omitempty"`
-		AliasTitle        string          `json:"title,omitempty"`
-		AliasDescription  string          `json:"description,omitempty"`
-		AliasInitialValue json.RawMessage `json:"initialValue,omitempty"`
-	}{alias: (*alias)(f)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if f.Key == "" && raw.AliasName != "" {
-		f.Key = raw.AliasName
-	}
-	if f.Label == "" && raw.AliasTitle != "" {
-		f.Label = raw.AliasTitle
-	}
-	if f.Help == "" && raw.AliasDescription != "" {
-		f.Help = raw.AliasDescription
-	}
-	if len(f.Default) == 0 && len(raw.AliasInitialValue) > 0 {
-		f.Default = raw.AliasInitialValue
-	}
-	// Normalize legacy type aliases.
-	switch f.Type {
-	case "text":
-		f.Type = "string"
-	case "repeater":
-		f.Type = "array"
-	case "group":
-		f.Type = "object"
-	case "node":
-		f.Type = "reference"
-	}
-	return nil
 }
 
 // IsTranslatable returns the effective translatability with the legacy
@@ -160,23 +109,13 @@ func loadSettingsPage(themeDir string, def ThemeSettingsPageDef) (ThemeSettingsP
 }
 
 // reservedFieldKeys are the field-schema keys core knows about; everything
-// else in the raw object is funneled into Config for renderer use. Both
-// legacy (key/label/default/help) and canonical (name/title/initialValue/
-// description) names are reserved so neither leaks into Config when the
-// disk JSON uses the new vocabulary.
+// else in the raw object is funneled into Config for renderer use.
 var reservedFieldKeys = map[string]struct{}{
-	// Legacy names (still on the wire).
-	"key":          {},
-	"label":        {},
-	"default":      {},
-	"help":         {},
-	// Canonical aliases (accepted at load time).
 	"name":         {},
 	"title":        {},
+	"type":         {},
 	"initialValue": {},
 	"description":  {},
-	// Type and translatable use the same name across both vocabularies.
-	"type":         {},
 	"translatable": {},
 }
 
@@ -188,8 +127,8 @@ func parseSettingsFields(pageSlug string, raw []json.RawMessage) []ThemeSettings
 			log.Printf("[theme] settings page %q field #%d skipped: %v", pageSlug, i, err)
 			continue
 		}
-		if f.Key == "" || f.Type == "" {
-			log.Printf("[theme] settings page %q field #%d skipped: missing key or type", pageSlug, i)
+		if f.Name == "" || f.Type == "" {
+			log.Printf("[theme] settings page %q field #%d skipped: missing name or type", pageSlug, i)
 			continue
 		}
 

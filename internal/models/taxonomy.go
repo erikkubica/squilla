@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/lib/pq"
@@ -25,20 +24,4 @@ type Taxonomy struct {
 // TableName overrides the default GORM table name.
 func (Taxonomy) TableName() string {
 	return "taxonomies"
-}
-
-// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
-func (t *Taxonomy) UnmarshalJSON(data []byte) error {
-	type alias Taxonomy
-	raw := struct {
-		*alias
-		LegacyFieldSchema JSONB `json:"field_schema,omitempty"`
-	}{alias: (*alias)(t)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(t.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
-		t.Fields = raw.LegacyFieldSchema
-	}
-	return nil
 }

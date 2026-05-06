@@ -1,9 +1,6 @@
 package models
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 // BlockType represents a block type definition in the CMS.
 type BlockType struct {
@@ -28,19 +25,3 @@ type BlockType struct {
 
 // TableName overrides the default GORM table name.
 func (BlockType) TableName() string { return "block_types" }
-
-// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
-func (b *BlockType) UnmarshalJSON(data []byte) error {
-	type alias BlockType
-	raw := struct {
-		*alias
-		LegacyFieldSchema JSONB `json:"field_schema,omitempty"`
-	}{alias: (*alias)(b)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(b.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
-		b.Fields = raw.LegacyFieldSchema
-	}
-	return nil
-}

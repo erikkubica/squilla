@@ -55,9 +55,9 @@ func TestThemeSettings_LoadSaveRender_RoundTrip(t *testing.T) {
 	pageJSON := `{
       "name": "General",
       "fields": [
-        {"key": "tagline", "label": "Tagline", "type": "text", "default": "Welcome"},
-        {"key": "footer_columns", "label": "Cols", "type": "number", "default": 3},
-        {"key": "show_attribution", "label": "Attribution", "type": "toggle", "default": true}
+        {"name": "tagline", "title": "Tagline", "type": "string", "initialValue": "Welcome"},
+        {"name": "footer_columns", "title": "Cols", "type": "number", "initialValue": 3},
+        {"name": "show_attribution", "title": "Attribution", "type": "toggle", "initialValue": true}
       ]
     }`
 	if err := os.WriteFile(filepath.Join(themeDir, "settings", "general.json"), []byte(pageJSON), 0o644); err != nil {
@@ -198,7 +198,7 @@ func TestThemeSettings_LoadSaveRender_RoundTrip(t *testing.T) {
 			Slug: "general",
 			Name: "General",
 			Fields: []ThemeSettingsField{
-				{Key: "footer_columns", Label: "Cols", Type: "toggle", Default: json.RawMessage(`true`)},
+				{Name: "footer_columns", Title: "Cols", Type: "toggle", InitialValue: json.RawMessage(`true`)},
 			},
 		},
 	}

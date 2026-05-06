@@ -68,7 +68,7 @@ func TestBuildThemeSettingsContext_PopulatesValues(t *testing.T) {
 		Slug: "header",
 		Name: "Header",
 		Fields: []ThemeSettingsField{
-			makeField(t, "tagline", "Tag", "text", "Welcome"),
+			makeField(t, "tagline", "Tag", "string", "Welcome"),
 			makeField(t, "logo", "Logo", "image", nil),
 		},
 	}})
@@ -130,7 +130,7 @@ func TestBuildThemeSettingsContext_GetSettingsErrorBubblesUp(t *testing.T) {
 	reg := NewThemeSettingsRegistry()
 	reg.SetActive("hv", []ThemeSettingsPage{{
 		Slug:   "p",
-		Fields: []ThemeSettingsField{makeField(t, "k", "K", "text", nil)},
+		Fields: []ThemeSettingsField{makeField(t, "k", "K", "string", nil)},
 	}})
 	api := newFakeReader()
 	api.err = errors.New("boom")

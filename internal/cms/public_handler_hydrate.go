@@ -15,13 +15,15 @@ import (
 // schemas, term/node refs, richtext marking) form a self-contained
 // subsystem that can be tested without standing up a Fiber app.
 
-// fieldSchemaDef represents a field definition from the block type's field_schema.
+// fieldSchemaDef represents a field definition from a block type / node type
+// fields schema. Only the keys this package actually inspects are listed —
+// the full canonical shape lives in coreapi.NodeTypeField.
 type fieldSchemaDef struct {
-	Key       string           `json:"key"`
-	Type      string           `json:"type"`
-	Taxonomy  string           `json:"taxonomy"`
-	Multiple  bool             `json:"multiple"`
-	SubFields []fieldSchemaDef `json:"sub_fields"`
+	Name     string           `json:"name"`
+	Type     string           `json:"type"`
+	Taxonomy string           `json:"taxonomy"`
+	Multiple bool             `json:"multiple"`
+	Fields   []fieldSchemaDef `json:"fields"`
 }
 
 // hydrateFields walks through field values and hydrates node references.
@@ -175,7 +177,7 @@ func termSlugFromRef(v interface{}) string {
 
 func collectTermSlugs(fields map[string]interface{}, defs []fieldSchemaDef, out map[string]map[string]bool) {
 	for _, def := range defs {
-		val, ok := fields[def.Key]
+		val, ok := fields[def.Name]
 		if !ok || val == nil {
 			continue
 		}
@@ -202,15 +204,15 @@ func collectTermSlugs(fields map[string]interface{}, defs []fieldSchemaDef, out 
 			} else {
 				add(val)
 			}
-		case "object", "group":
-			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
-				collectTermSlugs(m, def.SubFields, out)
+		case "object":
+			if m, ok := val.(map[string]interface{}); ok && len(def.Fields) > 0 {
+				collectTermSlugs(m, def.Fields, out)
 			}
-		case "array", "repeater":
-			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
+		case "array":
+			if arr, ok := val.([]interface{}); ok && len(def.Fields) > 0 {
 				for _, item := range arr {
 					if m, ok := item.(map[string]interface{}); ok {
-						collectTermSlugs(m, def.SubFields, out)
+						collectTermSlugs(m, def.Fields, out)
 					}
 				}
 			}
@@ -220,7 +222,7 @@ func collectTermSlugs(fields map[string]interface{}, defs []fieldSchemaDef, out 
 
 func applyTermHydration(fields map[string]interface{}, defs []fieldSchemaDef, resolved map[string]map[string]map[string]interface{}) {
 	for _, def := range defs {
-		val, ok := fields[def.Key]
+		val, ok := fields[def.Name]
 		if !ok || val == nil {
 			continue
 		}
@@ -246,20 +248,20 @@ func applyTermHydration(fields map[string]interface{}, defs []fieldSchemaDef, re
 					for i, it := range arr {
 						arr[i] = resolve(it)
 					}
-					fields[def.Key] = arr
+					fields[def.Name] = arr
 				}
 			} else {
-				fields[def.Key] = resolve(val)
+				fields[def.Name] = resolve(val)
 			}
-		case "object", "group":
-			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
-				applyTermHydration(m, def.SubFields, resolved)
+		case "object":
+			if m, ok := val.(map[string]interface{}); ok && len(def.Fields) > 0 {
+				applyTermHydration(m, def.Fields, resolved)
 			}
-		case "array", "repeater":
-			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
+		case "array":
+			if arr, ok := val.([]interface{}); ok && len(def.Fields) > 0 {
 				for _, item := range arr {
 					if m, ok := item.(map[string]interface{}); ok {
-						applyTermHydration(m, def.SubFields, resolved)
+						applyTermHydration(m, def.Fields, resolved)
 					}
 				}
 			}
@@ -281,7 +283,7 @@ func markRichTextFields(fields map[string]interface{}, schema models.JSONB) {
 // applyRichTextMarking recursively walks fields and marks richtext values as template.HTML.
 func applyRichTextMarking(fields map[string]interface{}, defs []fieldSchemaDef) {
 	for _, def := range defs {
-		val, ok := fields[def.Key]
+		val, ok := fields[def.Name]
 		if !ok || val == nil {
 			continue
 		}
@@ -294,7 +296,7 @@ func applyRichTextMarking(fields map[string]interface{}, defs []fieldSchemaDef) 
 			// scripts/iframes/event handlers but keeps the typical
 			// prose markup themes expect (headings, lists, links, etc.).
 			if s, ok := val.(string); ok {
-				fields[def.Key] = template.HTML(sanitize.RichText(s))
+				fields[def.Name] = template.HTML(sanitize.RichText(s))
 			}
 		case "image":
 			// Normalize image fields to always be a map with at least "url".
@@ -304,7 +306,7 @@ func applyRichTextMarking(fields map[string]interface{}, defs []fieldSchemaDef) 
 			switch v := val.(type) {
 			case string:
 				if v != "" {
-					fields[def.Key] = map[string]interface{}{"url": v}
+					fields[def.Name] = map[string]interface{}{"url": v}
 				}
 			case map[string]interface{}:
 				// Already a proper object — leave as-is.
@@ -315,22 +317,22 @@ func applyRichTextMarking(fields map[string]interface{}, defs []fieldSchemaDef) 
 			switch v := val.(type) {
 			case string:
 				if v != "" {
-					fields[def.Key] = map[string]interface{}{"url": v, "text": v}
+					fields[def.Name] = map[string]interface{}{"url": v, "text": v}
 				}
 			case map[string]interface{}:
 				// Already a proper object — leave as-is.
 			}
-		case "object", "group":
+		case "object":
 			// Recurse into nested object/group sub-fields
-			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
-				applyRichTextMarking(m, def.SubFields)
+			if m, ok := val.(map[string]interface{}); ok && len(def.Fields) > 0 {
+				applyRichTextMarking(m, def.Fields)
 			}
-		case "array", "repeater":
+		case "array":
 			// Recurse into each array/repeater row
-			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
+			if arr, ok := val.([]interface{}); ok && len(def.Fields) > 0 {
 				for _, item := range arr {
 					if m, ok := item.(map[string]interface{}); ok {
-						applyRichTextMarking(m, def.SubFields)
+						applyRichTextMarking(m, def.Fields)
 					}
 				}
 			}

@@ -55,7 +55,7 @@ function fieldTypeBadgeClass(type: string): string {
   }
 }
 
-interface SubFieldsEditorProps {
+interface NestedFieldsEditorProps {
   value: NodeTypeField[];
   onChange: (fields: NodeTypeField[]) => void;
   label?: string;
@@ -104,12 +104,12 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
       )}
 
       {/* Default Value */}
-      {!["group", "repeater"].includes(field.type) && (
+      {!["object", "array"].includes(field.type) && (
         <div className="space-y-1.5">
           <Label className={labelClass}>Default Value</Label>
           <Input
-            value={field.default_value || ""}
-            onChange={(e) => updateField({ default_value: e.target.value || undefined })}
+            value={field.initialValue || ""}
+            onChange={(e) => updateField({ initialValue: e.target.value || undefined })}
             placeholder="Default value for new content"
             className={inputClass}
           />
@@ -120,8 +120,8 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
       <div className="space-y-1.5">
         <Label className={labelClass}>Help Text</Label>
         <Input
-          value={field.help || ""}
-          onChange={(e) => updateField({ help: e.target.value || undefined })}
+          value={field.description || ""}
+          onChange={(e) => updateField({ description: e.target.value || undefined })}
           placeholder="Instructions shown below the field"
           className={inputClass}
         />
@@ -238,7 +238,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
   );
 }
 
-export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEditorProps) {
+export default function NestedFieldsEditor({ value, onChange, label }: NestedFieldsEditorProps) {
   const [adding, setAdding] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newFieldLabel, setNewFieldLabel] = useState("");
@@ -272,12 +272,10 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
 
   function handleAdd() {
     if (!newFieldLabel.trim() || !newFieldKey.trim()) return;
-    if (value.some((f) => f.key === newFieldKey)) return;
+    if (value.some((f) => f.name === newFieldKey)) return;
     const sf: NodeTypeField = {
       name: newFieldKey,
-      key: newFieldKey,
       title: newFieldLabel,
-      label: newFieldLabel,
       type: newFieldType,
       required: newFieldRequired || undefined,
     };
@@ -285,8 +283,8 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
       sf.options = newFieldOptions.split(",").map((o) => o.trim()).filter(Boolean);
     }
     if (newFieldPlaceholder.trim()) sf.placeholder = newFieldPlaceholder.trim();
-    if (newFieldDefaultValue.trim()) sf.default_value = newFieldDefaultValue.trim();
-    if (newFieldHelpText.trim()) sf.help = newFieldHelpText.trim();
+    if (newFieldDefaultValue.trim()) sf.initialValue = newFieldDefaultValue.trim();
+    if (newFieldHelpText.trim()) sf.description = newFieldHelpText.trim();
     onChange([...value, sf]);
     reset();
   }
@@ -333,13 +331,13 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
                 </div>
                 <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setEditingIndex(editingIndex === i ? null : i)}>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">{sf.label}</span>
-                    <span className="text-xs font-mono">{sf.key}</span>
+                    <span className="text-sm font-medium text-foreground">{sf.title}</span>
+                    <span className="text-xs font-mono">{sf.name}</span>
                   </div>
                 </button>
                 <Badge className={`${fieldTypeBadgeClass(sf.type)} border-0 text-xs`}>{sf.type}</Badge>
                 {sf.required && <Badge className="border-0 text-xs" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>Required</Badge>}
-                {sf.help && <Badge className="bg-muted text-muted-foreground border-0 text-xs" title={sf.help}>?</Badge>}
+                {sf.description && <Badge className="bg-muted text-muted-foreground border-0 text-xs" title={sf.description}>?</Badge>}
                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0" onClick={() => setEditingIndex(editingIndex === i ? null : i)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
@@ -354,11 +352,11 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Label</Label>
-                      <Input value={sf.label} onChange={(e) => updateField(i, { label: e.target.value })} className="h-9 text-sm rounded-lg" />
+                      <Input value={sf.title} onChange={(e) => updateField(i, { title: e.target.value })} className="h-9 text-sm rounded-lg" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Key</Label>
-                      <Input value={sf.key} onChange={(e) => updateField(i, { key: e.target.value })} className="h-9 text-sm font-mono rounded-lg" />
+                      <Input value={sf.name} onChange={(e) => updateField(i, { name: e.target.value })} className="h-9 text-sm font-mono rounded-lg" />
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
@@ -398,9 +396,9 @@ export default function SubFieldsEditor({ value, onChange, label }: SubFieldsEdi
                   </div>
                   <TypeSpecificOptions field={sf} updateField={(updates) => updateField(i, updates)} size="compact" />
                   {(sf.type === "group" || sf.type === "repeater") && (
-                    <SubFieldsEditor
-                      value={sf.sub_fields || []}
-                      onChange={(subFields) => updateField(i, { sub_fields: subFields })}
+                    <NestedFieldsEditor
+                      value={sf.fields || []}
+                      onChange={(subFields) => updateField(i, { fields: subFields })}
                       label={sf.type === "group" ? "Group sub-fields" : "Repeater row fields"}
                     />
                   )}

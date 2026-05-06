@@ -49,14 +49,14 @@ func TestBuildThemeSettingsContext_NonTranslatableVisible(t *testing.T) {
 	branding := ThemeSettingsPage{
 		Slug: "branding",
 		Fields: []ThemeSettingsField{
-			{Key: "tagline", Type: "text", Translatable: &tt},
-			{Key: "accent", Type: "select", Translatable: &ff},
+			{Name: "tagline", Type: "string", Translatable: &tt},
+			{Name: "accent", Type: "select", Translatable: &ff},
 		},
 	}
 	header := ThemeSettingsPage{
 		Slug: "header",
 		Fields: []ThemeSettingsField{
-			{Key: "show_meta_pill", Type: "toggle", Translatable: &ff},
+			{Name: "show_meta_pill", Type: "toggle", Translatable: &ff},
 		},
 	}
 	reg := NewThemeSettingsRegistry()

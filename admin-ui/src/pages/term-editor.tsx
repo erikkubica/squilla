@@ -249,7 +249,7 @@ export default function TermEditorPage() {
   }
 
   const taxLabel = taxonomy?.label || taxSlug;
-  const customFields = (taxonomy?.field_schema || []).map((f: any) => ({ ...f, key: f.key || f.name }));
+  const customFields = (taxonomy?.fields || []).map((f: any) => ({ ...f, key: f.key || f.name }));
 
   return (
     <>

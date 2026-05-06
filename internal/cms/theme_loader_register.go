@@ -270,10 +270,9 @@ func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, sour
 // silently break the admin or render path. Today it catches:
 //   - select-typed fields whose options contain {value,label} objects (admin
 //     crashes with React error #31 — must be plain string options).
-//   - term/reference-typed fields without term_node_type (hydration won't match).
+//   - term-typed fields without term_node_type (hydration won't match).
 //
-// Accepts both the current vocabulary (`name`, `fields`) and the legacy
-// vocabulary (`key`, `sub_fields`). Recurses into nested fields.
+// Recurses into nested fields.
 func validateBlockFieldSchema(blockSlug string, raw json.RawMessage) error {
 	if len(raw) == 0 {
 		return nil
@@ -289,18 +288,11 @@ func validateBlockFieldSchema(blockSlug string, raw json.RawMessage) error {
 func validateBlockFieldsRecursive(blockSlug, parentPath string, fields []map[string]any) error {
 	for _, f := range fields {
 		name, _ := f["name"].(string)
-		if name == "" {
-			if k, ok := f["key"].(string); ok && k != "" {
-				// Legacy alias: `key:` is read as `name:` for back-compat.
-				name = k
-			}
-		}
 		path := name
 		if parentPath != "" {
 			path = parentPath + "." + name
 		}
 		typ, _ := f["type"].(string)
-		typ = field_types.NormalizeType(typ)
 		// Validate type against the kernel field-type registry. Extension-
 		// contributed types (image/file/gallery from media-manager, etc.)
 		// are not in the builtin list — log a warning rather than fail so a
@@ -328,13 +320,7 @@ func validateBlockFieldsRecursive(blockSlug, parentPath string, fields []map[str
 				log.Printf("WARN: block %q field %q is type=term but term_node_type is empty — hydration will not match any term row", blockSlug, path)
 			}
 		}
-		// Recurse into nested fields. Accept either `fields` (current) or
-		// `sub_fields` (legacy alias).
-		nested, ok := f["fields"].([]any)
-		if !ok {
-			nested, _ = f["sub_fields"].([]any)
-		}
-		if len(nested) > 0 {
+		if nested, ok := f["fields"].([]any); ok && len(nested) > 0 {
 			subFields := make([]map[string]any, 0, len(nested))
 			for _, s := range nested {
 				if sm, ok := s.(map[string]any); ok {
@@ -350,7 +336,6 @@ func validateBlockFieldsRecursive(blockSlug, parentPath string, fields []map[str
 }
 
 // blockManifest is the structure of a block's block.json file.
-// UnmarshalJSON also accepts the legacy `field_schema` key for `Fields`.
 type blockManifest struct {
 	Slug        string          `json:"slug"`
 	Label       string          `json:"label"`
@@ -358,21 +343,6 @@ type blockManifest struct {
 	Description string          `json:"description"`
 	Fields      json.RawMessage `json:"fields"`
 	TestData    json.RawMessage `json:"test_data"`
-}
-
-func (b *blockManifest) UnmarshalJSON(data []byte) error {
-	type alias blockManifest
-	raw := struct {
-		*alias
-		LegacyFieldSchema json.RawMessage `json:"field_schema,omitempty"`
-	}{alias: (*alias)(b)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(b.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
-		b.Fields = raw.LegacyFieldSchema
-	}
-	return nil
 }
 
 // RegisterBlockFromDir reads block files from blockDir and upserts the block type.

@@ -14,10 +14,10 @@ func TestCoerceValue(t *testing.T) {
 		wantValue any
 		wantOk    bool
 	}{
-		{"empty raw / text", "text", "", nil, true},
+		{"empty raw / text", "string", "", nil, true},
 		{"empty raw / number", "number", "", nil, true},
-		{"empty raw / repeater", "repeater", "", nil, true},
-		{"text passes through", "text", "hello", "hello", true},
+		{"empty raw / repeater", "array", "", nil, true},
+		{"text passes through", "string", "hello", "hello", true},
 		{"textarea passes through", "textarea", "line1\nline2", "line1\nline2", true},
 		{"richtext passes through", "richtext", "<p>hi</p>", "<p>hi</p>", true},
 		{"email passes through", "email", "a@b", "a@b", true},
@@ -44,9 +44,9 @@ func TestCoerceValue(t *testing.T) {
 		{"image bad", "image", "broken", nil, false},
 		{"gallery ok", "gallery", `[1,2]`, []any{float64(1), float64(2)}, true},
 		{"link ok", "link", `{"url":"/x"}`, map[string]any{"url": "/x"}, true},
-		{"group ok", "group", `{"a":1}`, map[string]any{"a": float64(1)}, true},
-		{"repeater ok", "repeater", `[{"x":1}]`, []any{map[string]any{"x": float64(1)}}, true},
-		{"node ok", "node", `123`, float64(123), true},
+		{"group ok", "object", `{"a":1}`, map[string]any{"a": float64(1)}, true},
+		{"repeater ok", "array", `[{"x":1}]`, []any{map[string]any{"x": float64(1)}}, true},
+		{"node ok", "reference", `123`, float64(123), true},
 		{"term ok", "term", `"slug"`, "slug", true},
 		{"extension type still tries JSON", "custom-x", `{"k":"v"}`, map[string]any{"k": "v"}, true},
 		{"extension type bad JSON", "custom-x", `not json`, nil, false},
@@ -66,7 +66,7 @@ func TestCoerceValue(t *testing.T) {
 }
 
 func TestCoerceWithDefault_FallsBackOnMismatch(t *testing.T) {
-	field := ThemeSettingsField{Type: "number", Default: json.RawMessage(`7`)}
+	field := ThemeSettingsField{Type: "number", InitialValue: json.RawMessage(`7`)}
 	got := CoerceWithDefault(field, "abc")
 	want := CoerceResult{Value: float64(7), Compatible: false, Raw: "abc"}
 	if !reflect.DeepEqual(got, want) {
@@ -75,7 +75,7 @@ func TestCoerceWithDefault_FallsBackOnMismatch(t *testing.T) {
 }
 
 func TestCoerceWithDefault_NoDefaultGivesNilValue(t *testing.T) {
-	field := ThemeSettingsField{Type: "number", Default: nil}
+	field := ThemeSettingsField{Type: "number", InitialValue: nil}
 	got := CoerceWithDefault(field, "abc")
 	want := CoerceResult{Value: nil, Compatible: false, Raw: "abc"}
 	if !reflect.DeepEqual(got, want) {
@@ -84,7 +84,7 @@ func TestCoerceWithDefault_NoDefaultGivesNilValue(t *testing.T) {
 }
 
 func TestCoerceWithDefault_CompatibleKeepsRaw(t *testing.T) {
-	field := ThemeSettingsField{Type: "text", Default: json.RawMessage(`"d"`)}
+	field := ThemeSettingsField{Type: "string", InitialValue: json.RawMessage(`"d"`)}
 	got := CoerceWithDefault(field, "hello")
 	want := CoerceResult{Value: "hello", Compatible: true, Raw: "hello"}
 	if !reflect.DeepEqual(got, want) {
@@ -93,7 +93,7 @@ func TestCoerceWithDefault_CompatibleKeepsRaw(t *testing.T) {
 }
 
 func TestCoerceWithDefault_EmptyRawCompatibleNoDefault(t *testing.T) {
-	field := ThemeSettingsField{Type: "text"}
+	field := ThemeSettingsField{Type: "string"}
 	got := CoerceWithDefault(field, "")
 	want := CoerceResult{Value: nil, Compatible: true, Raw: ""}
 	if !reflect.DeepEqual(got, want) {
@@ -102,7 +102,7 @@ func TestCoerceWithDefault_EmptyRawCompatibleNoDefault(t *testing.T) {
 }
 
 func TestCoerceWithDefault_DefaultJsonObject(t *testing.T) {
-	field := ThemeSettingsField{Type: "image", Default: json.RawMessage(`{"id":1}`)}
+	field := ThemeSettingsField{Type: "image", InitialValue: json.RawMessage(`{"id":1}`)}
 	got := CoerceWithDefault(field, "broken")
 	if got.Compatible {
 		t.Fatalf("expected Compatible=false")

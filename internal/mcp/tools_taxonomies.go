@@ -27,7 +27,7 @@ func (s *Server) registerTaxonomyTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.taxonomy.create",
-		mcp.WithDescription("Register a new taxonomy. node_types lists which node type slugs this taxonomy applies to. `fields` declares per-term metadata fields (legacy alias `field_schema` still accepted)."),
+		mcp.WithDescription("Register a new taxonomy. node_types lists which node type slugs this taxonomy applies to. `fields` declares per-term metadata fields."),
 		mcp.WithString("slug", mcp.Required()),
 		mcp.WithString("label", mcp.Required(), mcp.Description("Singular label, e.g. 'Tag'")),
 		mcp.WithString("label_plural", mcp.Description("Plural label used in admin list headings, e.g. 'Tags'. Falls back to label when blank.")),
@@ -40,7 +40,7 @@ func (s *Server) registerTaxonomyTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.taxonomy.update",
-		mcp.WithDescription("Update a taxonomy definition. Legacy `field_schema` arg still accepted as alias for `fields`."),
+		mcp.WithDescription("Update a taxonomy definition"),
 		mcp.WithString("slug", mcp.Required()),
 		mcp.WithString("label"),
 		mcp.WithString("label_plural"),
@@ -132,13 +132,7 @@ func taxonomyInputFromArgs(args map[string]any) coreapi.TaxonomyInput {
 		_ = json.Unmarshal(b, &nt)
 		in.NodeTypes = nt
 	}
-	// Accept either `fields` (current) or `field_schema` (legacy alias).
 	if raw, ok := args["fields"]; ok {
-		b, _ := json.Marshal(raw)
-		var fs []coreapi.NodeTypeField
-		_ = json.Unmarshal(b, &fs)
-		in.Fields = fs
-	} else if raw, ok := args["field_schema"]; ok {
 		b, _ := json.Marshal(raw)
 		var fs []coreapi.NodeTypeField
 		_ = json.Unmarshal(b, &fs)

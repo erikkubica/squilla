@@ -268,11 +268,7 @@ func runThemeChecklist(slug, themeDir string) map[string]any {
 				})
 				continue
 			}
-			// Accept either `fields` (current) or `field_schema` (legacy alias).
 			fs, _ := bj["fields"].([]any)
-			if fs == nil {
-				fs, _ = bj["field_schema"].([]any)
-			}
 			schemaErrors := walkBlockSchema(e.Name(), "", fs)
 			if len(schemaErrors) == 0 {
 				checks = append(checks, checklistItem{
@@ -390,27 +386,12 @@ func walkBlockSchema(blockSlug, parentPath string, fields []any) []string {
 		if !ok {
 			continue
 		}
-		// Read identifier — prefer `name` (current), fall back to `key` (legacy alias).
 		name, _ := f["name"].(string)
-		if name == "" {
-			name, _ = f["key"].(string)
-		}
 		path := name
 		if parentPath != "" {
 			path = parentPath + "." + name
 		}
 		typ, _ := f["type"].(string)
-		// Normalize legacy type names so heuristics don't miss `text` (=string).
-		switch typ {
-		case "text":
-			typ = "string"
-		case "repeater":
-			typ = "array"
-		case "group":
-			typ = "object"
-		case "node":
-			typ = "reference"
-		}
 		// Heuristic: media-shaped name paired with a plain-text type is
 		// almost always a mistake. The author (often AI) declared the
 		// wrong type, then dumped a JSON object into it, which the admin
@@ -437,13 +418,7 @@ func walkBlockSchema(blockSlug, parentPath string, fields []any) []string {
 				out = append(out, fmt.Sprintf("block %q field %q is type=term but taxonomy is empty", blockSlug, path))
 			}
 		}
-		// Recurse into nested fields. Accept either `fields` (current) or
-		// `sub_fields` (legacy alias).
-		nested, ok := f["fields"].([]any)
-		if !ok {
-			nested, _ = f["sub_fields"].([]any)
-		}
-		if len(nested) > 0 {
+		if nested, ok := f["fields"].([]any); ok && len(nested) > 0 {
 			out = append(out, walkBlockSchema(blockSlug, path, nested)...)
 		}
 	}
@@ -467,26 +442,11 @@ func validateTestData(blockSlug string, fields []any, td map[string]any) []strin
 		if !ok {
 			continue
 		}
-		// Read identifier — prefer `name` (current), fall back to `key` (legacy alias).
 		name, _ := f["name"].(string)
-		if name == "" {
-			name, _ = f["key"].(string)
-		}
 		if name == "" {
 			continue
 		}
 		typ, _ := f["type"].(string)
-		// Normalize legacy type names.
-		switch typ {
-		case "text":
-			typ = "string"
-		case "repeater":
-			typ = "array"
-		case "group":
-			typ = "object"
-		case "node":
-			typ = "reference"
-		}
 		v, present := td[name]
 		if !present {
 			out = append(out, fmt.Sprintf("block %q test_data is missing key %q (type=%q) — admin preview will render this field empty", blockSlug, name, typ))
@@ -497,10 +457,7 @@ func validateTestData(blockSlug string, fields []any, td map[string]any) []strin
 		}
 		// Recurse into nested fields (object/array) if both schema and data agree.
 		if typ == "array" || typ == "object" {
-			nested, nok := f["fields"].([]any)
-			if !nok {
-				nested, _ = f["sub_fields"].([]any)
-			}
+			nested, _ := f["fields"].([]any)
 			if len(nested) > 0 {
 				if typ == "array" {
 					if arr, ok := v.([]any); ok && len(arr) > 0 {

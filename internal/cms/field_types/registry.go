@@ -20,36 +20,13 @@ type FieldTypeDef struct {
 // "toggle"), "wysiwyg" (vs "richtext"), "dropdown" (vs "select"). Extension-
 // contributed types live outside this check; callers that have access to the
 // extension registry should layer their own check on top.
-//
-// Legacy type names (text, repeater, group, node) are normalized via
-// NormalizeType before lookup so callers don't need to handle the alias
-// mapping themselves.
 func IsBuiltin(typ string) bool {
-	typ = NormalizeType(typ)
 	for _, def := range Builtin() {
 		if def.Type == typ {
 			return true
 		}
 	}
 	return false
-}
-
-// NormalizeType maps legacy built-in type names to the current vocabulary.
-// Unknown types pass through untouched so extension-contributed types
-// continue to work.
-func NormalizeType(t string) string {
-	switch t {
-	case "text":
-		return "string"
-	case "repeater":
-		return "array"
-	case "group":
-		return "object"
-	case "node":
-		return "reference"
-	default:
-		return t
-	}
 }
 
 // Builtin returns the 20 field types that ship with the Squilla kernel.
@@ -59,7 +36,7 @@ func Builtin() []FieldTypeDef {
 	return []FieldTypeDef{
 		// --- Basic ---
 		{
-			Type: "text", Label: "Text", Group: "Basic", Icon: "Type",
+			Type: "string", Label: "String", Group: "Basic", Icon: "Type",
 			Description: "Single-line text input",
 			HowTo: "Use for short plain-text values that fit on one line — titles, headings, button labels, names, short captions. Not for addresses, long descriptions, or rich content. If the value needs formatting (bold, links), use Rich Text instead; if it spans multiple sentences, use Textarea.",
 		},
@@ -150,7 +127,7 @@ func Builtin() []FieldTypeDef {
 			HowTo: "Use for clickable actions — buttons, CTAs, menu items, card links. Stores {url, label, target, rel}. Always prefer Link over URL when the value is rendered as an <a> or button; the extra fields are how the designer controls accessibility and UX.",
 		},
 		{
-			Type: "node", Label: "Node Selector", Group: "Relational", Icon: "FileSearch",
+			Type: "reference", Label: "Reference", Group: "Relational", Icon: "FileSearch",
 			Description: "Reference to content nodes",
 			HowTo: "Use to reference other CMS content — 'related posts', 'featured page', 'parent product'. Stores node IDs and resolves to full node data at render time. Filter by node type with the 'node_types' schema option. If you just want an external URL, use Link.",
 		},
@@ -162,14 +139,14 @@ func Builtin() []FieldTypeDef {
 
 		// --- Layout ---
 		{
-			Type: "group", Label: "Group", Group: "Layout", Icon: "Layers",
+			Type: "object", Label: "Object", Group: "Layout", Icon: "Layers",
 			Description: "Container for nested fields",
-			HowTo: "Use to nest related fields under one logical object — 'seo' with title/description/image, 'cta' with heading/button. Authors see a fieldset; templates access children with dot notation ({{ .seo.title }}). Sub-fields go in 'sub_fields' (not 'fields').",
+			HowTo: "Use to nest related fields under one logical object — 'seo' with title/description/image, 'cta' with heading/button. Authors see a fieldset; templates access children with dot notation ({{ .seo.title }}). Declare nested fields in `fields` (the same key used at the top level — homogeneous all the way down).",
 		},
 		{
-			Type: "repeater", Label: "Repeater", Group: "Layout", Icon: "Repeat",
+			Type: "array", Label: "Array", Group: "Layout", Icon: "Repeat",
 			Description: "Repeatable set of fields",
-			HowTo: "Use for a variable-length list of compound items — FAQ entries, feature cards, team members. Declare child fields in 'sub_fields' (not 'fields'). Supports min/max row counts. Wrong choice when items are simple strings — use Checkbox Group or Select for fixed options, or a plain array inside a richtext if it's free-form.",
+			HowTo: "Use for a variable-length list of compound items — FAQ entries, feature cards, team members. Declare child fields in `fields` (the same key used at the top level). Supports min/max row counts. Wrong choice when items are simple strings — use Checkbox Group or Select for fixed options, or a plain array inside a richtext if it's free-form.",
 		},
 	}
 }

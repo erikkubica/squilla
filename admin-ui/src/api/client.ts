@@ -239,25 +239,17 @@ export async function setHomepage(nodeId: number | string, locale?: string): Pro
 
 /**
  * NodeTypeField is the canonical shape of a single field in any schema
- * (node type, taxonomy, block type, layout block).
+ * (node type, taxonomy, block type, layout block). Vocabulary mirrors
+ * modern CMS schemas (Sanity-style):
  *
- * Vocabulary mirrors modern CMS schemas (Sanity-style):
  *   name         — identifier used as the data key
  *   title        — human-facing label shown in the editor
  *   type         — field type (string, array, object, reference, image, ...)
  *   description  — helper text rendered under the input
  *   initialValue — default value applied to fresh entries
  *   fields       — nested fields (used by `object` and `array` types)
- *
- * Legacy aliases (`key`, `label`, `help`, `default`/`default_value`,
- * `sub_fields`) remain typed for back-compat during the admin-UI
- * migration. They're kept in sync by `normalizeField` so older
- * components reading `field.label` and newer components reading
- * `field.title` both see the same value. New code should prefer the
- * canonical names.
  */
 export interface NodeTypeField {
-  // Canonical names (Sanity-style vocabulary).
   name: string;
   title: string;
   type: string;
@@ -281,107 +273,6 @@ export interface NodeTypeField {
   append?: string;
   allowed_types?: string;
   width?: number;
-
-  // Legacy mirrors. The normalizer keeps these in sync with the canonical
-  // names so existing components reading `field.label` etc. keep working.
-  // New code should prefer the canonical names.
-  /** @deprecated Use `name`. Mirror kept for older components. */
-  key: string;
-  /** @deprecated Use `title`. Mirror kept for older components. */
-  label: string;
-  /** @deprecated Use `description`. Mirror kept for older components. */
-  help?: string;
-  /** @deprecated Use `initialValue`. Mirror kept for older components. */
-  default_value?: any;
-  /** @deprecated Use `fields`. Mirror kept for older components. */
-  sub_fields?: NodeTypeField[];
-}
-
-/** Map a legacy type alias to the canonical name. */
-export function normalizeFieldType(t: string | undefined): string {
-  switch (t) {
-    case "text":
-      return "string";
-    case "repeater":
-      return "array";
-    case "group":
-      return "object";
-    case "node":
-      return "reference";
-    default:
-      return t ?? "";
-  }
-}
-
-/**
- * normalizeField produces a field whose canonical and legacy keys are
- * mirrored, so any consumer — old or new — sees a coherent value.
- * Recursive for nested fields.
- */
-export function normalizeField(raw: NodeTypeField): NodeTypeField {
-  const name = raw.name ?? raw.key ?? "";
-  const title = raw.title ?? raw.label ?? "";
-  const description = raw.description ?? raw.help ?? "";
-  const initialValue =
-    raw.initialValue !== undefined ? raw.initialValue : raw.default_value;
-  const nestedRaw = raw.fields ?? raw.sub_fields;
-  const nested = nestedRaw?.map(normalizeField);
-
-  const out: NodeTypeField = {
-    ...raw,
-    name,
-    title,
-    type: normalizeFieldType(raw.type),
-    // Mirror legacy keys for back-compat.
-    key: name,
-    label: title,
-  };
-  if (description) {
-    out.description = description;
-    out.help = description;
-  } else {
-    delete out.description;
-    delete out.help;
-  }
-  if (initialValue !== undefined) {
-    out.initialValue = initialValue;
-    out.default_value = initialValue;
-  } else {
-    delete out.initialValue;
-    delete out.default_value;
-  }
-  if (nested && nested.length > 0) {
-    out.fields = nested;
-    out.sub_fields = nested;
-  } else {
-    delete out.fields;
-    delete out.sub_fields;
-  }
-  return out;
-}
-
-/** Normalize an array of field-schema entries (or undefined). */
-export function normalizeFieldList(
-  raw: NodeTypeField[] | undefined,
-): NodeTypeField[] {
-  if (!raw) return [];
-  return raw.map(normalizeField);
-}
-
-/**
- * stripLegacyAliases produces a clean field with only the canonical
- * keys — used when serializing back to the API so the wire format
- * stays minimal.
- */
-export function stripLegacyAliases(field: NodeTypeField): NodeTypeField {
-  const clean = { ...field } as Partial<NodeTypeField>;
-  delete clean.key;
-  delete clean.label;
-  delete clean.help;
-  delete clean.default_value;
-  delete clean.sub_fields;
-  if (clean.fields) clean.fields = clean.fields.map(stripLegacyAliases);
-  return clean as NodeTypeField;
 }
 
 export interface NodeSearchResult {
@@ -422,30 +313,21 @@ export interface NodeType {
   icon: string;
   description: string;
   taxonomies: TaxonomyDefinition[];
-  /** Canonical name. Mirrored to `field_schema` for back-compat. */
   fields: NodeTypeField[];
-  /** @deprecated Use `fields`. Mirror kept for older components. */
-  field_schema?: NodeTypeField[];
   url_prefixes: Record<string, string>;
   supports_blocks?: boolean;
   created_at: string;
   updated_at: string;
 }
 
-/** Mirror `fields` ↔ `field_schema` on a NodeType so consumers see both. */
-function normalizeNodeType(nt: NodeType): NodeType {
-  const fields = normalizeFieldList(nt.fields ?? nt.field_schema);
-  return { ...nt, fields, field_schema: fields };
-}
-
 export async function getNodeTypes(): Promise<NodeType[]> {
   const res = await api<ApiResponse<NodeType[]>>("/admin/api/node-types");
-  return res.data.map(normalizeNodeType);
+  return res.data;
 }
 
 export async function getNodeType(id: number | string): Promise<NodeType> {
   const res = await api<ApiResponse<NodeType>>(`/admin/api/node-types/${id}`);
-  return normalizeNodeType(res.data);
+  return res.data;
 }
 
 export async function createNodeType(data: Partial<NodeType>): Promise<NodeType> {
@@ -453,7 +335,7 @@ export async function createNodeType(data: Partial<NodeType>): Promise<NodeType>
     method: "POST",
     body: JSON.stringify(data),
   });
-  return normalizeNodeType(res.data);
+  return res.data;
 }
 
 export async function updateNodeType(id: number | string, data: Partial<NodeType>): Promise<NodeType> {
@@ -461,7 +343,7 @@ export async function updateNodeType(id: number | string, data: Partial<NodeType
     method: "PATCH",
     body: JSON.stringify(data),
   });
-  return normalizeNodeType(res.data);
+  return res.data;
 }
 
 export async function deleteNodeType(id: number | string): Promise<void> {
@@ -475,29 +357,21 @@ export interface Taxonomy {
   label_plural?: string;
   description: string;
   node_types: string[];
-  /** Canonical name. Mirrored to `field_schema` for back-compat. */
   fields: NodeTypeField[];
-  /** @deprecated Use `fields`. Mirror kept for older components. */
-  field_schema?: NodeTypeField[];
   hierarchical?: boolean;
   show_ui?: boolean;
   created_at: string;
   updated_at: string;
 }
 
-function normalizeTaxonomy(t: Taxonomy): Taxonomy {
-  const fields = normalizeFieldList(t.fields ?? t.field_schema);
-  return { ...t, fields, field_schema: fields };
-}
-
 export async function getTaxonomies(): Promise<Taxonomy[]> {
   const res = await api<ApiResponse<Taxonomy[]>>("/admin/api/taxonomies");
-  return res.data.map(normalizeTaxonomy);
+  return res.data;
 }
 
 export async function getTaxonomy(slug: string): Promise<Taxonomy> {
   const res = await api<ApiResponse<Taxonomy>>(`/admin/api/taxonomies/${slug}`);
-  return normalizeTaxonomy(res.data);
+  return res.data;
 }
 
 export async function createTaxonomy(data: Partial<Taxonomy>): Promise<Taxonomy> {
@@ -505,7 +379,7 @@ export async function createTaxonomy(data: Partial<Taxonomy>): Promise<Taxonomy>
     method: "POST",
     body: JSON.stringify(data),
   });
-  return normalizeTaxonomy(res.data);
+  return res.data;
 }
 
 export async function updateTaxonomy(slug: string, data: Partial<Taxonomy>): Promise<Taxonomy> {
@@ -513,7 +387,7 @@ export async function updateTaxonomy(slug: string, data: Partial<Taxonomy>): Pro
     method: "PATCH",
     body: JSON.stringify(data),
   });
-  return normalizeTaxonomy(res.data);
+  return res.data;
 }
 
 export async function deleteTaxonomy(slug: string): Promise<void> {
@@ -685,10 +559,7 @@ export interface BlockType {
   label: string;
   icon: string;
   description: string;
-  /** Canonical name. Mirrored to `field_schema` for back-compat. */
   fields: NodeTypeField[];
-  /** @deprecated Use `fields`. Mirror kept for older components. */
-  field_schema?: NodeTypeField[];
   html_template: string;
   test_data: Record<string, unknown>;
   source: string;
@@ -696,11 +567,6 @@ export interface BlockType {
   cache_output: boolean;
   created_at: string;
   updated_at: string;
-}
-
-function normalizeBlockType(b: BlockType): BlockType {
-  const fields = normalizeFieldList(b.fields ?? b.field_schema);
-  return { ...b, fields, field_schema: fields };
 }
 
 export interface TemplateBlockConfig {
@@ -725,7 +591,7 @@ export async function getBlockTypes(): Promise<BlockType[]> {
   // node-editor and template-editor need the full set to resolve field
   // schemas for any block type referenced in content.
   const res = await api<ApiResponse<BlockType[]>>("/admin/api/block-types?per_page=1000");
-  return res.data.map(normalizeBlockType);
+  return res.data;
 }
 
 export async function getBlockTypesPaginated(params?: { page?: number; per_page?: number }): Promise<{ data: BlockType[]; meta: PaginationMeta }> {
@@ -734,12 +600,12 @@ export async function getBlockTypesPaginated(params?: { page?: number; per_page?
   if (params?.per_page) searchParams.set("per_page", String(params.per_page));
   const qs = searchParams.toString();
   const res = await api<{ data: BlockType[]; meta: PaginationMeta }>(`/admin/api/block-types${qs ? `?${qs}` : ""}`);
-  return { data: res.data.map(normalizeBlockType), meta: res.meta };
+  return { data: res.data, meta: res.meta };
 }
 
 export async function getBlockType(id: number | string): Promise<BlockType> {
   const res = await api<ApiResponse<BlockType>>(`/admin/api/block-types/${id}`);
-  return normalizeBlockType(res.data);
+  return res.data;
 }
 
 export async function createBlockType(data: Partial<BlockType>): Promise<BlockType> {
@@ -747,7 +613,7 @@ export async function createBlockType(data: Partial<BlockType>): Promise<BlockTy
     method: "POST",
     body: JSON.stringify(data),
   });
-  return normalizeBlockType(res.data);
+  return res.data;
 }
 
 export async function updateBlockType(id: number | string, data: Partial<BlockType>): Promise<BlockType> {
@@ -755,7 +621,7 @@ export async function updateBlockType(id: number | string, data: Partial<BlockTy
     method: "PATCH",
     body: JSON.stringify(data),
   });
-  return normalizeBlockType(res.data);
+  return res.data;
 }
 
 export async function deleteBlockType(id: number | string): Promise<void> {
@@ -902,10 +768,11 @@ export interface ThemeSettingsListResponse {
 }
 
 export interface ThemeSettingsField {
-  key: string;
-  label: string;
+  name: string;
+  title: string;
   type: string;
-  default?: unknown;
+  initialValue?: unknown;
+  description?: string;
   translatable: boolean;
   config?: Record<string, unknown>;
 }
@@ -1129,19 +996,11 @@ export interface LayoutBlock {
   description: string;
   language_id: number | null;
   template_code: string;
-  /** Canonical name. Mirrored to `field_schema` for back-compat. */
   fields: NodeTypeField[];
-  /** @deprecated Use `fields`. Mirror kept for older components. */
-  field_schema?: NodeTypeField[];
   source: string;
   theme_name: string | null;
   created_at: string;
   updated_at: string;
-}
-
-function normalizeLayoutBlock(b: LayoutBlock): LayoutBlock {
-  const fields = normalizeFieldList(b.fields ?? b.field_schema);
-  return { ...b, fields, field_schema: fields };
 }
 
 export async function getLayoutBlocks(params?: { language_id?: number; source?: string }): Promise<LayoutBlock[]> {
@@ -1150,7 +1009,7 @@ export async function getLayoutBlocks(params?: { language_id?: number; source?: 
   if (params?.source) searchParams.set("source", params.source);
   const qs = searchParams.toString();
   const res = await api<ApiResponse<LayoutBlock[]>>(`/admin/api/layout-blocks${qs ? `?${qs}` : ""}`);
-  return res.data.map(normalizeLayoutBlock);
+  return res.data;
 }
 
 export async function getLayoutBlocksPaginated(params?: { language_id?: number; source?: string; page?: number; per_page?: number }): Promise<{ data: LayoutBlock[]; meta: PaginationMeta }> {
@@ -1161,12 +1020,12 @@ export async function getLayoutBlocksPaginated(params?: { language_id?: number; 
   if (params?.per_page) searchParams.set("per_page", String(params.per_page));
   const qs = searchParams.toString();
   const res = await api<{ data: LayoutBlock[]; meta: PaginationMeta }>(`/admin/api/layout-blocks${qs ? `?${qs}` : ""}`);
-  return { data: res.data.map(normalizeLayoutBlock), meta: res.meta };
+  return { data: res.data, meta: res.meta };
 }
 
 export async function getLayoutBlock(id: number | string): Promise<LayoutBlock> {
   const res = await api<ApiResponse<LayoutBlock>>(`/admin/api/layout-blocks/${id}`);
-  return normalizeLayoutBlock(res.data);
+  return res.data;
 }
 
 export async function createLayoutBlock(data: Partial<LayoutBlock>): Promise<LayoutBlock> {
@@ -1174,7 +1033,7 @@ export async function createLayoutBlock(data: Partial<LayoutBlock>): Promise<Lay
     method: "POST",
     body: JSON.stringify(data),
   });
-  return normalizeLayoutBlock(res.data);
+  return res.data;
 }
 
 export async function updateLayoutBlock(id: number | string, data: Partial<LayoutBlock>): Promise<LayoutBlock> {
@@ -1182,7 +1041,7 @@ export async function updateLayoutBlock(id: number | string, data: Partial<Layou
     method: "PATCH",
     body: JSON.stringify(data),
   });
-  return normalizeLayoutBlock(res.data);
+  return res.data;
 }
 
 export async function deleteLayoutBlock(id: number | string): Promise<void> {

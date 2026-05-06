@@ -170,7 +170,7 @@ func (s *Server) registerBlockTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.block_types.create",
-		mcp.WithDescription("Create a new block type (custom reusable content block). `fields` is an array of field defs `[{name, title, type, ...}]`; html_template is the Go html/template source rendered with .fields and .node. source='custom' for user-defined blocks. Legacy `field_schema` arg still accepted as alias."),
+		mcp.WithDescription("Create a new block type (custom reusable content block). `fields` is an array of field defs `[{name, title, type, ...}]`; html_template is the Go html/template source rendered with .fields and .node. source='custom' for user-defined blocks"),
 		mcp.WithString("slug", mcp.Required(), mcp.Description("Unique snake_case slug, e.g. 'image_carousel_cta'")),
 		mcp.WithString("label", mcp.Required()),
 		mcp.WithString("icon", mcp.Description("Lucide icon name, default 'square'")),
@@ -202,10 +202,7 @@ func (s *Server) registerBlockTypeTools() {
 		if _, ok := args["cache_output"]; ok {
 			bt.CacheOutput = boolArg(args, "cache_output")
 		}
-		// Accept either `fields` (current) or `field_schema` (legacy alias).
 		if v, ok := args["fields"]; ok {
-			bt.Fields = models.JSONB(jsonFieldBytes(v, "[]"))
-		} else if v, ok := args["field_schema"]; ok {
 			bt.Fields = models.JSONB(jsonFieldBytes(v, "[]"))
 		} else {
 			bt.Fields = models.JSONB("[]")
@@ -222,7 +219,7 @@ func (s *Server) registerBlockTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.block_types.update",
-		mcp.WithDescription("Update an existing block type. Provide only fields to change. For theme-sourced blocks, consider core.block_types.detach first. Legacy `field_schema` arg still accepted as alias for `fields`."),
+		mcp.WithDescription("Update an existing block type. Provide only fields to change. For theme-sourced blocks, consider core.block_types.detach first"),
 		mcp.WithNumber("id", mcp.Required()),
 		mcp.WithString("slug"),
 		mcp.WithString("label"),
@@ -246,12 +243,9 @@ func (s *Server) registerBlockTypeTools() {
 				}
 			}
 		}
-		// Accept either `fields` (current) or `field_schema` (legacy alias).
-		// The DB column is still `field_schema` (renaming the column is a
-		// separate effort), so the GORM updates map key stays the column name.
+		// The DB column is still named `field_schema` so the GORM updates
+		// map key stays the column name even though the public arg is `fields`.
 		if v, ok := args["fields"]; ok {
-			updates["field_schema"] = models.JSONB(jsonFieldBytes(v, "[]"))
-		} else if v, ok := args["field_schema"]; ok {
 			updates["field_schema"] = models.JSONB(jsonFieldBytes(v, "[]"))
 		}
 		if v, ok := args["test_data"]; ok {

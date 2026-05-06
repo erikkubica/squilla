@@ -44,13 +44,13 @@ func TestE2E_OperatorSavesAccent_VisitorSeesIt(t *testing.T) {
 	branding := ThemeSettingsPage{
 		Slug: "branding",
 		Fields: []ThemeSettingsField{
-			{Key: "tagline", Type: "text", Translatable: &tt},
+			{Name: "tagline", Type: "string", Translatable: &tt},
 		},
 	}
 	appearance := ThemeSettingsPage{
 		Slug: "appearance",
 		Fields: []ThemeSettingsField{
-			{Key: "accent", Type: "select", Translatable: &ff, Default: jsonRaw(`"teal"`)},
+			{Name: "accent", Type: "select", Translatable: &ff, InitialValue: jsonRaw(`"teal"`)},
 		},
 	}
 	reg := NewThemeSettingsRegistry()
@@ -104,7 +104,7 @@ func TestE2E_TranslatableLocaleFallback(t *testing.T) {
 	branding := ThemeSettingsPage{
 		Slug: "branding",
 		Fields: []ThemeSettingsField{
-			{Key: "tagline", Type: "text", Translatable: &tt, Default: jsonRaw(`""`)},
+			{Name: "tagline", Type: "string", Translatable: &tt, InitialValue: jsonRaw(`""`)},
 		},
 	}
 	reg := NewThemeSettingsRegistry()
@@ -152,8 +152,8 @@ func TestE2E_SwitchAdminLocale_PreservesGlobals(t *testing.T) {
 	header := ThemeSettingsPage{
 		Slug: "header",
 		Fields: []ThemeSettingsField{
-			{Key: "cta_label", Type: "text", Translatable: &tt, Default: jsonRaw(`""`)},
-			{Key: "show_pill", Type: "toggle", Translatable: &ff, Default: jsonRaw(`false`)},
+			{Name: "cta_label", Type: "string", Translatable: &tt, InitialValue: jsonRaw(`""`)},
+			{Name: "show_pill", Type: "toggle", Translatable: &ff, InitialValue: jsonRaw(`false`)},
 		},
 	}
 	reg := NewThemeSettingsRegistry()
@@ -200,9 +200,9 @@ func TestE2E_TypedFieldsRoundTrip(t *testing.T) {
 	features := ThemeSettingsPage{
 		Slug: "features",
 		Fields: []ThemeSettingsField{
-			{Key: "show_pill", Type: "toggle", Translatable: &ff, Default: jsonRaw(`false`)},
-			{Key: "posts_per_page", Type: "number", Translatable: &ff, Default: jsonRaw(`6`)},
-			{Key: "accent", Type: "select", Translatable: &ff, Default: jsonRaw(`"teal"`)},
+			{Name: "show_pill", Type: "toggle", Translatable: &ff, InitialValue: jsonRaw(`false`)},
+			{Name: "posts_per_page", Type: "number", Translatable: &ff, InitialValue: jsonRaw(`6`)},
+			{Name: "accent", Type: "select", Translatable: &ff, InitialValue: jsonRaw(`"teal"`)},
 		},
 	}
 	reg := NewThemeSettingsRegistry()
@@ -247,9 +247,9 @@ func TestE2E_DefaultsFlowThroughEverything(t *testing.T) {
 	branding := ThemeSettingsPage{
 		Slug: "branding",
 		Fields: []ThemeSettingsField{
-			{Key: "name", Type: "text", Translatable: &tt, Default: jsonRaw(`"Squilla"`)},
-			{Key: "accent", Type: "select", Translatable: &ff, Default: jsonRaw(`"violet"`)},
-			{Key: "show_pill", Type: "toggle", Translatable: &ff, Default: jsonRaw(`true`)},
+			{Name: "name", Type: "string", Translatable: &tt, InitialValue: jsonRaw(`"Squilla"`)},
+			{Name: "accent", Type: "select", Translatable: &ff, InitialValue: jsonRaw(`"violet"`)},
+			{Name: "show_pill", Type: "toggle", Translatable: &ff, InitialValue: jsonRaw(`true`)},
 		},
 	}
 	reg := NewThemeSettingsRegistry()
@@ -287,8 +287,8 @@ func TestE2E_PartialSavePreservesUntouched(t *testing.T) {
 	branding := ThemeSettingsPage{
 		Slug: "branding",
 		Fields: []ThemeSettingsField{
-			{Key: "name", Type: "text", Translatable: &tt},
-			{Key: "tagline", Type: "text", Translatable: &tt},
+			{Name: "name", Type: "string", Translatable: &tt},
+			{Name: "tagline", Type: "string", Translatable: &tt},
 		},
 	}
 	reg := NewThemeSettingsRegistry()

@@ -140,7 +140,7 @@ import { LanguageSelect, LanguageLabel, LanguagePicker } from "@/components/ui/l
 import CustomFieldInput from "@/components/ui/custom-field-input";
 import FieldSchemaEditor from "@/components/ui/field-schema-editor";
 import FieldTypePicker from "@/components/ui/field-type-picker";
-import SubFieldsEditor from "@/components/ui/sub-fields-editor";
+import NestedFieldsEditor from "@/components/ui/nested-fields-editor";
 
 // shadcn Command (combobox primitive)
 import {
@@ -280,7 +280,7 @@ window.__SQUILLA_SHARED__ = {
     CustomFieldInput,
     FieldSchemaEditor,
     FieldTypePicker,
-    SubFieldsEditor,
+    NestedFieldsEditor,
     // Command (combobox)
     Command,
     CommandDialog,

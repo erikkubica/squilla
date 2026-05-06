@@ -26,7 +26,7 @@ func (s *Server) registerNodeTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.nodetype.create",
-		mcp.WithDescription("Register a new node TYPE (the schema — like 'Product', 'Trip'). This is a definition, not an instance.\n\nUse when: the user wants a new kind of content (e.g. 'add a Recipe post type').\nDO NOT use when: creating a page/post/trip — use core.node.create. Adding a tag vocabulary — use core.taxonomy.create.\n\n`fields` is an array of `{name, title, type, required?, options?, fields?, initialValue?, description?}`. select/radio/checkbox options MUST be plain strings, not {label,value} objects (client renders them as React children and crashes on objects). The legacy `field_schema` argument is still accepted as an alias."),
+		mcp.WithDescription("Register a new node TYPE (the schema — like 'Product', 'Trip'). This is a definition, not an instance.\n\nUse when: the user wants a new kind of content (e.g. 'add a Recipe post type').\nDO NOT use when: creating a page/post/trip — use core.node.create. Adding a tag vocabulary — use core.taxonomy.create.\n\n`fields` is an array of `{name, title, type, required?, options?, fields?, initialValue?, description?}`. select/radio/checkbox options MUST be plain strings, not {label,value} objects (client renders them as React children and crashes on objects)"),
 		mcp.WithString("slug", mcp.Required()),
 		mcp.WithString("label", mcp.Required(), mcp.Description("Singular label, e.g. 'Product'")),
 		mcp.WithString("label_plural", mcp.Description("Plural label used in admin menus and list headings, e.g. 'Products'. Falls back to label when blank.")),
@@ -41,7 +41,7 @@ func (s *Server) registerNodeTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.nodetype.update",
-		mcp.WithDescription("Update a node type by slug. Changes to `fields` only affect new/edited nodes; existing data is preserved as-is. Legacy `field_schema` argument is still accepted as an alias."),
+		mcp.WithDescription("Update a node type by slug. Changes to `fields` only affect new/edited nodes; existing data is preserved as-is"),
 		mcp.WithString("slug", mcp.Required()),
 		mcp.WithString("label"),
 		mcp.WithString("label_plural"),
@@ -71,13 +71,7 @@ func nodeTypeInputFromArgs(args map[string]any) coreapi.NodeTypeInput {
 		Icon:        stringArg(args, "icon"),
 		Description: stringArg(args, "description"),
 	}
-	// Accept either `fields` (current) or `field_schema` (legacy alias).
 	if raw, ok := args["fields"]; ok {
-		b, _ := json.Marshal(raw)
-		var fs []coreapi.NodeTypeField
-		_ = json.Unmarshal(b, &fs)
-		input.Fields = fs
-	} else if raw, ok := args["field_schema"]; ok {
 		b, _ := json.Marshal(raw)
 		var fs []coreapi.NodeTypeField
 		_ = json.Unmarshal(b, &fs)

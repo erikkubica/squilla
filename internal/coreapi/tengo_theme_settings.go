@@ -127,7 +127,7 @@ func getThemeSettingValue(
 	var field cms.ThemeSettingsField
 	found := false
 	for _, f := range page.Fields {
-		if f.Key == fieldKey {
+		if f.Name == fieldKey {
 			field = f
 			found = true
 			break
@@ -174,7 +174,7 @@ func getThemeSettingsPage(
 		return nil, err
 	}
 	for _, f := range page.Fields {
-		out[f.Key] = cms.CoerceWithDefault(f, rawAll[pageSlug+":"+f.Key]).Value
+		out[f.Name] = cms.CoerceWithDefault(f, rawAll[pageSlug+":"+f.Name]).Value
 	}
 	return out, nil
 }

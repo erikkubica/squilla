@@ -26,8 +26,8 @@ func CoerceValue(fieldType, raw string) (value any, ok bool) {
 		return nil, true
 	}
 	switch fieldType {
-	case "string", "text", "textarea", "richtext", "email", "url", "color",
-		"date", "select", "radio":
+	case "string", "textarea", "richtext", "email", "url", "color", "date",
+		"select", "radio":
 		return raw, true
 	case "number", "range":
 		if f, err := strconv.ParseFloat(raw, 64); err == nil {
@@ -65,16 +65,16 @@ func CoerceValue(fieldType, raw string) (value any, ok bool) {
 func CoerceWithDefault(field ThemeSettingsField, raw string) CoerceResult {
 	v, ok := CoerceValue(field.Type, raw)
 	if ok {
-		if v == nil && len(field.Default) > 0 {
+		if v == nil && len(field.InitialValue) > 0 {
 			var d any
-			_ = json.Unmarshal(field.Default, &d)
+			_ = json.Unmarshal(field.InitialValue, &d)
 			v = d
 		}
 		return CoerceResult{Value: v, Compatible: true, Raw: raw}
 	}
 	var dflt any
-	if len(field.Default) > 0 {
-		_ = json.Unmarshal(field.Default, &dflt)
+	if len(field.InitialValue) > 0 {
+		_ = json.Unmarshal(field.InitialValue, &dflt)
 	}
 	return CoerceResult{Value: dflt, Compatible: false, Raw: raw}
 }

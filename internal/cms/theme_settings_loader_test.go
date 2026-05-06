@@ -34,14 +34,14 @@ func TestLoadSettingsPages_ValidPagesParsed(t *testing.T) {
 		"name": "Header Settings",
 		"description": "Logo, tagline, etc.",
 		"fields": [
-			{"key":"logo","label":"Logo","type":"media"},
-			{"key":"tagline","label":"Tagline","type":"text","default":"Welcome"}
+			{"name":"logo","title":"Logo","type":"media"},
+			{"name":"tagline","title":"Tagline","type": "string","initialValue":"Welcome"}
 		]
 	}`)
 	writeFile(t, filepath.Join(dir, "settings", "api.json"), `{
 		"name": "API Keys",
 		"fields": [
-			{"key":"stripe_key","label":"Stripe","type":"text"}
+			{"name":"stripe_key","title":"Stripe","type": "string"}
 		]
 	}`)
 
@@ -68,7 +68,7 @@ func TestLoadSettingsPages_ValidPagesParsed(t *testing.T) {
 	if len(pages[0].Fields) != 2 {
 		t.Fatalf("want 2 fields, got %d", len(pages[0].Fields))
 	}
-	if pages[0].Fields[1].Key != "tagline" || string(pages[0].Fields[1].Default) != `"Welcome"` {
+	if pages[0].Fields[1].Name != "tagline" || string(pages[0].Fields[1].InitialValue) != `"Welcome"` {
 		t.Errorf("default not preserved: %+v", pages[0].Fields[1])
 	}
 	// Field with only reserved keys (key/label/type/default) must leave Config nil
@@ -80,7 +80,7 @@ func TestLoadSettingsPages_ValidPagesParsed(t *testing.T) {
 
 func TestLoadSettingsPages_InvalidPageSkippedWithLog(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, filepath.Join(dir, "settings", "ok.json"), `{"name":"OK","fields":[{"key":"a","type":"text"}]}`)
+	writeFile(t, filepath.Join(dir, "settings", "ok.json"), `{"name":"OK","fields":[{"name":"a","type": "string"}]}`)
 	writeFile(t, filepath.Join(dir, "settings", "bad.json"), `{not valid json`)
 
 	manifest := ThemeManifest{
@@ -107,7 +107,7 @@ func TestLoadSettingsPages_InvalidPageSkippedWithLog(t *testing.T) {
 
 func TestLoadSettingsPages_MissingFileSkipped(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, filepath.Join(dir, "settings", "ok.json"), `{"name":"OK","fields":[{"key":"a","type":"text"}]}`)
+	writeFile(t, filepath.Join(dir, "settings", "ok.json"), `{"name":"OK","fields":[{"name":"a","type": "string"}]}`)
 
 	manifest := ThemeManifest{
 		SettingsPages: []ThemeSettingsPageDef{
@@ -141,9 +141,9 @@ func TestLoadSettingsPages_FieldsWithMissingKeySkipped(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "settings", "p.json"), `{
 		"name":"P",
 		"fields":[
-			{"key":"good","label":"Good","type":"text"},
-			{"key":"","label":"Missing key","type":"text"},
-			{"key":"no_type","label":"Missing type","type":""}
+			{"name":"good","title":"Good","type": "string"},
+			{"name":"","title":"Missing key","type": "string"},
+			{"name":"no_type","title":"Missing type","type":""}
 		]
 	}`)
 
@@ -160,7 +160,7 @@ func TestLoadSettingsPages_FieldsWithMissingKeySkipped(t *testing.T) {
 	if len(pages) != 1 {
 		t.Fatalf("want 1 page, got %d", len(pages))
 	}
-	if len(pages[0].Fields) != 1 || pages[0].Fields[0].Key != "good" {
+	if len(pages[0].Fields) != 1 || pages[0].Fields[0].Name != "good" {
 		t.Errorf("expected only 'good' field, got %+v", pages[0].Fields)
 	}
 }
@@ -170,7 +170,7 @@ func TestLoadSettingsPages_RawAndConfigPreserved(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "settings", "p.json"), `{
 		"name":"P",
 		"fields":[
-			{"key":"k","label":"K","type":"select","options":["a","b","c"],"min":1}
+			{"name":"k","title":"K","type":"select","options":["a","b","c"],"min":1}
 		]
 	}`)
 
@@ -207,7 +207,7 @@ func TestLoadSettingsPages_RawAndConfigPreserved(t *testing.T) {
 		t.Errorf("Config missing min: %+v", f.Config)
 	}
 	// Standard keys should not be in Config (only renderer-specific extras).
-	if _, ok := f.Config["key"]; ok {
+	if _, ok := f.Config["name"]; ok {
 		t.Errorf("Config should not include 'key': %+v", f.Config)
 	}
 	if _, ok := f.Config["type"]; ok {
@@ -218,7 +218,7 @@ func TestLoadSettingsPages_RawAndConfigPreserved(t *testing.T) {
 func TestLoadSettingsPages_NameFallback(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "settings", "p.json"), `{
-		"fields":[{"key":"a","label":"A","type":"text"}]
+		"fields":[{"name":"a","title":"A","type": "string"}]
 	}`)
 
 	manifest := ThemeManifest{

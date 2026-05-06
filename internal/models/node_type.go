@@ -1,9 +1,6 @@
 package models
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 // NodeType represents a custom content type definition in the CMS.
 type NodeType struct {
@@ -24,20 +21,4 @@ type NodeType struct {
 // TableName overrides the default GORM table name.
 func (NodeType) TableName() string {
 	return "node_types"
-}
-
-// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
-func (n *NodeType) UnmarshalJSON(data []byte) error {
-	type alias NodeType
-	raw := struct {
-		*alias
-		LegacyFieldSchema JSONB `json:"field_schema,omitempty"`
-	}{alias: (*alias)(n)}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(n.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
-		n.Fields = raw.LegacyFieldSchema
-	}
-	return nil
 }

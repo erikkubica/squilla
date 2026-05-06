@@ -102,7 +102,7 @@ export default function BlockTypeEditorPage() {
           setSlug(bt.slug);
           setDescription(bt.description || "");
           setIcon(bt.icon || "boxes");
-          setFields(bt.field_schema || []);
+          setFields(bt.fields || []);
           setHtmlTemplate(bt.html_template || "");
           setTestData(bt.test_data || {});
           setCacheOutput(bt.cache_output);
@@ -139,7 +139,7 @@ export default function BlockTypeEditorPage() {
       slug,
       description,
       icon,
-      field_schema: fields,
+      fields: fields,
       html_template: htmlTemplate,
       test_data: testData,
       cache_output: cacheOutput,
