@@ -126,6 +126,45 @@ menus.upsert({ slug: "main-nav",   name: "Primary Navigation",  items: primary_i
 menus.upsert({ slug: "footer-nav", name: "Footer Navigation",   items: primary_items })
 log.info("[default-theme] nav menus seeded")
 
+// ─── Form Seeding ────────────────────────────────────────────────
+// The contact page's vibe-form block looks up a form with slug
+// "contact". Without one, it shows "Failed to load form." We seed a
+// sensible default (name/email/phone/message) plus an admin email
+// notification so a fresh install actually delivers messages without
+// needing the operator to wire anything up first.
+//
+// Idempotent: forms:upsert no-ops when a form with this slug already
+// exists, so editor changes survive theme re-activations.
+//
+// Notification recipient defaults to the kernel's first-boot admin
+// (admin@squilla.local). Operators change this in Admin → Forms →
+// Contact → Notifications, or by editing the row.
+events.emit("forms:upsert", {
+    slug: "contact",
+    name: "Contact",
+    style: "card",
+    settings: {
+        success_message: "Thanks — we'll get back to you within one business day.",
+        store_ip: true,
+        honeypot_enabled: true
+    },
+    fields: [
+        { id: "name",    type: "text",     label: "Your name",  placeholder: "Jane Doe",         required: true },
+        { id: "email",   type: "email",    label: "Email",      placeholder: "you@example.com",  required: true },
+        { id: "phone",   type: "tel",      label: "Phone",      placeholder: "+1 555 123 4567" },
+        { id: "message", type: "textarea", label: "Message",    placeholder: "How can we help?", required: true }
+    ],
+    notifications: [
+        {
+            enabled: true,
+            to:      "admin@squilla.local",
+            subject: "New contact form submission from {{ .Field.name }}",
+            body:    ""
+        }
+    ]
+})
+log.info("[default-theme] contact form upsert emitted")
+
 // ─── Events ──────────────────────────────────────────────────────
 events.on("before_main_content", "hooks/hello_world", 10)
 events.on("node.published",      "handlers/on_node_published")
