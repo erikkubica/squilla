@@ -104,8 +104,8 @@ func (h *PublicHandler) renderBlocks(blocks []map[string]interface{}, locale str
 		}
 
 		// Hydrate node references — resolve node selector fields to full node data
-		markRichTextFields(fields, bt.FieldSchema)
-		h.hydrateTermFields(fields, bt.FieldSchema)
+		markRichTextFields(fields, bt.Fields)
+		h.hydrateTermFields(fields, bt.Fields)
 
 		// Use the new RenderParsed method for cached template execution
 		cacheKey := "block:" + blockType + ":" + tmplContent
@@ -181,7 +181,7 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 			}
 			typeSchemaMap := make(map[string]models.JSONB)
 			for _, nt := range nodeTypes {
-				typeSchemaMap[nt.Slug] = nt.FieldSchema
+				typeSchemaMap[nt.Slug] = nt.Fields
 			}
 
 			for _, n := range nodes {
@@ -280,8 +280,8 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 			}
 		}
 
-		markRichTextFields(fields, bt.FieldSchema)
-		h.hydrateTermFields(fields, bt.FieldSchema)
+		markRichTextFields(fields, bt.Fields)
+		h.hydrateTermFields(fields, bt.Fields)
 
 		tmplCacheKey := "block:" + blockType + ":" + tmplContent
 		var buf bytes.Buffer

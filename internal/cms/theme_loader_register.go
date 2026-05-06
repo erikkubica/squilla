@@ -215,7 +215,7 @@ func RegisterLayoutFromFile(db *gorm.DB, def ThemeLayoutDef, code string, source
 func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, source string, sourceName string) error {
 	h := sha256.New()
 	h.Write([]byte(code))
-	h.Write(def.FieldSchema) // include field_schema in hash
+	h.Write(def.Fields) // include field_schema in hash
 	contentHash := hex.EncodeToString(h.Sum(nil))
 
 	var sourceNamePtr *string
@@ -225,8 +225,8 @@ func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, sour
 
 	// Prepare field_schema JSONB
 	fieldSchema := models.JSONB("[]")
-	if len(def.FieldSchema) > 0 {
-		fieldSchema = models.JSONB(def.FieldSchema)
+	if len(def.Fields) > 0 {
+		fieldSchema = models.JSONB(def.Fields)
 	}
 
 	var existing models.LayoutBlock
@@ -241,7 +241,7 @@ func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, sour
 		}
 		existing.Name = def.Name
 		existing.TemplateCode = code
-		existing.FieldSchema = fieldSchema
+		existing.Fields = fieldSchema
 		existing.Source = source
 		existing.ThemeName = sourceNamePtr
 		existing.ContentHash = contentHash
@@ -254,7 +254,7 @@ func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, sour
 			Name:         def.Name,
 			LanguageID:   nil,
 			TemplateCode: code,
-			FieldSchema:  fieldSchema,
+			Fields:       fieldSchema,
 			Source:       source,
 			ThemeName:    sourceNamePtr,
 			ContentHash:  contentHash,
@@ -270,11 +270,10 @@ func RegisterPartialFromFile(db *gorm.DB, def ThemePartialDef, code string, sour
 // silently break the admin or render path. Today it catches:
 //   - select-typed fields whose options contain {value,label} objects (admin
 //     crashes with React error #31 — must be plain string options).
-//   - term-typed fields without term_node_type (hydration won't match).
-//   - mixing `name:` instead of `key:` at the field-schema level (block.json
-//     readers expect `key`, admin will render empty inputs).
+//   - term/reference-typed fields without term_node_type (hydration won't match).
 //
-// Recurses into sub_fields for repeater/group fields.
+// Accepts both the current vocabulary (`name`, `fields`) and the legacy
+// vocabulary (`key`, `sub_fields`). Recurses into nested fields.
 func validateBlockFieldSchema(blockSlug string, raw json.RawMessage) error {
 	if len(raw) == 0 {
 		return nil
@@ -289,25 +288,19 @@ func validateBlockFieldSchema(blockSlug string, raw json.RawMessage) error {
 
 func validateBlockFieldsRecursive(blockSlug, parentPath string, fields []map[string]any) error {
 	for _, f := range fields {
-		key, _ := f["key"].(string)
-		if key == "" {
-			if name, ok := f["name"].(string); ok && name != "" {
-				// Accept `name:` as a deprecated alias for `key:` — some
-				// theme/block authors come from the Tengo nodetype convention
-				// where `name` is the canonical field. Mirror it into `key`
-				// so the rest of the load + admin renderer sees a consistent
-				// shape, and warn so the author migrates.
-				log.Printf("WARN: block %q field schema uses deprecated `name:` (=%q) — block.json should use `key:`. Mirroring into `key` for back-compat.",
-					blockSlug, name)
-				f["key"] = name
-				key = name
+		name, _ := f["name"].(string)
+		if name == "" {
+			if k, ok := f["key"].(string); ok && k != "" {
+				// Legacy alias: `key:` is read as `name:` for back-compat.
+				name = k
 			}
 		}
-		path := key
+		path := name
 		if parentPath != "" {
-			path = parentPath + "." + key
+			path = parentPath + "." + name
 		}
 		typ, _ := f["type"].(string)
+		typ = field_types.NormalizeType(typ)
 		// Validate type against the kernel field-type registry. Extension-
 		// contributed types (image/file/gallery from media-manager, etc.)
 		// are not in the builtin list — log a warning rather than fail so a
@@ -335,9 +328,15 @@ func validateBlockFieldsRecursive(blockSlug, parentPath string, fields []map[str
 				log.Printf("WARN: block %q field %q is type=term but term_node_type is empty — hydration will not match any term row", blockSlug, path)
 			}
 		}
-		if sub, ok := f["sub_fields"].([]any); ok {
-			subFields := make([]map[string]any, 0, len(sub))
-			for _, s := range sub {
+		// Recurse into nested fields. Accept either `fields` (current) or
+		// `sub_fields` (legacy alias).
+		nested, ok := f["fields"].([]any)
+		if !ok {
+			nested, _ = f["sub_fields"].([]any)
+		}
+		if len(nested) > 0 {
+			subFields := make([]map[string]any, 0, len(nested))
+			for _, s := range nested {
 				if sm, ok := s.(map[string]any); ok {
 					subFields = append(subFields, sm)
 				}
@@ -351,13 +350,29 @@ func validateBlockFieldsRecursive(blockSlug, parentPath string, fields []map[str
 }
 
 // blockManifest is the structure of a block's block.json file.
+// UnmarshalJSON also accepts the legacy `field_schema` key for `Fields`.
 type blockManifest struct {
 	Slug        string          `json:"slug"`
 	Label       string          `json:"label"`
 	Icon        string          `json:"icon"`
 	Description string          `json:"description"`
-	FieldSchema json.RawMessage `json:"field_schema"`
+	Fields      json.RawMessage `json:"fields"`
 	TestData    json.RawMessage `json:"test_data"`
+}
+
+func (b *blockManifest) UnmarshalJSON(data []byte) error {
+	type alias blockManifest
+	raw := struct {
+		*alias
+		LegacyFieldSchema json.RawMessage `json:"field_schema,omitempty"`
+	}{alias: (*alias)(b)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(b.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		b.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }
 
 // RegisterBlockFromDir reads block files from blockDir and upserts the block type.
@@ -374,7 +389,7 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 		return fmt.Errorf("failed to parse block.json for %s: %w", slug, err)
 	}
 
-	if err := validateBlockFieldSchema(slug, bm.FieldSchema); err != nil {
+	if err := validateBlockFieldSchema(slug, bm.Fields); err != nil {
 		return err
 	}
 
@@ -395,8 +410,8 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 
 	// Prepare field_schema and test_data as JSONB.
 	fieldSchema := models.JSONB("[]")
-	if len(bm.FieldSchema) > 0 {
-		fieldSchema = models.JSONB(bm.FieldSchema)
+	if len(bm.Fields) > 0 {
+		fieldSchema = models.JSONB(bm.Fields)
 	}
 	testData := models.JSONB("{}")
 	if len(bm.TestData) > 0 {
@@ -447,7 +462,7 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 		existing.Label = label
 		existing.Icon = icon
 		existing.Description = bm.Description
-		existing.FieldSchema = fieldSchema
+		existing.Fields = fieldSchema
 		existing.HTMLTemplate = string(viewData)
 		existing.TestData = testData
 		existing.Source = source
@@ -465,7 +480,7 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 			Label:        label,
 			Icon:         icon,
 			Description:  bm.Description,
-			FieldSchema:  fieldSchema,
+			Fields:       fieldSchema,
 			HTMLTemplate: string(viewData),
 			TestData:     testData,
 			Source:       source,

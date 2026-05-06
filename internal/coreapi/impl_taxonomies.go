@@ -34,9 +34,9 @@ func (c *coreImpl) RegisterTaxonomy(ctx context.Context, input TaxonomyInput) (*
 		m.ShowUI = true // Default
 	}
 
-	if input.FieldSchema != nil {
-		b, _ := json.Marshal(input.FieldSchema)
-		m.FieldSchema = models.JSONB(b)
+	if input.Fields != nil {
+		b, _ := json.Marshal(input.Fields)
+		m.Fields = models.JSONB(b)
 	}
 
 	if err == nil {
@@ -58,8 +58,8 @@ func (c *coreImpl) RegisterTaxonomy(ctx context.Context, input TaxonomyInput) (*
 		if input.ShowUI != nil {
 			updates["show_ui"] = *input.ShowUI
 		}
-		if input.FieldSchema != nil {
-			b, _ := json.Marshal(input.FieldSchema)
+		if input.Fields != nil {
+			b, _ := json.Marshal(input.Fields)
 			updates["field_schema"] = models.JSONB(b)
 		}
 		// Merge node_types: add any from input that aren't already present
@@ -142,8 +142,8 @@ func (c *coreImpl) UpdateTaxonomy(ctx context.Context, slug string, input Taxono
 	if input.ShowUI != nil {
 		updates["show_ui"] = *input.ShowUI
 	}
-	if input.FieldSchema != nil {
-		b, _ := json.Marshal(input.FieldSchema)
+	if input.Fields != nil {
+		b, _ := json.Marshal(input.Fields)
 		updates["field_schema"] = models.JSONB(b)
 	}
 	if len(updates) == 0 {
@@ -261,10 +261,10 @@ func taxonomyFromModel(m *models.Taxonomy) *Taxonomy {
 		CreatedAt:    m.CreatedAt,
 		UpdatedAt:    m.UpdatedAt,
 	}
-	if len(m.FieldSchema) > 0 {
+	if len(m.Fields) > 0 {
 		var schema []NodeTypeField
-		json.Unmarshal([]byte(m.FieldSchema), &schema)
-		t.FieldSchema = schema
+		json.Unmarshal([]byte(m.Fields), &schema)
+		t.Fields = schema
 	}
 	return t
 }

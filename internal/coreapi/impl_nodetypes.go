@@ -16,8 +16,8 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		return nil, NewValidation("label is required")
 	}
 
-	input.FieldSchema = NormalizeFieldSchema(input.FieldSchema)
-	fieldSchemaJSON, err := json.Marshal(input.FieldSchema)
+	input.Fields = NormalizeFieldSchema(input.Fields)
+	fieldSchemaJSON, err := json.Marshal(input.Fields)
 	if err != nil {
 		return nil, NewInternal("failed to marshal field_schema: " + err.Error())
 	}
@@ -32,7 +32,7 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		LabelPlural:    input.LabelPlural,
 		Icon:           input.Icon,
 		Description:    input.Description,
-		FieldSchema:    models.JSONB(fieldSchemaJSON),
+		Fields:         models.JSONB(fieldSchemaJSON),
 		URLPrefixes:    models.JSONB(urlPrefixesJSON),
 		SupportsBlocks: true,
 	}
@@ -67,7 +67,7 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		if input.Taxonomies != nil {
 			updates["taxonomies"] = nt.Taxonomies
 		}
-		updates["field_schema"] = nt.FieldSchema
+		updates["field_schema"] = nt.Fields
 		updates["url_prefixes"] = nt.URLPrefixes
 		if input.SupportsBlocks != nil {
 			updates["supports_blocks"] = *input.SupportsBlocks
@@ -135,8 +135,8 @@ func (c *coreImpl) UpdateNodeType(ctx context.Context, slug string, input NodeTy
 	if input.Taxonomies != nil {
 		updates["taxonomies"] = input.Taxonomies
 	}
-	if input.FieldSchema != nil {
-		updates["field_schema"] = input.FieldSchema
+	if input.Fields != nil {
+		updates["field_schema"] = input.Fields
 	}
 	if input.URLPrefixes != nil {
 		updates["url_prefixes"] = input.URLPrefixes
@@ -196,14 +196,14 @@ func nodeTypeFromModel(nt *models.NodeType) *NodeType {
 	}
 
 	// Parse FieldSchema from JSONB
-	if len(nt.FieldSchema) > 0 {
+	if len(nt.Fields) > 0 {
 		var fields []NodeTypeField
-		if err := json.Unmarshal([]byte(nt.FieldSchema), &fields); err == nil {
-			result.FieldSchema = NormalizeFieldSchema(fields)
+		if err := json.Unmarshal([]byte(nt.Fields), &fields); err == nil {
+			result.Fields = NormalizeFieldSchema(fields)
 		}
 	}
-	if result.FieldSchema == nil {
-		result.FieldSchema = []NodeTypeField{}
+	if result.Fields == nil {
+		result.Fields = []NodeTypeField{}
 	}
 
 	// Parse URLPrefixes from JSONB

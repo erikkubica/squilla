@@ -93,17 +93,21 @@ func nodesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 	}
 }
 
-// tengoToField builds a NodeTypeField from a Tengo map. Lives next to
-// nodes because content types feed it but it's also reused by
-// taxonomies — the duplication-avoidance trumps strict file naming.
+// tengoToField builds a NodeTypeField from a Tengo map. Accepts both the
+// current vocabulary (name, title, fields, initialValue, description) and
+// legacy aliases (key → name, label → title, sub_fields → fields,
+// default → initialValue, help → description).
 func tengoToField(fm map[string]tengo.Object) NodeTypeField {
 	f := NodeTypeField{
 		Name:  tengoToString(fm["name"]),
-		Label: tengoToString(fm["label"]),
-		Type:  tengoToString(fm["type"]),
+		Title: tengoToString(fm["title"]),
+		Type:  NormalizeFieldType(tengoToString(fm["type"])),
 	}
 	if f.Name == "" {
 		f.Name = tengoToString(fm["key"])
+	}
+	if f.Title == "" {
+		f.Title = tengoToString(fm["label"])
 	}
 	if rv, ok := fm["required"]; ok {
 		f.Required = tengoToBool(rv)
@@ -119,20 +123,27 @@ func tengoToField(fm map[string]tengo.Object) NodeTypeField {
 			}
 		}
 	}
-	if sfv, ok := fm["sub_fields"]; ok {
-		if sfarr, ok := sfv.(*tengo.Array); ok {
-			for _, sf := range sfarr.Value {
-				if sm, ok := sf.(*tengo.Map); ok {
-					f.SubFields = append(f.SubFields, tengoToField(sm.Value))
-				}
+	// Nested fields: prefer `fields`, fall back to legacy `sub_fields`.
+	nested, ok := fm["fields"]
+	if !ok {
+		nested = fm["sub_fields"]
+	}
+	if sfarr, ok := nested.(*tengo.Array); ok {
+		for _, sf := range sfarr.Value {
+			if sm, ok := sf.(*tengo.Map); ok {
+				f.Fields = append(f.Fields, tengoToField(sm.Value))
 			}
 		}
 	}
-	if dv, ok := fm["default"]; ok {
-		f.Default = tengoObjToGo(dv)
+	if dv, ok := fm["initialValue"]; ok {
+		f.InitialValue = tengoObjToGo(dv)
+	} else if dv, ok := fm["default"]; ok {
+		f.InitialValue = tengoObjToGo(dv)
 	}
-	if hv, ok := fm["help"]; ok {
-		f.Help = tengoToString(hv)
+	if hv, ok := fm["description"]; ok {
+		f.Description = tengoToString(hv)
+	} else if hv, ok := fm["help"]; ok {
+		f.Description = tengoToString(hv)
 	}
 	if v, ok := fm["node_type_filter"]; ok {
 		f.NodeTypeFilter = tengoToString(v)
@@ -417,8 +428,8 @@ func warnFieldSchemaShape(api CoreAPI, ctx context.Context, op string, fields []
 				}
 			}
 		}
-		if len(f.SubFields) > 0 {
-			warnFieldSchemaShape(api, ctx, op+"."+f.Name, f.SubFields)
+		if len(f.Fields) > 0 {
+			warnFieldSchemaShape(api, ctx, op+"."+f.Name, f.Fields)
 		}
 	}
 }

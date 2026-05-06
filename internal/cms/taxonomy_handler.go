@@ -95,7 +95,7 @@ func (h *TaxonomyHandler) Update(c *fiber.Ctx) error {
 	label := existing.Label
 	labelPlural := existing.LabelPlural
 	description := existing.Description
-	fieldSchema := string(existing.FieldSchema)
+	fieldSchema := string(existing.Fields)
 	nodeTypes := "{}"
 	hierarchical := existing.Hierarchical
 	showUI := existing.ShowUI

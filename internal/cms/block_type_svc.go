@@ -263,8 +263,8 @@ func (s *BlockTypeService) Reattach(id int) (*models.BlockType, error) {
 
 			// Prepare field_schema and test_data.
 			fieldSchema := models.JSONB("[]")
-			if len(bm.FieldSchema) > 0 {
-				fieldSchema = models.JSONB(bm.FieldSchema)
+			if len(bm.Fields) > 0 {
+				fieldSchema = models.JSONB(bm.Fields)
 			}
 			testData := models.JSONB("{}")
 			if len(bm.TestData) > 0 {

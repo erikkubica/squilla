@@ -134,6 +134,7 @@ func mergeRegisteredTaxonomies(db *gorm.DB, nt *models.NodeType) {
 }
 
 // createNodeTypeRequest represents the JSON body for creating a node type.
+// UnmarshalJSON also accepts the legacy `field_schema` key for `Fields`.
 type createNodeTypeRequest struct {
 	Slug           string       `json:"slug"`
 	Label          string       `json:"label"`
@@ -141,9 +142,24 @@ type createNodeTypeRequest struct {
 	Icon           string       `json:"icon"`
 	Description    string       `json:"description"`
 	Taxonomies     models.JSONB `json:"taxonomies"`
-	FieldSchema    models.JSONB `json:"field_schema"`
+	Fields         models.JSONB `json:"fields"`
 	URLPrefixes    models.JSONB `json:"url_prefixes"`
 	SupportsBlocks *bool        `json:"supports_blocks"`
+}
+
+func (r *createNodeTypeRequest) UnmarshalJSON(data []byte) error {
+	type alias createNodeTypeRequest
+	raw := struct {
+		*alias
+		LegacyFieldSchema models.JSONB `json:"field_schema,omitempty"`
+	}{alias: (*alias)(r)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(r.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		r.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }
 
 // Create handles POST /node-types to create a new node type.
@@ -171,7 +187,7 @@ func (h *NodeTypeHandler) Create(c *fiber.Ctx) error {
 		Icon:           req.Icon,
 		Description:    req.Description,
 		Taxonomies:     req.Taxonomies,
-		FieldSchema:    req.FieldSchema,
+		Fields:         req.Fields,
 		URLPrefixes:    req.URLPrefixes,
 		SupportsBlocks: true,
 	}
@@ -185,8 +201,8 @@ func (h *NodeTypeHandler) Create(c *fiber.Ctx) error {
 	if len(nt.Taxonomies) == 0 {
 		nt.Taxonomies = models.JSONB("[]")
 	}
-	if len(nt.FieldSchema) == 0 {
-		nt.FieldSchema = models.JSONB("[]")
+	if len(nt.Fields) == 0 {
+		nt.Fields = models.JSONB("[]")
 	}
 	if len(nt.URLPrefixes) == 0 {
 		nt.URLPrefixes = models.JSONB("{}")

@@ -25,7 +25,7 @@ func nodeTypesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 				return wrapError(fmt.Errorf("nodetypes.register: input must be a map")), nil
 			}
 			input := nodeTypeInputFromMap(m)
-			warnFieldSchemaShape(api, ctx, "nodetypes.register["+input.Slug+"]", input.FieldSchema)
+			warnFieldSchemaShape(api, ctx, "nodetypes.register["+input.Slug+"]", input.Fields)
 			res, err := api.RegisterNodeType(ctx, input)
 			if err != nil {
 				return wrapError(err), nil
@@ -61,15 +61,15 @@ func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
 	if nt == nil {
 		return tengo.UndefinedValue
 	}
-	fields := make([]tengo.Object, len(nt.FieldSchema))
-	for i, f := range nt.FieldSchema {
+	fields := make([]tengo.Object, len(nt.Fields))
+	for i, f := range nt.Fields {
 		opts := make([]tengo.Object, len(f.Options))
 		for j, o := range f.Options {
 			opts[j] = goToTengoObj(o)
 		}
 		fields[i] = &tengo.ImmutableMap{Value: map[string]tengo.Object{
 			"name":     &tengo.String{Value: f.Name},
-			"label":    &tengo.String{Value: f.Label},
+			"title":    &tengo.String{Value: f.Title},
 			"type":     &tengo.String{Value: f.Type},
 			"required": boolToTengo(f.Required),
 			"options":  &tengo.ImmutableArray{Value: opts},
@@ -87,6 +87,7 @@ func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
 			"multiple": boolToTengo(t.Multiple),
 		}}
 	}
+	fieldsArr := &tengo.ImmutableArray{Value: fields}
 	return &tengo.ImmutableMap{Value: map[string]tengo.Object{
 		"id":           &tengo.Int{Value: int64(nt.ID)},
 		"slug":         &tengo.String{Value: nt.Slug},
@@ -94,7 +95,8 @@ func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
 		"icon":         &tengo.String{Value: nt.Icon},
 		"description":  &tengo.String{Value: nt.Description},
 		"taxonomies":   &tengo.ImmutableArray{Value: taxes},
-		"field_schema": &tengo.ImmutableArray{Value: fields},
+		"fields":       fieldsArr,
+		"field_schema": fieldsArr, // legacy alias — still emitted for back-compat
 		"url_prefixes": &tengo.ImmutableMap{Value: prefixes},
 	}}
 }
@@ -126,12 +128,21 @@ func nodeTypeInputFromMap(m map[string]tengo.Object) NodeTypeInput {
 			}
 		}
 	}
-	if v, ok := m["field_schema"]; ok {
-		if arr, ok := v.(*tengo.Array); ok {
-			for _, item := range arr.Value {
-				if fm := getTengoMap(item); fm != nil {
-					input.FieldSchema = append(input.FieldSchema, tengoToField(fm))
-				}
+	// Accept either `fields` (current) or `field_schema` (legacy alias).
+	fieldsRaw, ok := m["fields"]
+	if !ok {
+		fieldsRaw = m["field_schema"]
+	}
+	if arr, ok := fieldsRaw.(*tengo.Array); ok {
+		for _, item := range arr.Value {
+			if fm := getTengoMap(item); fm != nil {
+				input.Fields = append(input.Fields, tengoToField(fm))
+			}
+		}
+	} else if iarr, ok := fieldsRaw.(*tengo.ImmutableArray); ok {
+		for _, item := range iarr.Value {
+			if fm := getTengoMap(item); fm != nil {
+				input.Fields = append(input.Fields, tengoToField(fm))
 			}
 		}
 	}
@@ -157,7 +168,7 @@ func taxonomiesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object 
 				return wrapError(fmt.Errorf("taxonomies.register: input must be a map")), nil
 			}
 			input := taxonomyInputFromMap(m)
-			warnFieldSchemaShape(api, ctx, "taxonomies.register["+input.Slug+"]", input.FieldSchema)
+			warnFieldSchemaShape(api, ctx, "taxonomies.register["+input.Slug+"]", input.Fields)
 			res, err := api.RegisterTaxonomy(ctx, input)
 			if err != nil {
 				return wrapError(err), nil
@@ -196,7 +207,7 @@ func taxonomiesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object 
 				return wrapError(fmt.Errorf("taxonomies.update: input must be a map")), nil
 			}
 			input := taxonomyInputFromMap(m)
-			warnFieldSchemaShape(api, ctx, "taxonomies.update["+slug+"]", input.FieldSchema)
+			warnFieldSchemaShape(api, ctx, "taxonomies.update["+slug+"]", input.Fields)
 			res, err := api.UpdateTaxonomy(ctx, slug, input)
 			if err != nil {
 				return wrapError(err), nil
@@ -238,8 +249,10 @@ func taxonomyToTengoObj(t *Taxonomy) tengo.Object {
 		}
 		m["node_types"] = &tengo.ImmutableArray{Value: ntArr}
 	}
-	if t.FieldSchema != nil {
-		m["field_schema"] = goToTengoObj(t.FieldSchema)
+	if t.Fields != nil {
+		fieldsObj := goToTengoObj(t.Fields)
+		m["fields"] = fieldsObj
+		m["field_schema"] = fieldsObj // legacy alias — still emitted for back-compat
 	}
 	return &tengo.ImmutableMap{Value: m}
 }
@@ -274,18 +287,21 @@ func taxonomyInputFromMap(m map[string]tengo.Object) TaxonomyInput {
 			}
 		}
 	}
-	if v, ok := m["field_schema"]; ok {
-		if arr, ok := v.(*tengo.Array); ok {
-			for _, item := range arr.Value {
-				if fm := getTengoMap(item); fm != nil {
-					input.FieldSchema = append(input.FieldSchema, tengoToField(fm))
-				}
+	// Accept either `fields` (current) or `field_schema` (legacy alias).
+	fieldsRaw, ok := m["fields"]
+	if !ok {
+		fieldsRaw = m["field_schema"]
+	}
+	if arr, ok := fieldsRaw.(*tengo.Array); ok {
+		for _, item := range arr.Value {
+			if fm := getTengoMap(item); fm != nil {
+				input.Fields = append(input.Fields, tengoToField(fm))
 			}
-		} else if arr, ok := v.(*tengo.ImmutableArray); ok {
-			for _, item := range arr.Value {
-				if fm := getTengoMap(item); fm != nil {
-					input.FieldSchema = append(input.FieldSchema, tengoToField(fm))
-				}
+		}
+	} else if iarr, ok := fieldsRaw.(*tengo.ImmutableArray); ok {
+		for _, item := range iarr.Value {
+			if fm := getTengoMap(item); fm != nil {
+				input.Fields = append(input.Fields, tengoToField(fm))
 			}
 		}
 	}

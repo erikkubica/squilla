@@ -185,8 +185,8 @@ func (h *PublicHandler) buildPartialData(node *models.ContentNode, layout *model
 		}
 
 		var schema []map[string]interface{}
-		if len(lb.FieldSchema) > 0 {
-			json.Unmarshal(lb.FieldSchema, &schema)
+		if len(lb.Fields) > 0 {
+			json.Unmarshal(lb.Fields, &schema)
 		}
 
 		// Get explicit values from layout_data

@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
@@ -171,14 +172,30 @@ func (h *BlockTypeHandler) Get(c *fiber.Ctx) error {
 }
 
 // createBlockTypeRequest represents the JSON body for creating a block type.
+// UnmarshalJSON also accepts the legacy `field_schema` key for `Fields`.
 type createBlockTypeRequest struct {
 	Slug         string       `json:"slug"`
 	Label        string       `json:"label"`
 	Icon         string       `json:"icon"`
 	Description  string       `json:"description"`
-	FieldSchema  models.JSONB `json:"field_schema"`
+	Fields       models.JSONB `json:"fields"`
 	HTMLTemplate string       `json:"html_template"`
 	Source       string       `json:"source"`
+}
+
+func (r *createBlockTypeRequest) UnmarshalJSON(data []byte) error {
+	type alias createBlockTypeRequest
+	raw := struct {
+		*alias
+		LegacyFieldSchema models.JSONB `json:"field_schema,omitempty"`
+	}{alias: (*alias)(r)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(r.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		r.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }
 
 // Create handles POST /block-types to create a new block type.
@@ -204,7 +221,7 @@ func (h *BlockTypeHandler) Create(c *fiber.Ctx) error {
 		Label:        req.Label,
 		Icon:         req.Icon,
 		Description:  req.Description,
-		FieldSchema:  req.FieldSchema,
+		Fields:       req.Fields,
 		HTMLTemplate: req.HTMLTemplate,
 		Source:       req.Source,
 	}
@@ -212,8 +229,8 @@ func (h *BlockTypeHandler) Create(c *fiber.Ctx) error {
 	if bt.Icon == "" {
 		bt.Icon = "square"
 	}
-	if len(bt.FieldSchema) == 0 {
-		bt.FieldSchema = models.JSONB("[]")
+	if len(bt.Fields) == 0 {
+		bt.Fields = models.JSONB("[]")
 	}
 	if bt.Source == "" {
 		bt.Source = "custom"

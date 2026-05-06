@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/lib/pq"
@@ -16,7 +17,7 @@ type Taxonomy struct {
 	Hierarchical bool           `gorm:"column:hierarchical;not null;default:false" json:"hierarchical"`
 	ShowUI       bool           `gorm:"column:show_ui;not null;default:true" json:"show_ui"`
 	NodeTypes    pq.StringArray `gorm:"column:node_types;type:text[];not null;default:'{}'" json:"node_types"`
-	FieldSchema  JSONB          `gorm:"column:field_schema;type:jsonb;not null;default:'[]'" json:"field_schema"`
+	Fields       JSONB          `gorm:"column:field_schema;type:jsonb;not null;default:'[]'" json:"fields"`
 	CreatedAt    time.Time      `gorm:"column:created_at;autoCreateTime" json:"created_at"`
 	UpdatedAt    time.Time      `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
 }
@@ -24,4 +25,20 @@ type Taxonomy struct {
 // TableName overrides the default GORM table name.
 func (Taxonomy) TableName() string {
 	return "taxonomies"
+}
+
+// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
+func (t *Taxonomy) UnmarshalJSON(data []byte) error {
+	type alias Taxonomy
+	raw := struct {
+		*alias
+		LegacyFieldSchema JSONB `json:"field_schema,omitempty"`
+	}{alias: (*alias)(t)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(t.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		t.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }

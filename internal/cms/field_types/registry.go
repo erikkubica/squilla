@@ -20,13 +20,36 @@ type FieldTypeDef struct {
 // "toggle"), "wysiwyg" (vs "richtext"), "dropdown" (vs "select"). Extension-
 // contributed types live outside this check; callers that have access to the
 // extension registry should layer their own check on top.
+//
+// Legacy type names (text, repeater, group, node) are normalized via
+// NormalizeType before lookup so callers don't need to handle the alias
+// mapping themselves.
 func IsBuiltin(typ string) bool {
+	typ = NormalizeType(typ)
 	for _, def := range Builtin() {
 		if def.Type == typ {
 			return true
 		}
 	}
 	return false
+}
+
+// NormalizeType maps legacy built-in type names to the current vocabulary.
+// Unknown types pass through untouched so extension-contributed types
+// continue to work.
+func NormalizeType(t string) string {
+	switch t {
+	case "text":
+		return "string"
+	case "repeater":
+		return "array"
+	case "group":
+		return "object"
+	case "node":
+		return "reference"
+	default:
+		return t
+	}
 }
 
 // Builtin returns the 20 field types that ship with the Squilla kernel.

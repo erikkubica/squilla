@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // BlockType represents a block type definition in the CMS.
 type BlockType struct {
@@ -9,7 +12,7 @@ type BlockType struct {
 	Label        string    `gorm:"column:label;type:varchar(100);not null" json:"label"`
 	Icon         string    `gorm:"column:icon;type:varchar(50);not null;default:'square'" json:"icon"`
 	Description  string    `gorm:"column:description;type:text;not null;default:''" json:"description"`
-	FieldSchema  JSONB     `gorm:"column:field_schema;type:jsonb;not null;default:'[]'" json:"field_schema"`
+	Fields       JSONB     `gorm:"column:field_schema;type:jsonb;not null;default:'[]'" json:"fields"`
 	HTMLTemplate string    `gorm:"column:html_template;type:text;not null;default:''" json:"html_template"`
 	TestData     JSONB     `gorm:"column:test_data;type:jsonb;not null;default:'{}'" json:"test_data"`
 	Source       string    `gorm:"column:source;type:varchar(20);not null;default:'custom'" json:"source"`
@@ -25,3 +28,19 @@ type BlockType struct {
 
 // TableName overrides the default GORM table name.
 func (BlockType) TableName() string { return "block_types" }
+
+// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
+func (b *BlockType) UnmarshalJSON(data []byte) error {
+	type alias BlockType
+	raw := struct {
+		*alias
+		LegacyFieldSchema JSONB `json:"field_schema,omitempty"`
+	}{alias: (*alias)(b)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(b.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		b.Fields = raw.LegacyFieldSchema
+	}
+	return nil
+}

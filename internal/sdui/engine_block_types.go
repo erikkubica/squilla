@@ -103,7 +103,7 @@ func (e *Engine) blockTypesLayout(params map[string]string) *LayoutNode {
 	rows := make([]map[string]interface{}, 0, len(pageData))
 	for _, bt := range pageData {
 		var fields []interface{}
-		if err := json.Unmarshal(bt.FieldSchema, &fields); err != nil {
+		if err := json.Unmarshal(bt.Fields, &fields); err != nil {
 			fields = []interface{}{}
 		}
 		description := bt.Description

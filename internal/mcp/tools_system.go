@@ -151,7 +151,7 @@ func (s *Server) registerBlockTypeTools() {
 	svc := s.deps.BlockTypeSvc
 
 	s.addTool(mcp.NewTool("core.block_types.list",
-		mcp.WithDescription("List all registered block types. Each includes slug, label, field_schema, and rendered template source — useful before calling core.render.block."),
+		mcp.WithDescription("List all registered block types. Each includes slug, label, fields, and rendered template source — useful before calling core.render.block."),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		if svc == nil {
 			return nil, fmt.Errorf("block type service not wired")
@@ -170,12 +170,12 @@ func (s *Server) registerBlockTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.block_types.create",
-		mcp.WithDescription("Create a new block type (custom reusable content block). field_schema is an array of field defs; html_template is the Go html/template source rendered with .fields and .node. source='custom' for user-defined blocks."),
+		mcp.WithDescription("Create a new block type (custom reusable content block). `fields` is an array of field defs `[{name, title, type, ...}]`; html_template is the Go html/template source rendered with .fields and .node. source='custom' for user-defined blocks. Legacy `field_schema` arg still accepted as alias."),
 		mcp.WithString("slug", mcp.Required(), mcp.Description("Unique snake_case slug, e.g. 'image_carousel_cta'")),
 		mcp.WithString("label", mcp.Required()),
 		mcp.WithString("icon", mcp.Description("Lucide icon name, default 'square'")),
 		mcp.WithString("description"),
-		mcp.WithArray("field_schema", mcp.Description("Array of field definitions [{type, name, label, ...}]")),
+		mcp.WithArray("fields", mcp.Description("Array of field definitions [{name, title, type, required?, options?, fields?, initialValue?, description?}]")),
 		mcp.WithString("html_template", mcp.Description("Go html/template source")),
 		mcp.WithObject("test_data", mcp.Description("Example fields payload for preview rendering")),
 		mcp.WithString("block_css"),
@@ -202,10 +202,13 @@ func (s *Server) registerBlockTypeTools() {
 		if _, ok := args["cache_output"]; ok {
 			bt.CacheOutput = boolArg(args, "cache_output")
 		}
-		if v, ok := args["field_schema"]; ok {
-			bt.FieldSchema = models.JSONB(jsonFieldBytes(v, "[]"))
+		// Accept either `fields` (current) or `field_schema` (legacy alias).
+		if v, ok := args["fields"]; ok {
+			bt.Fields = models.JSONB(jsonFieldBytes(v, "[]"))
+		} else if v, ok := args["field_schema"]; ok {
+			bt.Fields = models.JSONB(jsonFieldBytes(v, "[]"))
 		} else {
-			bt.FieldSchema = models.JSONB("[]")
+			bt.Fields = models.JSONB("[]")
 		}
 		if v, ok := args["test_data"]; ok {
 			bt.TestData = models.JSONB(jsonFieldBytes(v, "{}"))
@@ -219,13 +222,13 @@ func (s *Server) registerBlockTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.block_types.update",
-		mcp.WithDescription("Update an existing block type. Provide only fields to change. For theme-sourced blocks, consider core.block_types.detach first."),
+		mcp.WithDescription("Update an existing block type. Provide only fields to change. For theme-sourced blocks, consider core.block_types.detach first. Legacy `field_schema` arg still accepted as alias for `fields`."),
 		mcp.WithNumber("id", mcp.Required()),
 		mcp.WithString("slug"),
 		mcp.WithString("label"),
 		mcp.WithString("icon"),
 		mcp.WithString("description"),
-		mcp.WithArray("field_schema"),
+		mcp.WithArray("fields"),
 		mcp.WithString("html_template"),
 		mcp.WithObject("test_data"),
 		mcp.WithString("block_css"),
@@ -243,7 +246,12 @@ func (s *Server) registerBlockTypeTools() {
 				}
 			}
 		}
-		if v, ok := args["field_schema"]; ok {
+		// Accept either `fields` (current) or `field_schema` (legacy alias).
+		// The DB column is still `field_schema` (renaming the column is a
+		// separate effort), so the GORM updates map key stays the column name.
+		if v, ok := args["fields"]; ok {
+			updates["field_schema"] = models.JSONB(jsonFieldBytes(v, "[]"))
+		} else if v, ok := args["field_schema"]; ok {
 			updates["field_schema"] = models.JSONB(jsonFieldBytes(v, "[]"))
 		}
 		if v, ok := args["test_data"]; ok {

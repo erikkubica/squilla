@@ -60,7 +60,7 @@ func (h *PublicHandler) hydrateFields(fields map[string]interface{}) {
 	}
 	typeSchemaMap := make(map[string]models.JSONB)
 	for _, nt := range nodeTypes {
-		typeSchemaMap[nt.Slug] = nt.FieldSchema
+		typeSchemaMap[nt.Slug] = nt.Fields
 	}
 
 	nodeMap := make(map[int]map[string]interface{})

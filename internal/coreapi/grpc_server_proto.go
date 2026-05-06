@@ -175,11 +175,11 @@ func nodeTypeToProto(nt *NodeType) *pb.NodeTypeMessage {
 	if nt == nil {
 		return nil
 	}
-	fields := make([]*pb.NodeTypeFieldMessage, len(nt.FieldSchema))
-	for i, f := range nt.FieldSchema {
+	fields := make([]*pb.NodeTypeFieldMessage, len(nt.Fields))
+	for i, f := range nt.Fields {
 		fields[i] = &pb.NodeTypeFieldMessage{
 			Name:     f.Name,
-			Label:    f.Label,
+			Label:    f.Title,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  f.OptionsToStrings(),
@@ -212,7 +212,7 @@ func nodeTypeInputFromProto(inp *pb.NodeTypeInputMessage) NodeTypeInput {
 	for _, f := range inp.FieldSchema {
 		fields = append(fields, NodeTypeField{
 			Name:     f.Name,
-			Label:    f.Label,
+			Title:    f.Label,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  OptionsFromStrings(f.Options),
@@ -223,7 +223,7 @@ func nodeTypeInputFromProto(inp *pb.NodeTypeInputMessage) NodeTypeInput {
 		Label:       inp.Label,
 		Icon:        inp.Icon,
 		Description: inp.Description,
-		FieldSchema: fields,
+		Fields:      fields,
 		URLPrefixes: inp.UrlPrefixes,
 	}
 	if inp.TaxonomiesJson != "" {
@@ -292,11 +292,11 @@ func taxonomyToProto(t *Taxonomy) *pb.TaxonomyMessage {
 	if t == nil {
 		return nil
 	}
-	fields := make([]*pb.NodeTypeFieldMessage, len(t.FieldSchema))
-	for i, f := range t.FieldSchema {
+	fields := make([]*pb.NodeTypeFieldMessage, len(t.Fields))
+	for i, f := range t.Fields {
 		fields[i] = &pb.NodeTypeFieldMessage{
 			Name:     f.Name,
-			Label:    f.Label,
+			Label:    f.Title,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  f.OptionsToStrings(),
@@ -322,7 +322,7 @@ func taxonomyInputFromProto(inp *pb.TaxonomyInputMessage) TaxonomyInput {
 	for _, f := range inp.FieldSchema {
 		fields = append(fields, NodeTypeField{
 			Name:     f.Name,
-			Label:    f.Label,
+			Title:    f.Label,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  OptionsFromStrings(f.Options),
@@ -333,7 +333,7 @@ func taxonomyInputFromProto(inp *pb.TaxonomyInputMessage) TaxonomyInput {
 		Label:       inp.Label,
 		Description: inp.Description,
 		NodeTypes:   inp.NodeTypes,
-		FieldSchema: fields,
+		Fields:      fields,
 	}
 }
 

@@ -546,15 +546,15 @@ func guideGotchas() []map[string]any {
 		},
 		{
 			"topic":   "block_select_options",
-			"summary": "block.json `field_schema` `select`/`radio` options must be plain strings (`[\"a\",\"b\"]`), never `[{value,label}]`. Object options are rejected at theme load and would otherwise crash the admin with React #31.",
+			"summary": "block.json `fields` `select`/`radio` options must be plain strings (`[\"a\",\"b\"]`), never `[{value,label}]`. Object options are rejected at theme load and would otherwise crash the admin with React #31.",
 		},
 		{
 			"topic":   "term_field_shape",
 			"summary": "Term-typed fields: schema needs `term_node_type`; values must be stored as `{slug, name}` objects (not bare slug strings) so admin pre-selects. Hydration accepts strings on render only.",
 		},
 		{
-			"topic":   "schema_key_vs_name",
-			"summary": "block.json field_schema uses `key:` (and `key:` for sub_fields). Tengo nodetypes.register / taxonomies.register use `name:`. Don't mix — empty admin inputs are the symptom.",
+			"topic":   "field_schema_vocabulary",
+			"summary": "Field schemas (block.json `fields`, nodetypes.register, taxonomies.register) all use the same vocabulary: `name` (data identifier), `title` (display label), `type`, `required?`, `options?`, `fields?` (nested for object/array), `initialValue?`, `description?`. Legacy aliases (`key`, `label`, `help`, `default`, `sub_fields`, `field_schema`, types `text`/`repeater`/`group`/`node`) are still accepted by the back-compat reader, but emit the new shape in any new schema you write.",
 		},
 		{
 			"topic":   "settings_dot_keys",
@@ -773,9 +773,10 @@ func themeStandardsCore() map[string]any {
 			{"type": "image", "intent": "Single image (media-picker)", "shape": `{"url": "theme-asset:<key>", "alt": "..."}`},
 			{"type": "gallery", "intent": "Multi-image picker", "shape": `[{"url": "theme-asset:<key>", "alt": "..."}, ...]`},
 			{"type": "term", "intent": "Taxonomy term picker (set taxonomy + term_node_type in schema)", "shape": `{"slug": "foodie", "name": "Foodie"}`},
-			{"type": "node", "intent": "Node picker (set node_types in schema to restrict)", "shape": `{"slug": "hanoi-trip", "title": "Hanoi Street Food"}  // engine resolves id at render time`},
+			{"type": "reference", "intent": "Node picker (set node_types in schema to restrict)", "shape": `{"slug": "hanoi-trip", "title": "Hanoi Street Food"}  // engine resolves id at render time`},
 			{"type": "form_selector", "intent": "Pick a form from forms-extension", "shape": `"<form-slug>"`},
-			{"type": "repeater", "intent": "Nested array of sub_fields", "shape": `[{...}, {...}]  // schema: "sub_fields": [...]`},
+			{"type": "array", "intent": "Repeatable list of nested fields (compound items)", "shape": `[{...}, {...}]  // schema: "fields": [...]`},
+			{"type": "object", "intent": "Group of nested fields under one logical key", "shape": `{...}             // schema: "fields": [...]`},
 		},
 		"portable_refs": []string{
 			"Always reference pages/nodes by slug.",
@@ -817,10 +818,10 @@ func themeStandardsExamples() map[string]string {
   "name": "Intro",
   "description": "Centered headline + body + optional image.",
   "category": "my-theme",
-  "field_schema": [
-    { "key": "heading", "label": "Heading", "type": "text",     "help": "The H1." },
-    { "key": "body",    "label": "Body",    "type": "textarea", "help": "1-3 sentences of intro copy." },
-    { "key": "image",   "label": "Image",   "type": "image",    "help": "Hero photo." }
+  "fields": [
+    { "name": "heading", "title": "Heading", "type": "string",   "description": "The H1." },
+    { "name": "body",    "title": "Body",    "type": "textarea", "description": "1-3 sentences of intro copy." },
+    { "name": "image",   "title": "Image",   "type": "image",    "description": "Hero photo." }
   ],
   "test_data": {
     "heading": "Welcome.",
@@ -889,7 +890,7 @@ func themeStandardsSeedingPatterns() map[string]string {
 		"autoregistration":  "Themes in themes/ are autoregistered at startup. No DB seeding is required to surface a new theme.",
 		"layout_seeding":    "The core default layout is seeded with source='seed' (migration 0036). Themes are free to install their own base.html / blank.html without colliding.",
 		"terms_module":      "Seed taxonomy term ROWS via core/terms (terms.create / list / get / update / delete). Taxonomy DEFINITIONS go through core/taxonomies.register.",
-		"schema_field_keys": "Field-schema key differs by surface: Tengo nodetypes.register / taxonomies.register use `name`; block.json field_schema uses `key`. Don't mix — wrong-key schemas silently produce empty admin inputs.",
+		"schema_field_keys": "Field schemas use a single homogeneous shape across all surfaces (block.json, nodetypes.register, taxonomies.register): `{name, title, type, required?, options?, fields?, initialValue?, description?}`. Nested fields (object/array) live under `fields` (no separate `sub_fields` array). Legacy aliases — `key`/`label`/`help`/`default`/`sub_fields`/`field_schema` and types `text`/`repeater`/`group`/`node` — still load via the back-compat reader, but emit the canonical names in any new schema.",
 	}
 }
 

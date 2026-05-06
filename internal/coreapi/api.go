@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"time"
 )
@@ -280,49 +281,125 @@ type NodeType struct {
 	Icon           string               `json:"icon"`
 	Description    string               `json:"description"`
 	Taxonomies     []TaxonomyDefinition `json:"taxonomies,omitempty"`
-	FieldSchema    []NodeTypeField      `json:"field_schema"`
+	Fields         []NodeTypeField      `json:"fields"`
 	URLPrefixes    map[string]string    `json:"url_prefixes"`
 	SupportsBlocks bool                 `json:"supports_blocks"`
 	CreatedAt      time.Time            `json:"created_at"`
 	UpdatedAt      time.Time            `json:"updated_at"`
 }
 
-// NodeTypeField — note: both `name` and `key` JSON tags resolve to the same
-// Go field. The admin UI uses `key` (the block-type convention); Tengo theme
-// scripts and legacy code use `name`. NormalizeFieldSchema mirrors one into
-// the other so either naming works and consumers always see both.
+// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
+func (n *NodeType) UnmarshalJSON(data []byte) error {
+	type alias NodeType
+	raw := struct {
+		*alias
+		LegacyFieldSchema []NodeTypeField `json:"field_schema,omitempty"`
+	}{alias: (*alias)(n)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(n.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		n.Fields = raw.LegacyFieldSchema
+	}
+	return nil
+}
+
+// NodeTypeField describes a single field in a node type, taxonomy, or block
+// type schema. The vocabulary follows the modern CMS convention used by
+// Sanity-style schemas:
+//
+//	name         — identifier used as the data key (template / API access)
+//	title        — human-facing label shown in the editor UI
+//	type         — field type (string, array, object, reference, image, …)
+//	description  — helper text rendered under the input
+//	initialValue — default value applied to fresh entries
+//	fields       — nested fields (used by `object` and `array` types)
+//
+// The struct's UnmarshalJSON also accepts legacy keys: `key` (→ name),
+// `label` (→ title), `help` (→ description), `default` (→ initialValue),
+// `sub_fields` (→ fields), plus legacy type names (`text`, `repeater`,
+// `group`, `node`).
 type NodeTypeField struct {
-	Name      string           `json:"name"`
-	Key       string           `json:"key,omitempty"`
-	Label     string           `json:"label"`
-	Type      string           `json:"type"`
-	Required  bool             `json:"required"`
-	Options   []interface{}    `json:"options,omitempty"`
-	SubFields []NodeTypeField  `json:"sub_fields,omitempty"`
-	Default   interface{}      `json:"default,omitempty"`
-	Help      string           `json:"help,omitempty"`
+	Name         string          `json:"name"`
+	Title        string          `json:"title"`
+	Type         string          `json:"type"`
+	Required     bool            `json:"required,omitempty"`
+	Options      []interface{}   `json:"options,omitempty"`
+	Fields       []NodeTypeField `json:"fields,omitempty"`
+	InitialValue interface{}     `json:"initialValue,omitempty"`
+	Description  string          `json:"description,omitempty"`
 
 	// Type-specific config carried through to the admin UI and templates.
 	// Kept as explicit fields so JSON round-trips cleanly.
-	NodeTypeFilter string   `json:"node_type_filter,omitempty"` // `node` field: single node_type slug to filter by
-	NodeTypes      []string `json:"node_types,omitempty"`       // `node` field: alt multi-slug filter
-	Multiple       bool     `json:"multiple,omitempty"`         // `node` / `term` / `gallery` multi-select toggle
+	NodeTypeFilter string   `json:"node_type_filter,omitempty"` // `reference` field: single node_type slug to filter by
+	NodeTypes      []string `json:"node_types,omitempty"`       // `reference` field: alt multi-slug filter
+	Multiple       bool     `json:"multiple,omitempty"`         // `reference` / `term` / `gallery` multi-select toggle
 	Taxonomy       string   `json:"taxonomy,omitempty"`         // `term` field: taxonomy slug (e.g. "trip_tag")
 	TermNodeType   string   `json:"term_node_type,omitempty"`   // `term` field: owning node_type slug for the taxonomy
 }
 
-// NormalizeFieldSchema mirrors Name↔Key on every field (including recursively
-// inside sub_fields) so the admin UI and template code can both rely on
-// either accessor being populated.
+// UnmarshalJSON reads either the new vocabulary (name / title / description
+// / initialValue / fields) or the legacy vocabulary (key / label / help /
+// default / sub_fields). Legacy type aliases are also normalized.
+func (f *NodeTypeField) UnmarshalJSON(data []byte) error {
+	type alias NodeTypeField
+	raw := struct {
+		*alias
+		LegacyKey       string          `json:"key,omitempty"`
+		LegacyLabel     string          `json:"label,omitempty"`
+		LegacyHelp      string          `json:"help,omitempty"`
+		LegacyDefault   interface{}     `json:"default,omitempty"`
+		LegacySubFields []NodeTypeField `json:"sub_fields,omitempty"`
+	}{alias: (*alias)(f)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if f.Name == "" && raw.LegacyKey != "" {
+		f.Name = raw.LegacyKey
+	}
+	if f.Title == "" && raw.LegacyLabel != "" {
+		f.Title = raw.LegacyLabel
+	}
+	if f.Description == "" && raw.LegacyHelp != "" {
+		f.Description = raw.LegacyHelp
+	}
+	if f.InitialValue == nil && raw.LegacyDefault != nil {
+		f.InitialValue = raw.LegacyDefault
+	}
+	if len(f.Fields) == 0 && len(raw.LegacySubFields) > 0 {
+		f.Fields = raw.LegacySubFields
+	}
+	f.Type = NormalizeFieldType(f.Type)
+	return nil
+}
+
+// NormalizeFieldType maps legacy built-in type names to the current
+// vocabulary. Unknown types pass through untouched so extension-contributed
+// types continue to work.
+func NormalizeFieldType(t string) string {
+	switch t {
+	case "text":
+		return "string"
+	case "repeater":
+		return "array"
+	case "group":
+		return "object"
+	case "node":
+		return "reference"
+	default:
+		return t
+	}
+}
+
+// NormalizeFieldSchema walks a field schema tree and normalizes legacy type
+// names. Legacy *key* aliases (key → name, etc.) are handled by
+// NodeTypeField.UnmarshalJSON during JSON decoding; this helper covers the
+// non-JSON paths (e.g. Tengo-built schemas) and is safe to call repeatedly.
 func NormalizeFieldSchema(fields []NodeTypeField) []NodeTypeField {
 	for i := range fields {
-		if fields[i].Key == "" && fields[i].Name != "" {
-			fields[i].Key = fields[i].Name
-		} else if fields[i].Name == "" && fields[i].Key != "" {
-			fields[i].Name = fields[i].Key
-		}
-		if len(fields[i].SubFields) > 0 {
-			fields[i].SubFields = NormalizeFieldSchema(fields[i].SubFields)
+		fields[i].Type = NormalizeFieldType(fields[i].Type)
+		if len(fields[i].Fields) > 0 {
+			fields[i].Fields = NormalizeFieldSchema(fields[i].Fields)
 		}
 	}
 	return fields
@@ -371,9 +448,25 @@ type NodeTypeInput struct {
 	Icon           string               `json:"icon,omitempty"`
 	Description    string               `json:"description,omitempty"`
 	Taxonomies     []TaxonomyDefinition `json:"taxonomies,omitempty"`
-	FieldSchema    []NodeTypeField      `json:"field_schema,omitempty"`
+	Fields         []NodeTypeField      `json:"fields,omitempty"`
 	URLPrefixes    map[string]string    `json:"url_prefixes,omitempty"`
 	SupportsBlocks *bool                `json:"supports_blocks,omitempty"`
+}
+
+// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
+func (n *NodeTypeInput) UnmarshalJSON(data []byte) error {
+	type alias NodeTypeInput
+	raw := struct {
+		*alias
+		LegacyFieldSchema []NodeTypeField `json:"field_schema,omitempty"`
+	}{alias: (*alias)(n)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(n.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		n.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }
 
 type TaxonomyDefinition struct {
@@ -383,28 +476,60 @@ type TaxonomyDefinition struct {
 }
 
 type Taxonomy struct {
-	ID           uint                 `json:"id"`
-	Slug         string               `json:"slug"`
-	Label        string               `json:"label"`
-	LabelPlural  string               `json:"label_plural"`
-	Description  string               `json:"description"`
-	Hierarchical bool                 `json:"hierarchical"`
-	ShowUI       bool                 `json:"show_ui"`
-	NodeTypes    []string             `json:"node_types"`
-	FieldSchema  []NodeTypeField      `json:"field_schema,omitempty"`
-	CreatedAt    time.Time            `json:"created_at"`
-	UpdatedAt    time.Time            `json:"updated_at"`
+	ID           uint            `json:"id"`
+	Slug         string          `json:"slug"`
+	Label        string          `json:"label"`
+	LabelPlural  string          `json:"label_plural"`
+	Description  string          `json:"description"`
+	Hierarchical bool            `json:"hierarchical"`
+	ShowUI       bool            `json:"show_ui"`
+	NodeTypes    []string        `json:"node_types"`
+	Fields       []NodeTypeField `json:"fields,omitempty"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+}
+
+// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
+func (t *Taxonomy) UnmarshalJSON(data []byte) error {
+	type alias Taxonomy
+	raw := struct {
+		*alias
+		LegacyFieldSchema []NodeTypeField `json:"field_schema,omitempty"`
+	}{alias: (*alias)(t)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(t.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		t.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }
 
 type TaxonomyInput struct {
-	Slug         string               `json:"slug,omitempty"`
-	Label        string               `json:"label,omitempty"`
-	LabelPlural  string               `json:"label_plural,omitempty"`
-	Description  string               `json:"description,omitempty"`
-	Hierarchical *bool                `json:"hierarchical,omitempty"`
-	ShowUI       *bool                `json:"show_ui,omitempty"`
-	NodeTypes    []string             `json:"node_types,omitempty"`
-	FieldSchema  []NodeTypeField      `json:"field_schema,omitempty"`
+	Slug         string          `json:"slug,omitempty"`
+	Label        string          `json:"label,omitempty"`
+	LabelPlural  string          `json:"label_plural,omitempty"`
+	Description  string          `json:"description,omitempty"`
+	Hierarchical *bool           `json:"hierarchical,omitempty"`
+	ShowUI       *bool           `json:"show_ui,omitempty"`
+	NodeTypes    []string        `json:"node_types,omitempty"`
+	Fields       []NodeTypeField `json:"fields,omitempty"`
+}
+
+// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
+func (t *TaxonomyInput) UnmarshalJSON(data []byte) error {
+	type alias TaxonomyInput
+	raw := struct {
+		*alias
+		LegacyFieldSchema []NodeTypeField `json:"field_schema,omitempty"`
+	}{alias: (*alias)(t)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(t.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		t.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }
 
 type TaxonomyTerm struct {

@@ -268,12 +268,16 @@ func runThemeChecklist(slug, themeDir string) map[string]any {
 				})
 				continue
 			}
-			fs, _ := bj["field_schema"].([]any)
+			// Accept either `fields` (current) or `field_schema` (legacy alias).
+			fs, _ := bj["fields"].([]any)
+			if fs == nil {
+				fs, _ = bj["field_schema"].([]any)
+			}
 			schemaErrors := walkBlockSchema(e.Name(), "", fs)
 			if len(schemaErrors) == 0 {
 				checks = append(checks, checklistItem{
 					ID: "block." + e.Name() + ".schema", Severity: "pass", Pass: true,
-					Message: "field_schema clean",
+					Message: "fields schema clean",
 				})
 			} else {
 				for _, msg := range schemaErrors {
@@ -386,25 +390,34 @@ func walkBlockSchema(blockSlug, parentPath string, fields []any) []string {
 		if !ok {
 			continue
 		}
-		key, _ := f["key"].(string)
-		if key == "" {
-			if name, ok := f["name"].(string); ok && name != "" {
-				out = append(out, fmt.Sprintf("block %q field %q uses `name:` — block.json field_schema must use `key:` (admin will render empty inputs)", blockSlug, name))
-				continue
-			}
+		// Read identifier — prefer `name` (current), fall back to `key` (legacy alias).
+		name, _ := f["name"].(string)
+		if name == "" {
+			name, _ = f["key"].(string)
 		}
-		path := key
+		path := name
 		if parentPath != "" {
-			path = parentPath + "." + key
+			path = parentPath + "." + name
 		}
 		typ, _ := f["type"].(string)
-		// Heuristic: media-shaped key paired with a plain-text type is
+		// Normalize legacy type names so heuristics don't miss `text` (=string).
+		switch typ {
+		case "text":
+			typ = "string"
+		case "repeater":
+			typ = "array"
+		case "group":
+			typ = "object"
+		case "node":
+			typ = "reference"
+		}
+		// Heuristic: media-shaped name paired with a plain-text type is
 		// almost always a mistake. The author (often AI) declared the
 		// wrong type, then dumped a JSON object into it, which the admin
 		// stringifies to "[object Object]". Surface as a warn so it's
 		// visible without blocking the build.
-		if (typ == "text" || typ == "textarea") && looksLikeMediaKey(key) {
-			out = append(out, fmt.Sprintf("block %q field %q has media-shaped key but type=%q — almost certainly a mistake. Use type=image / media / file / gallery so the admin renders the right input and templates can read .url/.alt.", blockSlug, path, typ))
+		if (typ == "string" || typ == "textarea") && looksLikeMediaKey(name) {
+			out = append(out, fmt.Sprintf("block %q field %q has media-shaped name but type=%q — almost certainly a mistake. Use type=image / media / file / gallery so the admin renders the right input and templates can read .url/.alt.", blockSlug, path, typ))
 		}
 		switch typ {
 		case "select", "radio":
@@ -424,14 +437,20 @@ func walkBlockSchema(blockSlug, parentPath string, fields []any) []string {
 				out = append(out, fmt.Sprintf("block %q field %q is type=term but taxonomy is empty", blockSlug, path))
 			}
 		}
-		if sub, ok := f["sub_fields"].([]any); ok {
-			out = append(out, walkBlockSchema(blockSlug, path, sub)...)
+		// Recurse into nested fields. Accept either `fields` (current) or
+		// `sub_fields` (legacy alias).
+		nested, ok := f["fields"].([]any)
+		if !ok {
+			nested, _ = f["sub_fields"].([]any)
+		}
+		if len(nested) > 0 {
+			out = append(out, walkBlockSchema(blockSlug, path, nested)...)
 		}
 	}
 	return out
 }
 
-// validateTestData walks every field in the block's field_schema and
+// validateTestData walks every field in the block's fields schema and
 // confirms test_data carries a corresponding non-empty value. This
 // matters because admin previews and playwright screenshots both use
 // test_data — a block whose test_data omits "heading" will render with
@@ -440,7 +459,7 @@ func walkBlockSchema(blockSlug, parentPath string, fields []any) []string {
 func validateTestData(blockSlug string, fields []any, td map[string]any) []string {
 	out := []string{}
 	if td == nil {
-		out = append(out, fmt.Sprintf("block %q has no test_data — admin preview will render empty; declare a realistic value for every field_schema entry", blockSlug))
+		out = append(out, fmt.Sprintf("block %q has no test_data — admin preview will render empty; declare a realistic value for every field entry", blockSlug))
 		// Still walk fields so the report lists what's missing.
 	}
 	for _, raw := range fields {
@@ -448,28 +467,51 @@ func validateTestData(blockSlug string, fields []any, td map[string]any) []strin
 		if !ok {
 			continue
 		}
-		key, _ := f["key"].(string)
-		if key == "" {
+		// Read identifier — prefer `name` (current), fall back to `key` (legacy alias).
+		name, _ := f["name"].(string)
+		if name == "" {
+			name, _ = f["key"].(string)
+		}
+		if name == "" {
 			continue
 		}
 		typ, _ := f["type"].(string)
-		v, present := td[key]
+		// Normalize legacy type names.
+		switch typ {
+		case "text":
+			typ = "string"
+		case "repeater":
+			typ = "array"
+		case "group":
+			typ = "object"
+		case "node":
+			typ = "reference"
+		}
+		v, present := td[name]
 		if !present {
-			out = append(out, fmt.Sprintf("block %q test_data is missing key %q (type=%q) — admin preview will render this field empty", blockSlug, key, typ))
+			out = append(out, fmt.Sprintf("block %q test_data is missing key %q (type=%q) — admin preview will render this field empty", blockSlug, name, typ))
 			continue
 		}
 		if !testDataValueLooksRealistic(typ, v) {
-			out = append(out, fmt.Sprintf("block %q test_data[%q] looks empty/placeholder for type=%q — supply on-brand demo data so preview reflects real usage", blockSlug, key, typ))
+			out = append(out, fmt.Sprintf("block %q test_data[%q] looks empty/placeholder for type=%q — supply on-brand demo data so preview reflects real usage", blockSlug, name, typ))
 		}
-		// Recurse into repeater sub_fields if both schema and data agree.
-		if typ == "repeater" {
-			if sub, ok := f["sub_fields"].([]any); ok {
-				if arr, ok := v.([]any); ok && len(arr) > 0 {
-					if first, ok := arr[0].(map[string]any); ok {
-						out = append(out, validateTestData(blockSlug+"["+key+"][0]", sub, first)...)
+		// Recurse into nested fields (object/array) if both schema and data agree.
+		if typ == "array" || typ == "object" {
+			nested, nok := f["fields"].([]any)
+			if !nok {
+				nested, _ = f["sub_fields"].([]any)
+			}
+			if len(nested) > 0 {
+				if typ == "array" {
+					if arr, ok := v.([]any); ok && len(arr) > 0 {
+						if first, ok := arr[0].(map[string]any); ok {
+							out = append(out, validateTestData(blockSlug+"["+name+"][0]", nested, first)...)
+						}
+					} else {
+						out = append(out, fmt.Sprintf("block %q array test_data[%q] is empty — supply at least one demo entry so admin preview shows the layout", blockSlug, name))
 					}
-				} else {
-					out = append(out, fmt.Sprintf("block %q repeater test_data[%q] is empty — supply at least one demo entry so admin preview shows the layout", blockSlug, key))
+				} else if obj, ok := v.(map[string]any); ok {
+					out = append(out, validateTestData(blockSlug+"."+name, nested, obj)...)
 				}
 			}
 		}
@@ -479,7 +521,7 @@ func validateTestData(blockSlug string, fields []any, td map[string]any) []strin
 
 func testDataValueLooksRealistic(typ string, v any) bool {
 	switch typ {
-	case "text", "textarea", "richtext", "select", "radio", "color":
+	case "string", "text", "textarea", "richtext", "select", "radio", "color":
 		s, ok := v.(string)
 		return ok && strings.TrimSpace(s) != ""
 	case "number":
@@ -506,14 +548,14 @@ func testDataValueLooksRealistic(typ string, v any) bool {
 		}
 		u, _ := m["url"].(string)
 		return strings.TrimSpace(u) != ""
-	case "term", "node":
+	case "term", "reference", "node":
 		m, ok := v.(map[string]any)
 		if !ok {
 			return false
 		}
 		s, _ := m["slug"].(string)
 		return strings.TrimSpace(s) != ""
-	case "repeater":
+	case "array", "repeater":
 		arr, ok := v.([]any)
 		return ok && len(arr) > 0
 	case "form_selector":

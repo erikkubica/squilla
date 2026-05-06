@@ -218,11 +218,11 @@ func nodeTypeFromProto(msg *pb.NodeTypeMessage) *NodeType {
 			nt.Taxonomies = taxes
 		}
 	}
-	nt.FieldSchema = make([]NodeTypeField, len(msg.FieldSchema))
+	nt.Fields = make([]NodeTypeField, len(msg.FieldSchema))
 	for i, f := range msg.FieldSchema {
-		nt.FieldSchema[i] = NodeTypeField{
+		nt.Fields[i] = NodeTypeField{
 			Name:     f.Name,
-			Label:    f.Label,
+			Title:    f.Label,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  OptionsFromStrings(f.Options),
@@ -247,10 +247,10 @@ func nodeTypeInputToProto(input NodeTypeInput) *pb.NodeTypeInputMessage {
 			msg.TaxonomiesJson = string(b)
 		}
 	}
-	for _, f := range input.FieldSchema {
+	for _, f := range input.Fields {
 		msg.FieldSchema = append(msg.FieldSchema, &pb.NodeTypeFieldMessage{
 			Name:     f.Name,
-			Label:    f.Label,
+			Label:    f.Title,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  f.OptionsToStrings(),
@@ -332,11 +332,11 @@ func taxonomyFromProto(msg *pb.TaxonomyMessage) Taxonomy {
 			t.UpdatedAt = pt
 		}
 	}
-	t.FieldSchema = make([]NodeTypeField, len(msg.FieldSchema))
+	t.Fields = make([]NodeTypeField, len(msg.FieldSchema))
 	for i, f := range msg.FieldSchema {
-		t.FieldSchema[i] = NodeTypeField{
+		t.Fields[i] = NodeTypeField{
 			Name:     f.Name,
-			Label:    f.Label,
+			Title:    f.Label,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  OptionsFromStrings(f.Options),
@@ -352,10 +352,10 @@ func taxonomyInputToProto(input TaxonomyInput) *pb.TaxonomyInputMessage {
 		Description: input.Description,
 		NodeTypes:   input.NodeTypes,
 	}
-	for _, f := range input.FieldSchema {
+	for _, f := range input.Fields {
 		msg.FieldSchema = append(msg.FieldSchema, &pb.NodeTypeFieldMessage{
 			Name:     f.Name,
-			Label:    f.Label,
+			Label:    f.Title,
 			Type:     f.Type,
 			Required: f.Required,
 			Options:  f.OptionsToStrings(),

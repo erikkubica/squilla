@@ -13,7 +13,7 @@ func (s *Server) registerNodeTypeTools() {
 	api := s.deps.CoreAPI
 
 	s.addTool(mcp.NewTool("core.nodetype.list",
-		mcp.WithDescription("List all registered node types (post types). Each includes slug, label, icon, description, taxonomies, field_schema, and url_prefixes."),
+		mcp.WithDescription("List all registered node types (post types). Each includes slug, label, icon, description, taxonomies, fields, and url_prefixes."),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		return api.ListNodeTypes(ctx)
 	})
@@ -26,13 +26,13 @@ func (s *Server) registerNodeTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.nodetype.create",
-		mcp.WithDescription("Register a new node TYPE (the schema — like 'Product', 'Trip'). This is a definition, not an instance.\n\nUse when: the user wants a new kind of content (e.g. 'add a Recipe post type').\nDO NOT use when: creating a page/post/trip — use core.node.create. Adding a tag vocabulary — use core.taxonomy.create.\n\nfield_schema is an array of {name,label,type,required,options?}. select/radio/checkbox options MUST be plain strings, not {label,value} objects (client renders them as React children and crashes on objects)."),
+		mcp.WithDescription("Register a new node TYPE (the schema — like 'Product', 'Trip'). This is a definition, not an instance.\n\nUse when: the user wants a new kind of content (e.g. 'add a Recipe post type').\nDO NOT use when: creating a page/post/trip — use core.node.create. Adding a tag vocabulary — use core.taxonomy.create.\n\n`fields` is an array of `{name, title, type, required?, options?, fields?, initialValue?, description?}`. select/radio/checkbox options MUST be plain strings, not {label,value} objects (client renders them as React children and crashes on objects). The legacy `field_schema` argument is still accepted as an alias."),
 		mcp.WithString("slug", mcp.Required()),
 		mcp.WithString("label", mcp.Required(), mcp.Description("Singular label, e.g. 'Product'")),
 		mcp.WithString("label_plural", mcp.Description("Plural label used in admin menus and list headings, e.g. 'Products'. Falls back to label when blank.")),
 		mcp.WithString("icon", mcp.DefaultString("file-text")),
 		mcp.WithString("description"),
-		mcp.WithObject("field_schema"),
+		mcp.WithArray("fields", mcp.Description("Array of field definitions. Each field is {name, title, type, required?, options?, fields?, initialValue?, description?}.")),
 		mcp.WithObject("url_prefixes"),
 		mcp.WithObject("taxonomies"),
 	), "content", func(ctx context.Context, args map[string]any) (any, error) {
@@ -41,13 +41,13 @@ func (s *Server) registerNodeTypeTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.nodetype.update",
-		mcp.WithDescription("Update a node type by slug. Changes to field_schema only affect new/edited nodes; existing data is preserved as-is."),
+		mcp.WithDescription("Update a node type by slug. Changes to `fields` only affect new/edited nodes; existing data is preserved as-is. Legacy `field_schema` argument is still accepted as an alias."),
 		mcp.WithString("slug", mcp.Required()),
 		mcp.WithString("label"),
 		mcp.WithString("label_plural"),
 		mcp.WithString("icon"),
 		mcp.WithString("description"),
-		mcp.WithObject("field_schema"),
+		mcp.WithArray("fields"),
 		mcp.WithObject("url_prefixes"),
 		mcp.WithObject("taxonomies"),
 	), "content", func(ctx context.Context, args map[string]any) (any, error) {
@@ -71,11 +71,17 @@ func nodeTypeInputFromArgs(args map[string]any) coreapi.NodeTypeInput {
 		Icon:        stringArg(args, "icon"),
 		Description: stringArg(args, "description"),
 	}
-	if raw, ok := args["field_schema"]; ok {
+	// Accept either `fields` (current) or `field_schema` (legacy alias).
+	if raw, ok := args["fields"]; ok {
 		b, _ := json.Marshal(raw)
 		var fs []coreapi.NodeTypeField
 		_ = json.Unmarshal(b, &fs)
-		input.FieldSchema = fs
+		input.Fields = fs
+	} else if raw, ok := args["field_schema"]; ok {
+		b, _ := json.Marshal(raw)
+		var fs []coreapi.NodeTypeField
+		_ = json.Unmarshal(b, &fs)
+		input.Fields = fs
 	}
 	if raw, ok := args["url_prefixes"]; ok {
 		b, _ := json.Marshal(raw)

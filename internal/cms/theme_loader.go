@@ -90,11 +90,28 @@ type ThemeLayoutDef struct {
 }
 
 // ThemePartialDef defines a partial declared in theme.json.
+// UnmarshalJSON also accepts the legacy `field_schema` key for `Fields`.
 type ThemePartialDef struct {
-	Slug        string          `json:"slug"`
-	Name        string          `json:"name"`
-	File        string          `json:"file"`
-	FieldSchema json.RawMessage `json:"field_schema"`
+	Slug   string          `json:"slug"`
+	Name   string          `json:"name"`
+	File   string          `json:"file"`
+	Fields json.RawMessage `json:"fields"`
+}
+
+// UnmarshalJSON accepts the legacy `field_schema` key for `Fields`.
+func (t *ThemePartialDef) UnmarshalJSON(data []byte) error {
+	type alias ThemePartialDef
+	raw := struct {
+		*alias
+		LegacyFieldSchema json.RawMessage `json:"field_schema,omitempty"`
+	}{alias: (*alias)(t)}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(t.Fields) == 0 && len(raw.LegacyFieldSchema) > 0 {
+		t.Fields = raw.LegacyFieldSchema
+	}
+	return nil
 }
 
 // ThemeBlockDef defines a block type declared in theme.json.
