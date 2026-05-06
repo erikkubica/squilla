@@ -1,77 +1,77 @@
 {
-  "slug": "cb-accordion",
-  "label": "Accordion",
-  "icon": "chevrons-down",
   "description": "Collapsible content sections with click-to-expand panels. More general than FAQ. Use for documentation, product specs, terms, course curricula. Layout: vertical stack of panels with clickable headers and chevron icon, smooth slide animation. Multiple panels can open simultaneously.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
-      "key": "heading"
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Allow Multiple Open",
-      "type": "select",
+      "initialValue": "true",
+      "name": "allow_multiple",
       "options": [
         "true",
         "false"
       ],
-      "default": "true",
-      "key": "allow_multiple"
+      "title": "Allow Multiple Open",
+      "type": "select"
     },
     {
-      "label": "Accordion Items",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Title",
-          "type": "text",
+          "name": "title",
           "required": true,
-          "key": "title"
+          "title": "Title",
+          "type": "string"
         },
         {
-          "label": "Content",
-          "type": "richtext",
+          "name": "content",
           "required": true,
-          "key": "content"
+          "title": "Content",
+          "type": "richtext"
         },
         {
-          "label": "Initially Open",
-          "type": "select",
+          "initialValue": "false",
+          "name": "is_open",
           "options": [
             "true",
             "false"
           ],
-          "default": "false",
-          "key": "is_open"
+          "title": "Initially Open",
+          "type": "select"
         }
       ],
-      "key": "items"
+      "name": "items",
+      "title": "Accordion Items",
+      "type": "array"
     }
   ],
+  "icon": "chevrons-down",
+  "label": "Accordion",
+  "slug": "cb-accordion",
   "test_data": {
-    "heading": "Frequently Asked Questions",
     "allow_multiple": "true",
+    "heading": "Frequently Asked Questions",
     "items": [
       {
-        "title": "What is included in the starter plan?",
-        "content": "<p>The starter plan includes <strong>5 projects</strong>, unlimited collaborators, and access to all core features. You also get 10GB of storage and priority email support.</p><ul><li>5 active projects</li><li>Unlimited team members</li><li>10GB cloud storage</li><li>Email support</li></ul>",
-        "is_open": "true"
+        "content": "\u003cp\u003eThe starter plan includes \u003cstrong\u003e5 projects\u003c/strong\u003e, unlimited collaborators, and access to all core features. You also get 10GB of storage and priority email support.\u003c/p\u003e\u003cul\u003e\u003cli\u003e5 active projects\u003c/li\u003e\u003cli\u003eUnlimited team members\u003c/li\u003e\u003cli\u003e10GB cloud storage\u003c/li\u003e\u003cli\u003eEmail support\u003c/li\u003e\u003c/ul\u003e",
+        "is_open": "true",
+        "title": "What is included in the starter plan?"
       },
       {
-        "title": "How do I upgrade my subscription?",
-        "content": "<p>You can upgrade your subscription at any time from your account settings. Navigate to <strong>Settings &rarr; Billing</strong> and select your desired plan. The price difference will be prorated for the remainder of your billing cycle.</p>",
-        "is_open": "false"
+        "content": "\u003cp\u003eYou can upgrade your subscription at any time from your account settings. Navigate to \u003cstrong\u003eSettings \u0026rarr; Billing\u003c/strong\u003e and select your desired plan. The price difference will be prorated for the remainder of your billing cycle.\u003c/p\u003e",
+        "is_open": "false",
+        "title": "How do I upgrade my subscription?"
       },
       {
-        "title": "Can I export my data?",
-        "content": "<p>Yes, you can export all your data at any time. We support multiple export formats including <strong>CSV</strong>, <strong>JSON</strong>, and <strong>PDF</strong>. Go to Settings &rarr; Data Management &rarr; Export to download your complete dataset.</p>",
-        "is_open": "false"
+        "content": "\u003cp\u003eYes, you can export all your data at any time. We support multiple export formats including \u003cstrong\u003eCSV\u003c/strong\u003e, \u003cstrong\u003eJSON\u003c/strong\u003e, and \u003cstrong\u003ePDF\u003c/strong\u003e. Go to Settings \u0026rarr; Data Management \u0026rarr; Export to download your complete dataset.\u003c/p\u003e",
+        "is_open": "false",
+        "title": "Can I export my data?"
       },
       {
-        "title": "What happens when my trial ends?",
-        "content": "<p>When your 14-day trial ends, you will be prompted to select a paid plan. Your data and projects will be preserved for <strong>30 days</strong> after trial expiration. If you choose not to subscribe, you can still export your data during this grace period.</p>",
-        "is_open": "false"
+        "content": "\u003cp\u003eWhen your 14-day trial ends, you will be prompted to select a paid plan. Your data and projects will be preserved for \u003cstrong\u003e30 days\u003c/strong\u003e after trial expiration. If you choose not to subscribe, you can still export your data during this grace period.\u003c/p\u003e",
+        "is_open": "false",
+        "title": "What happens when my trial ends?"
       }
     ]
   }

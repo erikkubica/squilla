@@ -1,56 +1,92 @@
 {
-  "slug": "cv-experience",
-  "name": "CV Experience",
-  "description": "Section 04 — experience. Click-to-expand list rows: 10rem date column · role + org · +/− toggle. Open row reveals body and dark mono bullet pills.",
   "category": "curriculum-vitae",
-  "field_schema": [
-    { "key": "section_id", "label": "Anchor id", "type": "text" },
-    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
-    { "key": "heading", "label": "Heading", "type": "text" },
-    { "key": "items", "label": "Roles", "type": "repeater",
-      "sub_fields": [
-        { "key": "range", "label": "Date range", "type": "text", "help": "e.g. 2015 — now" },
-        { "key": "role",  "label": "Role title", "type": "text" },
-        { "key": "org",   "label": "Org / employer", "type": "text" },
-        { "key": "body",  "label": "Body paragraph", "type": "textarea" },
-        { "key": "bullets", "label": "Bullet pills (one per line)", "type": "textarea",
-          "help": "Each non-empty line renders as a dark mono pill." }
-      ]
+  "description": "Section 04 — experience. Click-to-expand list rows: 10rem date column · role + org · +/− toggle. Open row reveals body and dark mono bullet pills.",
+  "fields": [
+    {
+      "name": "section_id",
+      "title": "Anchor id",
+      "type": "string"
+    },
+    {
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
+    },
+    {
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "description": "e.g. 2015 — now",
+          "name": "range",
+          "title": "Date range",
+          "type": "string"
+        },
+        {
+          "name": "role",
+          "title": "Role title",
+          "type": "string"
+        },
+        {
+          "name": "org",
+          "title": "Org / employer",
+          "type": "string"
+        },
+        {
+          "name": "body",
+          "title": "Body paragraph",
+          "type": "textarea"
+        },
+        {
+          "description": "Each non-empty line renders as a dark mono pill.",
+          "name": "bullets",
+          "title": "Bullet pills (one per line)",
+          "type": "textarea"
+        }
+      ],
+      "name": "items",
+      "title": "Roles",
+      "type": "array"
     }
   ],
+  "name": "CV Experience",
+  "slug": "cv-experience",
   "test_data": {
-    "section_id": "xp",
     "eyebrow": "04 · experience",
     "heading": "A straight line, mostly.",
     "items": [
       {
-        "range": "2015 — now",
-        "role": "Senior Developer · AI lead",
-        "org": "Acme Studio Ltd.",
         "body": "Lead backend + the new AI track. Turn static designs into data-driven apps, design REST APIs, optimize databases, and lately — wire MCP servers and agent workflows into the existing stack so the team actually uses them.",
-        "bullets": "60+ production sites\n12 frontends\n8 backend APIs\nAI / MCP integration across the stack"
+        "bullets": "60+ production sites\n12 frontends\n8 backend APIs\nAI / MCP integration across the stack",
+        "org": "Acme Studio Ltd.",
+        "range": "2015 — now",
+        "role": "Senior Developer · AI lead"
       },
       {
-        "range": "2014 — 2015",
-        "role": "IT all-rounder",
-        "org": "Northwind Manufacturing",
         "body": "Sysadmin, web dev and the person you call when nothing prints. Manufacturing IT.",
-        "bullets": ""
+        "bullets": "",
+        "org": "Northwind Manufacturing",
+        "range": "2014 — 2015",
+        "role": "IT all-rounder"
       },
       {
-        "range": "~2014",
-        "role": "Web developer",
-        "org": "Initech s.r.o.",
         "body": "Built the company site on a backend framework. Clean code, no shortcuts.",
-        "bullets": ""
+        "bullets": "",
+        "org": "Initech s.r.o.",
+        "range": "~2014",
+        "role": "Web developer"
       },
       {
-        "range": "~2013",
-        "role": "Software collaborator",
-        "org": "Globex EU s.r.o.",
         "body": "Java EE + GWT solution for an automotive industry client. Enterprise software.",
-        "bullets": ""
+        "bullets": "",
+        "org": "Globex EU s.r.o.",
+        "range": "~2013",
+        "role": "Software collaborator"
       }
-    ]
+    ],
+    "section_id": "xp"
   }
 }

@@ -1,27 +1,27 @@
 {
-  "slug": "hv-trips-filter",
-  "name": "Trips Filter Header",
-  "description": "The interactive control panel for the trips listing page. Includes a search input and dynamic category pills for real-time client-side filtering.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "The interactive control panel for the trips listing page. Includes a search input and dynamic category pills for real-time client-side filtering.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "search_placeholder",
-      "label": "Search placeholder",
-      "type": "text"
+      "name": "search_placeholder",
+      "title": "Search placeholder",
+      "type": "string"
     }
   ],
+  "name": "Trips Filter Header",
+  "slug": "hv-trips-filter",
   "test_data": {
     "eyebrow": "Your next trip",
     "heading": "I'm looking for...",

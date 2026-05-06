@@ -1,79 +1,79 @@
 {
-  "slug": "cb-steps",
-  "label": "Process Steps",
-  "icon": "list-ordered",
   "description": "Numbered process steps displayed in a horizontal flow with connecting lines. Each step has number circle, title, and description. Use for onboarding flows, how-it-works, checkout processes. Layout: horizontal numbered circles connected by lines on desktop, vertical on mobile.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
-      "key": "heading"
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Subheading",
-      "type": "text",
-      "key": "subheading"
+      "name": "subheading",
+      "title": "Subheading",
+      "type": "string"
     },
     {
-      "label": "Steps",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
-          "type": "text",
-          "key": "icon"
+          "name": "icon",
+          "title": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
+          "type": "string"
         },
         {
-          "label": "Title",
-          "type": "text",
+          "name": "title",
           "required": true,
-          "key": "title"
+          "title": "Title",
+          "type": "string"
         },
         {
-          "label": "Description",
-          "type": "textarea",
+          "name": "description",
           "required": true,
-          "key": "description"
+          "title": "Description",
+          "type": "textarea"
         }
       ],
-      "key": "steps"
+      "name": "steps",
+      "title": "Steps",
+      "type": "array"
     },
     {
-      "label": "Layout Style",
-      "type": "select",
+      "initialValue": "horizontal",
+      "name": "style",
       "options": [
         "horizontal",
         "vertical"
       ],
-      "default": "horizontal",
-      "key": "style"
+      "title": "Layout Style",
+      "type": "select"
     }
   ],
+  "icon": "list-ordered",
+  "label": "Process Steps",
+  "slug": "cb-steps",
   "test_data": {
     "heading": "How It Works",
-    "subheading": "Get started in four simple steps",
-    "style": "horizontal",
     "steps": [
       {
+        "description": "Sign up with your email and choose a plan that fits your needs. No credit card required for the free trial.",
         "icon": "clipboard-list",
-        "title": "Create Account",
-        "description": "Sign up with your email and choose a plan that fits your needs. No credit card required for the free trial."
+        "title": "Create Account"
       },
       {
+        "description": "Customize your workspace, invite team members, and set up integrations with your existing tools.",
         "icon": "settings",
-        "title": "Configure Settings",
-        "description": "Customize your workspace, invite team members, and set up integrations with your existing tools."
+        "title": "Configure Settings"
       },
       {
+        "description": "Create your first project, import data, and start building with our intuitive drag-and-drop interface.",
         "icon": "rocket",
-        "title": "Launch Project",
-        "description": "Create your first project, import data, and start building with our intuitive drag-and-drop interface."
+        "title": "Launch Project"
       },
       {
+        "description": "Monitor performance with real-time analytics and optimize your workflow based on actionable insights.",
         "icon": "bar-chart",
-        "title": "Track Results",
-        "description": "Monitor performance with real-time analytics and optimize your workflow based on actionable insights."
+        "title": "Track Results"
       }
-    ]
+    ],
+    "style": "horizontal",
+    "subheading": "Get started in four simple steps"
   }
 }

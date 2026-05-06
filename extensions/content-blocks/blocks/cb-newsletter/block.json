@@ -1,61 +1,61 @@
 {
-  "slug": "cb-newsletter",
-  "label": "Newsletter Signup",
-  "icon": "mail",
   "description": "An email newsletter signup form with heading, description, and inline email input with submit button. For lead capture. Use on landing pages or footer areas. Layout: centered section with horizontal form (email input + submit), optional privacy note. Form POSTs to configurable action URL.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": true,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Description",
-      "type": "textarea",
+      "name": "description",
       "required": false,
-      "key": "description"
+      "title": "Description",
+      "type": "textarea"
     },
     {
-      "label": "Form Action URL",
-      "type": "text",
+      "name": "form_action",
       "required": false,
-      "key": "form_action"
+      "title": "Form Action URL",
+      "type": "string"
     },
     {
-      "label": "Privacy Note",
-      "type": "text",
+      "name": "privacy_note",
       "required": false,
-      "key": "privacy_note"
+      "title": "Privacy Note",
+      "type": "string"
     },
     {
-      "label": "Style",
-      "type": "select",
+      "initialValue": "light",
+      "name": "style",
       "options": [
         "light",
         "dark",
         "accent"
       ],
-      "default": "light",
-      "key": "style"
+      "title": "Style",
+      "type": "select"
     },
     {
-      "key": "button",
-      "label": "Button",
+      "name": "button",
+      "title": "Button",
       "type": "link"
     }
   ],
+  "icon": "mail",
+  "label": "Newsletter Signup",
+  "slug": "cb-newsletter",
   "test_data": {
-    "heading": "Stay Updated",
+    "button": {
+      "alt": "",
+      "target": "",
+      "text": "Subscribe",
+      "url": ""
+    },
     "description": "Get the latest news, tips, and product updates delivered straight to your inbox. No spam, ever.",
     "form_action": "/api/newsletter",
+    "heading": "Stay Updated",
     "privacy_note": "We respect your privacy. Unsubscribe at any time.",
-    "style": "light",
-    "button": {
-      "text": "Subscribe",
-      "url": "",
-      "alt": "",
-      "target": ""
-    }
+    "style": "light"
   }
 }

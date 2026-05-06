@@ -1,48 +1,48 @@
 {
-  "slug": "cb-embed",
-  "label": "Custom Embed",
-  "icon": "code-2",
   "description": "A flexible HTML/iframe embed block for embedding third-party widgets, forms, social posts, or custom HTML. Renders raw HTML within a sandboxed container. Use for embedding Calendly widgets, social feeds, Typeform forms, custom JavaScript widgets, or any third-party content. Layout: centered container with configurable max-width, optional heading and caption.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
-      "key": "heading"
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Embed Code",
-      "type": "textarea",
+      "name": "embed_code",
       "required": true,
-      "key": "embed_code"
+      "title": "Embed Code",
+      "type": "textarea"
     },
     {
-      "label": "Caption",
-      "type": "text",
-      "key": "caption"
+      "name": "caption",
+      "title": "Caption",
+      "type": "string"
     },
     {
-      "label": "Max Width",
-      "type": "select",
+      "initialValue": "medium",
+      "name": "max_width",
       "options": [
         "small",
         "medium",
         "large",
         "full"
       ],
-      "default": "medium",
-      "key": "max_width"
+      "title": "Max Width",
+      "type": "select"
     },
     {
-      "label": "Minimum Height (px)",
-      "type": "number",
-      "default": 400,
-      "key": "min_height"
+      "initialValue": 400,
+      "name": "min_height",
+      "title": "Minimum Height (px)",
+      "type": "number"
     }
   ],
+  "icon": "code-2",
+  "label": "Custom Embed",
+  "slug": "cb-embed",
   "test_data": {
-    "heading": "Book a Meeting",
-    "embed_code": "<iframe src=\"https://calendar.google.com/calendar/embed\" style=\"border: 0; width: 100%; height: 100%;\" frameborder=\"0\" scrolling=\"no\"></iframe>",
     "caption": "Choose a time that works",
+    "embed_code": "\u003ciframe src=\"https://calendar.google.com/calendar/embed\" style=\"border: 0; width: 100%; height: 100%;\" frameborder=\"0\" scrolling=\"no\"\u003e\u003c/iframe\u003e",
+    "heading": "Book a Meeting",
     "max_width": "medium",
     "min_height": 400
   }

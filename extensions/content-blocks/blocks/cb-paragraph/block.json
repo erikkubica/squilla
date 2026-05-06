@@ -1,36 +1,36 @@
 {
-  "slug": "cb-paragraph",
-  "label": "Paragraph",
-  "icon": "align-left",
   "description": "A versatile rich text content block for long-form writing. Renders a body of rich HTML text with an optional heading above it. Use for article body text, about-us descriptions, policy content, or any free-form written content. Layout: full-width text column centered with configurable max-width for readability.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Body",
-      "type": "richtext",
+      "name": "body",
       "required": true,
-      "key": "body"
+      "title": "Body",
+      "type": "richtext"
     },
     {
-      "label": "Max Width",
-      "type": "select",
+      "initialValue": "medium",
+      "name": "max_width",
       "options": [
         "narrow",
         "medium",
         "wide"
       ],
-      "default": "medium",
-      "key": "max_width"
+      "title": "Max Width",
+      "type": "select"
     }
   ],
+  "icon": "align-left",
+  "label": "Paragraph",
+  "slug": "cb-paragraph",
   "test_data": {
+    "body": "\u003cp\u003eWe are a forward-thinking technology company dedicated to building tools that empower creators and businesses alike. Our mission is to simplify complex workflows and deliver \u003cstrong\u003eexceptional experiences\u003c/strong\u003e through innovative software solutions.\u003c/p\u003e\u003cp\u003eFounded in 2018, we have grown from a small startup to a team of over 50 passionate engineers, designers, and strategists. We believe in \u003cem\u003etransparency, collaboration, and relentless improvement\u003c/em\u003e — values that guide every product we ship.\u003c/p\u003e",
     "heading": "About Our Company",
-    "body": "<p>We are a forward-thinking technology company dedicated to building tools that empower creators and businesses alike. Our mission is to simplify complex workflows and deliver <strong>exceptional experiences</strong> through innovative software solutions.</p><p>Founded in 2018, we have grown from a small startup to a team of over 50 passionate engineers, designers, and strategists. We believe in <em>transparency, collaboration, and relentless improvement</em> \u2014 values that guide every product we ship.</p>",
     "max_width": "medium"
   }
 }

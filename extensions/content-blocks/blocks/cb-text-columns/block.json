@@ -1,62 +1,62 @@
 {
-  "slug": "cb-text-columns",
-  "label": "Text Columns",
-  "icon": "columns",
   "description": "A multi-column text layout block for splitting content into 2-4 parallel columns. Each column has its own heading and rich text body. Use for comparing features side-by-side, service descriptions, or breaking up dense content. Layout: equal-width responsive grid stacking to single column on mobile.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Section Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Section Heading",
+      "type": "string"
     },
     {
-      "label": "Columns",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Column Title",
-          "type": "text",
+          "name": "title",
           "required": false,
-          "key": "title"
+          "title": "Column Title",
+          "type": "string"
         },
         {
-          "label": "Column Content",
-          "type": "richtext",
+          "name": "content",
           "required": true,
-          "key": "content"
+          "title": "Column Content",
+          "type": "richtext"
         }
       ],
-      "key": "columns"
+      "name": "columns",
+      "title": "Columns",
+      "type": "array"
     },
     {
-      "label": "Number of Columns",
-      "type": "select",
+      "initialValue": "3",
+      "name": "column_count",
       "options": [
         "2",
         "3",
         "4"
       ],
-      "default": "3",
-      "key": "column_count"
+      "title": "Number of Columns",
+      "type": "select"
     }
   ],
+  "icon": "columns",
+  "label": "Text Columns",
+  "slug": "cb-text-columns",
   "test_data": {
-    "heading": "Why Choose Us",
+    "column_count": "3",
     "columns": [
       {
-        "title": "Expert Team",
-        "content": "<p>Our team brings decades of combined experience in software engineering, design, and product strategy to every project we undertake.</p>"
+        "content": "\u003cp\u003eOur team brings decades of combined experience in software engineering, design, and product strategy to every project we undertake.\u003c/p\u003e",
+        "title": "Expert Team"
       },
       {
-        "title": "Proven Results",
-        "content": "<p>We have delivered over 200 successful projects for clients ranging from early-stage startups to Fortune 500 enterprises across multiple industries.</p>"
+        "content": "\u003cp\u003eWe have delivered over 200 successful projects for clients ranging from early-stage startups to Fortune 500 enterprises across multiple industries.\u003c/p\u003e",
+        "title": "Proven Results"
       },
       {
-        "title": "Ongoing Support",
-        "content": "<p>Our relationship does not end at launch. We provide dedicated support, monitoring, and continuous improvement to keep your product thriving.</p>"
+        "content": "\u003cp\u003eOur relationship does not end at launch. We provide dedicated support, monitoring, and continuous improvement to keep your product thriving.\u003c/p\u003e",
+        "title": "Ongoing Support"
       }
     ],
-    "column_count": "3"
+    "heading": "Why Choose Us"
   }
 }

@@ -1,29 +1,71 @@
 {
-  "slug": "stats",
-  "label": "Stats",
-  "icon": "bar-chart",
   "description": "Display key statistics with large numbers and labels",
-  "field_schema": [
-    { "key": "heading", "label": "Section Heading", "type": "text" },
+  "fields": [
     {
-      "key": "stats",
-      "label": "Statistics",
-      "type": "repeater",
-      "sub_fields": [
-        { "key": "number", "label": "Number", "type": "text", "required": true },
-        { "key": "label", "label": "Label", "type": "text", "required": true },
-        { "key": "prefix", "label": "Prefix", "type": "text" },
-        { "key": "suffix", "label": "Suffix (e.g. +, %, K)", "type": "text" }
-      ]
+      "name": "heading",
+      "title": "Section Heading",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "name": "number",
+          "required": true,
+          "title": "Number",
+          "type": "string"
+        },
+        {
+          "name": "label",
+          "required": true,
+          "title": "Label",
+          "type": "string"
+        },
+        {
+          "name": "prefix",
+          "title": "Prefix",
+          "type": "string"
+        },
+        {
+          "name": "suffix",
+          "title": "Suffix (e.g. +, %, K)",
+          "type": "string"
+        }
+      ],
+      "name": "stats",
+      "title": "Statistics",
+      "type": "array"
     }
   ],
+  "icon": "bar-chart",
+  "label": "Stats",
+  "slug": "stats",
   "test_data": {
     "heading": "",
     "stats": [
-      { "number": "50", "label": "Latency Baseline", "prefix": "", "suffix": "ms" },
-      { "number": "500", "label": "Integrations", "prefix": "", "suffix": "+" },
-      { "number": "99.9", "label": "Uptime SLA", "prefix": "", "suffix": "%" },
-      { "number": "10", "label": "Global Regions", "prefix": "", "suffix": "+" }
+      {
+        "label": "Latency Baseline",
+        "number": "50",
+        "prefix": "",
+        "suffix": "ms"
+      },
+      {
+        "label": "Integrations",
+        "number": "500",
+        "prefix": "",
+        "suffix": "+"
+      },
+      {
+        "label": "Uptime SLA",
+        "number": "99.9",
+        "prefix": "",
+        "suffix": "%"
+      },
+      {
+        "label": "Global Regions",
+        "number": "10",
+        "prefix": "",
+        "suffix": "+"
+      }
     ]
   }
 }

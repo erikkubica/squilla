@@ -1,31 +1,31 @@
 {
-  "slug": "hv-contact-intro",
-  "name": "Contact Intro",
-  "description": "A centered header for the contact page. Sets the stage with a large heading, descriptive text, and an optional eyebrow label.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A centered header for the contact page. Sets the stage with a large heading, descriptive text, and an optional eyebrow label.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body",
-      "label": "Body",
-      "type": "textarea",
-      "help": "The main descriptive text for this section."
+      "description": "The main descriptive text for this section.",
+      "name": "body",
+      "title": "Body",
+      "type": "textarea"
     }
   ],
+  "name": "Contact Intro",
+  "slug": "hv-contact-intro",
   "test_data": {
+    "body": "Ping us any time. We're a small team — you'll hear back from a real human, probably Huong, probably within a few hours.",
     "eyebrow": "Get in touch",
-    "heading": "We check our WhatsApp constantly.",
-    "body": "Ping us any time. We're a small team \u2014 you'll hear back from a real human, probably Huong, probably within a few hours."
+    "heading": "We check our WhatsApp constantly."
   }
 }

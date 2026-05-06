@@ -1,96 +1,96 @@
 {
-  "slug": "cb-stats-counter",
-  "label": "Stats Counter",
-  "icon": "trending-up",
   "description": "Animated number counters that count up from zero when scrolled into view. Use for company statistics, achievement metrics. Layout: 3-4 large numbers in a row with labels, optional prefix/suffix ($, +, %). Intersection Observer animation.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Section Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Section Heading",
+      "type": "string"
     },
     {
-      "label": "Stats",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
-          "type": "text",
+          "name": "icon",
           "required": false,
-          "key": "icon"
+          "title": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
+          "type": "string"
         },
         {
-          "label": "Number",
-          "type": "text",
+          "name": "number",
           "required": true,
-          "key": "number"
+          "title": "Number",
+          "type": "string"
         },
         {
-          "label": "Label",
-          "type": "text",
+          "name": "label",
           "required": true,
-          "key": "label"
+          "title": "Label",
+          "type": "string"
         },
         {
-          "label": "Prefix",
-          "type": "text",
+          "name": "prefix",
           "required": false,
-          "key": "prefix"
+          "title": "Prefix",
+          "type": "string"
         },
         {
-          "label": "Suffix",
-          "type": "text",
+          "name": "suffix",
           "required": false,
-          "key": "suffix"
+          "title": "Suffix",
+          "type": "string"
         }
       ],
-      "key": "stats"
+      "name": "stats",
+      "title": "Stats",
+      "type": "array"
     },
     {
-      "label": "Style",
-      "type": "select",
+      "initialValue": "light",
+      "name": "style",
       "options": [
         "light",
         "dark",
         "accent"
       ],
-      "default": "light",
-      "key": "style"
+      "title": "Style",
+      "type": "select"
     }
   ],
+  "icon": "trending-up",
+  "label": "Stats Counter",
+  "slug": "cb-stats-counter",
   "test_data": {
     "heading": "Our Impact in Numbers",
-    "style": "light",
     "stats": [
       {
         "icon": "rocket",
-        "number": "150",
         "label": "Projects Launched",
+        "number": "150",
         "prefix": "",
         "suffix": "+"
       },
       {
         "icon": "banknote",
-        "number": "2.5",
         "label": "Revenue Generated",
+        "number": "2.5",
         "prefix": "$",
         "suffix": "M"
       },
       {
         "icon": "star",
-        "number": "99",
         "label": "Client Satisfaction",
+        "number": "99",
         "prefix": "",
         "suffix": "%"
       },
       {
         "icon": "clock",
-        "number": "24",
         "label": "Support Available",
+        "number": "24",
         "prefix": "",
         "suffix": "/7"
       }
-    ]
+    ],
+    "style": "light"
   }
 }

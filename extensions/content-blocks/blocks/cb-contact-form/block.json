@@ -1,73 +1,73 @@
 {
-  "slug": "cb-contact-form",
-  "label": "Contact Form",
-  "icon": "send",
   "description": "A contact form with configurable fields that submits via AJAX. Supports name, email, phone, subject, and message fields with validation. Shows success/error feedback inline. Use for contact pages, inquiry forms, support requests. Layout: clean form with labeled inputs, validation messages, and submit button with loading state.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
-      "key": "heading"
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Description",
-      "type": "textarea",
-      "key": "description"
+      "name": "description",
+      "title": "Description",
+      "type": "textarea"
     },
     {
-      "label": "Form Action URL",
-      "type": "text",
+      "name": "form_action",
       "required": true,
-      "key": "form_action"
+      "title": "Form Action URL",
+      "type": "string"
     },
     {
-      "label": "Success Message",
-      "type": "text",
-      "default": "Thank you! We'll be in touch.",
-      "key": "success_message"
+      "initialValue": "Thank you! We'll be in touch.",
+      "name": "success_message",
+      "title": "Success Message",
+      "type": "string"
     },
     {
-      "label": "Show Phone Field",
-      "type": "toggle",
-      "default": false,
-      "key": "show_phone"
+      "initialValue": false,
+      "name": "show_phone",
+      "title": "Show Phone Field",
+      "type": "toggle"
     },
     {
-      "label": "Show Subject Field",
-      "type": "toggle",
-      "default": true,
-      "key": "show_subject"
+      "initialValue": true,
+      "name": "show_subject",
+      "title": "Show Subject Field",
+      "type": "toggle"
     },
     {
-      "label": "Style",
-      "type": "select",
+      "initialValue": "simple",
+      "name": "style",
       "options": [
         "simple",
         "card",
         "split"
       ],
-      "default": "simple",
-      "key": "style"
+      "title": "Style",
+      "type": "select"
     },
     {
-      "key": "button",
-      "label": "Button",
+      "name": "button",
+      "title": "Button",
       "type": "link"
     }
   ],
+  "icon": "send",
+  "label": "Contact Form",
+  "slug": "cb-contact-form",
   "test_data": {
-    "heading": "Get in Touch",
+    "button": {
+      "alt": "",
+      "target": "",
+      "text": "Send Message",
+      "url": ""
+    },
     "description": "We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.",
     "form_action": "/api/contact",
-    "success_message": "Thank you! We'll be in touch.",
+    "heading": "Get in Touch",
     "show_phone": false,
     "show_subject": true,
     "style": "card",
-    "button": {
-      "text": "Send Message",
-      "url": "",
-      "alt": "",
-      "target": ""
-    }
+    "success_message": "Thank you! We'll be in touch."
   }
 }

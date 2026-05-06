@@ -1,80 +1,80 @@
 {
-  "slug": "hv-timeline",
-  "name": "Origin Story Timeline",
-  "description": "A vertical historical timeline documenting the origin story. Features a sequence of year markers, headings, and body text, visually connected by a dotted line.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A vertical historical timeline documenting the origin story. Features a sequence of year markers, headings, and body text, visually connected by a dotted line.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "entries",
-      "label": "Timeline entries",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "key": "year",
-          "label": "Year",
-          "type": "text"
+          "name": "year",
+          "title": "Year",
+          "type": "string"
         },
         {
-          "key": "body",
-          "label": "Body",
-          "type": "textarea",
-          "help": "The main descriptive text for this section."
+          "description": "The main descriptive text for this section.",
+          "name": "body",
+          "title": "Body",
+          "type": "textarea"
         },
         {
-          "key": "color",
-          "label": "Accent color",
-          "type": "select",
+          "description": "Choose the theme color for this element.",
+          "name": "color",
           "options": [
             "red",
             "yellow",
             "green"
           ],
-          "help": "Choose the theme color for this element."
+          "title": "Accent color",
+          "type": "select"
         }
-      ]
+      ],
+      "name": "entries",
+      "title": "Timeline entries",
+      "type": "array"
     }
   ],
+  "name": "Origin Story Timeline",
+  "slug": "hv-timeline",
   "test_data": {
-    "eyebrow": "The origin story",
-    "heading": "From backpackers to local guides.",
     "entries": [
       {
-        "year": "2016",
         "body": "Linh quits her bank job. Starts leading food tours for backpacker friends.",
-        "color": "red"
+        "color": "red",
+        "year": "2016"
       },
       {
-        "year": "2018",
         "body": "Tuan joins after driving Linh through Ha Giang on a whim. The loop is born.",
-        "color": "green"
+        "color": "green",
+        "year": "2018"
       },
       {
-        "year": "2020",
         "body": "Pandemic hits. We pivot to online cooking classes and stay connected.",
-        "color": "yellow"
+        "color": "yellow",
+        "year": "2020"
       },
       {
-        "year": "2022",
-        "body": "We open a Hanoi office. Still just a room above a b\u00e1nh m\u00ec shop.",
-        "color": "red"
+        "body": "We open a Hanoi office. Still just a room above a bánh mì shop.",
+        "color": "red",
+        "year": "2022"
       },
       {
-        "year": "2026",
         "body": "2,400+ travelers later, we're still on plastic stools.",
-        "color": "green"
+        "color": "green",
+        "year": "2026"
       }
-    ]
+    ],
+    "eyebrow": "The origin story",
+    "heading": "From backpackers to local guides."
   }
 }

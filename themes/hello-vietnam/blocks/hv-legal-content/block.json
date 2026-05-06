@@ -1,77 +1,96 @@
 {
-  "slug": "hv-legal-content",
-  "name": "Legal Content",
-  "description": "A long-form text block for terms, privacy policies, or legal notices. Includes a breadcrumb, 'Last updated' date, and a highlighted 'In a nutshell' summary box.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A long-form text block for terms, privacy policies, or legal notices. Includes a breadcrumb, 'Last updated' date, and a highlighted 'In a nutshell' summary box.",
+  "fields": [
     {
-      "key": "heading",
-      "label": "Document heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Document heading",
+      "type": "string"
     },
     {
-      "key": "updated_at",
-      "label": "Last updated (display text)",
-      "type": "text",
-      "help": "The date when this content was last reviewed or updated."
+      "description": "The date when this content was last reviewed or updated.",
+      "name": "updated_at",
+      "title": "Last updated (display text)",
+      "type": "string"
     },
     {
-      "key": "summary_heading",
-      "label": "Summary box heading",
-      "type": "text",
-      "help": "The title for the 'In a nutshell' summary box."
+      "description": "The title for the 'In a nutshell' summary box.",
+      "name": "summary_heading",
+      "title": "Summary box heading",
+      "type": "string"
     },
     {
-      "key": "summary_points",
-      "label": "Summary bullet points",
-      "type": "repeater",
-      "sub_fields": [
+      "description": "A list of key takeaways or bullet points.",
+      "fields": [
         {
-          "key": "body",
-          "label": "Point (HTML allowed)",
-          "type": "textarea",
-          "help": "The main descriptive text for this section."
+          "description": "The main descriptive text for this section.",
+          "name": "body",
+          "title": "Point (HTML allowed)",
+          "type": "textarea"
         }
       ],
-      "help": "A list of key takeaways or bullet points."
+      "name": "summary_points",
+      "title": "Summary bullet points",
+      "type": "array"
     },
     {
-      "key": "sections",
-      "label": "Content sections",
-      "type": "repeater",
-      "sub_fields": [
+      "description": "The main content sections of the page.",
+      "fields": [
         {
-          "key": "h3",
-          "label": "Heading",
-          "type": "text",
-          "help": "A sub-heading for this section."
+          "description": "A sub-heading for this section.",
+          "name": "h3",
+          "title": "Heading",
+          "type": "string"
         },
         {
-          "key": "body",
-          "label": "Body (HTML allowed)",
-          "type": "textarea",
-          "help": "The main descriptive text for this section."
+          "description": "The main descriptive text for this section.",
+          "name": "body",
+          "title": "Body (HTML allowed)",
+          "type": "textarea"
         }
       ],
-      "help": "The main content sections of the page."
+      "name": "sections",
+      "title": "Content sections",
+      "type": "array"
     },
     {
-      "key": "contact_concern_heading",
-      "label": "Concern box heading",
-      "type": "text",
-      "help": "The title for the 'Have a concern?' box."
+      "description": "The title for the 'Have a concern?' box.",
+      "name": "contact_concern_heading",
+      "title": "Concern box heading",
+      "type": "string"
     },
     {
-      "key": "contact_concern_body",
-      "label": "Concern box body (HTML allowed)",
-      "type": "textarea",
-      "help": "Instructions or contact info for legal concerns."
+      "description": "Instructions or contact info for legal concerns.",
+      "name": "contact_concern_body",
+      "title": "Concern box body (HTML allowed)",
+      "type": "textarea"
     }
   ],
+  "name": "Legal Content",
+  "slug": "hv-legal-content",
   "test_data": {
+    "contact_concern_body": "Email us at xinchao@hellovietnam.co — we take privacy seriously.",
+    "contact_concern_heading": "Have a concern?",
     "heading": "Privacy Policy",
-    "updated_at": "April 2026",
+    "sections": [
+      {
+        "body": "Hello Vietnam Adventures is a registered tour operator based in Hanoi, Vietnam (License #HN-2021-0847). We operate this website and handle bookings through it.",
+        "h3": "1. Who we are"
+      },
+      {
+        "body": "When you book a trip, fill out a form, or email us, we collect your name, email, phone number, dietary needs, and any other info you share. We also collect anonymous analytics (how many people visited the site, which pages are popular).",
+        "h3": "2. What we collect"
+      },
+      {
+        "body": "To run your trip, coordinate logistics, send booking confirmations, and occasionally email you about new experiences (only if you opt in). That's it.",
+        "h3": "3. How we use it"
+      },
+      {
+        "body": "You can ask us to show you everything we have on file, correct it, or delete it. Just email \u003cstrong\u003exinchao@hellovietnam.co\u003c/strong\u003e.",
+        "h3": "4. Your rights"
+      }
+    ],
     "summary_heading": "Too long? Here's the summary",
     "summary_points": [
       {
@@ -87,25 +106,6 @@
         "body": "You can ask us to delete everything about you. Just reply to any email."
       }
     ],
-    "sections": [
-      {
-        "h3": "1. Who we are",
-        "body": "Hello Vietnam Adventures is a registered tour operator based in Hanoi, Vietnam (License #HN-2021-0847). We operate this website and handle bookings through it."
-      },
-      {
-        "h3": "2. What we collect",
-        "body": "When you book a trip, fill out a form, or email us, we collect your name, email, phone number, dietary needs, and any other info you share. We also collect anonymous analytics (how many people visited the site, which pages are popular)."
-      },
-      {
-        "h3": "3. How we use it",
-        "body": "To run your trip, coordinate logistics, send booking confirmations, and occasionally email you about new experiences (only if you opt in). That's it."
-      },
-      {
-        "h3": "4. Your rights",
-        "body": "You can ask us to show you everything we have on file, correct it, or delete it. Just email <strong>xinchao@hellovietnam.co</strong>."
-      }
-    ],
-    "contact_concern_heading": "Have a concern?",
-    "contact_concern_body": "Email us at xinchao@hellovietnam.co \u2014 we take privacy seriously."
+    "updated_at": "April 2026"
   }
 }

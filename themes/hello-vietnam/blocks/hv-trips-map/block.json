@@ -1,31 +1,31 @@
 {
-  "slug": "hv-trips-map",
-  "name": "Trips Map",
-  "description": "A visual index of trip locations. Combines a descriptive text section with a list of active trip regions and a decorative interactive map of Vietnam.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A visual index of trip locations. Combines a descriptive text section with a list of active trip regions and a decorative interactive map of Vietnam.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body",
-      "label": "Body",
-      "type": "textarea",
-      "help": "The main descriptive text for this section."
+      "description": "The main descriptive text for this section.",
+      "name": "body",
+      "title": "Body",
+      "type": "textarea"
     }
   ],
+  "name": "Trips Map",
+  "slug": "hv-trips-map",
   "test_data": {
+    "body": "From Ha Giang's northern passes to the Mekong's palm-lined channels — every region has its own flavor, texture, and pace.",
     "eyebrow": "Where we go",
-    "heading": "Small country, huge variety.",
-    "body": "From Ha Giang's northern passes to the Mekong's palm-lined channels \u2014 every region has its own flavor, texture, and pace."
+    "heading": "Small country, huge variety."
   }
 }

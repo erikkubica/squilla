@@ -1,79 +1,79 @@
 {
-  "slug": "hv-contact-form",
-  "name": "Contact Form Grid",
-  "description": "Two-column contact section: left column shows quick-contact cards (WhatsApp, email, address-with-map, phone) plus social icons; right column hosts the contact form rendered by the forms extension. The form itself (fields, labels, validation, success state) is owned by the forms extension and configured via the 'contact' form slug — only the framing copy lives in this block.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "Two-column contact section: left column shows quick-contact cards (WhatsApp, email, address-with-map, phone) plus social icons; right column hosts the contact form rendered by the forms extension. The form itself (fields, labels, validation, success state) is owned by the forms extension and configured via the 'contact' form slug — only the framing copy lives in this block.",
+  "fields": [
     {
-      "key": "contact_cards",
-      "label": "Contact cards",
-      "type": "repeater",
-      "help": "Quick-contact tiles shown in the left column. The 'pin' card additionally renders a map placeholder and an hours line; other icons render as a single line of label + value.",
-      "sub_fields": [
+      "description": "Quick-contact tiles shown in the left column. The 'pin' card additionally renders a map placeholder and an hours line; other icons render as a single line of label + value.",
+      "fields": [
         {
-          "key": "icon",
-          "label": "Icon",
-          "type": "select",
+          "description": "Pick the icon. 'pin' triggers the address-with-map variant; everything else is a compact single-line card.",
+          "name": "icon",
           "options": [
             "whatsapp",
             "mail",
             "phone",
             "pin"
           ],
-          "help": "Pick the icon. 'pin' triggers the address-with-map variant; everything else is a compact single-line card."
+          "title": "Icon",
+          "type": "select"
         },
         {
-          "key": "label",
-          "label": "Small label",
-          "type": "text",
-          "help": "Uppercase label above the value (e.g. 'WhatsApp', 'Email')."
+          "description": "Uppercase label above the value (e.g. 'WhatsApp', 'Email').",
+          "name": "label",
+          "title": "Small label",
+          "type": "string"
         },
         {
-          "key": "value",
-          "label": "Primary value",
-          "type": "text",
-          "help": "The phone number, email, or street address shown in display font."
+          "description": "The phone number, email, or street address shown in display font.",
+          "name": "value",
+          "title": "Primary value",
+          "type": "string"
         },
         {
-          "key": "hours",
-          "label": "Hours line (HTML allowed, only used by the 'pin' card)",
-          "type": "textarea",
-          "help": "Optional opening-hours line rendered under the map on the address card. Leave empty for non-address cards."
+          "description": "Optional opening-hours line rendered under the map on the address card. Leave empty for non-address cards.",
+          "name": "hours",
+          "title": "Hours line (HTML allowed, only used by the 'pin' card)",
+          "type": "textarea"
         }
-      ]
+      ],
+      "name": "contact_cards",
+      "title": "Contact cards",
+      "type": "array"
     },
     {
-      "key": "form_heading",
-      "label": "Form heading",
-      "type": "text",
-      "help": "The title displayed above the contact form (e.g. 'Drop us a line.')."
+      "description": "The title displayed above the contact form (e.g. 'Drop us a line.').",
+      "name": "form_heading",
+      "title": "Form heading",
+      "type": "string"
     },
     {
-      "key": "form_subheading",
-      "label": "Form subheading",
-      "type": "text",
-      "help": "Small text shown below the form title (e.g. 'We reply in the order we receive')."
+      "description": "Small text shown below the form title (e.g. 'We reply in the order we receive').",
+      "name": "form_subheading",
+      "title": "Form subheading",
+      "type": "string"
     }
   ],
+  "name": "Contact Form Grid",
+  "slug": "hv-contact-form",
   "test_data": {
     "contact_cards": [
       {
+        "hours": "",
         "icon": "whatsapp",
         "label": "WhatsApp",
-        "value": "+84 912 345 678",
-        "hours": ""
+        "value": "+84 912 345 678"
       },
       {
+        "hours": "",
         "icon": "mail",
         "label": "Email",
-        "value": "xinchao@hellovietnam.co",
-        "hours": ""
+        "value": "xinchao@hellovietnam.co"
       },
       {
+        "hours": "\u003cstrong\u003eMon–Sat:\u003c/strong\u003e 9am – 8pm · \u003cstrong\u003eSun:\u003c/strong\u003e Out eating",
         "icon": "pin",
         "label": "Meet us",
-        "value": "12 Hàng Cá St, Hanoi",
-        "hours": "<strong>Mon–Sat:</strong> 9am – 8pm · <strong>Sun:</strong> Out eating"
+        "value": "12 Hàng Cá St, Hanoi"
       }
     ],
     "form_heading": "Drop us a line.",

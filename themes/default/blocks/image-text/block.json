@@ -1,20 +1,49 @@
 {
-  "slug": "image-text",
-  "label": "Image + Text",
-  "icon": "columns",
   "description": "Two-column layout with image and text content, image position configurable",
-  "field_schema": [
-    { "key": "image", "label": "Image", "type": "image", "required": true },
-    { "key": "heading", "label": "Heading", "type": "text", "required": true },
-    { "key": "body", "label": "Content", "type": "richtext" },
-    { "key": "image_position", "label": "Image Position", "type": "select", "options": ["left", "right"], "default": "left" },
-    { "key": "button", "label": "Button", "type": "link" }
+  "fields": [
+    {
+      "name": "image",
+      "required": true,
+      "title": "Image",
+      "type": "image"
+    },
+    {
+      "name": "heading",
+      "required": true,
+      "title": "Heading",
+      "type": "string"
+    },
+    {
+      "name": "body",
+      "title": "Content",
+      "type": "richtext"
+    },
+    {
+      "initialValue": "left",
+      "name": "image_position",
+      "options": [
+        "left",
+        "right"
+      ],
+      "title": "Image Position",
+      "type": "select"
+    },
+    {
+      "name": "button",
+      "title": "Button",
+      "type": "link"
+    }
   ],
+  "icon": "columns",
+  "label": "Image + Text",
+  "slug": "image-text",
   "test_data": {
-    "image": { "url": "theme-asset:content-web-stack" },
+    "body": "\u003cp\u003eConnect to Next.js, Remix, Astro, or any framework with our type-safe SDKs. We don't just deliver JSON; we deliver peace of mind.\u003c/p\u003e\u003cul\u003e\u003cli\u003eReal-time collaboration\u003c/li\u003e\u003cli\u003eVersion branching\u003c/li\u003e\u003c/ul\u003e",
+    "button": {},
     "heading": "Crafted for the modern web stack",
-    "body": "<p>Connect to Next.js, Remix, Astro, or any framework with our type-safe SDKs. We don't just deliver JSON; we deliver peace of mind.</p><ul><li>Real-time collaboration</li><li>Version branching</li></ul>",
-    "image_position": "left",
-    "button": {}
+    "image": {
+      "url": "theme-asset:content-web-stack"
+    },
+    "image_position": "left"
   }
 }

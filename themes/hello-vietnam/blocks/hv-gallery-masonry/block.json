@@ -1,63 +1,176 @@
 {
-  "slug": "hv-gallery-masonry",
-  "name": "Gallery Masonry",
-  "description": "A dynamic, Pinterest-style grid of photos arranged in columns of varying heights. Photos can be filtered by category using the Gallery Intro block.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A dynamic, Pinterest-style grid of photos arranged in columns of varying heights. Photos can be filtered by category using the Gallery Intro block.",
+  "fields": [
     {
-      "key": "photos",
-      "label": "Photos",
-      "type": "repeater",
-      "help": "Each tile is a single photo with optional caption, category and visual options.",
-      "sub_fields": [
+      "description": "Each tile is a single photo with optional caption, category and visual options.",
+      "fields": [
         {
-          "key": "photo",
-          "label": "Photo",
-          "type": "image",
-          "help": "Pick an image from the media library."
+          "description": "Pick an image from the media library.",
+          "name": "photo",
+          "title": "Photo",
+          "type": "image"
         },
         {
-          "key": "caption",
-          "label": "Caption",
-          "type": "text",
-          "help": "Shown when no image is set, and used as the photo alt text."
+          "description": "Shown when no image is set, and used as the photo alt text.",
+          "name": "caption",
+          "title": "Caption",
+          "type": "string"
         },
         {
-          "key": "category",
-          "label": "Category",
-          "type": "text",
-          "help": "Used by the filter pills (e.g. Street Food | Landscapes | People | Workshops)."
+          "description": "Used by the filter pills (e.g. Street Food | Landscapes | People | Workshops).",
+          "name": "category",
+          "title": "Category",
+          "type": "string"
         },
         {
-          "key": "color",
-          "label": "Placeholder Color",
-          "type": "select",
-          "options": ["red", "yellow", "green", "ink"],
-          "help": "Tile background color shown when no photo is set."
+          "description": "Tile background color shown when no photo is set.",
+          "name": "color",
+          "options": [
+            "red",
+            "yellow",
+            "green",
+            "ink"
+          ],
+          "title": "Placeholder Color",
+          "type": "select"
         },
         {
-          "key": "tall",
-          "label": "Tall Tile",
-          "type": "checkbox",
-          "help": "Render this tile at 340px instead of 240px for visual variety."
+          "description": "Render this tile at 340px instead of 240px for visual variety.",
+          "name": "tall",
+          "title": "Tall Tile",
+          "type": "checkbox"
         }
-      ]
+      ],
+      "name": "photos",
+      "title": "Photos",
+      "type": "array"
     }
   ],
+  "name": "Gallery Masonry",
+  "slug": "hv-gallery-masonry",
   "test_data": {
     "photos": [
-      { "caption": "bún chả grandma, hanoi",    "category": "Street Food", "color": "red",    "tall": true,  "photo": { "url": "theme-asset:gal-bun-cha",        "alt": "bún chả grandma" } },
-      { "caption": "ma pi leng pass",           "category": "Landscapes",  "color": "green",  "tall": false, "photo": { "url": "theme-asset:gal-ma-pi-leng",     "alt": "ma pi leng pass" } },
-      { "caption": "linh laughing with guests", "category": "People",      "color": "yellow", "tall": true,  "photo": { "url": "theme-asset:gal-linh-laughing",  "alt": "linh laughing" } },
-      { "caption": "cooking class kitchen",     "category": "Workshops",   "color": "red",    "tall": false, "photo": { "url": "theme-asset:gal-cooking-class",  "alt": "cooking class" } },
-      { "caption": "lantern night, hoi an",     "category": "Landscapes",  "color": "yellow", "tall": true,  "photo": { "url": "theme-asset:gal-lantern-night",  "alt": "lantern night" } },
-      { "caption": "phở counter, 6am",          "category": "Street Food", "color": "ink",    "tall": false, "photo": { "url": "theme-asset:gal-pho-counter",    "alt": "phở counter" } },
-      { "caption": "hmong kids waving",         "category": "People",      "color": "green",  "tall": true,  "photo": { "url": "theme-asset:gal-hmong-kids",     "alt": "hmong kids" } },
-      { "caption": "basket boat spin",          "category": "Workshops",   "color": "red",    "tall": false, "photo": { "url": "theme-asset:gal-basket-boat",    "alt": "basket boat" } },
-      { "caption": "banh mi queen stall",       "category": "Street Food", "color": "yellow", "tall": true,  "photo": { "url": "theme-asset:gal-banh-mi",        "alt": "banh mi queen" } },
-      { "caption": "mekong hammock",            "category": "Landscapes",  "color": "green",  "tall": false, "photo": { "url": "theme-asset:gal-mekong-hammock", "alt": "mekong hammock" } },
-      { "caption": "tuan on his bike",          "category": "People",      "color": "red",    "tall": true,  "photo": { "url": "theme-asset:gal-tuan-bike",      "alt": "tuan on bike" } },
-      { "caption": "egg coffee pour",           "category": "Workshops",   "color": "ink",    "tall": false, "photo": { "url": "theme-asset:gal-egg-coffee",     "alt": "egg coffee" } }
+      {
+        "caption": "bún chả grandma, hanoi",
+        "category": "Street Food",
+        "color": "red",
+        "photo": {
+          "alt": "bún chả grandma",
+          "url": "theme-asset:gal-bun-cha"
+        },
+        "tall": true
+      },
+      {
+        "caption": "ma pi leng pass",
+        "category": "Landscapes",
+        "color": "green",
+        "photo": {
+          "alt": "ma pi leng pass",
+          "url": "theme-asset:gal-ma-pi-leng"
+        },
+        "tall": false
+      },
+      {
+        "caption": "linh laughing with guests",
+        "category": "People",
+        "color": "yellow",
+        "photo": {
+          "alt": "linh laughing",
+          "url": "theme-asset:gal-linh-laughing"
+        },
+        "tall": true
+      },
+      {
+        "caption": "cooking class kitchen",
+        "category": "Workshops",
+        "color": "red",
+        "photo": {
+          "alt": "cooking class",
+          "url": "theme-asset:gal-cooking-class"
+        },
+        "tall": false
+      },
+      {
+        "caption": "lantern night, hoi an",
+        "category": "Landscapes",
+        "color": "yellow",
+        "photo": {
+          "alt": "lantern night",
+          "url": "theme-asset:gal-lantern-night"
+        },
+        "tall": true
+      },
+      {
+        "caption": "phở counter, 6am",
+        "category": "Street Food",
+        "color": "ink",
+        "photo": {
+          "alt": "phở counter",
+          "url": "theme-asset:gal-pho-counter"
+        },
+        "tall": false
+      },
+      {
+        "caption": "hmong kids waving",
+        "category": "People",
+        "color": "green",
+        "photo": {
+          "alt": "hmong kids",
+          "url": "theme-asset:gal-hmong-kids"
+        },
+        "tall": true
+      },
+      {
+        "caption": "basket boat spin",
+        "category": "Workshops",
+        "color": "red",
+        "photo": {
+          "alt": "basket boat",
+          "url": "theme-asset:gal-basket-boat"
+        },
+        "tall": false
+      },
+      {
+        "caption": "banh mi queen stall",
+        "category": "Street Food",
+        "color": "yellow",
+        "photo": {
+          "alt": "banh mi queen",
+          "url": "theme-asset:gal-banh-mi"
+        },
+        "tall": true
+      },
+      {
+        "caption": "mekong hammock",
+        "category": "Landscapes",
+        "color": "green",
+        "photo": {
+          "alt": "mekong hammock",
+          "url": "theme-asset:gal-mekong-hammock"
+        },
+        "tall": false
+      },
+      {
+        "caption": "tuan on his bike",
+        "category": "People",
+        "color": "red",
+        "photo": {
+          "alt": "tuan on bike",
+          "url": "theme-asset:gal-tuan-bike"
+        },
+        "tall": true
+      },
+      {
+        "caption": "egg coffee pour",
+        "category": "Workshops",
+        "color": "ink",
+        "photo": {
+          "alt": "egg coffee",
+          "url": "theme-asset:gal-egg-coffee"
+        },
+        "tall": false
+      }
     ]
   }
 }

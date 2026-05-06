@@ -1,54 +1,54 @@
 {
-  "slug": "hv-about-intro",
-  "name": "About Intro",
-  "description": "The lead section for the About page. Two-column layout: left is an eyebrow + large heading + two body paragraphs; right is a tall warm-toned team photo with an optional captions overlay.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "The lead section for the About page. Two-column layout: left is an eyebrow + large heading + two body paragraphs; right is a tall warm-toned team photo with an optional captions overlay.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body_p1",
-      "label": "Body paragraph 1",
-      "type": "textarea",
-      "help": "First paragraph — the founding story or mission statement (slightly larger text)."
+      "description": "First paragraph — the founding story or mission statement (slightly larger text).",
+      "name": "body_p1",
+      "title": "Body paragraph 1",
+      "type": "textarea"
     },
     {
-      "key": "body_p2",
-      "label": "Body paragraph 2",
-      "type": "textarea",
-      "help": "Second paragraph — the values or working style (smaller, supporting text)."
+      "description": "Second paragraph — the values or working style (smaller, supporting text).",
+      "name": "body_p2",
+      "title": "Body paragraph 2",
+      "type": "textarea"
     },
     {
-      "key": "team_photo",
-      "label": "Team Photo",
-      "type": "image",
-      "help": "Tall portrait-orientation photo (≈4:5). Warm, candid, human — not a posed corporate headshot."
+      "description": "Tall portrait-orientation photo (≈4:5). Warm, candid, human — not a posed corporate headshot.",
+      "name": "team_photo",
+      "title": "Team Photo",
+      "type": "image"
     },
     {
-      "key": "team_photo_caption",
-      "label": "Team photo caption",
-      "type": "text",
-      "help": "Monospace overlay caption, only visible when no photo is set."
+      "description": "Monospace overlay caption, only visible when no photo is set.",
+      "name": "team_photo_caption",
+      "title": "Team photo caption",
+      "type": "string"
     }
   ],
+  "name": "About Intro",
+  "slug": "hv-about-intro",
   "test_data": {
-    "eyebrow": "About us",
-    "heading": "We're not a tour company. We're your loud Vietnamese cousins.",
     "body_p1": "Hello Vietnam started over a beer in 2016, when Linh realized most tourists were seeing her country through a tinted bus window. Ten years later, we've hand-built 18 trips across Vietnam — all led by people who grew up here.",
     "body_p2": "We skip the tourist traps. We pay our guides fairly. We eat lunch on the same tiny plastic stools as our guests.",
+    "eyebrow": "About us",
+    "heading": "We're not a tour company. We're your loud Vietnamese cousins.",
     "team_photo": {
-      "url": "theme-asset:about-linh-portrait",
-      "alt": "Warm portrait of Linh, founder of Hello Vietnam"
+      "alt": "Warm portrait of Linh, founder of Hello Vietnam",
+      "url": "theme-asset:about-linh-portrait"
     },
     "team_photo_caption": "team photo · lunch on plastic stools"
   }

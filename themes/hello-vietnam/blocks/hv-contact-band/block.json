@@ -1,35 +1,35 @@
 {
-  "slug": "hv-contact-band",
-  "name": "Contact CTA Band",
-  "description": "A high-impact, dark-themed call-to-action strip for the bottom of pages. Uses bold typography and a theme-colored button to provide a final push for contact or inquiries.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A high-impact, dark-themed call-to-action strip for the bottom of pages. Uses bold typography and a theme-colored button to provide a final push for contact or inquiries.",
+  "fields": [
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body",
-      "label": "Body",
-      "type": "textarea",
-      "help": "The main descriptive text for this section."
+      "description": "The main descriptive text for this section.",
+      "name": "body",
+      "title": "Body",
+      "type": "textarea"
     },
     {
-      "key": "cta",
-      "label": "Call to action",
-      "type": "link",
-      "help": "The primary action link for this block."
+      "description": "The primary action link for this block.",
+      "name": "cta",
+      "title": "Call to action",
+      "type": "link"
     }
   ],
+  "name": "Contact CTA Band",
+  "slug": "hv-contact-band",
   "test_data": {
-    "heading": "Got a question?",
     "body": "We answer every WhatsApp within a few hours. Promise.",
     "cta": {
+      "target": "",
       "text": "Let's chat",
-      "url": "/contact",
-      "target": ""
-    }
+      "url": "/contact"
+    },
+    "heading": "Got a question?"
   }
 }

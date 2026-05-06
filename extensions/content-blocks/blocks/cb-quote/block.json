@@ -1,50 +1,50 @@
 {
-  "slug": "cb-quote",
-  "label": "Blockquote",
-  "icon": "quote",
   "description": "An elegant blockquote block for highlighting customer quotes, expert opinions, or notable excerpts. Displays a styled quotation with attribution and optional avatar. Use for pull quotes, endorsements, or key statements. Layout: large quote text with decorative left border or quotation marks, author info with circular avatar.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Quote",
-      "type": "textarea",
+      "name": "quote",
       "required": true,
-      "key": "quote"
+      "title": "Quote",
+      "type": "textarea"
     },
     {
-      "label": "Author Name",
-      "type": "text",
+      "name": "author_name",
       "required": false,
-      "key": "author_name"
+      "title": "Author Name",
+      "type": "string"
     },
     {
-      "label": "Author Role",
-      "type": "text",
+      "name": "author_role",
       "required": false,
-      "key": "author_role"
+      "title": "Author Role",
+      "type": "string"
     },
     {
-      "label": "Avatar",
-      "type": "image",
+      "name": "avatar",
       "required": false,
-      "key": "avatar"
+      "title": "Avatar",
+      "type": "image"
     },
     {
-      "label": "Style",
-      "type": "select",
+      "initialValue": "bordered",
+      "name": "style",
       "options": [
         "bordered",
         "marks",
         "minimal"
       ],
-      "default": "bordered",
-      "key": "style"
+      "title": "Style",
+      "type": "select"
     }
   ],
+  "icon": "quote",
+  "label": "Blockquote",
+  "slug": "cb-quote",
   "test_data": {
-    "quote": "Innovation distinguishes between a leader and a follower. The people who are crazy enough to think they can change the world are the ones who do.",
     "author_name": "Jane Cooper",
     "author_role": "CEO, TechCorp",
     "avatar": "https://picsum.photos/seed/janecooper/200/200",
+    "quote": "Innovation distinguishes between a leader and a follower. The people who are crazy enough to think they can change the world are the ones who do.",
     "style": "bordered"
   }
 }

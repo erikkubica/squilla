@@ -1,54 +1,54 @@
 {
-  "slug": "cb-cta-banner",
-  "label": "CTA Banner",
-  "icon": "megaphone",
   "description": "A full-width call-to-action banner with bold heading, supporting text, and prominent button. Designed to capture attention and drive conversions. Use between content sections for sign-ups, downloads, or contact. Layout: colored background with centered heading, description, and large contrasting button. Optional background image with overlay.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": true,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Description",
-      "type": "textarea",
+      "name": "description",
       "required": false,
-      "key": "description"
+      "title": "Description",
+      "type": "textarea"
     },
     {
-      "label": "Background Image",
-      "type": "image",
+      "name": "background_image",
       "required": false,
-      "key": "background_image"
+      "title": "Background Image",
+      "type": "image"
     },
     {
-      "label": "Style",
-      "type": "select",
+      "initialValue": "accent",
+      "name": "style",
       "options": [
         "accent",
         "dark",
         "light"
       ],
-      "default": "accent",
-      "key": "style"
+      "title": "Style",
+      "type": "select"
     },
     {
-      "key": "button",
-      "label": "Button",
+      "name": "button",
+      "title": "Button",
       "type": "link"
     }
   ],
+  "icon": "megaphone",
+  "label": "CTA Banner",
+  "slug": "cb-cta-banner",
   "test_data": {
-    "heading": "Ready to Get Started?",
-    "description": "Join thousands of creators who trust Squilla to power their websites. Start building something amazing today.",
     "background_image": "",
-    "style": "accent",
     "button": {
-      "text": "Start Free Trial",
-      "url": "/signup",
       "alt": "",
-      "target": ""
-    }
+      "target": "",
+      "text": "Start Free Trial",
+      "url": "/signup"
+    },
+    "description": "Join thousands of creators who trust Squilla to power their websites. Start building something amazing today.",
+    "heading": "Ready to Get Started?",
+    "style": "accent"
   }
 }

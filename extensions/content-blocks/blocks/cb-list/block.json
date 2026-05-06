@@ -1,70 +1,70 @@
 {
-  "slug": "cb-list",
-  "label": "Styled List",
-  "icon": "list",
   "description": "A styled list block for presenting items in bullet, numbered, or checklist format. Each item has a title and optional description. Use for feature lists, benefit highlights, requirements. Layout: vertical list with configurable markers, bold titles with optional description text.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "List Style",
-      "type": "select",
+      "initialValue": "bullet",
+      "name": "style",
       "options": [
         "bullet",
         "numbered",
         "check"
       ],
-      "default": "bullet",
-      "key": "style"
+      "title": "List Style",
+      "type": "select"
     },
     {
-      "label": "List Items",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Title",
-          "type": "text",
+          "name": "title",
           "required": true,
-          "key": "title"
+          "title": "Title",
+          "type": "string"
         },
         {
-          "label": "Description",
-          "type": "text",
+          "name": "description",
           "required": false,
-          "key": "description"
+          "title": "Description",
+          "type": "string"
         }
       ],
-      "key": "items"
+      "name": "items",
+      "title": "List Items",
+      "type": "array"
     }
   ],
+  "icon": "list",
+  "label": "Styled List",
+  "slug": "cb-list",
   "test_data": {
     "heading": "Key Benefits",
-    "style": "check",
     "items": [
       {
-        "title": "Lightning Fast Performance",
-        "description": "Optimized to deliver sub-50ms response times on every request."
+        "description": "Optimized to deliver sub-50ms response times on every request.",
+        "title": "Lightning Fast Performance"
       },
       {
-        "title": "Enterprise-Grade Security",
-        "description": "End-to-end encryption, RBAC, and regular penetration testing."
+        "description": "End-to-end encryption, RBAC, and regular penetration testing.",
+        "title": "Enterprise-Grade Security"
       },
       {
-        "title": "Seamless Integrations",
-        "description": "Connect with over 200 third-party tools and services out of the box."
+        "description": "Connect with over 200 third-party tools and services out of the box.",
+        "title": "Seamless Integrations"
       },
       {
-        "title": "24/7 Dedicated Support",
-        "description": "Our engineering team is available around the clock to assist you."
+        "description": "Our engineering team is available around the clock to assist you.",
+        "title": "24/7 Dedicated Support"
       },
       {
-        "title": "Scalable Architecture",
-        "description": "Grows effortlessly from hundreds to millions of users without re-platforming."
+        "description": "Grows effortlessly from hundreds to millions of users without re-platforming.",
+        "title": "Scalable Architecture"
       }
-    ]
+    ],
+    "style": "check"
   }
 }

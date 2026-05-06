@@ -1,53 +1,53 @@
 {
-  "slug": "cb-cta-split",
-  "label": "Split CTA",
-  "icon": "layout",
   "description": "A two-column CTA with image on one side and persuasive text with button on the other. Visually balanced for conversion. Use for product highlights, app download prompts. Layout: 50/50 split, image position configurable, stacks on mobile.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": true,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Description",
-      "type": "textarea",
+      "name": "description",
       "required": false,
-      "key": "description"
+      "title": "Description",
+      "type": "textarea"
     },
     {
-      "label": "Image",
-      "type": "image",
+      "name": "image",
       "required": true,
-      "key": "image"
+      "title": "Image",
+      "type": "image"
     },
     {
-      "label": "Image Position",
-      "type": "select",
+      "initialValue": "left",
+      "name": "image_position",
       "options": [
         "left",
         "right"
       ],
-      "default": "left",
-      "key": "image_position"
+      "title": "Image Position",
+      "type": "select"
     },
     {
-      "key": "button",
-      "label": "Button",
+      "name": "button",
+      "title": "Button",
       "type": "link"
     }
   ],
+  "icon": "layout",
+  "label": "Split CTA",
+  "slug": "cb-cta-split",
   "test_data": {
-    "heading": "Take Your Workflow to the Next Level",
-    "description": "Our platform helps you build, manage, and scale your content with ease. Get started in minutes and see the difference.",
-    "image": "https://picsum.photos/seed/ctasplit/600/400",
-    "image_position": "left",
     "button": {
-      "text": "Get Started Now",
-      "url": "/signup",
       "alt": "",
-      "target": ""
-    }
+      "target": "",
+      "text": "Get Started Now",
+      "url": "/signup"
+    },
+    "description": "Our platform helps you build, manage, and scale your content with ease. Get started in minutes and see the difference.",
+    "heading": "Take Your Workflow to the Next Level",
+    "image": "https://picsum.photos/seed/ctasplit/600/400",
+    "image_position": "left"
   }
 }

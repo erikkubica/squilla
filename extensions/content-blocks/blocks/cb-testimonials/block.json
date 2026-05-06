@@ -1,46 +1,41 @@
 {
-  "slug": "cb-testimonials",
-  "label": "Testimonial Carousel",
-  "icon": "message-circle",
   "description": "A testimonial carousel displaying customer quotes with star ratings, names, roles, and avatars. Manual navigation with arrows and dots. Use for customer success stories, social proof near CTAs. Layout: large centered quote card with star rating, quote text, author info with avatar. Arrow and dot navigation.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Testimonials",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Quote",
-          "type": "textarea",
+          "name": "quote",
           "required": true,
-          "key": "quote"
+          "title": "Quote",
+          "type": "textarea"
         },
         {
-          "label": "Author Name",
-          "type": "text",
+          "name": "author_name",
           "required": true,
-          "key": "author_name"
+          "title": "Author Name",
+          "type": "string"
         },
         {
-          "label": "Author Role",
-          "type": "text",
+          "name": "author_role",
           "required": false,
-          "key": "author_role"
+          "title": "Author Role",
+          "type": "string"
         },
         {
-          "label": "Avatar",
-          "type": "image",
+          "name": "avatar",
           "required": false,
-          "key": "avatar"
+          "title": "Avatar",
+          "type": "image"
         },
         {
-          "label": "Rating",
-          "type": "select",
+          "initialValue": "5",
+          "name": "rating",
           "options": [
             "1",
             "2",
@@ -48,35 +43,40 @@
             "4",
             "5"
           ],
-          "default": "5",
-          "key": "rating"
+          "title": "Rating",
+          "type": "select"
         }
       ],
-      "key": "testimonials"
+      "name": "testimonials",
+      "title": "Testimonials",
+      "type": "array"
     }
   ],
+  "icon": "message-circle",
+  "label": "Testimonial Carousel",
+  "slug": "cb-testimonials",
   "test_data": {
     "heading": "What Our Customers Say",
     "testimonials": [
       {
-        "quote": "Squilla transformed how we manage our website. The speed and flexibility are unmatched. We migrated from WordPress and haven't looked back.",
         "author_name": "Sarah Chen",
         "author_role": "CTO at TechFlow",
         "avatar": "https://picsum.photos/seed/avatar1/120/120",
+        "quote": "Squilla transformed how we manage our website. The speed and flexibility are unmatched. We migrated from WordPress and haven't looked back.",
         "rating": "5"
       },
       {
-        "quote": "The extension system is brilliant. We built custom workflows in days that would have taken months with other platforms. Support team is incredibly responsive.",
         "author_name": "Marcus Rodriguez",
         "author_role": "Lead Developer at Buildcraft",
         "avatar": "https://picsum.photos/seed/avatar2/120/120",
+        "quote": "The extension system is brilliant. We built custom workflows in days that would have taken months with other platforms. Support team is incredibly responsive.",
         "rating": "5"
       },
       {
-        "quote": "Finally a CMS that developers and content teams both love. Clean API, great admin UI, and blazing fast page loads. Our bounce rate dropped 40%.",
         "author_name": "Emily Nakamura",
         "author_role": "VP of Marketing at GrowthLab",
         "avatar": "https://picsum.photos/seed/avatar3/120/120",
+        "quote": "Finally a CMS that developers and content teams both love. Clean API, great admin UI, and blazing fast page loads. Our bounce rate dropped 40%.",
         "rating": "4"
       }
     ]

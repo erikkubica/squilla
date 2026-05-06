@@ -1,68 +1,68 @@
 {
-  "slug": "cb-tabs",
-  "label": "Tabs",
-  "icon": "folder",
-  "description": "Tabbed content panels with clickable tab headers. Each tab has label and rich text content. Use for organizing content into switchable views \u2014 product details, documentation, comparisons. Layout: horizontal tab bar with active accent underline, content panel below. Three style variants.",
-  "field_schema": [
+  "description": "Tabbed content panels with clickable tab headers. Each tab has label and rich text content. Use for organizing content into switchable views — product details, documentation, comparisons. Layout: horizontal tab bar with active accent underline, content panel below. Three style variants.",
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
-      "key": "heading"
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Tabs",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Tab Label",
-          "type": "text",
+          "name": "label",
           "required": true,
-          "key": "label"
+          "title": "Tab Label",
+          "type": "string"
         },
         {
-          "label": "Tab Content",
-          "type": "richtext",
+          "name": "content",
           "required": true,
-          "key": "content"
+          "title": "Tab Content",
+          "type": "richtext"
         },
         {
-          "label": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
-          "type": "text",
-          "key": "icon"
+          "name": "icon",
+          "title": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
+          "type": "string"
         }
       ],
-      "key": "tabs"
+      "name": "tabs",
+      "title": "Tabs",
+      "type": "array"
     },
     {
-      "label": "Tab Style",
-      "type": "select",
+      "initialValue": "underline",
+      "name": "style",
       "options": [
         "underline",
         "boxed",
         "pills"
       ],
-      "default": "underline",
-      "key": "style"
+      "title": "Tab Style",
+      "type": "select"
     }
   ],
+  "icon": "folder",
+  "label": "Tabs",
+  "slug": "cb-tabs",
   "test_data": {
     "heading": "Product Details",
     "style": "underline",
     "tabs": [
       {
-        "label": "Description",
+        "content": "\u003cp\u003eOur flagship product combines cutting-edge technology with intuitive design. Built for professionals who demand reliability and performance, it features a \u003cstrong\u003emilitary-grade aluminum chassis\u003c/strong\u003e and a stunning 4K display.\u003c/p\u003e\u003cp\u003eEvery detail has been carefully crafted to deliver an exceptional user experience from the moment you open the box.\u003c/p\u003e",
         "icon": "file-text",
-        "content": "<p>Our flagship product combines cutting-edge technology with intuitive design. Built for professionals who demand reliability and performance, it features a <strong>military-grade aluminum chassis</strong> and a stunning 4K display.</p><p>Every detail has been carefully crafted to deliver an exceptional user experience from the moment you open the box.</p>"
+        "label": "Description"
       },
       {
-        "label": "Specifications",
+        "content": "\u003cul\u003e\u003cli\u003e\u003cstrong\u003eProcessor:\u003c/strong\u003e 12-core ARM architecture\u003c/li\u003e\u003cli\u003e\u003cstrong\u003eMemory:\u003c/strong\u003e 32GB unified memory\u003c/li\u003e\u003cli\u003e\u003cstrong\u003eStorage:\u003c/strong\u003e 1TB NVMe SSD\u003c/li\u003e\u003cli\u003e\u003cstrong\u003eDisplay:\u003c/strong\u003e 15.6\" 4K OLED, 120Hz\u003c/li\u003e\u003cli\u003e\u003cstrong\u003eBattery:\u003c/strong\u003e 100Wh, up to 18 hours\u003c/li\u003e\u003cli\u003e\u003cstrong\u003eWeight:\u003c/strong\u003e 1.8 kg\u003c/li\u003e\u003c/ul\u003e",
         "icon": "settings",
-        "content": "<ul><li><strong>Processor:</strong> 12-core ARM architecture</li><li><strong>Memory:</strong> 32GB unified memory</li><li><strong>Storage:</strong> 1TB NVMe SSD</li><li><strong>Display:</strong> 15.6\" 4K OLED, 120Hz</li><li><strong>Battery:</strong> 100Wh, up to 18 hours</li><li><strong>Weight:</strong> 1.8 kg</li></ul>"
+        "label": "Specifications"
       },
       {
-        "label": "Reviews",
+        "content": "\u003cp\u003e\u003cstrong\u003e4.8 out of 5 stars\u003c/strong\u003e (2,341 reviews)\u003c/p\u003e\u003cblockquote\u003e\"Best laptop I've ever owned. The display is incredible and battery life is outstanding.\" — Sarah K.\u003c/blockquote\u003e\u003cblockquote\u003e\"Perfect for creative professionals. Handles everything I throw at it.\" — Marcus T.\u003c/blockquote\u003e",
         "icon": "star",
-        "content": "<p><strong>4.8 out of 5 stars</strong> (2,341 reviews)</p><blockquote>\"Best laptop I've ever owned. The display is incredible and battery life is outstanding.\" \u2014 Sarah K.</blockquote><blockquote>\"Perfect for creative professionals. Handles everything I throw at it.\" \u2014 Marcus T.</blockquote>"
+        "label": "Reviews"
       }
     ]
   }

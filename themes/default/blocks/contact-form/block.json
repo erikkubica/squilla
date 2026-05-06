@@ -1,45 +1,107 @@
 {
-  "slug": "contact-form",
-  "label": "Contact Form",
-  "icon": "mail",
   "description": "Two-column contact block — heading + contact chips on the left, form card on the right",
-  "field_schema": [
-    { "key": "heading", "label": "Heading", "type": "text" },
-    { "key": "subheading", "label": "Subheading", "type": "textarea" },
-    { "key": "contact_email", "label": "Email Address", "type": "text" },
-    { "key": "contact_phone", "label": "Phone Number", "type": "text" },
-    { "key": "contact_office", "label": "Office Location", "type": "text" },
-    { "key": "name_label", "label": "Name Field Label", "type": "text", "default": "Your Name" },
-    { "key": "email_label", "label": "Email Field Label", "type": "text", "default": "Email Address" },
-    { "key": "subject_label", "label": "Subject Field Label", "type": "text", "default": "Subject" },
+  "fields": [
     {
-      "key": "subject_options",
-      "label": "Subject Options (leave empty to hide dropdown)",
-      "type": "repeater",
-      "sub_fields": [
-        { "key": "value", "label": "Option", "type": "text", "required": true }
-      ]
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
-    { "key": "message_label", "label": "Message Field Label", "type": "text", "default": "Message" },
-    { "key": "button_text", "label": "Submit Button Text", "type": "text", "default": "Send Message" },
-    { "key": "action", "label": "Form Action URL (optional)", "type": "text" }
+    {
+      "name": "subheading",
+      "title": "Subheading",
+      "type": "textarea"
+    },
+    {
+      "name": "contact_email",
+      "title": "Email Address",
+      "type": "string"
+    },
+    {
+      "name": "contact_phone",
+      "title": "Phone Number",
+      "type": "string"
+    },
+    {
+      "name": "contact_office",
+      "title": "Office Location",
+      "type": "string"
+    },
+    {
+      "initialValue": "Your Name",
+      "name": "name_label",
+      "title": "Name Field Label",
+      "type": "string"
+    },
+    {
+      "initialValue": "Email Address",
+      "name": "email_label",
+      "title": "Email Field Label",
+      "type": "string"
+    },
+    {
+      "initialValue": "Subject",
+      "name": "subject_label",
+      "title": "Subject Field Label",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "name": "value",
+          "required": true,
+          "title": "Option",
+          "type": "string"
+        }
+      ],
+      "name": "subject_options",
+      "title": "Subject Options (leave empty to hide dropdown)",
+      "type": "array"
+    },
+    {
+      "initialValue": "Message",
+      "name": "message_label",
+      "title": "Message Field Label",
+      "type": "string"
+    },
+    {
+      "initialValue": "Send Message",
+      "name": "button_text",
+      "title": "Submit Button Text",
+      "type": "string"
+    },
+    {
+      "name": "action",
+      "title": "Form Action URL (optional)",
+      "type": "string"
+    }
   ],
+  "icon": "mail",
+  "label": "Contact Form",
+  "slug": "contact-form",
   "test_data": {
-    "heading": "Let's talk.",
-    "subheading": "Ready to elevate your content experience? Our team of curators is here to guide your transition to Squilla.",
+    "button_text": "Send Message",
     "contact_email": "hello@squilla.com",
-    "contact_phone": "+1 (555) 890-VIBE",
     "contact_office": "San Francisco, CA",
-    "name_label": "Your Name",
+    "contact_phone": "+1 (555) 890-VIBE",
     "email_label": "Email Address",
+    "heading": "Let's talk.",
+    "message_label": "Message",
+    "name_label": "Your Name",
+    "subheading": "Ready to elevate your content experience? Our team of curators is here to guide your transition to Squilla.",
     "subject_label": "Subject",
     "subject_options": [
-      { "value": "Product Inquiry" },
-      { "value": "Technical Support" },
-      { "value": "Partnership Idea" },
-      { "value": "Other" }
-    ],
-    "message_label": "Message",
-    "button_text": "Send Message"
+      {
+        "value": "Product Inquiry"
+      },
+      {
+        "value": "Technical Support"
+      },
+      {
+        "value": "Partnership Idea"
+      },
+      {
+        "value": "Other"
+      }
+    ]
   }
 }

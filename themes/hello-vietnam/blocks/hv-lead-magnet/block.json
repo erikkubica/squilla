@@ -1,47 +1,47 @@
 {
-  "slug": "hv-lead-magnet",
-  "name": "Lead Magnet Banner",
-  "description": "A high-conversion email-capture banner with a deep red gradient background. Left column has a yellow badge + headline + body + an inline newsletter signup form (rendered by the forms extension via slug 'newsletter'). Right column is a rotated image of the freebie (a PDF map mockup, a printable, a checklist, etc.).",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A high-conversion email-capture banner with a deep red gradient background. Left column has a yellow badge + headline + body + an inline newsletter signup form (rendered by the forms extension via slug 'newsletter'). Right column is a rotated image of the freebie (a PDF map mockup, a printable, a checklist, etc.).",
+  "fields": [
     {
-      "key": "badge_text",
-      "label": "Badge",
-      "type": "text",
-      "help": "A small highlight label (e.g. 'Free · 12-page PDF')."
+      "description": "A small highlight label (e.g. 'Free · 12-page PDF').",
+      "name": "badge_text",
+      "title": "Badge",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section — name the freebie clearly."
+      "description": "The primary title of the section — name the freebie clearly.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body",
-      "label": "Body",
-      "type": "textarea",
-      "help": "Short pitch — what the reader gets and why it's worth their email."
+      "description": "Short pitch — what the reader gets and why it's worth their email.",
+      "name": "body",
+      "title": "Body",
+      "type": "textarea"
     },
     {
-      "key": "image",
-      "label": "Freebie Image",
-      "type": "image",
-      "help": "Rotated photo or mockup of the deliverable (PDF cover, printable, etc.). Yellow background tints behind it on missing photo."
+      "description": "Rotated photo or mockup of the deliverable (PDF cover, printable, etc.). Yellow background tints behind it on missing photo.",
+      "name": "image",
+      "title": "Freebie Image",
+      "type": "image"
     },
     {
-      "key": "image_label",
-      "label": "Image placeholder label",
-      "type": "text",
-      "help": "Monospace overlay caption, only visible when no photo is set."
+      "description": "Monospace overlay caption, only visible when no photo is set.",
+      "name": "image_label",
+      "title": "Image placeholder label",
+      "type": "string"
     }
   ],
+  "name": "Lead Magnet Banner",
+  "slug": "hv-lead-magnet",
   "test_data": {
     "badge_text": "Free · 12-page PDF",
-    "heading": "The Hanoi Street Food Map.",
     "body": "Every bún chả, bánh mì, and egg coffee spot we actually eat at. Numbered, mapped, ranked, and updated every month.",
+    "heading": "The Hanoi Street Food Map.",
     "image": {
-      "url": "theme-asset:lead-magnet-map",
-      "alt": "Hand-drawn Vietnam travel journal and map"
+      "alt": "Hand-drawn Vietnam travel journal and map",
+      "url": "theme-asset:lead-magnet-map"
     },
     "image_label": "PDF mockup"
   }

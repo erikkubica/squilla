@@ -1,55 +1,54 @@
 {
-  "slug": "cb-logo-cloud",
-  "label": "Logo Cloud",
-  "icon": "building",
   "description": "A client or partner logo grid for trust signals. Shows logos in grayscale that gain color on hover. Use for 'Trusted by' sections, partner showcases. Layout: centered section with heading, responsive grid of logos with consistent sizing, grayscale filter with hover color transition.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Logo Style",
-      "type": "select",
+      "initialValue": "grayscale",
+      "name": "style",
       "options": [
         "grayscale",
         "color",
         "monochrome"
       ],
-      "default": "grayscale",
-      "key": "style"
+      "title": "Logo Style",
+      "type": "select"
     },
     {
-      "label": "Logos",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Logo Image",
-          "type": "image",
+          "name": "image",
           "required": true,
-          "key": "image"
+          "title": "Logo Image",
+          "type": "image"
         },
         {
-          "label": "Company Name",
-          "type": "text",
+          "name": "name",
           "required": true,
-          "key": "name"
+          "title": "Company Name",
+          "type": "string"
         },
         {
-          "label": "Website URL",
-          "type": "text",
+          "name": "url",
           "required": false,
-          "key": "url"
+          "title": "Website URL",
+          "type": "string"
         }
       ],
-      "key": "logos"
+      "name": "logos",
+      "title": "Logos",
+      "type": "array"
     }
   ],
+  "icon": "building",
+  "label": "Logo Cloud",
+  "slug": "cb-logo-cloud",
   "test_data": {
     "heading": "Trusted by Industry Leaders",
-    "style": "grayscale",
     "logos": [
       {
         "image": "https://picsum.photos/seed/logo1/200/80",
@@ -81,6 +80,7 @@
         "name": "Hooli",
         "url": "https://example.com"
       }
-    ]
+    ],
+    "style": "grayscale"
   }
 }

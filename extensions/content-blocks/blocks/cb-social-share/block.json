@@ -1,75 +1,75 @@
 {
-  "slug": "cb-social-share",
-  "label": "Social Share",
-  "icon": "share-2",
   "description": "A social media sharing bar with buttons for Twitter/X, Facebook, LinkedIn, and email. Generates share URLs automatically from the current page URL and title. Use at the end of blog posts, articles, or any shareable content. Layout: horizontal row of styled share buttons with optional share count label.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
-      "key": "heading"
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Show Twitter/X",
-      "type": "toggle",
-      "default": true,
-      "key": "show_twitter"
+      "initialValue": true,
+      "name": "show_twitter",
+      "title": "Show Twitter/X",
+      "type": "toggle"
     },
     {
-      "label": "Show Facebook",
-      "type": "toggle",
-      "default": true,
-      "key": "show_facebook"
+      "initialValue": true,
+      "name": "show_facebook",
+      "title": "Show Facebook",
+      "type": "toggle"
     },
     {
-      "label": "Show LinkedIn",
-      "type": "toggle",
-      "default": true,
-      "key": "show_linkedin"
+      "initialValue": true,
+      "name": "show_linkedin",
+      "title": "Show LinkedIn",
+      "type": "toggle"
     },
     {
-      "label": "Show Email",
-      "type": "toggle",
-      "default": true,
-      "key": "show_email"
+      "initialValue": true,
+      "name": "show_email",
+      "title": "Show Email",
+      "type": "toggle"
     },
     {
-      "label": "Show Copy Link",
-      "type": "toggle",
-      "default": true,
-      "key": "show_copy_link"
+      "initialValue": true,
+      "name": "show_copy_link",
+      "title": "Show Copy Link",
+      "type": "toggle"
     },
     {
-      "label": "Style",
-      "type": "select",
+      "initialValue": "buttons",
+      "name": "style",
       "options": [
         "icons",
         "buttons",
         "minimal"
       ],
-      "default": "buttons",
-      "key": "style"
+      "title": "Style",
+      "type": "select"
     },
     {
-      "label": "Alignment",
-      "type": "select",
+      "initialValue": "center",
+      "name": "alignment",
       "options": [
         "left",
         "center",
         "right"
       ],
-      "default": "center",
-      "key": "alignment"
+      "title": "Alignment",
+      "type": "select"
     }
   ],
+  "icon": "share-2",
+  "label": "Social Share",
+  "slug": "cb-social-share",
   "test_data": {
+    "alignment": "center",
     "heading": "Share this article",
-    "show_twitter": true,
+    "show_copy_link": true,
+    "show_email": true,
     "show_facebook": true,
     "show_linkedin": true,
-    "show_email": true,
-    "show_copy_link": true,
-    "style": "buttons",
-    "alignment": "center"
+    "show_twitter": true,
+    "style": "buttons"
   }
 }

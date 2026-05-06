@@ -1,35 +1,35 @@
 {
-  "slug": "hv-custom-journey",
-  "name": "Custom Journey CTA",
-  "description": "A prominent call-to-action banner on a soft yellow background. Designed to encourage users to start a custom trip inquiry, featuring a heading, description, and primary button.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A prominent call-to-action banner on a soft yellow background. Designed to encourage users to start a custom trip inquiry, featuring a heading, description, and primary button.",
+  "fields": [
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body",
-      "label": "Body",
-      "type": "textarea",
-      "help": "The main descriptive text for this section."
+      "description": "The main descriptive text for this section.",
+      "name": "body",
+      "title": "Body",
+      "type": "textarea"
     },
     {
-      "key": "cta",
-      "label": "Call to action",
-      "type": "link",
-      "help": "The primary action link for this block."
+      "description": "The primary action link for this block.",
+      "name": "cta",
+      "title": "Call to action",
+      "type": "link"
     }
   ],
+  "name": "Custom Journey CTA",
+  "slug": "hv-custom-journey",
   "test_data": {
-    "heading": "Don't see it? Build it.",
-    "body": "Tell us your dates, your crew, and your cravings. We'll design a private itinerary from scratch \u2014 usually within 48 hours.",
+    "body": "Tell us your dates, your crew, and your cravings. We'll design a private itinerary from scratch — usually within 48 hours.",
     "cta": {
+      "target": "",
       "text": "Plan a custom journey",
-      "url": "/contact",
-      "target": ""
-    }
+      "url": "/contact"
+    },
+    "heading": "Don't see it? Build it."
   }
 }

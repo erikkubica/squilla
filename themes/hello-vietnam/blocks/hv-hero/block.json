@@ -1,132 +1,132 @@
 {
-  "slug": "hv-hero",
-  "name": "Home Hero",
-  "description": "The main entrance block for the homepage. Combines a punchy, multi-line heading with rich social proof, primary/secondary action buttons, and a collage of three overlapping, slightly rotated photos plus a floating yellow sticker.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "The main entrance block for the homepage. Combines a punchy, multi-line heading with rich social proof, primary/secondary action buttons, and a collage of three overlapping, slightly rotated photos plus a floating yellow sticker.",
+  "fields": [
     {
-      "key": "badge_text",
-      "label": "Badge Text",
-      "type": "text",
-      "help": "Small introductory text shown above the main heading (e.g., 'Xin chào!')."
+      "description": "Small introductory text shown above the main heading (e.g., 'Xin chào!').",
+      "name": "badge_text",
+      "title": "Badge Text",
+      "type": "string"
     },
     {
-      "key": "heading_line1",
-      "label": "Heading Line 1 (HTML allowed)",
-      "type": "text",
-      "help": "The first line of the large hero title. Supports HTML entities."
+      "description": "The first line of the large hero title. Supports HTML entities.",
+      "name": "heading_line1",
+      "title": "Heading Line 1 (HTML allowed)",
+      "type": "string"
     },
     {
-      "key": "heading_accent",
-      "label": "Heading Accent Word (red)",
-      "type": "text",
-      "help": "A single word highlighted in the theme's red color. Include a trailing space if followed by more text."
+      "description": "A single word highlighted in the theme's red color. Include a trailing space if followed by more text.",
+      "name": "heading_accent",
+      "title": "Heading Accent Word (red)",
+      "type": "string"
     },
     {
-      "key": "heading_line2_after",
-      "label": "Heading Line 2 After Accent",
-      "type": "text",
-      "help": "Text that appears immediately after the red accent word on the second line."
+      "description": "Text that appears immediately after the red accent word on the second line.",
+      "name": "heading_line2_after",
+      "title": "Heading Line 2 After Accent",
+      "type": "string"
     },
     {
-      "key": "heading_line3_before",
-      "label": "Heading Line 3 Before Underlined Word",
-      "type": "text",
-      "help": "Text that appears on the third line, before the final underlined word."
+      "description": "Text that appears on the third line, before the final underlined word.",
+      "name": "heading_line3_before",
+      "title": "Heading Line 3 Before Underlined Word",
+      "type": "string"
     },
     {
-      "key": "heading_underlined",
-      "label": "Underlined Word",
-      "type": "text",
-      "help": "The final word in the heading that will have a yellow brush-stroke underline effect."
+      "description": "The final word in the heading that will have a yellow brush-stroke underline effect.",
+      "name": "heading_underlined",
+      "title": "Underlined Word",
+      "type": "string"
     },
     {
-      "key": "subheading",
-      "label": "Subheading",
-      "type": "textarea",
-      "help": "Supporting descriptive text shown below the main title. Aim for 2-3 lines."
+      "description": "Supporting descriptive text shown below the main title. Aim for 2-3 lines.",
+      "name": "subheading",
+      "title": "Subheading",
+      "type": "textarea"
     },
     {
-      "key": "cta_primary",
-      "label": "Primary CTA",
-      "type": "link",
-      "help": "The large primary action button for the main conversion goal."
+      "description": "The large primary action button for the main conversion goal.",
+      "name": "cta_primary",
+      "title": "Primary CTA",
+      "type": "link"
     },
     {
-      "key": "cta_secondary",
-      "label": "Secondary CTA",
-      "type": "link",
-      "help": "The secondary outline button for alternative paths (e.g., 'Meet the Crew')."
+      "description": "The secondary outline button for alternative paths (e.g., 'Meet the Crew').",
+      "name": "cta_secondary",
+      "title": "Secondary CTA",
+      "type": "link"
     },
     {
-      "key": "social_proof_strong",
-      "label": "Social Proof (bold)",
-      "type": "text",
-      "help": "The bold part of the social proof indicator (e.g., '2,400+ travelers')."
+      "description": "The bold part of the social proof indicator (e.g., '2,400+ travelers').",
+      "name": "social_proof_strong",
+      "title": "Social Proof (bold)",
+      "type": "string"
     },
     {
-      "key": "social_proof_rest",
-      "label": "Social Proof (rest)",
-      "type": "text",
-      "help": "Supporting text for the social proof line (e.g., '· Rated 4.9 on TripAdvisor')."
+      "description": "Supporting text for the social proof line (e.g., '· Rated 4.9 on TripAdvisor').",
+      "name": "social_proof_rest",
+      "title": "Social Proof (rest)",
+      "type": "string"
     },
     {
-      "key": "sticker_text",
-      "label": "Floating Sticker Text",
-      "type": "text",
-      "help": "Text for the floating circular yellow badge (e.g., '100% local-guided')."
+      "description": "Text for the floating circular yellow badge (e.g., '100% local-guided').",
+      "name": "sticker_text",
+      "title": "Floating Sticker Text",
+      "type": "string"
     },
     {
-      "key": "hero_image",
-      "label": "Hero Image (main)",
-      "type": "image",
-      "help": "Largest hero photo, rotated +1.5° in the top-right slot. Portrait or square 4:5 works best — people, food, motion."
+      "description": "Largest hero photo, rotated +1.5° in the top-right slot. Portrait or square 4:5 works best — people, food, motion.",
+      "name": "hero_image",
+      "title": "Hero Image (main)",
+      "type": "image"
     },
     {
-      "key": "secondary_image",
-      "label": "Secondary Image (bottom-left)",
-      "type": "image",
-      "help": "Smaller photo overlapping the bottom-left, rotated -3°. Landscape/wide composition."
+      "description": "Smaller photo overlapping the bottom-left, rotated -3°. Landscape/wide composition.",
+      "name": "secondary_image",
+      "title": "Secondary Image (bottom-left)",
+      "type": "image"
     },
     {
-      "key": "tertiary_image",
-      "label": "Tertiary Image (mid-right)",
-      "type": "image",
-      "help": "Smallest accent photo rotated +6° on the mid-right. Tight crop or square."
+      "description": "Smallest accent photo rotated +6° on the mid-right. Tight crop or square.",
+      "name": "tertiary_image",
+      "title": "Tertiary Image (mid-right)",
+      "type": "image"
     }
   ],
+  "name": "Home Hero",
+  "slug": "hv-hero",
   "test_data": {
     "badge_text": "Xin chào! We're Hello Vietnam.",
-    "heading_line1": "Eat, wander, &amp;",
+    "cta_primary": {
+      "target": "",
+      "text": "Find Your Adventure",
+      "url": "/trips"
+    },
+    "cta_secondary": {
+      "target": "",
+      "text": "Meet the Crew",
+      "url": "/about"
+    },
     "heading_accent": "laugh ",
+    "heading_line1": "Eat, wander, \u0026amp;",
     "heading_line2_after": "your way",
     "heading_line3_before": "through ",
     "heading_underlined": "Vietnam",
-    "subheading": "Small-group food crawls, mountain loops, and cooking classes — all run by locals who actually live here. No buses. No bullhorns. Just your new favorite country.",
-    "cta_primary": {
-      "text": "Find Your Adventure",
-      "url": "/trips",
-      "target": ""
-    },
-    "cta_secondary": {
-      "text": "Meet the Crew",
-      "url": "/about",
-      "target": ""
-    },
-    "social_proof_strong": "2,400+ travelers",
-    "social_proof_rest": "· Rated 4.9 on TripAdvisor",
-    "sticker_text": "100% local-guided",
     "hero_image": {
-      "url": "theme-asset:hero-grandma",
-      "alt": "Vietnamese grandma preparing bún chả in her Hanoi kitchen"
+      "alt": "Vietnamese grandma preparing bún chả in her Hanoi kitchen",
+      "url": "theme-asset:hero-grandma"
     },
     "secondary_image": {
-      "url": "theme-asset:hero-rice-terraces",
-      "alt": "Golden rice terraces at sunset in Sapa"
+      "alt": "Golden rice terraces at sunset in Sapa",
+      "url": "theme-asset:hero-rice-terraces"
     },
+    "social_proof_rest": "· Rated 4.9 on TripAdvisor",
+    "social_proof_strong": "2,400+ travelers",
+    "sticker_text": "100% local-guided",
+    "subheading": "Small-group food crawls, mountain loops, and cooking classes — all run by locals who actually live here. No buses. No bullhorns. Just your new favorite country.",
     "tertiary_image": {
-      "url": "theme-asset:hero-tea-farm",
-      "alt": "Smiling local picking tea leaves on a Vietnamese hillside"
+      "alt": "Smiling local picking tea leaves on a Vietnamese hillside",
+      "url": "theme-asset:hero-tea-farm"
     }
   }
 }

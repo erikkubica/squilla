@@ -1,44 +1,130 @@
 {
-  "slug": "cv-hero",
-  "name": "CV Hero",
-  "description": "Three-column hero — left: yellow star mark; center: name tag, big H1 with accent dot, lede; right: contact key/value list. A bottom strip of stat highlights below.",
   "category": "curriculum-vitae",
-  "field_schema": [
-    { "key": "name_tag", "label": "Mono name tag", "type": "text", "help": "Short mono label above the name (e.g. // available · b2b)." },
-    { "key": "name", "label": "Name", "type": "text", "help": "Single-line H1 — kept on one line at desktop." },
-    { "key": "sub", "label": "Subhead", "type": "textarea", "help": "1–2 sentences placed under the name." },
-    { "key": "side_items", "label": "Right column key/value", "type": "repeater", "help": "Each row renders as <mono>label</mono> + value (optional URL).",
-      "sub_fields": [
-        { "key": "label", "label": "Label",  "type": "text", "help": "Mono label (e.g. loc, hrs, mail, tel)." },
-        { "key": "value", "label": "Value",  "type": "text", "help": "Plain text or anchor text when URL provided." },
-        { "key": "url",   "label": "URL",    "type": "text", "help": "Optional. When set, value becomes a link." }
-      ]
+  "description": "Three-column hero — left: yellow star mark; center: name tag, big H1 with accent dot, lede; right: contact key/value list. A bottom strip of stat highlights below.",
+  "fields": [
+    {
+      "description": "Short mono label above the name (e.g. // available · b2b).",
+      "name": "name_tag",
+      "title": "Mono name tag",
+      "type": "string"
     },
-    { "key": "strip_items", "label": "Stat strip", "type": "repeater", "help": "Highlights below the hero. Bold count + label.",
-      "sub_fields": [
-        { "key": "count", "label": "Bold count", "type": "text", "help": "e.g. 10+, 100+, 0." },
-        { "key": "label", "label": "Label",      "type": "text", "help": "e.g. years, projects shipped." }
-      ]
+    {
+      "description": "Single-line H1 — kept on one line at desktop.",
+      "name": "name",
+      "title": "Name",
+      "type": "string"
+    },
+    {
+      "description": "1–2 sentences placed under the name.",
+      "name": "sub",
+      "title": "Subhead",
+      "type": "textarea"
+    },
+    {
+      "description": "Each row renders as \u003cmono\u003elabel\u003c/mono\u003e + value (optional URL).",
+      "fields": [
+        {
+          "description": "Mono label (e.g. loc, hrs, mail, tel).",
+          "name": "label",
+          "title": "Label",
+          "type": "string"
+        },
+        {
+          "description": "Plain text or anchor text when URL provided.",
+          "name": "value",
+          "title": "Value",
+          "type": "string"
+        },
+        {
+          "description": "Optional. When set, value becomes a link.",
+          "name": "url",
+          "title": "URL",
+          "type": "string"
+        }
+      ],
+      "name": "side_items",
+      "title": "Right column key/value",
+      "type": "array"
+    },
+    {
+      "description": "Highlights below the hero. Bold count + label.",
+      "fields": [
+        {
+          "description": "e.g. 10+, 100+, 0.",
+          "name": "count",
+          "title": "Bold count",
+          "type": "string"
+        },
+        {
+          "description": "e.g. years, projects shipped.",
+          "name": "label",
+          "title": "Label",
+          "type": "string"
+        }
+      ],
+      "name": "strip_items",
+      "title": "Stat strip",
+      "type": "array"
     }
   ],
+  "name": "CV Hero",
+  "slug": "cv-hero",
   "test_data": {
-    "name_tag": "// available · b2b",
     "name": "Jane Developer",
-    "sub": "Senior full-stack dev. A decade of shipping production code — now wiring AI, MCP and agents on top of it.",
+    "name_tag": "// available · b2b",
     "side_items": [
-      { "label": "loc",   "value": "Remote · Worldwide", "url": "" },
-      { "label": "hrs",   "value": "Flexible / async-friendly", "url": "" },
-      { "label": "since", "value": "10+ yrs · 100+ projects", "url": "" },
-      { "label": "mail",  "value": "hello@example.com", "url": "mailto:hello@example.com" },
-      { "label": "tel",   "value": "+1 555 0100", "url": "tel:+15550100" }
+      {
+        "label": "loc",
+        "url": "",
+        "value": "Remote · Worldwide"
+      },
+      {
+        "label": "hrs",
+        "url": "",
+        "value": "Flexible / async-friendly"
+      },
+      {
+        "label": "since",
+        "url": "",
+        "value": "10+ yrs · 100+ projects"
+      },
+      {
+        "label": "mail",
+        "url": "mailto:hello@example.com",
+        "value": "hello@example.com"
+      },
+      {
+        "label": "tel",
+        "url": "tel:+15550100",
+        "value": "+1 555 0100"
+      }
     ],
     "strip_items": [
-      { "count": "10+",  "label": "years" },
-      { "count": "100+", "label": "projects shipped" },
-      { "count": "60+",  "label": "production sites" },
-      { "count": "12",   "label": "frontends" },
-      { "count": "8",    "label": "backend APIs" },
-      { "count": "0",    "label": "shortcuts" }
-    ]
+      {
+        "count": "10+",
+        "label": "years"
+      },
+      {
+        "count": "100+",
+        "label": "projects shipped"
+      },
+      {
+        "count": "60+",
+        "label": "production sites"
+      },
+      {
+        "count": "12",
+        "label": "frontends"
+      },
+      {
+        "count": "8",
+        "label": "backend APIs"
+      },
+      {
+        "count": "0",
+        "label": "shortcuts"
+      }
+    ],
+    "sub": "Senior full-stack dev. A decade of shipping production code — now wiring AI, MCP and agents on top of it."
   }
 }

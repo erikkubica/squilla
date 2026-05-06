@@ -1,111 +1,111 @@
 {
-  "slug": "cb-product-cards",
-  "label": "Product Cards",
-  "icon": "shopping-bag",
   "description": "Product showcase cards with image, name, price, and CTA button. Use for e-commerce product listings, course catalogs, downloadable showcases. Layout: 2-4 column card grid with product image (hover zoom), name, optional category tag, price with optional strikethrough original, and CTA button.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Columns",
-      "type": "select",
+      "initialValue": "3",
+      "name": "columns",
       "options": [
         "2",
         "3",
         "4"
       ],
-      "default": "3",
-      "key": "columns"
+      "title": "Columns",
+      "type": "select"
     },
     {
-      "label": "Products",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Product Image",
-          "type": "image",
+          "name": "image",
           "required": true,
-          "key": "image"
+          "title": "Product Image",
+          "type": "image"
         },
         {
-          "label": "Product Name",
-          "type": "text",
+          "name": "name",
           "required": true,
-          "key": "name"
+          "title": "Product Name",
+          "type": "string"
         },
         {
-          "label": "Category",
-          "type": "text",
+          "name": "category",
           "required": false,
-          "key": "category"
+          "title": "Category",
+          "type": "string"
         },
         {
-          "label": "Price",
-          "type": "text",
+          "name": "price",
           "required": true,
-          "key": "price"
+          "title": "Price",
+          "type": "string"
         },
         {
-          "label": "Original Price (strikethrough)",
-          "type": "text",
+          "name": "original_price",
           "required": false,
-          "key": "original_price"
+          "title": "Original Price (strikethrough)",
+          "type": "string"
         },
         {
-          "key": "button",
-          "label": "Button",
+          "name": "button",
+          "title": "Button",
           "type": "link"
         }
       ],
-      "key": "products"
+      "name": "products",
+      "title": "Products",
+      "type": "array"
     }
   ],
+  "icon": "shopping-bag",
+  "label": "Product Cards",
+  "slug": "cb-product-cards",
   "test_data": {
-    "heading": "Featured Products",
     "columns": "3",
+    "heading": "Featured Products",
     "products": [
       {
+        "button": {
+          "alt": "",
+          "target": "",
+          "text": "Buy Now",
+          "url": "/products/headphones"
+        },
+        "category": "Electronics",
         "image": "https://picsum.photos/seed/product1/600/400",
         "name": "Wireless Headphones Pro",
-        "category": "Electronics",
-        "price": "$79.99",
         "original_price": "$129.99",
-        "button": {
-          "text": "Buy Now",
-          "url": "/products/headphones",
-          "alt": "",
-          "target": ""
-        }
+        "price": "$79.99"
       },
       {
+        "button": {
+          "alt": "",
+          "target": "",
+          "text": "Buy Now",
+          "url": "/products/bag"
+        },
+        "category": "Accessories",
         "image": "https://picsum.photos/seed/product2/600/400",
         "name": "Leather Messenger Bag",
-        "category": "Accessories",
-        "price": "$149.00",
         "original_price": "",
-        "button": {
-          "text": "Buy Now",
-          "url": "/products/bag",
-          "alt": "",
-          "target": ""
-        }
+        "price": "$149.00"
       },
       {
+        "button": {
+          "alt": "",
+          "target": "",
+          "text": "Buy Now",
+          "url": "/products/watch"
+        },
+        "category": "Electronics",
         "image": "https://picsum.photos/seed/product3/600/400",
         "name": "Smart Fitness Watch",
-        "category": "Electronics",
-        "price": "$199.99",
         "original_price": "$249.99",
-        "button": {
-          "text": "Buy Now",
-          "url": "/products/watch",
-          "alt": "",
-          "target": ""
-        }
+        "price": "$199.99"
       }
     ]
   }

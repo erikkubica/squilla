@@ -1,16 +1,16 @@
 {
-  "slug": "hv-trips-grid",
-  "name": "Trips Grid",
-  "description": "The main listing component for trips. Renders a responsive grid of trip cards, each showing a thumbnail, price, duration, and key tags.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "The main listing component for trips. Renders a responsive grid of trip cards, each showing a thumbnail, price, duration, and key tags.",
+  "fields": [
     {
-      "key": "limit",
-      "label": "Max trips",
-      "type": "number",
-      "help": "Maximum number of items to display."
+      "description": "Maximum number of items to display.",
+      "name": "limit",
+      "title": "Max trips",
+      "type": "number"
     }
   ],
+  "name": "Trips Grid",
+  "slug": "hv-trips-grid",
   "test_data": {
     "limit": 20
   }

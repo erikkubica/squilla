@@ -1,61 +1,61 @@
 {
-  "slug": "hv-contact-faq",
-  "name": "Contact FAQ",
-  "description": "A clean, split-layout FAQ section. Pairs a side heading with a stack of interactive accordion rows, making it easy for users to find answers to common questions without clutter.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A clean, split-layout FAQ section. Pairs a side heading with a stack of interactive accordion rows, making it easy for users to find answers to common questions without clutter.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "faqs",
-      "label": "FAQs",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "key": "q",
-          "label": "Question",
-          "type": "text",
-          "help": "The question being asked."
+          "description": "The question being asked.",
+          "name": "q",
+          "title": "Question",
+          "type": "string"
         },
         {
-          "key": "a",
-          "label": "Answer (HTML allowed)",
-          "type": "textarea",
-          "help": "The answer to the question (supports HTML)."
+          "description": "The answer to the question (supports HTML).",
+          "name": "a",
+          "title": "Answer (HTML allowed)",
+          "type": "textarea"
         }
-      ]
+      ],
+      "name": "faqs",
+      "title": "FAQs",
+      "type": "array"
     }
   ],
+  "name": "Contact FAQ",
+  "slug": "hv-contact-faq",
   "test_data": {
     "eyebrow": "Common questions",
-    "heading": "Solved before you ask.",
     "faqs": [
       {
-        "q": "Do I need a visa?",
-        "a": "Most nationalities can get an e-visa online in under 10 minutes. We'll send you the exact link and walk you through it once you book."
+        "a": "Most nationalities can get an e-visa online in under 10 minutes. We'll send you the exact link and walk you through it once you book.",
+        "q": "Do I need a visa?"
       },
       {
-        "q": "Is this vegetarian-friendly?",
-        "a": "Absolutely. Vietnam is a vegetarian paradise \u2014 just tell us in the booking form and we'll tailor every meal."
+        "a": "Absolutely. Vietnam is a vegetarian paradise — just tell us in the booking form and we'll tailor every meal.",
+        "q": "Is this vegetarian-friendly?"
       },
       {
-        "q": "What's your cancellation policy?",
-        "a": "Full refund up to 30 days before. 50% between 30 and 7 days. After that we'll do our best \u2014 life happens."
+        "a": "Full refund up to 30 days before. 50% between 30 and 7 days. After that we'll do our best — life happens.",
+        "q": "What's your cancellation policy?"
       },
       {
-        "q": "How fit do I need to be?",
-        "a": "If you can walk 5km comfortably, you're good. We mark any strenuous add-ons clearly in the itinerary."
+        "a": "If you can walk 5km comfortably, you're good. We mark any strenuous add-ons clearly in the itinerary.",
+        "q": "How fit do I need to be?"
       }
-    ]
+    ],
+    "heading": "Solved before you ask."
   }
 }

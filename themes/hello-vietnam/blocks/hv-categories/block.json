@@ -1,91 +1,111 @@
 {
-  "slug": "hv-categories",
-  "name": "Home Categories Strip",
-  "description": "A horizontal strip of colorful 'tiles' representing different trip types or categories. Each tile includes an icon, a title, a tag link, and an 'Explore' CTA, designed to guide users to specific trip listings.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A horizontal strip of colorful 'tiles' representing different trip types or categories. Each tile includes an icon, a title, a tag link, and an 'Explore' CTA, designed to guide users to specific trip listings.",
+  "fields": [
     {
-      "key": "items",
-      "label": "Category Tiles",
-      "type": "repeater",
-      "help": "Four tiles fit the strip best.",
-      "sub_fields": [
+      "description": "Four tiles fit the strip best.",
+      "fields": [
         {
-          "key": "title",
-          "label": "Title",
-          "type": "text",
-          "help": "The name or title of this tile."
+          "description": "The name or title of this tile.",
+          "name": "title",
+          "title": "Title",
+          "type": "string"
         },
         {
-          "key": "tag",
-          "label": "Trip Tag",
-          "type": "term",
+          "description": "Pick a trip tag. Link auto-points to /trips?tag=\u003cslug\u003e.",
+          "name": "tag",
           "taxonomy": "trip_tag",
           "term_node_type": "trip",
-          "help": "Pick a trip tag. Link auto-points to /trips?tag=<slug>."
+          "title": "Trip Tag",
+          "type": "term"
         },
         {
-          "key": "cta",
-          "label": "CTA",
-          "type": "link",
-          "help": "Call-to-action. The text label is always shown. The URL is only used when no Trip Tag is selected above."
+          "description": "Call-to-action. The text label is always shown. The URL is only used when no Trip Tag is selected above.",
+          "name": "cta",
+          "title": "CTA",
+          "type": "link"
         },
         {
-          "key": "color",
-          "label": "Bubble Color",
-          "type": "select",
+          "description": "Choose the theme color for this tile.",
+          "name": "color",
           "options": [
             "red",
             "green",
             "yellow",
             "ink"
           ],
-          "help": "Choose the theme color for this tile."
+          "title": "Bubble Color",
+          "type": "select"
         },
         {
-          "key": "icon",
-          "label": "Icon",
-          "type": "select",
+          "description": "Select the icon that best represents this tile.",
+          "name": "icon",
           "options": [
             "fork",
             "trail",
             "workshop",
             "family"
           ],
-          "help": "Select the icon that best represents this tile."
+          "title": "Icon",
+          "type": "select"
         }
-      ]
+      ],
+      "name": "items",
+      "title": "Category Tiles",
+      "type": "array"
     }
   ],
+  "name": "Home Categories Strip",
+  "slug": "hv-categories",
   "test_data": {
     "items": [
       {
-        "title": "Foodie",
-        "tag": { "slug": "foodie" },
-        "cta": { "text": "Explore", "url": "/trips?tag=foodie" },
         "color": "red",
-        "icon": "fork"
+        "cta": {
+          "text": "Explore",
+          "url": "/trips?tag=foodie"
+        },
+        "icon": "fork",
+        "tag": {
+          "slug": "foodie"
+        },
+        "title": "Foodie"
       },
       {
-        "title": "Adventure",
-        "tag": { "slug": "adventure" },
-        "cta": { "text": "Explore", "url": "/trips?tag=adventure" },
         "color": "green",
-        "icon": "trail"
+        "cta": {
+          "text": "Explore",
+          "url": "/trips?tag=adventure"
+        },
+        "icon": "trail",
+        "tag": {
+          "slug": "adventure"
+        },
+        "title": "Adventure"
       },
       {
-        "title": "Relaxing",
-        "tag": { "slug": "relaxing" },
-        "cta": { "text": "Explore", "url": "/trips?tag=relaxing" },
         "color": "yellow",
-        "icon": "workshop"
+        "cta": {
+          "text": "Explore",
+          "url": "/trips?tag=relaxing"
+        },
+        "icon": "workshop",
+        "tag": {
+          "slug": "relaxing"
+        },
+        "title": "Relaxing"
       },
       {
-        "title": "Family Fun",
-        "tag": { "slug": "family-fun" },
-        "cta": { "text": "Explore", "url": "/trips?tag=family-fun" },
         "color": "ink",
-        "icon": "family"
+        "cta": {
+          "text": "Explore",
+          "url": "/trips?tag=family-fun"
+        },
+        "icon": "family",
+        "tag": {
+          "slug": "family-fun"
+        },
+        "title": "Family Fun"
       }
     ]
   }

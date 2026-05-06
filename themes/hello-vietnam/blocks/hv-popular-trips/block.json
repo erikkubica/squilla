@@ -1,41 +1,41 @@
 {
-  "slug": "hv-popular-trips",
-  "name": "Popular Trips",
-  "description": "Queries published trip nodes and renders a 3-up trip-card grid. Designed to show the most popular or latest adventures with clear visual indicators for staff picks and ratings.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "Queries published trip nodes and renders a 3-up trip-card grid. Designed to show the most popular or latest adventures with clear visual indicators for staff picks and ratings.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small label shown above the section title (e.g., 'Our most-booked')."
+      "description": "A small label shown above the section title (e.g., 'Our most-booked').",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The main title for the popular trips section."
+      "description": "The main title for the popular trips section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "cta",
-      "label": "CTA Link",
-      "type": "link",
-      "help": "The link to the 'all trips' page, shown at the end of the section."
+      "description": "The link to the 'all trips' page, shown at the end of the section.",
+      "name": "cta",
+      "title": "CTA Link",
+      "type": "link"
     },
     {
-      "key": "limit",
-      "label": "How many trips",
-      "type": "number",
-      "help": "Maximum number of trip cards to display. We recommend 3 for a clean grid layout."
+      "description": "Maximum number of trip cards to display. We recommend 3 for a clean grid layout.",
+      "name": "limit",
+      "title": "How many trips",
+      "type": "number"
     }
   ],
+  "name": "Popular Trips",
+  "slug": "hv-popular-trips",
   "test_data": {
-    "eyebrow": "Our most-booked",
-    "heading": "Trips travelers can't stop talking about.",
     "cta": {
-      "text": "See all trips \u2192",
+      "text": "See all trips →",
       "url": "/trips"
     },
+    "eyebrow": "Our most-booked",
+    "heading": "Trips travelers can't stop talking about.",
     "limit": 3
   }
 }

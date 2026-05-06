@@ -1,58 +1,58 @@
 {
-  "slug": "hv-impact",
-  "name": "Community Impact",
-  "description": "A two-column highlight block showcasing community impact. Left column is a large green-toned photo with a caption overlay; right column has eyebrow + heading + body + a green CTA button.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A two-column highlight block showcasing community impact. Left column is a large green-toned photo with a caption overlay; right column has eyebrow + heading + body + a green CTA button.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading (e.g. 'Community impact')."
+      "description": "A small, uppercase label displayed above the main heading (e.g. 'Community impact').",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body",
-      "label": "Body",
-      "type": "textarea",
-      "help": "The main descriptive text — what the impact looks like in numbers and partners."
+      "description": "The main descriptive text — what the impact looks like in numbers and partners.",
+      "name": "body",
+      "title": "Body",
+      "type": "textarea"
     },
     {
-      "key": "cta",
-      "label": "Call to action",
-      "type": "link",
-      "help": "Green button linking to a deeper impact story or report."
+      "description": "Green button linking to a deeper impact story or report.",
+      "name": "cta",
+      "title": "Call to action",
+      "type": "link"
     },
     {
-      "key": "image",
-      "label": "Image",
-      "type": "image",
-      "help": "Wide, candid photo of the community / partner activity. Landscape composition works best."
+      "description": "Wide, candid photo of the community / partner activity. Landscape composition works best.",
+      "name": "image",
+      "title": "Image",
+      "type": "image"
     },
     {
-      "key": "image_caption",
-      "label": "Image caption (placeholder only)",
-      "type": "text",
-      "help": "Monospace overlay caption, only visible when no photo is set."
+      "description": "Monospace overlay caption, only visible when no photo is set.",
+      "name": "image_caption",
+      "title": "Image caption (placeholder only)",
+      "type": "string"
     }
   ],
+  "name": "Community Impact",
+  "slug": "hv-impact",
   "test_data": {
-    "eyebrow": "Community impact",
-    "heading": "5% of every booking funds a village school.",
     "body": "Since 2019, we've helped build two classrooms and funded 47 scholarships in Ba Be Province. Our partner, the Ma Pi Leng Learning Initiative, is run by former guide Minh.",
     "cta": {
+      "target": "",
       "text": "Read the impact report",
-      "url": "/impact",
-      "target": ""
+      "url": "/impact"
     },
+    "eyebrow": "Community impact",
+    "heading": "5% of every booking funds a village school.",
     "image": {
-      "url": "theme-asset:impact-community",
-      "alt": "Vietnamese kids waving hello in a mountain village"
+      "alt": "Vietnamese kids waving hello in a mountain village",
+      "url": "theme-asset:impact-community"
     },
     "image_caption": "village school · ba be province"
   }

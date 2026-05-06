@@ -1,28 +1,28 @@
 {
-  "slug": "hv-crew-grid",
-  "name": "Meet the Crew",
-  "description": "A charming grid showcasing the project team as Polaroid-style cards with playful rotations. Each card displays a portrait, role, location, and a signature 'Fun fact' to humanize the brand.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A charming grid showcasing the project team as Polaroid-style cards with playful rotations. Each card displays a portrait, role, location, and a signature 'Fun fact' to humanize the brand.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "limit",
-      "label": "How many",
-      "type": "number",
-      "help": "Maximum number of items to display."
+      "description": "Maximum number of items to display.",
+      "name": "limit",
+      "title": "How many",
+      "type": "number"
     }
   ],
+  "name": "Meet the Crew",
+  "slug": "hv-crew-grid",
   "test_data": {
     "eyebrow": "Meet the crew",
     "heading": "The humans behind the homestays.",

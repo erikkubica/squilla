@@ -1,85 +1,85 @@
 {
-  "slug": "cb-image-grid",
-  "label": "Image Grid",
-  "icon": "grid-3x3",
   "description": "A responsive image gallery grid with hover overlay captions. Displays multiple images in a configurable grid with consistent aspect ratio. Use for portfolios, project galleries, product collections. Layout: CSS grid with hover overlay showing caption text and optional link.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Columns",
-      "type": "select",
+      "initialValue": "3",
+      "name": "columns",
       "options": [
         "2",
         "3",
         "4",
         "auto"
       ],
-      "default": "3",
-      "key": "columns"
+      "title": "Columns",
+      "type": "select"
     },
     {
-      "label": "Images",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Image",
-          "type": "image",
+          "name": "image",
           "required": true,
-          "key": "image"
+          "title": "Image",
+          "type": "image"
         },
         {
-          "label": "Caption",
-          "type": "text",
+          "name": "caption",
           "required": false,
-          "key": "caption"
+          "title": "Caption",
+          "type": "string"
         },
         {
-          "label": "Link URL",
-          "type": "text",
+          "name": "link",
           "required": false,
-          "key": "link"
+          "title": "Link URL",
+          "type": "string"
         }
       ],
-      "key": "images"
+      "name": "images",
+      "title": "Images",
+      "type": "array"
     }
   ],
+  "icon": "grid-3x3",
+  "label": "Image Grid",
+  "slug": "cb-image-grid",
   "test_data": {
-    "heading": "Our Work",
     "columns": "3",
+    "heading": "Our Work",
     "images": [
       {
-        "image": "https://picsum.photos/seed/grid-one/600/400",
         "caption": "Brand Identity Design",
+        "image": "https://picsum.photos/seed/grid-one/600/400",
         "link": ""
       },
       {
-        "image": "https://picsum.photos/seed/grid-two/600/400",
         "caption": "Mobile App UI",
+        "image": "https://picsum.photos/seed/grid-two/600/400",
         "link": ""
       },
       {
-        "image": "https://picsum.photos/seed/grid-three/600/400",
         "caption": "Website Redesign",
+        "image": "https://picsum.photos/seed/grid-three/600/400",
         "link": ""
       },
       {
-        "image": "https://picsum.photos/seed/grid-four/600/400",
         "caption": "Product Photography",
+        "image": "https://picsum.photos/seed/grid-four/600/400",
         "link": ""
       },
       {
-        "image": "https://picsum.photos/seed/grid-five/600/400",
         "caption": "Social Media Campaign",
+        "image": "https://picsum.photos/seed/grid-five/600/400",
         "link": ""
       },
       {
-        "image": "https://picsum.photos/seed/grid-six/600/400",
         "caption": "Package Design",
+        "image": "https://picsum.photos/seed/grid-six/600/400",
         "link": ""
       }
     ]

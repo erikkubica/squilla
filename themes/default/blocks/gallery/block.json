@@ -1,31 +1,78 @@
 {
-  "slug": "gallery",
-  "label": "Gallery",
-  "icon": "grid",
   "description": "Bento-masonry gallery — first image renders large (2x2), rest as smaller tiles with auto-numbered captions",
-  "field_schema": [
-    { "key": "heading", "label": "Section Heading", "type": "text" },
-    { "key": "subheading", "label": "Section Subheading", "type": "text" },
+  "fields": [
     {
-      "key": "images",
-      "label": "Images",
-      "type": "repeater",
-      "sub_fields": [
-        { "key": "image", "label": "Image", "type": "image", "required": true },
-        { "key": "caption", "label": "Caption", "type": "text" }
-      ]
+      "name": "heading",
+      "title": "Section Heading",
+      "type": "string"
+    },
+    {
+      "name": "subheading",
+      "title": "Section Subheading",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "name": "image",
+          "required": true,
+          "title": "Image",
+          "type": "image"
+        },
+        {
+          "name": "caption",
+          "title": "Caption",
+          "type": "string"
+        }
+      ],
+      "name": "images",
+      "title": "Images",
+      "type": "array"
     }
   ],
+  "icon": "grid",
+  "label": "Gallery",
+  "slug": "gallery",
   "test_data": {
     "heading": "Our Vision in Frames",
-    "subheading": "A visual journey through the philosophy that drives our interface design and architectural decisions.",
     "images": [
-      { "image": { "url": "theme-asset:gallery-studio" },    "caption": "The Studio Environment" },
-      { "image": { "url": "theme-asset:gallery-analytics" }, "caption": "Data Clarity" },
-      { "image": { "url": "theme-asset:gallery-code" },      "caption": "Structural Integrity" },
-      { "image": { "url": "theme-asset:gallery-team" },      "caption": "Human Connection" },
-      { "image": { "url": "theme-asset:gallery-gradient" },  "caption": "Luminous Palette" },
-      { "image": { "url": "theme-asset:gallery-minimal" },   "caption": "Minimalist Zen" }
-    ]
+      {
+        "caption": "The Studio Environment",
+        "image": {
+          "url": "theme-asset:gallery-studio"
+        }
+      },
+      {
+        "caption": "Data Clarity",
+        "image": {
+          "url": "theme-asset:gallery-analytics"
+        }
+      },
+      {
+        "caption": "Structural Integrity",
+        "image": {
+          "url": "theme-asset:gallery-code"
+        }
+      },
+      {
+        "caption": "Human Connection",
+        "image": {
+          "url": "theme-asset:gallery-team"
+        }
+      },
+      {
+        "caption": "Luminous Palette",
+        "image": {
+          "url": "theme-asset:gallery-gradient"
+        }
+      },
+      {
+        "caption": "Minimalist Zen",
+        "image": {
+          "url": "theme-asset:gallery-minimal"
+        }
+      }
+    ],
+    "subheading": "A visual journey through the philosophy that drives our interface design and architectural decisions."
   }
 }

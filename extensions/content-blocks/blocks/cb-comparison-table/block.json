@@ -1,68 +1,67 @@
 {
-  "slug": "cb-comparison-table",
-  "label": "Comparison Table",
-  "icon": "table",
   "description": "A feature comparison table for comparing plans or products using checkmarks and crosses. Use for plan comparisons, product spec tables. Layout: responsive table with sticky header, feature names left column, plan names across top. Cells show checkmarks, crosses, or custom text. Scrollable on mobile.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Column Names",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Column Name",
-          "type": "text",
+          "name": "name",
           "required": true,
-          "key": "name"
+          "title": "Column Name",
+          "type": "string"
         }
       ],
-      "key": "columns"
+      "name": "columns",
+      "title": "Column Names",
+      "type": "array"
     },
     {
-      "label": "Feature Rows",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Feature Name",
-          "type": "text",
+          "name": "feature",
           "required": true,
-          "key": "feature"
+          "title": "Feature Name",
+          "type": "string"
         },
         {
-          "label": "Column 1 Value",
-          "type": "text",
+          "name": "col1",
           "required": false,
-          "key": "col1"
+          "title": "Column 1 Value",
+          "type": "string"
         },
         {
-          "label": "Column 2 Value",
-          "type": "text",
+          "name": "col2",
           "required": false,
-          "key": "col2"
+          "title": "Column 2 Value",
+          "type": "string"
         },
         {
-          "label": "Column 3 Value",
-          "type": "text",
+          "name": "col3",
           "required": false,
-          "key": "col3"
+          "title": "Column 3 Value",
+          "type": "string"
         },
         {
-          "label": "Column 4 Value",
-          "type": "text",
+          "name": "col4",
           "required": false,
-          "key": "col4"
+          "title": "Column 4 Value",
+          "type": "string"
         }
       ],
-      "key": "rows"
+      "name": "rows",
+      "title": "Feature Rows",
+      "type": "array"
     }
   ],
+  "icon": "table",
+  "label": "Comparison Table",
+  "slug": "cb-comparison-table",
   "test_data": {
-    "heading": "Compare Plans",
     "columns": [
       {
         "name": "Basic"
@@ -74,48 +73,49 @@
         "name": "Enterprise"
       }
     ],
+    "heading": "Compare Plans",
     "rows": [
       {
-        "feature": "Projects",
         "col1": "5",
         "col2": "Unlimited",
         "col3": "Unlimited",
-        "col4": ""
+        "col4": "",
+        "feature": "Projects"
       },
       {
-        "feature": "Storage",
         "col1": "10 GB",
         "col2": "100 GB",
         "col3": "Unlimited",
-        "col4": ""
+        "col4": "",
+        "feature": "Storage"
       },
       {
-        "feature": "Custom Domain",
         "col1": "no",
         "col2": "yes",
         "col3": "yes",
-        "col4": ""
+        "col4": "",
+        "feature": "Custom Domain"
       },
       {
-        "feature": "API Access",
         "col1": "no",
         "col2": "yes",
         "col3": "yes",
-        "col4": ""
+        "col4": "",
+        "feature": "API Access"
       },
       {
-        "feature": "Priority Support",
         "col1": "no",
         "col2": "yes",
         "col3": "yes",
-        "col4": ""
+        "col4": "",
+        "feature": "Priority Support"
       },
       {
-        "feature": "SSO / SAML",
         "col1": "no",
         "col2": "no",
         "col3": "yes",
-        "col4": ""
+        "col4": "",
+        "feature": "SSO / SAML"
       }
     ]
   }

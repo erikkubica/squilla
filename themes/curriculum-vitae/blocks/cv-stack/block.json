@@ -1,46 +1,119 @@
 {
-  "slug": "cv-stack",
-  "name": "CV Stack",
-  "description": "Section 03 — stack. Pill-style tabs switch between groups; each group lists key/value rows with a dashed bottom border. Languages row appears below.",
   "category": "curriculum-vitae",
-  "field_schema": [
-    { "key": "section_id", "label": "Anchor id", "type": "text" },
-    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
-    { "key": "heading", "label": "Heading", "type": "text" },
-    { "key": "sub",     "label": "Subhead", "type": "textarea" },
-    { "key": "groups", "label": "Tech groups", "type": "repeater",
-      "sub_fields": [
-        { "key": "name", "label": "Group name", "type": "text", "help": "e.g. AI / Agents, Backend, Frontend." },
-        { "key": "rows", "label": "Rows (one per line, format: 'Name || Value')", "type": "textarea",
-          "help": "Each line becomes a stack-row. Separator is ' || ' (space, double-pipe, space)." }
-      ]
+  "description": "Section 03 — stack. Pill-style tabs switch between groups; each group lists key/value rows with a dashed bottom border. Languages row appears below.",
+  "fields": [
+    {
+      "name": "section_id",
+      "title": "Anchor id",
+      "type": "string"
     },
-    { "key": "lang_label", "label": "Languages eyebrow", "type": "text", "help": "Mono label before language list." },
-    { "key": "languages", "label": "Languages", "type": "repeater",
-      "sub_fields": [
-        { "key": "code",  "label": "Code", "type": "text", "help": "ISO-style language code, e.g. EN, ES, DE." },
-        { "key": "level", "label": "Level", "type": "text", "help": "e.g. native, fluent." }
-      ]
+    {
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
+    },
+    {
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
+    },
+    {
+      "name": "sub",
+      "title": "Subhead",
+      "type": "textarea"
+    },
+    {
+      "fields": [
+        {
+          "description": "e.g. AI / Agents, Backend, Frontend.",
+          "name": "name",
+          "title": "Group name",
+          "type": "string"
+        },
+        {
+          "description": "Each line becomes a stack-row. Separator is ' || ' (space, double-pipe, space).",
+          "name": "rows",
+          "title": "Rows (one per line, format: 'Name || Value')",
+          "type": "textarea"
+        }
+      ],
+      "name": "groups",
+      "title": "Tech groups",
+      "type": "array"
+    },
+    {
+      "description": "Mono label before language list.",
+      "name": "lang_label",
+      "title": "Languages eyebrow",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "description": "ISO-style language code, e.g. EN, ES, DE.",
+          "name": "code",
+          "title": "Code",
+          "type": "string"
+        },
+        {
+          "description": "e.g. native, fluent.",
+          "name": "level",
+          "title": "Level",
+          "type": "string"
+        }
+      ],
+      "name": "languages",
+      "title": "Languages",
+      "type": "array"
     }
   ],
+  "name": "CV Stack",
+  "slug": "cv-stack",
   "test_data": {
-    "section_id": "stack",
     "eyebrow": "03 · stack",
-    "heading": "What I actually use.",
-    "sub": "Not every logo in existence — just the things I reach for on a Tuesday.",
     "groups": [
-      { "name": "AI / Agents",     "rows": "MCP || Building servers + clients\nClaude / GPT / Gemini || Production\nLangGraph / custom orchestration || Production\npgvector / Qdrant || Production\nCursor / Claude Code || Daily driver" },
-      { "name": "Backend",         "rows": "PHP || 13+ yrs · Expert\nSymfony || 8+ yrs · Advanced\nNode.js || Intermediate\nJava / Spring Boot || Intermediate" },
-      { "name": "Frontend",        "rows": "JavaScript || 10+ yrs · Expert\nReact || 5+ yrs · Advanced\nNext.js || 3+ yrs · Advanced\nTypeScript || Advanced" },
-      { "name": "CMS / Commerce",  "rows": "WordPress || 60+ sites · Expert\nWooCommerce || Advanced\nMagento 1.9 & 2 || Multiple stores" },
-      { "name": "Data / DevOps",   "rows": "MySQL || 10+ yrs\nPostgreSQL || Advanced\nDocker || Daily\nKubernetes || Intermediate" },
-      { "name": "Testing / QA",    "rows": "Jest || Advanced\nPHPUnit || Advanced\nStorybook || Intermediate\nTDD || Advanced" }
+      {
+        "name": "AI / Agents",
+        "rows": "MCP || Building servers + clients\nClaude / GPT / Gemini || Production\nLangGraph / custom orchestration || Production\npgvector / Qdrant || Production\nCursor / Claude Code || Daily driver"
+      },
+      {
+        "name": "Backend",
+        "rows": "PHP || 13+ yrs · Expert\nSymfony || 8+ yrs · Advanced\nNode.js || Intermediate\nJava / Spring Boot || Intermediate"
+      },
+      {
+        "name": "Frontend",
+        "rows": "JavaScript || 10+ yrs · Expert\nReact || 5+ yrs · Advanced\nNext.js || 3+ yrs · Advanced\nTypeScript || Advanced"
+      },
+      {
+        "name": "CMS / Commerce",
+        "rows": "WordPress || 60+ sites · Expert\nWooCommerce || Advanced\nMagento 1.9 \u0026 2 || Multiple stores"
+      },
+      {
+        "name": "Data / DevOps",
+        "rows": "MySQL || 10+ yrs\nPostgreSQL || Advanced\nDocker || Daily\nKubernetes || Intermediate"
+      },
+      {
+        "name": "Testing / QA",
+        "rows": "Jest || Advanced\nPHPUnit || Advanced\nStorybook || Intermediate\nTDD || Advanced"
+      }
     ],
+    "heading": "What I actually use.",
     "lang_label": "languages",
     "languages": [
-      { "code": "EN", "level": "native" },
-      { "code": "ES", "level": "advanced" },
-      { "code": "DE", "level": "conversational" }
-    ]
+      {
+        "code": "EN",
+        "level": "native"
+      },
+      {
+        "code": "ES",
+        "level": "advanced"
+      },
+      {
+        "code": "DE",
+        "level": "conversational"
+      }
+    ],
+    "section_id": "stack",
+    "sub": "Not every logo in existence — just the things I reach for on a Tuesday."
   }
 }

@@ -1,12 +1,9 @@
 {
-  "slug": "cb-divider",
-  "label": "Section Divider",
-  "icon": "minus",
   "description": "A visual section divider for breathing space between content blocks. Supports line, thick, dashed, dotted, and gradient styles with optional centered text or icon label. Use between sections for visual separation. Layout: full-width horizontal element with configurable spacing and color.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Line Style",
-      "type": "select",
+      "initialValue": "line",
+      "name": "style",
       "options": [
         "line",
         "thick",
@@ -14,48 +11,51 @@
         "dotted",
         "gradient"
       ],
-      "default": "line",
-      "key": "style"
+      "title": "Line Style",
+      "type": "select"
     },
     {
-      "label": "Center Label",
-      "type": "text",
-      "key": "label"
+      "name": "label",
+      "title": "Center Label",
+      "type": "string"
     },
     {
-      "label": "Icon (emoji)",
-      "type": "text",
-      "key": "icon"
+      "name": "icon",
+      "title": "Icon (emoji)",
+      "type": "string"
     },
     {
-      "label": "Vertical Spacing",
-      "type": "select",
+      "initialValue": "md",
+      "name": "spacing",
       "options": [
         "sm",
         "md",
         "lg",
         "xl"
       ],
-      "default": "md",
-      "key": "spacing"
+      "title": "Vertical Spacing",
+      "type": "select"
     },
     {
-      "label": "Color",
-      "type": "select",
+      "initialValue": "default",
+      "name": "color",
       "options": [
         "default",
         "accent",
         "muted"
       ],
-      "default": "default",
-      "key": "color"
+      "title": "Color",
+      "type": "select"
     }
   ],
+  "icon": "minus",
+  "label": "Section Divider",
+  "slug": "cb-divider",
   "test_data": {
-    "style": "gradient",
+    "color": "default",
+    "icon": "✦",
     "label": "",
-    "icon": "\u2726",
     "spacing": "md",
-    "color": "default"
+    "style": "gradient"
   }
 }

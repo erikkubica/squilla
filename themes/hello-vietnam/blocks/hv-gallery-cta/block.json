@@ -1,24 +1,24 @@
 {
-  "slug": "hv-gallery-cta",
-  "name": "Gallery CTA",
-  "description": "A simple but effective call-to-action block for the bottom of the gallery page. Encourages users to take the next step after browsing the photos.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A simple but effective call-to-action block for the bottom of the gallery page. Encourages users to take the next step after browsing the photos.",
+  "fields": [
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "body",
-      "label": "Body (HTML allowed)",
-      "type": "textarea",
-      "help": "The main descriptive text for this section."
+      "description": "The main descriptive text for this section.",
+      "name": "body",
+      "title": "Body (HTML allowed)",
+      "type": "textarea"
     }
   ],
+  "name": "Gallery CTA",
+  "slug": "hv-gallery-cta",
   "test_data": {
-    "heading": "Want to be featured?",
-    "body": "Tag <strong>@HelloVietnam</strong> on your next trip \u2014 we repost our favorites every week."
+    "body": "Tag \u003cstrong\u003e@HelloVietnam\u003c/strong\u003e on your next trip — we repost our favorites every week.",
+    "heading": "Want to be featured?"
   }
 }

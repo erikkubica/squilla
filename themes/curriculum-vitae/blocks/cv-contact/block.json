@@ -1,26 +1,59 @@
 {
-  "slug": "cv-contact",
-  "name": "CV Contact",
-  "description": "Section 06 — contact. Full-bleed dark (ink) block with cream text, a hero heading, two pill CTAs (primary uses theme accent), and a mono fineprint line.",
   "category": "curriculum-vitae",
-  "field_schema": [
-    { "key": "section_id", "label": "Anchor id", "type": "text" },
-    { "key": "eyebrow", "label": "Eyebrow", "type": "text" },
-    { "key": "heading", "label": "Heading (HTML allowed for <br>)", "type": "textarea" },
-    { "key": "primary_label", "label": "Primary CTA label", "type": "text" },
-    { "key": "primary_url",   "label": "Primary CTA URL",   "type": "text" },
-    { "key": "secondary_label","label": "Secondary CTA label","type": "text" },
-    { "key": "secondary_url",  "label": "Secondary CTA URL", "type": "text" },
-    { "key": "fineprint",     "label": "Fineprint",         "type": "text", "help": "Rendered in mono below the buttons." }
+  "description": "Section 06 — contact. Full-bleed dark (ink) block with cream text, a hero heading, two pill CTAs (primary uses theme accent), and a mono fineprint line.",
+  "fields": [
+    {
+      "name": "section_id",
+      "title": "Anchor id",
+      "type": "string"
+    },
+    {
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
+    },
+    {
+      "name": "heading",
+      "title": "Heading (HTML allowed for \u003cbr\u003e)",
+      "type": "textarea"
+    },
+    {
+      "name": "primary_label",
+      "title": "Primary CTA label",
+      "type": "string"
+    },
+    {
+      "name": "primary_url",
+      "title": "Primary CTA URL",
+      "type": "string"
+    },
+    {
+      "name": "secondary_label",
+      "title": "Secondary CTA label",
+      "type": "string"
+    },
+    {
+      "name": "secondary_url",
+      "title": "Secondary CTA URL",
+      "type": "string"
+    },
+    {
+      "description": "Rendered in mono below the buttons.",
+      "name": "fineprint",
+      "title": "Fineprint",
+      "type": "string"
+    }
   ],
+  "name": "CV Contact",
+  "slug": "cv-contact",
   "test_data": {
-    "section_id": "contact",
     "eyebrow": "06 · contact",
-    "heading": "Need someone who'll write it once,<br/>write it well, and not ghost you?",
+    "fineprint": "B2B · async-friendly · usually replies within a day",
+    "heading": "Need someone who'll write it once,\u003cbr/\u003ewrite it well, and not ghost you?",
     "primary_label": "hello@example.com",
-    "primary_url":   "mailto:hello@example.com",
+    "primary_url": "mailto:hello@example.com",
     "secondary_label": "+1 555 0100",
-    "secondary_url":   "tel:+15550100",
-    "fineprint": "B2B · async-friendly · usually replies within a day"
+    "secondary_url": "tel:+15550100",
+    "section_id": "contact"
   }
 }

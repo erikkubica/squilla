@@ -1,135 +1,135 @@
 {
-  "slug": "cb-team-members",
-  "label": "Team Members",
-  "icon": "users",
   "description": "Team member profile cards with photo, name, role, bio, and social links. Use for about pages, team sections, leadership showcases. Layout: 2-4 column card grid with circular, rounded, or square photo, name, job title, bio, and social icon links.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Subheading",
-      "type": "text",
+      "name": "subheading",
       "required": false,
-      "key": "subheading"
+      "title": "Subheading",
+      "type": "string"
     },
     {
-      "label": "Columns",
-      "type": "select",
+      "initialValue": "3",
+      "name": "columns",
       "options": [
         "2",
         "3",
         "4"
       ],
-      "default": "3",
-      "key": "columns"
+      "title": "Columns",
+      "type": "select"
     },
     {
-      "label": "Photo Style",
-      "type": "select",
+      "initialValue": "circle",
+      "name": "photo_style",
       "options": [
         "circle",
         "rounded",
         "square"
       ],
-      "default": "circle",
-      "key": "photo_style"
+      "title": "Photo Style",
+      "type": "select"
     },
     {
-      "label": "Team Members",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Photo",
-          "type": "image",
+          "name": "photo",
           "required": false,
-          "key": "photo"
+          "title": "Photo",
+          "type": "image"
         },
         {
-          "label": "Name",
-          "type": "text",
+          "name": "name",
           "required": true,
-          "key": "name"
+          "title": "Name",
+          "type": "string"
         },
         {
-          "label": "Role / Title",
-          "type": "text",
+          "name": "role",
           "required": true,
-          "key": "role"
+          "title": "Role / Title",
+          "type": "string"
         },
         {
-          "label": "Bio",
-          "type": "textarea",
+          "name": "bio",
           "required": false,
-          "key": "bio"
+          "title": "Bio",
+          "type": "textarea"
         },
         {
-          "label": "LinkedIn URL",
-          "type": "text",
+          "name": "linkedin",
           "required": false,
-          "key": "linkedin"
+          "title": "LinkedIn URL",
+          "type": "string"
         },
         {
-          "label": "Twitter URL",
-          "type": "text",
+          "name": "twitter",
           "required": false,
-          "key": "twitter"
+          "title": "Twitter URL",
+          "type": "string"
         },
         {
-          "label": "Email Address",
-          "type": "text",
+          "name": "email",
           "required": false,
-          "key": "email"
+          "title": "Email Address",
+          "type": "string"
         }
       ],
-      "key": "members"
+      "name": "members",
+      "title": "Team Members",
+      "type": "array"
     }
   ],
+  "icon": "users",
+  "label": "Team Members",
+  "slug": "cb-team-members",
   "test_data": {
-    "heading": "Meet Our Team",
-    "subheading": "The people behind the product. We're a small, passionate team building something we believe in.",
     "columns": "3",
-    "photo_style": "circle",
+    "heading": "Meet Our Team",
     "members": [
       {
-        "photo": "https://picsum.photos/seed/team1/400/400",
-        "name": "Alex Rivera",
-        "role": "CEO & Co-Founder",
         "bio": "10+ years building developer tools. Previously led engineering at a Y Combinator startup.",
+        "email": "alex@example.com",
         "linkedin": "https://linkedin.com/in/example",
-        "twitter": "https://twitter.com/example",
-        "email": "alex@example.com"
+        "name": "Alex Rivera",
+        "photo": "https://picsum.photos/seed/team1/400/400",
+        "role": "CEO \u0026 Co-Founder",
+        "twitter": "https://twitter.com/example"
       },
       {
-        "photo": "https://picsum.photos/seed/team2/400/400",
-        "name": "Jordan Kim",
-        "role": "CTO & Co-Founder",
         "bio": "Systems architect with a passion for performance. Open source contributor and Go enthusiast.",
+        "email": "jordan@example.com",
         "linkedin": "https://linkedin.com/in/example",
-        "twitter": "",
-        "email": "jordan@example.com"
+        "name": "Jordan Kim",
+        "photo": "https://picsum.photos/seed/team2/400/400",
+        "role": "CTO \u0026 Co-Founder",
+        "twitter": ""
       },
       {
-        "photo": "https://picsum.photos/seed/team3/400/400",
-        "name": "Priya Sharma",
-        "role": "Head of Design",
         "bio": "Design leader focused on developer experience. Believes great tools should feel invisible.",
+        "email": "",
         "linkedin": "https://linkedin.com/in/example",
-        "twitter": "https://twitter.com/example",
-        "email": ""
+        "name": "Priya Sharma",
+        "photo": "https://picsum.photos/seed/team3/400/400",
+        "role": "Head of Design",
+        "twitter": "https://twitter.com/example"
       },
       {
-        "photo": "https://picsum.photos/seed/team4/400/400",
-        "name": "Sam Okafor",
-        "role": "Lead Engineer",
         "bio": "Full-stack developer specializing in Go and React. Contributor to multiple CMS projects.",
+        "email": "sam@example.com",
         "linkedin": "",
-        "twitter": "https://twitter.com/example",
-        "email": "sam@example.com"
+        "name": "Sam Okafor",
+        "photo": "https://picsum.photos/seed/team4/400/400",
+        "role": "Lead Engineer",
+        "twitter": "https://twitter.com/example"
       }
-    ]
+    ],
+    "photo_style": "circle",
+    "subheading": "The people behind the product. We're a small, passionate team building something we believe in."
   }
 }

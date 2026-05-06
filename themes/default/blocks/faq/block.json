@@ -1,28 +1,55 @@
 {
-  "slug": "faq",
-  "label": "FAQ",
-  "icon": "help-circle",
   "description": "Frequently asked questions with expandable accordion",
-  "field_schema": [
-    { "key": "heading", "label": "Section Heading", "type": "text" },
-    { "key": "subheading", "label": "Section Subheading", "type": "text" },
+  "fields": [
     {
-      "key": "items",
-      "label": "FAQ Items",
-      "type": "repeater",
-      "sub_fields": [
-        { "key": "question", "label": "Question", "type": "text", "required": true },
-        { "key": "answer", "label": "Answer", "type": "richtext", "required": true }
-      ]
+      "name": "heading",
+      "title": "Section Heading",
+      "type": "string"
+    },
+    {
+      "name": "subheading",
+      "title": "Section Subheading",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "name": "question",
+          "required": true,
+          "title": "Question",
+          "type": "string"
+        },
+        {
+          "name": "answer",
+          "required": true,
+          "title": "Answer",
+          "type": "richtext"
+        }
+      ],
+      "name": "items",
+      "title": "FAQ Items",
+      "type": "array"
     }
   ],
+  "icon": "help-circle",
+  "label": "FAQ",
+  "slug": "faq",
   "test_data": {
     "heading": "Frequently Asked",
-    "subheading": "",
     "items": [
-      { "question": "How is Squilla different from Contentful or Sanity?", "answer": "<p>Squilla is built with a focus on editorial aesthetic and edge-native performance. While others provide generic blocks, we provide curated intelligence that helps you model data faster and more reliably.</p>" },
-      { "question": "Do you offer a free plan for developers?", "answer": "<p>Yes! Our 'Spark' plan is free forever for personal projects and includes up to 5,000 records and 10GB of bandwidth.</p>" },
-      { "question": "Is Squilla SOC2 compliant?", "answer": "<p>We are fully SOC2 Type II and GDPR compliant. Security is a first-class citizen in our architecture.</p>" }
-    ]
+      {
+        "answer": "\u003cp\u003eSquilla is built with a focus on editorial aesthetic and edge-native performance. While others provide generic blocks, we provide curated intelligence that helps you model data faster and more reliably.\u003c/p\u003e",
+        "question": "How is Squilla different from Contentful or Sanity?"
+      },
+      {
+        "answer": "\u003cp\u003eYes! Our 'Spark' plan is free forever for personal projects and includes up to 5,000 records and 10GB of bandwidth.\u003c/p\u003e",
+        "question": "Do you offer a free plan for developers?"
+      },
+      {
+        "answer": "\u003cp\u003eWe are fully SOC2 Type II and GDPR compliant. Security is a first-class citizen in our architecture.\u003c/p\u003e",
+        "question": "Is Squilla SOC2 compliant?"
+      }
+    ],
+    "subheading": ""
   }
 }

@@ -1,84 +1,84 @@
 {
-  "slug": "hv-values",
-  "name": "Values",
-  "description": "A clean, multi-column section for listing company values or unique selling points. Features theme-colored icons and concise descriptive text.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A clean, multi-column section for listing company values or unique selling points. Features theme-colored icons and concise descriptive text.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "items",
-      "label": "Value cards",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "key": "color",
-          "label": "Accent color",
-          "type": "select",
+          "description": "Choose the theme color for this element.",
+          "name": "color",
           "options": [
             "red",
             "yellow",
             "green"
           ],
-          "help": "Choose the theme color for this element."
+          "title": "Accent color",
+          "type": "select"
         },
         {
-          "key": "icon",
-          "label": "Icon",
-          "type": "select",
+          "description": "Select the icon that best represents this item.",
+          "name": "icon",
           "options": [
             "x",
             "heart",
             "leaf"
           ],
-          "help": "Select the icon that best represents this item."
+          "title": "Icon",
+          "type": "select"
         },
         {
-          "key": "title",
-          "label": "Title",
-          "type": "text",
-          "help": "The name or title of this item."
+          "description": "The name or title of this item.",
+          "name": "title",
+          "title": "Title",
+          "type": "string"
         },
         {
-          "key": "body",
-          "label": "Body",
-          "type": "textarea",
-          "help": "The main descriptive text for this section."
+          "description": "The main descriptive text for this section.",
+          "name": "body",
+          "title": "Body",
+          "type": "textarea"
         }
-      ]
+      ],
+      "name": "items",
+      "title": "Value cards",
+      "type": "array"
     }
   ],
+  "name": "Values",
+  "slug": "hv-values",
   "test_data": {
     "eyebrow": "What we stand for",
     "heading": "Three rules we don't break.",
     "items": [
       {
+        "body": "If it's in every guidebook, we're not taking you there. Period.",
         "color": "red",
         "icon": "x",
-        "title": "No tourist traps",
-        "body": "If it's in every guidebook, we're not taking you there. Period."
+        "title": "No tourist traps"
       },
       {
+        "body": "Every vendor we work with is a neighbor. Every guide earns a real wage.",
         "color": "yellow",
         "icon": "heart",
-        "title": "Supporting locals",
-        "body": "Every vendor we work with is a neighbor. Every guide earns a real wage."
+        "title": "Supporting locals"
       },
       {
+        "body": "Small groups, reusable everything, and trips that leave places better.",
         "color": "green",
         "icon": "leaf",
-        "title": "Always sustainable",
-        "body": "Small groups, reusable everything, and trips that leave places better."
+        "title": "Always sustainable"
       }
     ]
   }

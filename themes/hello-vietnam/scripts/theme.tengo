@@ -32,43 +32,43 @@ nodetypes.register({
 	icon: "map",
 	description: "A bookable small-group adventure",
 	url_prefixes: { en: "trips" },
-	field_schema: [
-		{ name: "tag",        label: "Tag",               type: "term",     taxonomy: "trip_tag", term_node_type: "trip", help: "Pick a trip tag — managed in Taxonomies." },
-		{ name: "duration",   label: "Duration",          type: "text" },
-		{ name: "price",      label: "Price (USD)",       type: "number" },
-		{ name: "location",   label: "Location",          type: "text" },
-		{ name: "rating",     label: "Rating",            type: "number" },
-		{ name: "reviews",    label: "Review Count",      type: "number" },
-		{ name: "staff_pick", label: "Staff Pick",        type: "checkbox" },
-		{ name: "color",      label: "Accent",            type: "text",     help: "red | yellow | green" },
-		{ name: "short",      label: "Short Description", type: "textarea" },
-		{ name: "hero_image", label: "Hero Image",        type: "image" },
-		{ name: "gallery",    label: "Gallery",           type: "repeater",
-			sub_fields: [
-				{ name: "image",   label: "Image",   type: "image" },
-				{ name: "caption", label: "Caption", type: "text"  }
+	fields: [
+		{ name: "tag",        title: "Tag",               type: "term",     taxonomy: "trip_tag", term_node_type: "trip", description: "Pick a trip tag — managed in Taxonomies." },
+		{ name: "duration",   title: "Duration",          type: "string" },
+		{ name: "price",      title: "Price (USD)",       type: "number" },
+		{ name: "location",   title: "Location",          type: "string" },
+		{ name: "rating",     title: "Rating",            type: "number" },
+		{ name: "reviews",    title: "Review Count",      type: "number" },
+		{ name: "staff_pick", title: "Staff Pick",        type: "checkbox" },
+		{ name: "color",      title: "Accent",            type: "string",   description: "red | yellow | green" },
+		{ name: "short",      title: "Short Description", type: "textarea" },
+		{ name: "hero_image", title: "Hero Image",        type: "image" },
+		{ name: "gallery",    title: "Gallery",           type: "array",
+			fields: [
+				{ name: "image",   title: "Image",   type: "image" },
+				{ name: "caption", title: "Caption", type: "string" }
 			]
 		},
-		{ name: "stops",      label: "Stops",             type: "repeater",
-			sub_fields: [
-				{ name: "title", label: "Stop Title", type: "text" },
-				{ name: "brief", label: "Brief",      type: "textarea" }
+		{ name: "stops",      title: "Stops",             type: "array",
+			fields: [
+				{ name: "title", title: "Stop Title", type: "string" },
+				{ name: "brief", title: "Brief",      type: "textarea" }
 			]
 		},
-		{ name: "included",     label: "What's Included",     type: "repeater",
-			sub_fields: [ { name: "item", label: "Item", type: "text" } ]
+		{ name: "included",     title: "What's Included",     type: "array",
+			fields: [ { name: "item", title: "Item", type: "string" } ]
 		},
-		{ name: "not_included", label: "What's Not Included", type: "repeater",
-			sub_fields: [ { name: "item", label: "Item", type: "text" } ]
+		{ name: "not_included", title: "What's Not Included", type: "array",
+			fields: [ { name: "item", title: "Item", type: "string" } ]
 		},
-		{ name: "faqs",         label: "Quick FAQs",          type: "repeater",
-			sub_fields: [
-				{ name: "q", label: "Question", type: "text" },
-				{ name: "a", label: "Answer",   type: "textarea" }
+		{ name: "faqs",         title: "Quick FAQs",          type: "array",
+			fields: [
+				{ name: "q", title: "Question", type: "string" },
+				{ name: "a", title: "Answer",   type: "textarea" }
 			]
 		},
-		{ name: "order_form",   label: "Order Form",          type: "form_selector",
-			help: "Form rendered in the trip booking sidebar. Defaults to 'trip-order' for seeded trips." }
+		{ name: "order_form",   title: "Order Form",          type: "form_selector",
+			description: "Form rendered in the trip booking sidebar. Defaults to 'trip-order' for seeded trips." }
 	],
 	taxonomies: ["trip_tag"]
 })
@@ -85,12 +85,12 @@ nodetypes.register({
 	label_plural: "Crew",
 	icon: "users",
 	description: "A Hello Vietnam guide or staff member",
-	field_schema: [
-		{ name: "role",   label: "Role",      type: "text" },
-		{ name: "based",  label: "Based In",  type: "text" },
-		{ name: "fun",    label: "Fun Fact",  type: "text" },
-		{ name: "color",  label: "Accent",    type: "text", help: "red | yellow | green" },
-		{ name: "photo",  label: "Photo",     type: "image" }
+	fields: [
+		{ name: "role",   title: "Role",      type: "string" },
+		{ name: "based",  title: "Based In",  type: "string" },
+		{ name: "fun",    title: "Fun Fact",  type: "string" },
+		{ name: "color",  title: "Accent",    type: "string", description: "red | yellow | green" },
+		{ name: "photo",  title: "Photo",     type: "image" }
 	]
 })
 
@@ -100,13 +100,13 @@ nodetypes.register({
 	label_plural: "Testimonials",
 	icon: "message-circle",
 	description: "Traveler testimonial",
-	field_schema: [
-		{ name: "quote",  label: "Quote",  type: "textarea" },
-		{ name: "author", label: "Author", type: "text" },
-		{ name: "handle", label: "Handle", type: "text" },
-		{ name: "color",  label: "Accent", type: "text", help: "red | yellow | green" },
-		{ name: "photo",  label: "Photo",  type: "image" },
-		{ name: "trip",   label: "Trip",   type: "node", node_types: ["trip"], help: "Pick the trip this review is about. Leave empty for generic testimonials." }
+	fields: [
+		{ name: "quote",  title: "Quote",  type: "textarea" },
+		{ name: "author", title: "Author", type: "string" },
+		{ name: "handle", title: "Handle", type: "string" },
+		{ name: "color",  title: "Accent", type: "string", description: "red | yellow | green" },
+		{ name: "photo",  title: "Photo",  type: "image" },
+		{ name: "trip",   title: "Trip",   type: "reference", node_types: ["trip"], description: "Pick the trip this review is about. Leave empty for generic testimonials." }
 	]
 })
 

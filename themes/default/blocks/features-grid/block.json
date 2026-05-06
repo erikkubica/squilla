@@ -1,32 +1,78 @@
 {
-  "slug": "features-grid",
-  "label": "Features Grid",
-  "icon": "layout-grid",
   "description": "Grid of feature cards with icons, titles, and descriptions",
-  "field_schema": [
-    { "key": "heading", "label": "Section Heading", "type": "text" },
-    { "key": "subheading", "label": "Section Subheading", "type": "text" },
+  "fields": [
     {
-      "key": "features",
-      "label": "Features",
-      "type": "repeater",
-      "sub_fields": [
-        { "key": "icon", "label": "Icon (emoji or text)", "type": "text" },
-        { "key": "title", "label": "Title", "type": "text", "required": true },
-        { "key": "description", "label": "Description", "type": "textarea", "required": true }
-      ]
+      "name": "heading",
+      "title": "Section Heading",
+      "type": "string"
+    },
+    {
+      "name": "subheading",
+      "title": "Section Subheading",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "name": "icon",
+          "title": "Icon (emoji or text)",
+          "type": "string"
+        },
+        {
+          "name": "title",
+          "required": true,
+          "title": "Title",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "required": true,
+          "title": "Description",
+          "type": "textarea"
+        }
+      ],
+      "name": "features",
+      "title": "Features",
+      "type": "array"
     }
   ],
+  "icon": "layout-grid",
+  "label": "Features Grid",
+  "slug": "features-grid",
   "test_data": {
-    "heading": "Everything you need, nothing you don't.",
-    "subheading": "Engineered for speed, curated for aesthetic precision. The only CMS that feels like high-end furniture.",
     "features": [
-      { "icon": "⚡", "title": "Instant Edge API", "description": "Deliver content globally in milliseconds with our native edge-first infrastructure." },
-      { "icon": "🎨", "title": "Visual Schema", "description": "Architect complex data models with an interface that feels like a design tool." },
-      { "icon": "🤖", "title": "AI Curation", "description": "Automated tagging, translation, and SEO optimization built into the workflow." },
-      { "icon": "🛡️", "title": "Enterprise Security", "description": "SSO, audit logs, and granular permissions for teams of all sizes." },
-      { "icon": "🌐", "title": "Multi-tenant Flow", "description": "Manage hundreds of projects from a single unified dashboard without the clutter." },
-      { "icon": "📈", "title": "Insight Engine", "description": "Real-time content performance metrics directly within your editor." }
-    ]
+      {
+        "description": "Deliver content globally in milliseconds with our native edge-first infrastructure.",
+        "icon": "⚡",
+        "title": "Instant Edge API"
+      },
+      {
+        "description": "Architect complex data models with an interface that feels like a design tool.",
+        "icon": "🎨",
+        "title": "Visual Schema"
+      },
+      {
+        "description": "Automated tagging, translation, and SEO optimization built into the workflow.",
+        "icon": "🤖",
+        "title": "AI Curation"
+      },
+      {
+        "description": "SSO, audit logs, and granular permissions for teams of all sizes.",
+        "icon": "🛡️",
+        "title": "Enterprise Security"
+      },
+      {
+        "description": "Manage hundreds of projects from a single unified dashboard without the clutter.",
+        "icon": "🌐",
+        "title": "Multi-tenant Flow"
+      },
+      {
+        "description": "Real-time content performance metrics directly within your editor.",
+        "icon": "📈",
+        "title": "Insight Engine"
+      }
+    ],
+    "heading": "Everything you need, nothing you don't.",
+    "subheading": "Engineered for speed, curated for aesthetic precision. The only CMS that feels like high-end furniture."
   }
 }

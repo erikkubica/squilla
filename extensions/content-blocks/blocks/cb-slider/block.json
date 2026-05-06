@@ -1,85 +1,85 @@
 {
-  "slug": "cb-slider",
-  "label": "Content Slider",
-  "icon": "gallery-horizontal",
   "description": "An image and content carousel with navigation arrows and dot indicators. Each slide has image, heading, description, and optional CTA link. Use for hero rotators, feature showcases, announcement banners. Layout: full-width slides with overlaid text, arrow navigation, dot pagination, auto-advance with pause on hover.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Slides",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Background Image",
-          "type": "image",
+          "name": "image",
           "required": true,
-          "key": "image"
+          "title": "Background Image",
+          "type": "image"
         },
         {
-          "label": "Heading",
-          "type": "text",
+          "name": "heading",
           "required": false,
-          "key": "heading"
+          "title": "Heading",
+          "type": "string"
         },
         {
-          "label": "Description",
-          "type": "textarea",
+          "name": "description",
           "required": false,
-          "key": "description"
+          "title": "Description",
+          "type": "textarea"
         },
         {
-          "key": "button",
-          "label": "Button",
+          "name": "button",
+          "title": "Button",
           "type": "link"
         }
       ],
-      "key": "slides"
+      "name": "slides",
+      "title": "Slides",
+      "type": "array"
     },
     {
-      "label": "Autoplay",
-      "type": "select",
+      "initialValue": "true",
+      "name": "autoplay",
       "options": [
         "true",
         "false"
       ],
-      "default": "true",
-      "key": "autoplay"
+      "title": "Autoplay",
+      "type": "select"
     }
   ],
+  "icon": "gallery-horizontal",
+  "label": "Content Slider",
+  "slug": "cb-slider",
   "test_data": {
     "autoplay": "true",
     "slides": [
       {
-        "image": "https://picsum.photos/seed/slide-one/1400/600",
-        "heading": "Welcome to Our Platform",
-        "description": "Discover powerful tools designed to help you build, grow, and scale your business with confidence.",
         "button": {
+          "alt": "",
+          "target": "",
           "text": "Get Started",
-          "url": "/get-started",
-          "alt": "",
-          "target": ""
-        }
+          "url": "/get-started"
+        },
+        "description": "Discover powerful tools designed to help you build, grow, and scale your business with confidence.",
+        "heading": "Welcome to Our Platform",
+        "image": "https://picsum.photos/seed/slide-one/1400/600"
       },
       {
-        "image": "https://picsum.photos/seed/slide-two/1400/600",
-        "heading": "Built for Performance",
-        "description": "Lightning-fast page loads and optimized delivery ensure your visitors get the best experience.",
         "button": {
+          "alt": "",
+          "target": "",
           "text": "Learn More",
-          "url": "/features",
-          "alt": "",
-          "target": ""
-        }
+          "url": "/features"
+        },
+        "description": "Lightning-fast page loads and optimized delivery ensure your visitors get the best experience.",
+        "heading": "Built for Performance",
+        "image": "https://picsum.photos/seed/slide-two/1400/600"
       },
       {
-        "image": "https://picsum.photos/seed/slide-three/1400/600",
-        "heading": "Join Our Community",
-        "description": "Connect with thousands of creators, developers, and businesses using our platform every day.",
         "button": {
-          "text": "Join Now",
-          "url": "/community",
           "alt": "",
-          "target": ""
-        }
+          "target": "",
+          "text": "Join Now",
+          "url": "/community"
+        },
+        "description": "Connect with thousands of creators, developers, and businesses using our platform every day.",
+        "heading": "Join Our Community",
+        "image": "https://picsum.photos/seed/slide-three/1400/600"
       }
     ]
   }

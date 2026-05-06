@@ -1,16 +1,29 @@
 {
-  "slug": "rich-text",
-  "label": "Rich Text",
-  "icon": "type",
   "description": "Editorial long-form content with optional eyebrow, heading, and rich HTML body (blockquotes, lists, subheadings)",
-  "field_schema": [
-    { "key": "eyebrow", "label": "Eyebrow (small pill label)", "type": "text" },
-    { "key": "heading", "label": "Heading", "type": "text" },
-    { "key": "body", "label": "Content", "type": "richtext", "required": true }
+  "fields": [
+    {
+      "name": "eyebrow",
+      "title": "Eyebrow (small pill label)",
+      "type": "string"
+    },
+    {
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
+    },
+    {
+      "name": "body",
+      "required": true,
+      "title": "Content",
+      "type": "richtext"
+    }
   ],
+  "icon": "type",
+  "label": "Rich Text",
+  "slug": "rich-text",
   "test_data": {
+    "body": "\u003cp\u003eThe modern web has become a cacophony of fragmented tools and cluttered interfaces. We observed a growing divide between technical flexibility and creative intuition. Squilla was born from the desire to bridge this gap\u0026mdash;to create a \u0026ldquo;Luminous Curator\u0026rdquo; that treats content management as an editorial art form rather than a database entry task.\u003c/p\u003e\u003cblockquote\u003eGreat design is not just about how it looks, but how it feels to navigate the complexity of human knowledge.\u003c/blockquote\u003e\u003ch3\u003eA new paradigm of intelligence\u003c/h3\u003e\u003cp\u003eWe didn't just want another dashboard. We wanted a space where AI assists rather than dominates. Our goal was to build an environment where complex data structures are distilled into a refined, high-performance gallery experience.\u003c/p\u003e\u003cul\u003e\u003cli\u003eAsymmetric layouts that respect the natural hierarchy of information.\u003c/li\u003e\u003cli\u003eWarm, high-contrast typography that reduces visual fatigue.\u003c/li\u003e\u003cli\u003eA design system that treats every card as a physical object.\u003c/li\u003e\u003c/ul\u003e",
     "eyebrow": "Editorial",
-    "heading": "Why we built Squilla",
-    "body": "<p>The modern web has become a cacophony of fragmented tools and cluttered interfaces. We observed a growing divide between technical flexibility and creative intuition. Squilla was born from the desire to bridge this gap&mdash;to create a &ldquo;Luminous Curator&rdquo; that treats content management as an editorial art form rather than a database entry task.</p><blockquote>Great design is not just about how it looks, but how it feels to navigate the complexity of human knowledge.</blockquote><h3>A new paradigm of intelligence</h3><p>We didn't just want another dashboard. We wanted a space where AI assists rather than dominates. Our goal was to build an environment where complex data structures are distilled into a refined, high-performance gallery experience.</p><ul><li>Asymmetric layouts that respect the natural hierarchy of information.</li><li>Warm, high-contrast typography that reduces visual fatigue.</li><li>A design system that treats every card as a physical object.</li></ul>"
+    "heading": "Why we built Squilla"
   }
 }

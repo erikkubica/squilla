@@ -1,28 +1,65 @@
 {
-  "slug": "testimonials",
-  "label": "Testimonials",
-  "icon": "message-circle",
   "description": "Customer testimonial cards with quotes, names, roles, and avatars",
-  "field_schema": [
-    { "key": "heading", "label": "Section Heading", "type": "text" },
+  "fields": [
     {
-      "key": "testimonials",
-      "label": "Testimonials",
-      "type": "repeater",
-      "sub_fields": [
-        { "key": "quote", "label": "Quote", "type": "textarea", "required": true },
-        { "key": "author_name", "label": "Author Name", "type": "text", "required": true },
-        { "key": "author_role", "label": "Author Role", "type": "text" },
-        { "key": "avatar", "label": "Avatar", "type": "image" }
-      ]
+      "name": "heading",
+      "title": "Section Heading",
+      "type": "string"
+    },
+    {
+      "fields": [
+        {
+          "name": "quote",
+          "required": true,
+          "title": "Quote",
+          "type": "textarea"
+        },
+        {
+          "name": "author_name",
+          "required": true,
+          "title": "Author Name",
+          "type": "string"
+        },
+        {
+          "name": "author_role",
+          "title": "Author Role",
+          "type": "string"
+        },
+        {
+          "name": "avatar",
+          "title": "Avatar",
+          "type": "image"
+        }
+      ],
+      "name": "testimonials",
+      "title": "Testimonials",
+      "type": "array"
     }
   ],
+  "icon": "message-circle",
+  "label": "Testimonials",
+  "slug": "testimonials",
   "test_data": {
     "heading": "Loved by the world's most creative teams.",
     "testimonials": [
-      { "quote": "Squilla changed how we ship. The edge performance is unparalleled.", "author_name": "Marcus Chen", "author_role": "Lead Eng, Zenith", "avatar": "" },
-      { "quote": "The aesthetic of the dashboard alone improved our team's morale.", "author_name": "Sarah Jenkins", "author_role": "Creative Director, Flow", "avatar": "" },
-      { "quote": "Finally, a headless CMS that doesn't feel like a spreadsheet.", "author_name": "David Roh", "author_role": "Founder, Curate AI", "avatar": "" }
+      {
+        "author_name": "Marcus Chen",
+        "author_role": "Lead Eng, Zenith",
+        "avatar": "",
+        "quote": "Squilla changed how we ship. The edge performance is unparalleled."
+      },
+      {
+        "author_name": "Sarah Jenkins",
+        "author_role": "Creative Director, Flow",
+        "avatar": "",
+        "quote": "The aesthetic of the dashboard alone improved our team's morale."
+      },
+      {
+        "author_name": "David Roh",
+        "author_role": "Founder, Curate AI",
+        "avatar": "",
+        "quote": "Finally, a headless CMS that doesn't feel like a spreadsheet."
+      }
     ]
   }
 }

@@ -1,32 +1,32 @@
 {
-  "slug": "hv-staff-pick",
-  "name": "Staff Pick Banner",
-  "description": "A visually striking banner for 'Staff Pick' trips. Uses a vibrant red-to-yellow gradient background to make a specific trip stand out on listing pages.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A visually striking banner for 'Staff Pick' trips. Uses a vibrant red-to-yellow gradient background to make a specific trip stand out on listing pages.",
+  "fields": [
     {
-      "key": "trip",
-      "label": "Featured Trip",
-      "type": "node",
+      "description": "Pick the trip to feature. Leave empty to auto-pick the oldest trip.",
+      "name": "trip",
       "node_type_filter": "trip",
-      "help": "Pick the trip to feature. Leave empty to auto-pick the oldest trip."
+      "title": "Featured Trip",
+      "type": "reference"
     },
     {
-      "key": "badge_text",
-      "label": "Badge Text",
-      "type": "text",
-      "help": "Small pill above the heading (e.g. \"#1 Staff Pick\")."
+      "description": "Small pill above the heading (e.g. \"#1 Staff Pick\").",
+      "name": "badge_text",
+      "title": "Badge Text",
+      "type": "string"
     },
     {
-      "key": "cta_label",
-      "label": "CTA Label",
-      "type": "text",
-      "help": "Button text. Default: \"Book this trip \u2192\"."
+      "description": "Button text. Default: \"Book this trip →\".",
+      "name": "cta_label",
+      "title": "CTA Label",
+      "type": "string"
     }
   ],
+  "name": "Staff Pick Banner",
+  "slug": "hv-staff-pick",
   "test_data": {
-    "trip": null,
     "badge_text": "#1 Staff Pick",
-    "cta_label": "Book this trip \u2192"
+    "cta_label": "Book this trip →",
+    "trip": null
   }
 }

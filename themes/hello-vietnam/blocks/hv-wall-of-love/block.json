@@ -1,28 +1,28 @@
 {
-  "slug": "hv-wall-of-love",
-  "name": "Wall of Love",
-  "description": "A social proof section displaying Instagram-style testimonial cards. Cards have an organic, 'scattered' feel and feature user handles, quotes, and profile photos.",
   "category": "hello-vietnam",
-  "field_schema": [
+  "description": "A social proof section displaying Instagram-style testimonial cards. Cards have an organic, 'scattered' feel and feature user handles, quotes, and profile photos.",
+  "fields": [
     {
-      "key": "eyebrow",
-      "label": "Eyebrow",
-      "type": "text",
-      "help": "A small, uppercase label displayed above the main heading."
+      "description": "A small, uppercase label displayed above the main heading.",
+      "name": "eyebrow",
+      "title": "Eyebrow",
+      "type": "string"
     },
     {
-      "key": "heading",
-      "label": "Heading",
-      "type": "text",
-      "help": "The primary title of the section."
+      "description": "The primary title of the section.",
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "key": "limit",
-      "label": "How many",
-      "type": "number",
-      "help": "Maximum number of items to display."
+      "description": "Maximum number of items to display.",
+      "name": "limit",
+      "title": "How many",
+      "type": "number"
     }
   ],
+  "name": "Wall of Love",
+  "slug": "hv-wall-of-love",
   "test_data": {
     "eyebrow": "Wall of love",
     "heading": "Bragging rights, straight from our guests.",

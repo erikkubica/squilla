@@ -1,28 +1,22 @@
 {
-  "slug": "cb-reviews",
-  "label": "Review Cards",
-  "icon": "star",
   "description": "Star-rated review cards in a grid layout. Each card shows a star rating, review title, body text, reviewer name, and optional verified badge. Use for product reviews, app feedback, course reviews. Layout: 2-3 column grid of cards with filled and empty stars, review title, body text, and reviewer info.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Average Rating",
-      "type": "text",
+      "name": "average_rating",
       "required": false,
-      "key": "average_rating"
+      "title": "Average Rating",
+      "type": "string"
     },
     {
-      "label": "Reviews",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Rating",
-          "type": "select",
+          "name": "rating",
           "options": [
             "1",
             "2",
@@ -31,70 +25,76 @@
             "5"
           ],
           "required": true,
-          "key": "rating"
+          "title": "Rating",
+          "type": "select"
         },
         {
-          "label": "Review Title",
-          "type": "text",
+          "name": "title",
           "required": false,
-          "key": "title"
+          "title": "Review Title",
+          "type": "string"
         },
         {
-          "label": "Review Body",
-          "type": "textarea",
+          "name": "body",
           "required": true,
-          "key": "body"
+          "title": "Review Body",
+          "type": "textarea"
         },
         {
-          "label": "Reviewer Name",
-          "type": "text",
+          "name": "author",
           "required": true,
-          "key": "author"
+          "title": "Reviewer Name",
+          "type": "string"
         },
         {
-          "label": "Verified Buyer",
-          "type": "select",
+          "initialValue": "false",
+          "name": "verified",
           "options": [
             "false",
             "true"
           ],
-          "default": "false",
-          "key": "verified"
+          "title": "Verified Buyer",
+          "type": "select"
         }
       ],
-      "key": "reviews"
+      "name": "reviews",
+      "title": "Reviews",
+      "type": "array"
     }
   ],
+  "icon": "star",
+  "label": "Review Cards",
+  "slug": "cb-reviews",
   "test_data": {
-    "heading": "Customer Reviews",
     "average_rating": "4.7",
+    "heading": "Customer Reviews",
     "reviews": [
       {
+        "author": "James Wilson",
+        "body": "This exceeded all my expectations. Setup was a breeze and the performance is incredible. Highly recommended for anyone looking for a reliable solution.",
         "rating": "5",
         "title": "Absolutely love it!",
-        "body": "This exceeded all my expectations. Setup was a breeze and the performance is incredible. Highly recommended for anyone looking for a reliable solution.",
-        "author": "James Wilson",
         "verified": "true"
       },
       {
+        "author": "Lisa Park",
+        "body": "Overall very satisfied with the purchase. The interface is intuitive and the features are comprehensive. Took off one star for the initial learning curve.",
         "rating": "4",
         "title": "Great product, minor issues",
-        "body": "Overall very satisfied with the purchase. The interface is intuitive and the features are comprehensive. Took off one star for the initial learning curve.",
-        "author": "Lisa Park",
         "verified": "true"
       },
       {
+        "author": "David Okonkwo",
+        "body": "I've tried several alternatives and nothing comes close. The attention to detail and quality of support is outstanding.",
         "rating": "5",
         "title": "Best in its class",
-        "body": "I've tried several alternatives and nothing comes close. The attention to detail and quality of support is outstanding.",
-        "author": "David Okonkwo",
         "verified": "false"
       },
       {
+        "author": "Maria Santos",
+        "body": "Does exactly what it promises. Clean design, fast performance, and good value for money. Would buy again without hesitation.",
         "rating": "4",
         "title": "Solid choice",
-        "body": "Does exactly what it promises. Clean design, fast performance, and good value for money. Would buy again without hesitation.",
-        "author": "Maria Santos",
         "verified": "true"
       }
     ]

@@ -1,55 +1,55 @@
 {
-  "slug": "cb-alert",
-  "label": "Alert Banner",
-  "icon": "alert-triangle",
   "description": "A dismissible alert/notification banner for important announcements, warnings, or informational messages. Supports info, success, warning, and error variants with optional icon and close button. Use for site-wide announcements, maintenance notices, or promotional banners. Layout: full-width colored banner with icon, message text, optional link, and dismiss button.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Message",
-      "type": "richtext",
+      "name": "message",
       "required": true,
-      "key": "message"
+      "title": "Message",
+      "type": "richtext"
     },
     {
-      "label": "Alert Type",
-      "type": "select",
+      "initialValue": "info",
+      "name": "type",
       "options": [
         "info",
         "success",
         "warning",
         "error"
       ],
-      "default": "info",
-      "key": "type"
+      "title": "Alert Type",
+      "type": "select"
     },
     {
-      "label": "Dismissible",
-      "type": "toggle",
-      "default": true,
-      "key": "dismissible"
+      "initialValue": true,
+      "name": "dismissible",
+      "title": "Dismissible",
+      "type": "toggle"
     },
     {
-      "label": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
-      "type": "text",
-      "key": "icon"
+      "name": "icon",
+      "title": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
+      "type": "string"
     },
     {
-      "label": "Link Text",
-      "type": "text",
-      "key": "link_text"
+      "name": "link_text",
+      "title": "Link Text",
+      "type": "string"
     },
     {
-      "label": "Link URL",
-      "type": "text",
-      "key": "link_url"
+      "name": "link_url",
+      "title": "Link URL",
+      "type": "string"
     }
   ],
+  "icon": "alert-triangle",
+  "label": "Alert Banner",
+  "slug": "cb-alert",
   "test_data": {
-    "message": "We're launching a new feature next week! Stay tuned for exciting updates.",
-    "type": "info",
     "dismissible": true,
     "icon": "party-popper",
     "link_text": "Learn more",
-    "link_url": "/updates"
+    "link_url": "/updates",
+    "message": "We're launching a new feature next week! Stay tuned for exciting updates.",
+    "type": "info"
   }
 }

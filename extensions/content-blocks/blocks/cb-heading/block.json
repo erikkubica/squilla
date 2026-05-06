@@ -1,24 +1,21 @@
 {
-  "slug": "cb-heading",
-  "label": "Heading",
-  "icon": "type",
   "description": "A standalone heading block for creating visual section breaks and hierarchy. Renders a configurable heading (h1-h6) with optional subtitle and decorative divider. Use to introduce new page sections or add prominent titles. Layout: heading text with optional subtitle, configurable alignment, optional decorative element.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading Text",
-      "type": "text",
+      "name": "text",
       "required": true,
-      "key": "text"
+      "title": "Heading Text",
+      "type": "string"
     },
     {
-      "label": "Subtitle",
-      "type": "text",
+      "name": "subtitle",
       "required": false,
-      "key": "subtitle"
+      "title": "Subtitle",
+      "type": "string"
     },
     {
-      "label": "Heading Level",
-      "type": "select",
+      "initialValue": "h2",
+      "name": "level",
       "options": [
         "h1",
         "h2",
@@ -27,37 +24,40 @@
         "h5",
         "h6"
       ],
-      "default": "h2",
-      "key": "level"
+      "title": "Heading Level",
+      "type": "select"
     },
     {
-      "label": "Alignment",
-      "type": "select",
+      "initialValue": "center",
+      "name": "alignment",
       "options": [
         "left",
         "center",
         "right"
       ],
-      "default": "center",
-      "key": "alignment"
+      "title": "Alignment",
+      "type": "select"
     },
     {
-      "label": "Divider Style",
-      "type": "select",
+      "initialValue": "line",
+      "name": "divider",
       "options": [
         "line",
         "dots",
         "none"
       ],
-      "default": "line",
-      "key": "divider"
+      "title": "Divider Style",
+      "type": "select"
     }
   ],
+  "icon": "type",
+  "label": "Heading",
+  "slug": "cb-heading",
   "test_data": {
-    "text": "Our Services",
-    "subtitle": "What we offer to our clients",
-    "level": "h2",
     "alignment": "center",
-    "divider": "line"
+    "divider": "line",
+    "level": "h2",
+    "subtitle": "What we offer to our clients",
+    "text": "Our Services"
   }
 }

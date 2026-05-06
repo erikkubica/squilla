@@ -1,48 +1,48 @@
 {
-  "slug": "cb-search",
-  "label": "Live Search",
-  "icon": "search",
   "description": "A live search block that searches content in real-time as the user types. Uses AJAX to query the Squilla API and displays matching content nodes with title, excerpt, and link. Use for search pages or inline search widgets. Layout: search input with icon, results dropdown below showing matching pages with titles and excerpts.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
-      "key": "heading"
+      "name": "heading",
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Placeholder Text",
-      "type": "text",
-      "default": "Search...",
-      "key": "placeholder"
+      "initialValue": "Search...",
+      "name": "placeholder",
+      "title": "Placeholder Text",
+      "type": "string"
     },
     {
-      "label": "Content Type",
-      "type": "node_type_select",
-      "default": "page",
-      "key": "node_type"
+      "initialValue": "page",
+      "name": "node_type",
+      "title": "Content Type",
+      "type": "node_type_select"
     },
     {
-      "label": "Results Limit",
-      "type": "number",
-      "default": 5,
-      "key": "results_limit"
+      "initialValue": 5,
+      "name": "results_limit",
+      "title": "Results Limit",
+      "type": "number"
     },
     {
-      "label": "Style",
-      "type": "select",
+      "initialValue": "bordered",
+      "name": "style",
       "options": [
         "minimal",
         "bordered",
         "floating"
       ],
-      "default": "bordered",
-      "key": "style"
+      "title": "Style",
+      "type": "select"
     }
   ],
+  "icon": "search",
+  "label": "Live Search",
+  "slug": "cb-search",
   "test_data": {
     "heading": "Search Our Site",
-    "placeholder": "Type to search...",
     "node_type": "page",
+    "placeholder": "Type to search...",
     "results_limit": 5,
     "style": "bordered"
   }

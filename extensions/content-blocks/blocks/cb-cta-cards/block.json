@@ -1,82 +1,82 @@
 {
-  "slug": "cb-cta-cards",
-  "label": "CTA Cards",
-  "icon": "layout-grid",
   "description": "Multiple call-to-action cards in a responsive row. Each card has icon/emoji, heading, description, and button. Use for service offerings, product categories. Layout: 2-4 cards with subtle borders and hover elevation.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Section Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Section Heading",
+      "type": "string"
     },
     {
-      "label": "Cards",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
-          "type": "text",
+          "name": "icon",
           "required": false,
-          "key": "icon"
+          "title": "Icon (Lucide icon name, e.g. rocket, shield, code, users)",
+          "type": "string"
         },
         {
-          "label": "Title",
-          "type": "text",
+          "name": "title",
           "required": true,
-          "key": "title"
+          "title": "Title",
+          "type": "string"
         },
         {
-          "label": "Description",
-          "type": "textarea",
+          "name": "description",
           "required": false,
-          "key": "description"
+          "title": "Description",
+          "type": "textarea"
         },
         {
-          "key": "button",
-          "label": "Button",
+          "name": "button",
+          "title": "Button",
           "type": "link"
         }
       ],
-      "key": "cards"
+      "name": "cards",
+      "title": "Cards",
+      "type": "array"
     }
   ],
+  "icon": "layout-grid",
+  "label": "CTA Cards",
+  "slug": "cb-cta-cards",
   "test_data": {
-    "heading": "Choose Your Path",
     "cards": [
       {
-        "icon": "rocket",
-        "title": "For Startups",
-        "description": "Launch fast with our startup-friendly tools. Get your site live in minutes with zero config.",
         "button": {
+          "alt": "",
+          "target": "",
           "text": "Launch Now",
-          "url": "/startups",
-          "alt": "",
-          "target": ""
-        }
+          "url": "/startups"
+        },
+        "description": "Launch fast with our startup-friendly tools. Get your site live in minutes with zero config.",
+        "icon": "rocket",
+        "title": "For Startups"
       },
       {
-        "icon": "building",
-        "title": "For Business",
-        "description": "Enterprise-grade features with the simplicity your team needs. Scale without limits.",
         "button": {
+          "alt": "",
+          "target": "",
           "text": "Learn More",
-          "url": "/business",
-          "alt": "",
-          "target": ""
-        }
+          "url": "/business"
+        },
+        "description": "Enterprise-grade features with the simplicity your team needs. Scale without limits.",
+        "icon": "building",
+        "title": "For Business"
       },
       {
-        "icon": "palette",
-        "title": "For Creators",
-        "description": "Beautiful themes and powerful content tools designed for writers, artists, and makers.",
         "button": {
-          "text": "Start Creating",
-          "url": "/creators",
           "alt": "",
-          "target": ""
-        }
+          "target": "",
+          "text": "Start Creating",
+          "url": "/creators"
+        },
+        "description": "Beautiful themes and powerful content tools designed for writers, artists, and makers.",
+        "icon": "palette",
+        "title": "For Creators"
       }
-    ]
+    ],
+    "heading": "Choose Your Path"
   }
 }

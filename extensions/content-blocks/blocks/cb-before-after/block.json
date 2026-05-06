@@ -1,47 +1,47 @@
 {
-  "slug": "cb-before-after",
-  "label": "Before & After",
-  "icon": "flip-horizontal",
   "description": "An interactive before/after image comparison with draggable divider. Displays two images with a vertical drag handle that reveals one over the other. Use for renovation showcases, photo editing results, design iterations, visual comparisons. Layout: overlapping images with vertical drag handle, 'Before'/'After' labels at bottom corners.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Heading",
+      "type": "string"
     },
     {
-      "label": "Before Image",
-      "type": "image",
+      "name": "before_image",
       "required": true,
-      "key": "before_image"
+      "title": "Before Image",
+      "type": "image"
     },
     {
-      "label": "After Image",
-      "type": "image",
+      "name": "after_image",
       "required": true,
-      "key": "after_image"
+      "title": "After Image",
+      "type": "image"
     },
     {
-      "label": "Before Label",
-      "type": "text",
+      "initialValue": "Before",
+      "name": "before_label",
       "required": false,
-      "default": "Before",
-      "key": "before_label"
+      "title": "Before Label",
+      "type": "string"
     },
     {
-      "label": "After Label",
-      "type": "text",
+      "initialValue": "After",
+      "name": "after_label",
       "required": false,
-      "default": "After",
-      "key": "after_label"
+      "title": "After Label",
+      "type": "string"
     }
   ],
+  "icon": "flip-horizontal",
+  "label": "Before \u0026 After",
+  "slug": "cb-before-after",
   "test_data": {
-    "heading": "See the Difference",
-    "before_image": "https://picsum.photos/seed/before-shot/800/500",
     "after_image": "https://picsum.photos/seed/after-shot/800/500",
+    "after_label": "After",
+    "before_image": "https://picsum.photos/seed/before-shot/800/500",
     "before_label": "Before",
-    "after_label": "After"
+    "heading": "See the Difference"
   }
 }

@@ -1,82 +1,82 @@
 {
-  "slug": "cb-features-list",
-  "label": "Alternating Features",
-  "icon": "layout-list",
   "description": "Alternating zigzag rows of image + text for detailed feature presentations. Each row flips the image side creating visual rhythm. Use for product deep-dives, how-it-works sections. Layout: two-column rows alternating image position, stacks on mobile.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Section Heading",
-      "type": "text",
+      "name": "heading",
       "required": false,
-      "key": "heading"
+      "title": "Section Heading",
+      "type": "string"
     },
     {
-      "label": "Features",
-      "type": "repeater",
-      "sub_fields": [
+      "fields": [
         {
-          "label": "Image",
-          "type": "image",
+          "name": "image",
           "required": true,
-          "key": "image"
+          "title": "Image",
+          "type": "image"
         },
         {
-          "label": "Title",
-          "type": "text",
+          "name": "title",
           "required": true,
-          "key": "title"
+          "title": "Title",
+          "type": "string"
         },
         {
-          "label": "Description",
-          "type": "richtext",
+          "name": "description",
           "required": true,
-          "key": "description"
+          "title": "Description",
+          "type": "richtext"
         },
         {
-          "key": "button",
-          "label": "Button",
+          "name": "button",
+          "title": "Button",
           "type": "link"
         }
       ],
-      "key": "features"
+      "name": "features",
+      "title": "Features",
+      "type": "array"
     }
   ],
+  "icon": "layout-list",
+  "label": "Alternating Features",
+  "slug": "cb-features-list",
   "test_data": {
-    "heading": "How It Works",
     "features": [
       {
-        "image": "https://picsum.photos/seed/feature1/600/400",
-        "title": "Design Your Content",
-        "description": "Use our intuitive block editor to craft beautiful pages. Drag, drop, and customize every element to match your vision.",
         "button": {
+          "alt": "",
+          "target": "",
           "text": "See the Editor",
-          "url": "/editor",
-          "alt": "",
-          "target": ""
-        }
+          "url": "/editor"
+        },
+        "description": "Use our intuitive block editor to craft beautiful pages. Drag, drop, and customize every element to match your vision.",
+        "image": "https://picsum.photos/seed/feature1/600/400",
+        "title": "Design Your Content"
       },
       {
-        "image": "https://picsum.photos/seed/feature2/600/400",
-        "title": "Extend with Plugins",
-        "description": "Browse hundreds of extensions to add any feature you need. From SEO to email marketing, there's a plugin for everything.",
         "button": {
+          "alt": "",
+          "target": "",
           "text": "Browse Extensions",
-          "url": "/extensions",
-          "alt": "",
-          "target": ""
-        }
+          "url": "/extensions"
+        },
+        "description": "Browse hundreds of extensions to add any feature you need. From SEO to email marketing, there's a plugin for everything.",
+        "image": "https://picsum.photos/seed/feature2/600/400",
+        "title": "Extend with Plugins"
       },
       {
-        "image": "https://picsum.photos/seed/feature3/600/400",
-        "title": "Launch and Grow",
-        "description": "Deploy with one click and watch your site grow. Built-in analytics and performance monitoring keep you informed.",
         "button": {
-          "text": "Get Started",
-          "url": "/signup",
           "alt": "",
-          "target": ""
-        }
+          "target": "",
+          "text": "Get Started",
+          "url": "/signup"
+        },
+        "description": "Deploy with one click and watch your site grow. Built-in analytics and performance monitoring keep you informed.",
+        "image": "https://picsum.photos/seed/feature3/600/400",
+        "title": "Launch and Grow"
       }
-    ]
+    ],
+    "heading": "How It Works"
   }
 }

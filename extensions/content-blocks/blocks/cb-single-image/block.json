@@ -1,63 +1,63 @@
 {
-  "slug": "cb-single-image",
-  "label": "Single Image",
-  "icon": "image",
   "description": "A single image display block with optional caption, link, and size controls. Renders one image centered with configurable width and rounding. Use for hero images, product photos, infographics, or standalone visuals. Layout: centered image with optional caption text below.",
-  "field_schema": [
+  "fields": [
     {
-      "label": "Image",
-      "type": "image",
+      "name": "image",
       "required": true,
-      "key": "image"
+      "title": "Image",
+      "type": "image"
     },
     {
-      "label": "Alt Text",
-      "type": "text",
+      "name": "alt",
       "required": false,
-      "key": "alt"
+      "title": "Alt Text",
+      "type": "string"
     },
     {
-      "label": "Caption",
-      "type": "text",
+      "name": "caption",
       "required": false,
-      "key": "caption"
+      "title": "Caption",
+      "type": "string"
     },
     {
-      "label": "Link URL",
-      "type": "text",
+      "name": "link",
       "required": false,
-      "key": "link"
+      "title": "Link URL",
+      "type": "string"
     },
     {
-      "label": "Size",
-      "type": "select",
+      "initialValue": "medium",
+      "name": "size",
       "options": [
         "small",
         "medium",
         "full"
       ],
-      "default": "medium",
-      "key": "size"
+      "title": "Size",
+      "type": "select"
     },
     {
-      "label": "Rounded",
-      "type": "select",
+      "initialValue": "md",
+      "name": "rounded",
       "options": [
         "none",
         "md",
         "lg",
         "full"
       ],
-      "default": "md",
-      "key": "rounded"
+      "title": "Rounded",
+      "type": "select"
     }
   ],
+  "icon": "image",
+  "label": "Single Image",
+  "slug": "cb-single-image",
   "test_data": {
-    "image": "https://picsum.photos/seed/product-showcase/800/500",
     "alt": "Product showcase",
     "caption": "Our latest product design",
+    "image": "https://picsum.photos/seed/product-showcase/800/500",
     "link": "",
-    "size": "medium",
-    "rounded": "md"
+    "rounded": "md",
+    "size": "medium"
   }
 }

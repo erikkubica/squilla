@@ -1,20 +1,54 @@
 {
-  "slug": "cta",
-  "label": "Call to Action",
-  "icon": "megaphone",
   "description": "Call-to-action section with heading, body text, and up to two buttons",
-  "field_schema": [
-    { "key": "heading", "label": "Heading", "type": "text", "required": true },
-    { "key": "body", "label": "Body Text", "type": "textarea" },
-    { "key": "button", "label": "Primary Button", "type": "link", "required": true },
-    { "key": "button_secondary", "label": "Secondary Button", "type": "link" },
-    { "key": "style", "label": "Style", "type": "select", "options": ["light", "dark", "accent"], "default": "accent" }
+  "fields": [
+    {
+      "name": "heading",
+      "required": true,
+      "title": "Heading",
+      "type": "string"
+    },
+    {
+      "name": "body",
+      "title": "Body Text",
+      "type": "textarea"
+    },
+    {
+      "name": "button",
+      "required": true,
+      "title": "Primary Button",
+      "type": "link"
+    },
+    {
+      "name": "button_secondary",
+      "title": "Secondary Button",
+      "type": "link"
+    },
+    {
+      "initialValue": "accent",
+      "name": "style",
+      "options": [
+        "light",
+        "dark",
+        "accent"
+      ],
+      "title": "Style",
+      "type": "select"
+    }
   ],
+  "icon": "megaphone",
+  "label": "Call to Action",
+  "slug": "cta",
   "test_data": {
-    "heading": "Ready to evolve your content?",
     "body": "Join 10,000+ developers building the future of the luminous web.",
-    "button": { "text": "Create Free Account", "url": "/register" },
-    "button_secondary": { "text": "Talk to Sales", "url": "/contact" },
+    "button": {
+      "text": "Create Free Account",
+      "url": "/register"
+    },
+    "button_secondary": {
+      "text": "Talk to Sales",
+      "url": "/contact"
+    },
+    "heading": "Ready to evolve your content?",
     "style": "accent"
   }
 }
