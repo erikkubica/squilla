@@ -95,14 +95,8 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
     };
   }, [active, entries]);
 
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setActive(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [active]);
+  // (Escape-to-close is owned by SidePanel so the dirty check stays
+  // co-located with the unsaved-changes state.)
 
   // Stable callbacks for the side panel — using refs so the panel's
   // useEffect deps don't churn each render and bust debounced timers.
