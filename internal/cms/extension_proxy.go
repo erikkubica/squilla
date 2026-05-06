@@ -12,24 +12,39 @@ import (
 
 // ExtensionProxy proxies admin API requests to extension gRPC plugins.
 // Route: /admin/api/ext/:slug/*
+//
+// Two layers of authorization sit in front of every proxied call:
+//
+//  1. admin_access — enforced on every request via the route guard.
+//     Plugins assume the kernel has done this; a freshly-registered
+//     member must NEVER reach the gRPC plugin even with a valid
+//     session.
+//
+//  2. Per-route capability — the extension's manifest declares
+//     `admin_routes` entries (method + path glob + required_capability)
+//     and the proxy enforces them BEFORE forwarding to the plugin.
+//     This is the gate that stops a user with admin_access but not
+//     manage_forms from POSTing to /admin/api/ext/forms/forms/1 to
+//     edit a form they have no business editing. Without this layer,
+//     UI guards are the only thing standing between the user and
+//     the data — and UI guards are not security.
 type ExtensionProxy struct {
 	pluginMgr *PluginManager
+	routes    *AdminRouteRegistry
 }
 
-// NewExtensionProxy creates a new ExtensionProxy.
-func NewExtensionProxy(pm *PluginManager) *ExtensionProxy {
-	return &ExtensionProxy{pluginMgr: pm}
+// NewExtensionProxy creates a new ExtensionProxy backed by the given
+// route registry. Pass the same registry the activation bridge writes
+// to so changes propagate without a restart.
+func NewExtensionProxy(pm *PluginManager, routes *AdminRouteRegistry) *ExtensionProxy {
+	return &ExtensionProxy{pluginMgr: pm, routes: routes}
 }
 
 // RegisterRoutes registers the catch-all proxy route on the given
-// router. Gated by `admin_access` because plugins themselves don't
-// enforce per-user RBAC — they trust the kernel-side gate to have
-// done so. Without this, any authenticated user (including a
-// freshly-registered member) could hit /admin/api/ext/forms/submissions
-// and dump every PII-bearing form submission. admin / editor / author
-// roles all carry admin_access; member does not.
+// router. The admin_access guard runs first; per-route capability
+// checks happen inside handleRequest after the plugin slug is known.
 func (ep *ExtensionProxy) RegisterRoutes(router fiber.Router) {
-	log.Println("[extension-proxy] registering routes on /ext/:slug/* (gated: admin_access)")
+	log.Println("[extension-proxy] registering routes on /ext/:slug/* (gated: admin_access + per-route caps)")
 	guard := auth.CapabilityRequired("admin_access")
 	router.All("/ext/:slug/*", guard, ep.handleRequest)
 	router.All("/ext/:slug", guard, ep.handleRequest)
@@ -39,6 +54,25 @@ func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing extension slug"})
+	}
+
+	// Per-route capability enforcement. The path passed to the matcher
+	// is the wildcard portion that the plugin sees, with a leading
+	// slash — same shape we forward downstream as PluginHTTPRequest.Path.
+	// Unmatched requests fall through to admin_access (already checked
+	// by the group guard), so extensions that haven't declared
+	// admin_routes keep working on a deny-low-priv-explicitly basis.
+	relativePath := "/" + c.Params("*")
+	if rule := ep.routes.FirstMatch(slug, c.Method(), relativePath); rule != nil {
+		user := auth.GetCurrentUser(c)
+		if rule.RequiredCapability != "" && !auth.HasCapability(user, rule.RequiredCapability) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": fiber.Map{
+					"code":    "FORBIDDEN",
+					"message": "Insufficient permissions",
+				},
+			})
+		}
 	}
 
 	// Get plugin client for this extension.
@@ -91,9 +125,6 @@ func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
 			headers["X-User-Name"] = *user.FullName
 		}
 	}
-
-	// Relative path: the wildcard portion after /ext/:slug/
-	relativePath := "/" + c.Params("*")
 
 	req := &pb.PluginHTTPRequest{
 		Method:      c.Method(),

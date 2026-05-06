@@ -334,6 +334,15 @@ func main() {
 	themeCapabilityBridge := cms.NewThemeCapabilityBridge(capabilityRegistry, eventBus)
 	themeCapabilityBridge.Subscribe()
 
+	// Per-route capability rules from extension manifests' admin_routes
+	// block. The proxy below reads from this registry on every request
+	// — without the bridge populated, every extension API would degrade
+	// to admin_access-only enforcement.
+	adminRoutesRegistry := cms.NewAdminRouteRegistry()
+	routesBridge := cms.NewExtensionRoutesBridge(extLoader, adminRoutesRegistry, eventBus)
+	routesBridge.Subscribe()
+	routesBridge.ReplayActive()
+
 	// Drop-in watchers — eliminate the "drop a folder + restart" step. We
 	// only watch the data dirs because image-bundled dirs don't change at
 	// runtime (they're baked into the image). New theme/extension folders
@@ -513,7 +522,7 @@ func main() {
 	// SetSendFunc bridge is needed.
 
 	// Extension HTTP proxy (forwards /admin/api/ext/:slug/* to gRPC plugins).
-	extensionProxy := cms.NewExtensionProxy(pluginManager)
+	extensionProxy := cms.NewExtensionProxy(pluginManager, adminRoutesRegistry)
 	extensionProxy.RegisterRoutes(adminAPI)
 
 	// Extension admin handler.

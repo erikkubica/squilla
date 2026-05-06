@@ -89,6 +89,34 @@ type PublicRouteEntry struct {
 	Path   string `json:"path"`
 }
 
+// AdminRouteEntry declares a per-capability gate on a request the
+// kernel will proxy to the extension at /admin/api/ext/<slug>/<path>.
+//
+// Method is the HTTP method ("GET", "POST", …) or "*" (or empty) for
+// any method.
+//
+// Path is a glob applied against the wildcard portion of the URL —
+// what the plugin would call its "request path", with a leading slash.
+// Two glob tokens:
+//
+//	*   matches a single path segment (no slashes)
+//	**  matches any number of segments (including zero)
+//
+// RequiredCapability is the boolean capability key that the user's
+// role must carry. If empty, the entry effectively only enforces
+// admin_access (already verified by the proxy group), which is rarely
+// what an author wants — non-empty is strongly recommended.
+//
+// Matching is first-rule-wins, so order entries with most specific
+// patterns first. Unmatched requests fall through to the proxy's
+// admin_access default — that's the back-compat behaviour for
+// extensions that haven't declared admin_routes yet.
+type AdminRouteEntry struct {
+	Method             string `json:"method"`
+	Path               string `json:"path"`
+	RequiredCapability string `json:"required_capability"`
+}
+
 type ExtensionManifest struct {
 	Name        string `json:"name"`
 	Slug        string `json:"slug"`
@@ -124,6 +152,13 @@ type ExtensionManifest struct {
 	Layouts        []ThemeLayoutDef         `json:"layouts"`
 	Partials       []ThemePartialDef        `json:"partials"`
 	PublicRoutes   []PublicRouteEntry       `json:"public_routes"`
+	// AdminRoutes declares per-capability gates on /admin/api/ext/<slug>/*
+	// requests. The proxy enforces these BEFORE forwarding to the plugin
+	// so a logged-in admin without the right cap can't bypass UI guards
+	// and POST directly. Without this list, extensions are gated only by
+	// admin_access — which is fine for read-only extensions but a hole
+	// for anything mutating data the user shouldn't touch.
+	AdminRoutes    []AdminRouteEntry        `json:"admin_routes"`
 	Assets         []ThemeMediaAssetDef     `json:"assets"`
 }
 

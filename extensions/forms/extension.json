@@ -32,6 +32,12 @@
     }
   ],
   "public_routes": [{ "method": "POST", "path": "/forms/submit/*" }],
+  "admin_routes": [
+    { "method": "*", "path": "/forms",       "required_capability": "manage_forms" },
+    { "method": "*", "path": "/forms/**",    "required_capability": "manage_forms" },
+    { "method": "*", "path": "/submissions",     "required_capability": "manage_forms" },
+    { "method": "*", "path": "/submissions/**",  "required_capability": "manage_forms" }
+  ],
   "admin_ui": {
     "entry": "admin-ui/dist/index.js",
     "capabilities": [

@@ -21,6 +21,18 @@
         "email_logs",
         "email_layouts"
     ],
+    "admin_routes": [
+        { "method": "GET",  "path": "/logs",        "required_capability": "view_email_logs" },
+        { "method": "GET",  "path": "/logs/**",     "required_capability": "view_email_logs" },
+        { "method": "*",    "path": "/templates",     "required_capability": "manage_email" },
+        { "method": "*",    "path": "/templates/**",  "required_capability": "manage_email" },
+        { "method": "*",    "path": "/layouts",       "required_capability": "manage_email" },
+        { "method": "*",    "path": "/layouts/**",    "required_capability": "manage_email" },
+        { "method": "*",    "path": "/rules",         "required_capability": "manage_email" },
+        { "method": "*",    "path": "/rules/**",      "required_capability": "manage_email" },
+        { "method": "*",    "path": "/settings",      "required_capability": "manage_email" },
+        { "method": "*",    "path": "/settings/**",   "required_capability": "manage_email" }
+    ],
     "plugins": [
         {
             "binary": "bin/email-manager",
