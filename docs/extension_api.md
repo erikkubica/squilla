@@ -48,6 +48,42 @@ An extension lives in its own directory under `extensions/<slug>/`. It can conta
 - **`capabilities`**: Core API permissions the extension requests. Enforced at runtime by the CoreAPI wrapper.
 - **`plugins`**: Defines where the gRPC binary is located so the PluginManager can start it.
 - **`admin`**: Injects paths into the React Admin SPA. The component is loaded via import maps.
+- **`admin_ui.capabilities`** (optional): Role capabilities the extension contributes to the admin role-editor. Each entry is `{key, label, description}`. Registered when the extension activates, dropped when it deactivates. See `docs/security.md` §4.1.
+- **`admin_ui.menu.required_capability`** (optional): Capability key required to see the menu entry. Defaults are applied per-section when omitted (settings/development → `manage_settings`, design → `manage_layouts`, content → any-write-node-access).
+- **`admin_routes`** (optional but strongly recommended for mutating routes): Per-route capability gate enforced at the kernel proxy before forwarding to the plugin. Each entry is `{method, path, required_capability}`. Path supports `*` (one segment) and `**` (any number). Without these, an extension's API is gated only by `admin_access` — sufficient for read-only extensions but a privilege escalation hole for anything mutating data.
+
+Example with capabilities + per-route gates:
+
+```jsonc
+{
+  "name": "Email Manager",
+  "slug": "email-manager",
+  "capabilities": ["data:read", "data:write", "data:delete", "settings:read", "events:subscribe"],
+  "data_owned_tables": ["email_templates", "email_rules", "email_logs", "email_layouts"],
+  "admin_routes": [
+    { "method": "GET", "path": "/logs",        "required_capability": "view_email_logs" },
+    { "method": "GET", "path": "/logs/**",     "required_capability": "view_email_logs" },
+    { "method": "*",   "path": "/templates",    "required_capability": "manage_email" },
+    { "method": "*",   "path": "/templates/**", "required_capability": "manage_email" }
+  ],
+  "admin_ui": {
+    "capabilities": [
+      { "key": "manage_email",    "label": "Manage Email",    "description": "Edit templates, layouts, rules, settings." },
+      { "key": "view_email_logs", "label": "View Email Logs", "description": "Read delivery log without granting template/rule access." }
+    ],
+    "menu": {
+      "label": "Email", "icon": "Mail", "section": "settings",
+      "required_capability": "manage_email",
+      "children": [
+        { "label": "Templates", "route": "/admin/ext/email-manager/templates" },
+        { "label": "Logs",      "route": "/admin/ext/email-manager/logs", "required_capability": "view_email_logs" }
+      ]
+    }
+  }
+}
+```
+
+The kernel matches routes first-rule-wins. Group menus are visible when **any** child is visible (parent's `required_capability` becomes the default for children that don't declare their own). For the full authorization model see `docs/security.md` §4.
 
 ---
 

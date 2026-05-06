@@ -11,7 +11,9 @@ This document describes the **current** security posture: what's implemented, wh
 | Boot | Refuse to start with unsafe config | `internal/config/config.go::Validate` |
 | Transport | TLS expected at edge (Coolify/proxy); HSTS at app level | Fiber middleware |
 | Auth | Bcrypt passwords, hashed sessions, account lockout, rate limit | `internal/auth/` |
-| Authorization | Per-handler `CapabilityRequired` + capability guard wrapping `CoreAPI` | `internal/auth/`, `internal/coreapi/capability.go` |
+| Authorization (admin shell) | `admin_access` gate on `/admin/api/*` group + post-auth redirect + SPA shell redirect | `cmd/squilla/{main,static_routes}.go`, `internal/auth/page_handler.go` |
+| Authorization (API) | Per-handler `CapabilityRequired` + capability guard wrapping `CoreAPI` + manifest-driven `admin_routes` on extension proxy | `internal/auth/`, `internal/coreapi/capability.go`, `internal/cms/extension_proxy.go` |
+| Authorization (UI) | `CapabilityGuard` on SPA routes + capability-filtered nav, dashboard, boot manifest, manifests endpoint | `admin-ui/src/App.tsx`, `internal/sdui/{engine,engine_navigation,extension_visibility}.go` |
 | CSRF | JSON-only mutations on `/admin/api/*` | `internal/auth/csrf.go` |
 | XSS | bluemonday UGC sanitization at render | `internal/sanitize/richtext.go` |
 | Secrets at rest | AES-256-GCM envelope on flagged settings, theme git tokens | `internal/secrets/` |
@@ -81,25 +83,172 @@ Coolify's `coolify-compose.yml` populates all of these via `SERVICE_*` magic var
 
 ## 4. Authorization
 
-### 4.1 Two Layers
-1. **Per-handler middleware** at the HTTP edge: `auth.CapabilityRequired("manage_users")`, `auth.AdminRequired()`, `auth.JSONOnlyMutations()`.
-2. **CoreAPI capability guard** at the API surface: every method wrapped in `capabilityGuard.<Method>` checks `caller.Capabilities[cap]`. See `internal/coreapi/capability.go`.
+The admin surface is gated by **five concentric checks**. Each layer assumes the layers above it ran but never trusts that they did.
 
-The guard is wired in `cmd/squilla/main.go:252`:
-```go
-guardedAPI := coreapi.NewCapabilityGuard(coreAPI)
 ```
-The unguarded `coreAPI` is used **only** by core kernel code (which sets `caller.Type = "internal"` for fail-open). Plugin and Tengo callers always go through the guard.
+post-auth redirect ──► /admin/* SPA gate ──► /admin/api group gate ─┐
+                                                                     │
+                                  per-handler CapabilityRequired ◄───┤
+                                                                     │
+                            CoreAPI capability guard (plugin/Tengo) ◄┘
+```
 
-### 4.2 Per-Table ACL on Extension Data
-- `data:read`, `data:write`, `data:delete`, `data:exec` capabilities are checked against the manifest's `data_owned_tables` array (commit `654dae5`).
+| Layer | Where | Gate |
+|---|---|---|
+| **Post-auth redirect** | `internal/auth/page_handler.go::postAuthRedirectPath` | `admin_access` ➜ `/admin/dashboard`, otherwise `/`. Stops a fresh registration from landing in admin chrome. |
+| **SPA shell** | `cmd/squilla/static_routes.go::registerAdminSPA` | If a session exists and lacks `admin_access`, redirect `/admin/*` to `/`. Anonymous users still get the bundle so the SPA's own login flow can render. |
+| **Admin API group** | `cmd/squilla/main.go` (`adminAPI` group) | `auth.AuthRequired` ➜ `auth.CapabilityRequired("admin_access")` ➜ `auth.JSONOnlyMutations`. Order matters: a non-admin session 403s before any handler runs. |
+| **Per-handler middleware** | each `*_handler.go` `RegisterRoutes` | `auth.CapabilityRequired("manage_users")` etc. on writes; reads are typically open to admin_access (see 4.4). |
+| **CoreAPI capability guard** | `internal/coreapi/capability.go` | Plugin/Tengo callers — every method wrapped in `capabilityGuard.<Method>` checks `caller.Capabilities[cap]`. The unguarded `coreAPI` is internal-only. |
+
+Wired in `cmd/squilla/main.go`:
+```go
+guardedAPI := coreapi.NewCapabilityGuard(coreAPI)              // Plugin/Tengo path
+adminAPI := app.Group("/admin/api",
+    auth.AuthRequired(sessionSvc),
+    auth.CapabilityRequired("admin_access"),
+    auth.JSONOnlyMutations(),
+)
+```
+
+### 4.1 Capability Registry
+
+Capabilities are not hardcoded. The registry is built dynamically and the role-editor fetches it from `/admin/api/capabilities`.
+
+| Source tag | Origin |
+|---|---|
+| `kernel` | `auth.kernelCapabilities()` — `admin_access`, `manage_users`, `manage_roles`, `manage_settings`, `manage_menus`, `manage_layouts`. Always present. |
+| `extension:<slug>` | Extension manifest `admin_ui.capabilities` — registered on `extension.activated`, dropped on `extension.deactivated`. |
+| `theme:<slug>` | `theme.json` `admin_ui.capabilities` — registered on `theme.activated`. |
+
+Pieces:
+- `internal/auth/capability_registry.go` — `Capability{Key,Label,Description,Source}` + `Registry{Register,UnregisterBySource,List,Has}`.
+- `internal/auth/capability_handler.go` — `GET /admin/api/capabilities`.
+- `internal/cms/extension_capability_bridge.go` / `theme_capability_bridge.go` — subscribe + replay on boot.
+- `admin-ui/src/pages/role-editor.tsx` — fetches via `getCapabilities()`, groups by source.
+
+**Wildcard `*`.** `auth.HasCapability` and `sdui.hasNavCap` treat `caps["*"] == true` as a blanket grant for every boolean capability **except** `admin_access`. The seeded admin role has `"*":true` so it auto-receives every extension-contributed capability without a re-seed. `admin_access` is intentionally excluded — a misconfigured wildcard on a non-admin role must not silently bypass the shell gate.
+
+### 4.2 Read vs. Write on Resources
+
+Pattern across kernel handlers: GETs are open to admin_access; mutations gate on a specific manage cap. Reads coupled to writes force role authors to grant write access just to populate a dropdown — exactly the bug we hit when wiring `manage_email_rules`.
+
+| Resource | GET gate | Write gate |
+|---|---|---|
+| Roles, languages, taxonomies, terms, node types, layouts, menus, templates, block types, layout blocks | `admin_access` | manage_* specific |
+| Settings (with secrets redacted server-side) | `admin_access` | `manage_settings` |
+| Users (PII) | `manage_users` | `manage_users` |
+| Email logs (message bodies) | `view_email_logs` | `manage_email` |
+
+Listing role/menu/layout names is not a meaningful information disclosure — any admin_access user already sees this when editing their own role.
+
+### 4.3 Extension Admin Routes (per-route capabilities at the proxy)
+
+Extension API calls flow through `/admin/api/ext/{slug}/*` to the gRPC plugin's `HandleHTTPRequest`. The kernel proxies but **plugins do not implement RBAC** — the kernel must enforce. Two layers:
+
+1. **Group gate**: `auth.CapabilityRequired("admin_access")` on the catch-all proxy route.
+2. **Per-route gate**: manifest-declared `admin_routes` enforced inside `ExtensionProxy.handleRequest` before the request reaches the plugin.
+
+Manifest schema (`extensions/<slug>/extension.json`):
+```json
+"admin_routes": [
+  { "method": "*",   "path": "/forms",         "required_capability": "manage_forms" },
+  { "method": "*",   "path": "/forms/**",      "required_capability": "manage_forms" },
+  { "method": "GET", "path": "/logs",          "required_capability": "view_email_logs" },
+  { "method": "GET", "path": "/logs/**",       "required_capability": "view_email_logs" }
+]
+```
+
+| Pattern | Matches |
+|---|---|
+| `*` | one path segment (no slashes) |
+| `**` | any number of segments (including zero) |
+| `method: "*"` (or empty) | any HTTP method |
+
+**First-rule-wins.** Most specific patterns first. Unmatched requests fall through to `admin_access` only — back-compat for extensions that haven't declared rules yet, but every mutating route SHOULD declare one.
+
+Pieces:
+- `internal/cms/extension_route_matcher.go` — `compileGlob`, `AdminRouteRule`, `AdminRouteRegistry` (sync.RWMutex, per-slug rule lists).
+- `internal/cms/extension_routes_bridge.go` — extension.activated/deactivated hooks + ReplayActive.
+- `internal/cms/extension_proxy.go::handleRequest` — `registry.FirstMatch(slug, method, path)` ➜ 403 if cap missing.
+
+This was the gap behind: "user has admin_access + manage_forms, opens form editor, then has manage_forms revoked — still saves the form". The SPA's stale capability cache was incidental; the real hole was the proxy.
+
+### 4.4 SPA Capability Patterns
+
+Server-side gates are the only thing that matters for security. SPA gates are UX — they stop the user from rendering chrome they can't use, which prevents both confusion and a minor information disclosure (page exists, page is named X).
+
+#### `CapabilityGuard` route wrapper (`admin-ui/src/App.tsx`)
+```tsx
+<Route path="/admin/security/users" element={
+  <ProtectedRoute>
+    <CapabilityGuard requires="manage_users">
+      <SduiUsersPage />
+    </CapabilityGuard>
+  </ProtectedRoute>
+} />
+```
+Single string or array (any-of). For all-of semantics, nest two guards.
+
+#### Per-section default capability for nav items (`internal/sdui/engine_navigation.go::extNavPasses`)
+When an extension manifest doesn't declare `required_capability`, the kernel applies a sensible default by `section`:
+
+| Section | Default cap |
+|---|---|
+| `settings`, `development` | `manage_settings` |
+| `design` | `manage_layouts` |
+| `content` | any write node access |
+| `settings_menu` / `site_settings_menu` items | `manage_settings` |
+| top-level (no section) | open |
+
+Extensions opt out with `"required_capability": ""` explicitly. Without these defaults, every extension that forgot to declare one was silently visible to all admin_access users.
+
+#### Group menus: child-driven visibility
+A group menu is shown when **at least one child is visible**, regardless of the parent's own `required_capability`. Children inherit the parent's cap when they don't declare their own. This is what lets `manage_email` cover the email parent menu while `view_email_logs` exposes only the Logs row to a log-auditor role.
+
+#### Boot manifest extension filter (`internal/sdui/extension_visibility.go::IsExtensionVisible`)
+
+An extension is included in the boot manifest *and* in `/admin/api/extensions/manifests` when **any** of:
+
+1. `provides` (top-level) is non-empty — provider extensions like `smtp-provider` (provides `email.provider`) need to be discoverable to consumers regardless of menu access.
+2. `admin_ui.field_types` non-empty — the page editor needs the bundle to render the field component.
+3. `admin_ui.slots` non-empty — cross-extension UI composition (e.g. SMTP fills email-manager's `email-settings` slot).
+4. `admin_ui.menu` is a leaf and its required_capability passes, OR is a group with at least one visible child.
+5. `admin_ui.settings_menu` / `site_settings_menu` has at least one item passing.
+
+The `manifests` endpoint additionally always includes backend-only extensions (no `admin_ui` block at all) so consumers can iterate `provides` for runtime discovery.
+
+#### Dashboard data scoping (`internal/sdui/engine.go::dashboardLayout`)
+- Counts and recent-content listings scoped to `readableNodeTypeSet(user)` so a user with read-only on `page` doesn't see draft titles for `testimonial`.
+- "Users" stat card rendered only when `manage_users`.
+- Quick action shortcuts filtered per their target's capability (Pages: write on page; Users: manage_users; Themes / Extensions / Settings: manage_settings).
+- "Create New Page" CTA hidden unless write access on `page`.
+- Per-user dashboards skip the layout cache so one viewer's render can't leak to another.
+
+### 4.5 Per-Table ACL on Extension Data
+- `data:read`, `data:write`, `data:delete`, `data:exec` capabilities are checked against the manifest's `data_owned_tables` array.
 - An extension declaring ownership over `forms`, `form_submissions` cannot read or write any other extension's tables.
 
-### 4.3 Per-Node-Type Access
+### 4.6 Per-Node-Type Access
 - `roles.capabilities` JSONB stores `nodes.<type>.access` and `nodes.<type>.scope` (`read`/`write`/`delete` × `all`/`own`).
 - `default_node_access` covers types not explicitly listed.
 - `auth.GetNodeAccess(user, nodeType)` → `NodeAccess.CanRead(node)`, `CanWrite(node)`.
-- Node `Search` honors the access filter (commit `9f9239c`).
+- Node `Search` honors the access filter.
+
+### 4.7 Authoring an Extension's Capability Surface (cookbook)
+
+For an extension introducing admin pages:
+
+1. **Declare capabilities** in `extension.json::admin_ui.capabilities` — one per logical area users can be assigned independently. Default to `manage_<area>`; add `view_<area>` only when the data is sensitive (logs, PII).
+2. **Gate menu items** with `required_capability` — set the most common cap on the parent, override per child where needed.
+3. **Gate API routes** with `admin_routes` — separate read from write where it matters; use `**` glob to cover sub-paths.
+4. **Don't gate group parents** — let child visibility drive group visibility so partial-privilege roles still see the items they're entitled to.
+5. **Test with a custom role.** Create a role with only the new capabilities (no `manage_settings`, no wildcard) and walk every page + every mutation. The kernel won't tell you about a missing gate — only the test will.
+
+### 4.8 Known Limitations / Future Work
+
+- **Bool-flag capabilities don't model referenced reads.** Listing roles for a "send to role X" picker reveals role names; listing users for an "assign to" picker would reveal user PII. Today's mitigation is "list endpoints stay open to admin_access; sensitive resources require their specific cap" — but it's coarse. A long-term solution is per-resource `{access: read|write|delete, scope: all|own|...}` mirroring the existing `nodes` JSONB shape, with cross-resource follow checks (listing roles also checks `users:read` before exposing member counts). Tracked as a refactor.
+- **SPA capability cache is per-session.** When a role is edited, the affected user's open SPA tabs continue using stale capabilities until they reload. Server-side gates (every API call, every proxy request) re-evaluate every time, so this is a UX issue, not a security one — but a future SSE event (`role.updated`) propagating to the boot manifest would close the gap.
 
 ---
 
@@ -337,6 +486,14 @@ Structured slog with request-id correlation (commit `dcde556`):
 | **Filter handler leak** | `RegisterFilter` returns `UnsubscribeFunc`; opaque ID-based unregister (commit `9f9239c`). |
 | **Subscribe handler leak** | `Subscribe` returns `UnsubscribeFunc`; bus supports proper unregister. |
 | **SSE blocking on slow client** | Bounded buffer (cap 32) with drop-on-full. |
+| **Member auto-promoted to admin shell** | Login/register redirect honors `admin_access`; `/admin/*` SPA gate redirects logged-in non-admin sessions; `/admin/api/*` group requires `admin_access`. |
+| **Member sees admin lists by direct URL** | `CapabilityGuard` on every privileged SPA route + per-handler `CapabilityRequired` on the API. |
+| **Boot manifest leaks installed extensions** | `IsExtensionVisible` filters bootExts and `/admin/api/extensions/manifests` per user — extension included only if it has a visible nav entry, declares `provides`, contributes `slots`, or declares `field_types`. |
+| **Dashboard leaks user count / cross-type drafts** | StatCards, recent-content, drafts feed, and quick actions all scoped to viewer capabilities; layout cache skipped for per-user pages. |
+| **UI-revoked permission still saves via API** | `extension.json::admin_routes` enforced in `ExtensionProxy.handleRequest` before forwarding to plugin — plugins don't implement RBAC, kernel does. |
+| **Wildcard role bypasses admin_access** | `auth.HasCapability` and `sdui.hasNavCap` exclude `admin_access` from `*` resolution — explicit flag always wins. |
+| **Read endpoint coupled to write capability** | Picker-friendly resources (roles, taxonomies, layouts, …) drop their GETs to `admin_access`; mutations keep their specific manage cap. |
+| **Stale extension `manage_*` toggle in role editor** | Capability list is dynamic — extension/theme bridges register on activation, drop on deactivation, surface via `GET /admin/api/capabilities`. |
 
 ---
 
@@ -345,6 +502,12 @@ Structured slog with request-id correlation (commit `dcde556`):
 Before merging any change touching kernel code:
 
 - [ ] Capability gate on every admin endpoint that mutates state.
+- [ ] Reads exposed for picker use cases drop to `admin_access`; sensitive reads (PII, logs) keep their specific cap.
+- [ ] If the change adds an admin route on an extension, `extension.json::admin_routes` declares its `required_capability`.
+- [ ] If the change adds an admin nav entry, the parent menu's `required_capability` (or section default) covers it; child overrides exist where appropriate.
+- [ ] If the change adds a SPA route under `/admin/*`, it's wrapped with `<CapabilityGuard requires="...">`.
+- [ ] If the change adds dashboard data, it's filtered per the viewer's capabilities (no leaked totals, no leaked node titles).
+- [ ] If the change introduces a new capability key, it's declared in either `auth.kernelCapabilities()` (kernel) or `admin_ui.capabilities` (extension/theme manifest) so the role-editor surfaces it.
 - [ ] DTO for body parsing — no `c.BodyParser(&model)` direct.
 - [ ] Mass-assignment safe: protected fields explicitly stripped.
 - [ ] Validation: enum fields whitelisted, required fields non-empty, lengths bounded.
