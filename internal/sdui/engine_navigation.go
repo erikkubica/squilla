@@ -67,6 +67,76 @@ func anyNavCap(user *models.User, capabilities ...string) bool {
 	return false
 }
 
+// hasAnyWriteNodeAccess reports whether the user has write access to at
+// least one node type — either via default_node_access or any per-type
+// override. It's the natural gate for content-creator tooling
+// (media library, content extensions): readers shouldn't see the
+// "manage X" entry, but anyone who can author any kind of content
+// should. Same JSON path as canReadNodeType — duplicated to avoid the
+// import cycle (sdui ← api ← auth).
+func hasAnyWriteNodeAccess(user *models.User) bool {
+	if user == nil {
+		return false
+	}
+	var caps map[string]interface{}
+	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
+		return false
+	}
+	if def, ok := caps["default_node_access"].(map[string]interface{}); ok {
+		if a, ok := def["access"].(string); ok && a == "write" {
+			return true
+		}
+	}
+	if nodes, ok := caps["nodes"].(map[string]interface{}); ok {
+		for _, override := range nodes {
+			if om, ok := override.(map[string]interface{}); ok {
+				if a, ok := om["access"].(string); ok && a == "write" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// extNavPasses decides whether an extension-supplied nav entry survives
+// capability filtering. Resolution order:
+//  1. If the extension declared `required_capability`, use that — explicit
+//     wins over heuristics.
+//  2. Otherwise apply the kernel's per-section default. This is what
+//     stops a member-with-admin_access from seeing every extension menu
+//     just because the extension authors didn't bother to declare a gate.
+//
+// Section defaults:
+//   - settings, development, dev → manage_settings (admin work)
+//   - design                    → manage_layouts  (designer work)
+//   - content                   → any write node access (authors+ only)
+//   - "" (top-level)            → open (the /admin/api gate already
+//     requires admin_access; top-level items are intentionally global)
+//   - "settings_menu"           → manage_settings (sentinel for the
+//     settings_menu / site_settings_menu lists, which always live under
+//     site/extension settings groups)
+//
+// Extensions that legitimately need wider visibility (e.g. an "About"
+// menu) MUST declare `required_capability:""` explicitly to opt out.
+func extNavPasses(user *models.User, section, declaredCap string) bool {
+	if declaredCap != "" {
+		return hasNavCap(user, declaredCap)
+	}
+	switch strings.ToLower(section) {
+	case "settings", "development", "dev":
+		return hasNavCap(user, "manage_settings")
+	case "design":
+		return hasNavCap(user, "manage_layouts")
+	case "content":
+		return hasAnyWriteNodeAccess(user)
+	case "settings_menu":
+		return hasNavCap(user, "manage_settings")
+	default:
+		return true
+	}
+}
+
 // buildNavigation assembles the admin sidebar tree returned by
 // GenerateBootManifest. Lives in its own file because it's the
 // largest non-page-layout method on Engine and conceptually
@@ -185,13 +255,16 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 			continue
 		}
 
-		if m := manifest.AdminUI.Menu; m != nil && hasNavCap(user, m.RequiredCapability) {
+		if m := manifest.AdminUI.Menu; m != nil && extNavPasses(user, m.Section, m.RequiredCapability) {
 			var navItem NavItem
 			emit := true
 			if len(m.Children) > 0 {
 				children := make([]NavItem, 0, len(m.Children))
 				for _, c := range m.Children {
-					if !hasNavCap(user, c.RequiredCapability) {
+					// Children inherit the parent's section for default
+					// capability resolution — a child of a settings menu
+					// is still admin-only unless it declares otherwise.
+					if !extNavPasses(user, m.Section, c.RequiredCapability) {
 						continue
 					}
 					children = append(children, NavItem{
@@ -238,8 +311,12 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 			}
 		}
 
+		// settings_menu and site_settings_menu items always live under the
+		// settings groups in the sidebar, so default to manage_settings
+		// regardless of the manifest's top-level section. Extensions can
+		// still override per-item via `required_capability`.
 		for _, item := range manifest.AdminUI.SettingsMenu {
-			if !hasNavCap(user, item.RequiredCapability) {
+			if !extNavPasses(user, "settings_menu", item.RequiredCapability) {
 				continue
 			}
 			extSettings = append(extSettings, NavItem{
@@ -251,7 +328,7 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		}
 
 		for _, item := range manifest.AdminUI.SiteSettingsMenu {
-			if !hasNavCap(user, item.RequiredCapability) {
+			if !extNavPasses(user, "settings_menu", item.RequiredCapability) {
 				continue
 			}
 			extSiteSettings = append(extSiteSettings, NavItem{

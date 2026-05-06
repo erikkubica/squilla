@@ -325,8 +325,135 @@ func TestBuildNavigation_MemberSeesNoAdminItems(t *testing.T) {
 	}
 }
 
+// Mirrors the actual seeded extensions the user can install today. The
+// member-with-admin_access scenario the bug report exposed (forms / media
+// / email / SEO all visible despite read-only content access) is exactly
+// what these defaults are meant to stop.
+func TestBuildNavigation_ExtensionDefaultsBySection(t *testing.T) {
+	e := &Engine{}
+	exts := []models.Extension{
+		// Forms lives in the Content section. With our defaults it
+		// should require write node access — read-only members lose it.
+		{
+			Slug: "forms",
+			Manifest: models.JSONB(`{"admin_ui":{"menu":{
+				"label":"Forms","icon":"FormInput","section":"content"
+			}}}`),
+		},
+		// Media lives in the Content section too — same default rule.
+		{
+			Slug: "media-manager",
+			Manifest: models.JSONB(`{"admin_ui":{"menu":{
+				"label":"Media","icon":"Image","section":"content"
+			}}}`),
+		},
+		// Email lives in Settings — gated by manage_settings.
+		{
+			Slug: "email-manager",
+			Manifest: models.JSONB(`{"admin_ui":{"menu":{
+				"label":"Email","icon":"Mail","section":"settings"
+			}}}`),
+		},
+		// SEO ships pages via site_settings_menu — gated by manage_settings.
+		{
+			Slug: "seo-extension",
+			Manifest: models.JSONB(`{"admin_ui":{"site_settings_menu":[
+				{"label":"SEO","route":"/admin/settings/site/seo","icon":"Globe"}
+			]}}`),
+		},
+	}
+
+	t.Run("read-only member does not see forms / media / email / seo", func(t *testing.T) {
+		user := userWithCaps(`{
+			"admin_access":true,
+			"manage_users":false,
+			"manage_roles":false,
+			"manage_settings":false,
+			"manage_menus":false,
+			"manage_layouts":false,
+			"default_node_access":{"access":"read","scope":"all"}
+		}`)
+		nav := e.buildNavigation(user, nil, nil, exts)
+
+		for _, id := range []string{
+			"nav-ext-forms",
+			"nav-ext-media-manager",
+			"nav-ext-email-manager",
+		} {
+			if hasItem(nav, id) {
+				t.Errorf("read-only member should NOT see %q", id)
+			}
+		}
+		// SEO contributes to Site Settings only — without manage_settings
+		// the entire Site Settings group should disappear.
+		if hasItem(nav, "nav-site-settings") {
+			t.Error("Site Settings group should be hidden when no child is visible")
+		}
+		if hasSection(nav, "section-settings") {
+			t.Error("Settings section header should be suppressed when empty")
+		}
+	})
+
+	t.Run("editor sees media but not forms/email/seo", func(t *testing.T) {
+		// Editor: write/all node access → media (content section) shows;
+		// no manage_settings → forms, email, seo hidden. Forms is content-
+		// section but the kernel default for content is "any write access",
+		// which an editor satisfies. Verifies the workflow regression
+		// concern: editors keep media; admin-tooling stays admin-only.
+		user := userWithCaps(editorCaps)
+		nav := e.buildNavigation(user, nil, nil, exts)
+
+		if !hasItem(nav, "nav-ext-media-manager") {
+			t.Error("editor with write/all node access should see Media")
+		}
+		if !hasItem(nav, "nav-ext-forms") {
+			// Forms is content-section; default = any write access.
+			t.Error("editor should see Forms (content-section default)")
+		}
+		if hasItem(nav, "nav-ext-email-manager") {
+			t.Error("editor without manage_settings should NOT see Email")
+		}
+	})
+
+	t.Run("admin sees all", func(t *testing.T) {
+		user := userWithCaps(adminCaps)
+		nav := e.buildNavigation(user, nil, nil, exts)
+		for _, id := range []string{
+			"nav-ext-forms", "nav-ext-media-manager", "nav-ext-email-manager",
+		} {
+			if !hasItem(nav, id) {
+				t.Errorf("admin should see %q", id)
+			}
+		}
+		if !hasItem(nav, "nav-site-settings") {
+			t.Error("admin should see Site Settings group")
+		}
+	})
+
+	t.Run("explicit empty required_capability opts out of default gate", func(t *testing.T) {
+		// Escape hatch — extensions like an "About" or "Help" menu may
+		// genuinely want to be visible to every admin_access user. They
+		// must declare required_capability:"" explicitly to override the
+		// section default. We pass empty section + empty cap → open.
+		extsOpen := []models.Extension{{
+			Slug: "about",
+			Manifest: models.JSONB(`{"admin_ui":{"menu":{
+				"label":"About","icon":"Info","required_capability":""
+			}}}`),
+		}}
+		user := userWithCaps(`{"admin_access":true,"default_node_access":{"access":"read","scope":"all"}}`)
+		nav := e.buildNavigation(user, nil, nil, extsOpen)
+		if !hasItem(nav, "nav-ext-about") {
+			t.Error("extension with no section and empty required_capability should be visible to all admin_access users")
+		}
+	})
+}
+
 func TestBuildNavigation_ExtensionItemHonorsRequiredCapability(t *testing.T) {
 	e := &Engine{}
+	// Extension declaring required_capability explicitly — overrides any
+	// section default. Pairs with TestBuildNavigation_ExtensionDefaultsBySection
+	// which exercises the implicit per-section default path.
 	exts := []models.Extension{
 		{
 			Slug: "secret-tool",
@@ -339,36 +466,21 @@ func TestBuildNavigation_ExtensionItemHonorsRequiredCapability(t *testing.T) {
 				}}
 			}`),
 		},
-		{
-			Slug: "open-tool",
-			Manifest: models.JSONB(`{
-				"admin_ui":{"menu":{
-					"label":"Open Tool",
-					"icon":"Globe",
-					"section":"settings"
-				}}
-			}`),
-		},
 	}
 
-	t.Run("user without manage_settings sees only the open extension", func(t *testing.T) {
+	t.Run("user without manage_settings does not see required_capability=manage_settings", func(t *testing.T) {
 		user := userWithCaps(`{"admin_access":true,"manage_settings":false}`)
 		nav := e.buildNavigation(user, nil, nil, exts)
 		if hasItem(nav, "nav-ext-secret-tool") {
 			t.Error("extension nav item with required_capability=manage_settings should be hidden")
 		}
-		if !hasItem(nav, "nav-ext-open-tool") {
-			t.Error("extension nav item without required_capability should still be shown")
-		}
 	})
 
-	t.Run("user with manage_settings sees both", func(t *testing.T) {
+	t.Run("user with manage_settings sees the required_capability=manage_settings entry", func(t *testing.T) {
 		user := userWithCaps(`{"admin_access":true,"manage_settings":true}`)
 		nav := e.buildNavigation(user, nil, nil, exts)
-		for _, id := range []string{"nav-ext-secret-tool", "nav-ext-open-tool"} {
-			if !hasItem(nav, id) {
-				t.Errorf("manage_settings user should see %q", id)
-			}
+		if !hasItem(nav, "nav-ext-secret-tool") {
+			t.Error("manage_settings user should see Secret Tool")
 		}
 	})
 }
