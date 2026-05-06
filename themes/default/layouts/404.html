@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page not found — {{or (index .app.settings "site_name") "Squilla"}}</title>
+    <meta name="robots" content="noindex">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary:                       '#630ed4',
+              'primary-container':           '#7c3aed',
+              background:                    '#fbf9f6',
+              'on-background':               '#1b1c1a',
+              'on-surface-variant':          '#4a4455',
+              'outline-variant':             '#ccc3d8',
+              'surface-container':           '#efeeeb'
+            },
+            fontFamily: {
+              display: ['Sora', 'Inter', 'system-ui', 'sans-serif'],
+              sans:    ['Inter', 'system-ui', 'sans-serif']
+            }
+          }
+        }
+      }
+    </script>
+    {{.app.head_meta}}
+</head>
+<body class="min-h-screen flex flex-col bg-background text-on-background font-sans antialiased">
+    {{renderLayoutBlock "site-header"}}
+
+    <main class="flex-1 flex items-center justify-center px-6 py-24">
+        <div class="max-w-xl text-center">
+            <p class="text-sm font-medium uppercase tracking-widest text-primary mb-6">Error 404</p>
+            <h1 class="text-5xl sm:text-6xl font-bold tracking-tight mb-6 font-display">Page not found.</h1>
+            <p class="text-lg text-on-surface-variant mb-10 leading-relaxed">
+                The page you're looking for has either moved, been deleted, or never existed.
+                Try the homepage, or use the navigation above.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <a href="/" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary text-white font-semibold hover:bg-primary-container transition-colors">
+                    ← Back to homepage
+                </a>
+                <a href="/admin" class="inline-flex items-center justify-center px-6 py-3 rounded-lg border-2 border-outline-variant text-on-background font-semibold hover:bg-surface-container transition-colors">
+                    Admin Dashboard
+                </a>
+            </div>
+        </div>
+    </main>
+
+    {{renderLayoutBlock "site-footer"}}
+</body>
+</html>

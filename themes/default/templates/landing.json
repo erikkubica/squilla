@@ -8,9 +8,8 @@
       "fields": {
         "heading": "Launch Your Next Big Idea",
         "subheading": "From concept to live site in days, not months. The fastest way to build professional websites that convert.",
-        "background_image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1920&q=80",
-        "button_text": "Start Building Now",
-        "button_url": "/signup",
+        "background_image": { "url": "theme-asset:hero-default" },
+        "button": { "text": "Start Building Now", "url": "/register" },
         "alignment": "center"
       }
     },
@@ -47,13 +46,13 @@
             "quote": "We replaced three different tools with Squilla and cut our monthly costs in half. The all-in-one approach just works.",
             "author_name": "Jordan Ellis",
             "author_role": "Founder, Nimbus Creative",
-            "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80"
+            "avatar": {}
           },
           {
             "quote": "Our page speed scores went from the 40s to consistent 95+ across every page. The performance gains were immediate and dramatic.",
             "author_name": "Anika Johansson",
             "author_role": "Head of Digital, Nordic Brands",
-            "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80"
+            "avatar": {}
           }
         ]
       }
@@ -62,30 +61,12 @@
       "type": "gallery",
       "fields": {
         "images": [
-          {
-            "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80",
-            "caption": "Analytics Dashboard"
-          },
-          {
-            "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&q=80",
-            "caption": "Developer Experience"
-          },
-          {
-            "image": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&q=80",
-            "caption": "Team Collaboration"
-          },
-          {
-            "image": "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80",
-            "caption": "Client Presentations"
-          },
-          {
-            "image": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&q=80",
-            "caption": "Modern Workflows"
-          },
-          {
-            "image": "https://images.unsplash.com/photo-1531538606174-e1ac109bab5d?w=600&q=80",
-            "caption": "Content Creation"
-          }
+          { "image": { "url": "theme-asset:gallery-analytics" }, "caption": "Analytics Dashboard" },
+          { "image": { "url": "theme-asset:gallery-code" },      "caption": "Developer Experience" },
+          { "image": { "url": "theme-asset:gallery-team" },      "caption": "Team Collaboration" },
+          { "image": { "url": "theme-asset:gallery-studio" },    "caption": "Client Presentations" },
+          { "image": { "url": "theme-asset:gallery-gradient" },  "caption": "Modern Workflows" },
+          { "image": { "url": "theme-asset:gallery-minimal" },   "caption": "Content Creation" }
         ]
       }
     },
@@ -94,8 +75,7 @@
       "fields": {
         "heading": "Stop Waiting. Start Building.",
         "body": "Join the teams that have already made the switch. Get started with a free trial and see the difference in minutes.",
-        "button_text": "Claim Your Free Trial",
-        "button_url": "/signup",
+        "button": { "text": "Claim Your Free Trial", "url": "/register" },
         "style": "dark"
       }
     }

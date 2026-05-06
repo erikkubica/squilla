@@ -1,6 +1,6 @@
 {
   "name": "Contact",
-  "description": "Contact page matching the Stitch Luminous Curator design — editorial intro + contact form",
+  "description": "Contact page with editorial intro and a form rendered by the Forms extension",
   "thumbnail": "",
   "blocks": [
     {
@@ -8,47 +8,28 @@
       "fields": {
         "eyebrow": "Contact",
         "heading": "Let's start a conversation.",
-        "body": "<p>Have a question, a partnership idea, or just want to see if Squilla is right for your team? We read every message. Whether you're a solo creator, an agency scaling to dozens of sites, or an enterprise evaluating a migration, our curators will respond within one business day.</p><blockquote>Every great project begins with a well-framed question. We're listening.</blockquote><p>For urgent or commercial inquiries, reach our team directly using any of the channels below.</p>"
+        "body": "<p>Have a question, a partnership idea, or just want to see if Squilla is right for your team? We read every message and respond within one business day.</p>"
       }
     },
     {
-      "type": "contact-form",
+      "type": "vibe-form",
       "fields": {
-        "heading": "Let's talk.",
-        "subheading": "Ready to elevate your content experience? Our team of curators is here to guide your transition to Squilla.",
-        "contact_email": "hello@squilla.com",
-        "contact_phone": "+1 (555) 890-VIBE",
-        "contact_office": "San Francisco, CA",
-        "name_label": "Your Name",
-        "email_label": "Email Address",
-        "subject_label": "Subject",
-        "subject_options": [
-          { "value": "Product Inquiry" },
-          { "value": "Technical Support" },
-          { "value": "Partnership Idea" },
-          { "value": "Other" }
-        ],
-        "message_label": "Message",
-        "button_text": "Send Message"
+        "form_slug": "contact",
+        "heading": "Get in touch"
       }
     },
     {
       "type": "faq",
       "fields": {
         "heading": "Frequently Asked",
-        "subheading": "",
         "items": [
           {
-            "question": "What is the typical timeline for a new project?",
-            "answer": "<p>Most projects launch within 4 to 8 weeks depending on scope. Simple brochure sites can go live in as little as two weeks, while complex multi-language platforms may take longer.</p>"
+            "question": "How do I create the contact form?",
+            "answer": "<p>Visit <a href=\"/admin/forms\">Admin → Forms</a> and create a new form with slug <code>contact</code>. The block on this page will pick it up automatically.</p>"
           },
           {
-            "question": "How does pricing work?",
-            "answer": "<p>We offer flexible plans based on site traffic and feature requirements. Every plan includes the full block editor, theme engine, and core CMS features.</p>"
-          },
-          {
-            "question": "Can I migrate from my existing CMS?",
-            "answer": "<p>Absolutely. We provide migration tools and services for WordPress, Drupal, and other popular platforms.</p>"
+            "question": "Can I migrate from another CMS?",
+            "answer": "<p>Yes — Squilla can import content via the MCP server. See the docs for details.</p>"
           }
         ]
       }

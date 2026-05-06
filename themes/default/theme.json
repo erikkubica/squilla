@@ -9,7 +9,8 @@
   "scripts": [],
   "layouts": [
     { "slug": "default", "name": "Default Layout", "file": "default.html", "is_default": true },
-    { "slug": "blank", "name": "Blank Layout", "file": "blank.html", "is_default": false }
+    { "slug": "blank", "name": "Blank Layout", "file": "blank.html", "is_default": false },
+    { "slug": "404", "name": "404 Not Found", "file": "404.html", "is_default": false }
   ],
   "partials": [
     { "slug": "site-header", "name": "Site Header", "file": "site-header.html" },
@@ -31,7 +32,6 @@
     { "slug": "features-grid", "dir": "features-grid" },
     { "slug": "testimonials", "dir": "testimonials" },
     { "slug": "faq", "dir": "faq" },
-    { "slug": "contact-form", "dir": "contact-form" },
     { "slug": "stats", "dir": "stats" }
   ],
   "templates": [

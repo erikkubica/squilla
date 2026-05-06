@@ -31,7 +31,7 @@ func (s *ContentService) CleanOldRevisions() error {
 		WHERE id IN (
 			SELECT id FROM (
 				SELECT id,
-				       ROW_NUMBER() OVER (PARTITION BY content_node_id ORDER BY created_at DESC) AS rn
+				       ROW_NUMBER() OVER (PARTITION BY node_id ORDER BY created_at DESC) AS rn
 				FROM content_node_revisions
 			) t WHERE rn > ?
 		)`, keep).Error

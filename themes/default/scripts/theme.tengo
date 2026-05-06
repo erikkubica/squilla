@@ -1,56 +1,140 @@
-// theme.tengo — Entry point for theme scripting.
-// This script runs once at startup to register event handlers and API routes.
+// theme.tengo — Default theme initialiser.
+//
+// Runs on every theme activation. Idempotent: existence-checks before
+// every write so re-activations don't clobber editor changes.
+//
+// Responsibilities:
+//   1. Seed the home/about/contact pages from templates/*.json so a
+//      fresh install lands on a populated, navigable site.
+//   2. Wire homepage_node_id so GET / serves the seeded home page.
+//   3. Build main-nav and footer-nav menus pointing at pages we
+//      know exist.
+//   4. Register the theme's event/route/filter scripts.
 
-log := import("core/log")
-events := import("core/events")
-http := import("core/http")
-menus := import("core/menus")
+log      := import("core/log")
+events   := import("core/events")
+http     := import("core/http")
+menus    := import("core/menus")
+filters  := import("core/filters")
+nodes    := import("core/nodes")
+settings := import("core/settings")
+assets   := import("core/assets")
+helpers  := import("core/helpers")
 
 log.info("Default theme scripts initializing...")
 
-// ─── Navigation Menus ────────────────────────────────────────
-// Seed primary + footer menus on first activation so site-header
-// and site-footer render a real menu out of the box.
-menus.upsert({
-	slug: "main-nav",
-	name: "Primary Navigation",
-	items: [
-		{ label: "Home",    page: "home" },
-		{ label: "About",   page: "about" },
-		{ label: "Contact", page: "contact" }
-	]
+// ─── Page Seeding ────────────────────────────────────────────────
+// Reads templates/<file>.json and seeds the page if missing. If the
+// page exists with empty blocks_data (e.g. core's placeholder
+// homepage), we populate it. If the editor has added content, we
+// leave it alone.
+
+load_template_blocks := func(file) {
+    raw := assets.read("templates/" + file)
+    if is_error(raw) {
+        log.warn("[default-theme] cannot read template: " + file)
+        return undefined
+    }
+    parsed := helpers.json_decode(raw)
+    if is_undefined(parsed) {
+        log.warn("[default-theme] cannot parse template: " + file)
+        return undefined
+    }
+    return parsed.blocks
+}
+
+ensure_page := func(slug, full_url, title, template_file, seo) {
+    blocks := load_template_blocks(template_file)
+    if is_undefined(blocks) {
+        return 0
+    }
+
+    res := nodes.query({ node_type: "page", slug: slug, limit: 1 })
+    if !is_error(res) && res.total > 0 {
+        existing := res.nodes[0]
+        // Only refresh content if the page is empty — never overwrite
+        // editor changes on theme reactivation.
+        existing_blocks := existing.blocks_data
+        is_empty := is_undefined(existing_blocks)
+        if !is_empty {
+            if is_array(existing_blocks) {
+                if len(existing_blocks) == 0 { is_empty = true }
+            }
+        }
+        if is_empty {
+            updated := nodes.update(existing.id, { blocks_data: blocks, layout_slug: "default" })
+            if !is_error(updated) {
+                log.info("[default-theme] populated empty page: " + slug)
+            }
+        }
+        return existing.id
+    }
+
+    created := nodes.create({
+        node_type:    "page",
+        status:       "published",
+        language_code: "en",
+        slug:         slug,
+        full_url:     full_url,
+        title:        title,
+        blocks_data:  blocks,
+        layout_slug:  "default",
+        seo_settings: seo
+    })
+    if is_error(created) {
+        log.warn("[default-theme] failed to create page: " + slug)
+        return 0
+    }
+    log.info("[default-theme] created page: " + slug)
+    return created.id
+}
+
+home_id    := ensure_page("home",    "/",        "Welcome to Squilla", "homepage.json", {
+    meta_title:       "Welcome to Squilla",
+    meta_description: "A high-performance, AI-native CMS."
+})
+about_id   := ensure_page("about",   "/about",   "About",              "about.json", {
+    meta_title:       "About",
+    meta_description: "Why we built Squilla and what it stands for."
+})
+contact_id := ensure_page("contact", "/contact", "Contact",            "contact.json", {
+    meta_title:       "Contact",
+    meta_description: "Get in touch."
 })
 
-menus.upsert({
-	slug: "footer-nav",
-	name: "Footer Navigation",
-	items: [
-		{ label: "Home",    page: "home" },
-		{ label: "About",   page: "about" },
-		{ label: "Privacy", page: "privacy" }
-	]
-})
-log.info("Default theme: nav menus seeded")
+// Wire homepage. Always re-set so deleting + re-seeding "home" never
+// leaves the setting pointing at a deleted node.
+if home_id > 0 {
+    settings.set("homepage_node_id", string(home_id))
+}
+
+// ─── Navigation Menus ────────────────────────────────────────────
+// Only include menu items for pages we successfully ensured above.
+// Skipping missing pages prevents the broken-link UX where users
+// click "Contact" and hit a 404.
+
+build_items := func() {
+    items := []
+    if home_id    > 0 { items = append(items, { label: "Home",    page: "home"    }) }
+    if about_id   > 0 { items = append(items, { label: "About",   page: "about"   }) }
+    if contact_id > 0 { items = append(items, { label: "Contact", page: "contact" }) }
+    return items
+}
+
+primary_items := build_items()
+menus.upsert({ slug: "main-nav",   name: "Primary Navigation",  items: primary_items })
+menus.upsert({ slug: "footer-nav", name: "Footer Navigation",   items: primary_items })
+log.info("[default-theme] nav menus seeded")
 
 // ─── Events ──────────────────────────────────────────────────────
-// Register scripts for any event — lifecycle, template, or custom.
-// Third argument is priority (default 50). Lower = runs first.
-
 events.on("before_main_content", "hooks/hello_world", 10)
-events.on("node.published", "handlers/on_node_published")
+events.on("node.published",      "handlers/on_node_published")
 
-// ─── Theme REST API ───────────────────────────────────────────────
-// Register custom endpoints under /api/theme/*
-// Each handler script receives a `request` variable and sets `response`.
-
-http.get("/search", "api/search")
-http.get("/nodes/:type", "api/nodes_by_type")
+// ─── Theme REST API ──────────────────────────────────────────────
+http.get("/search",         "api/search")
+http.get("/nodes/:type",    "api/nodes_by_type")
 
 // ─── Filters ─────────────────────────────────────────────────────
-// Register filter scripts that transform values through a chain.
-// Third argument is priority (default 50). Lower = runs first.
-
-filters := import("core/filters")
 filters.add("node.title", "filters/site_title_suffix", 90)
 
 log.info("Default theme scripts loaded!")

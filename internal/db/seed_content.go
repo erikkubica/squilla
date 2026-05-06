@@ -116,6 +116,11 @@ func seedAuthPages(db *gorm.DB) error {
 }
 
 func seedMenus(db *gorm.DB) error {
+	// Core seeds a minimal "Home + Login" menu only. Themes own real
+	// navigation: when a theme activates, its theme.tengo upserts
+	// menus.main-nav/footer-nav with the pages it ships, replacing
+	// these defaults. Without an active theme the user can still
+	// reach login/register from the header.
 	menus := []struct {
 		slug  string
 		name  string
@@ -126,7 +131,7 @@ func seedMenus(db *gorm.DB) error {
 			name: "Main Navigation",
 			items: []models.MenuItem{
 				{Title: "Home", ItemType: "custom", URL: "/", Target: "_self", SortOrder: 0},
-				{Title: "About", ItemType: "custom", URL: "/about", Target: "_self", SortOrder: 1},
+				{Title: "Login", ItemType: "custom", URL: "/login", Target: "_self", SortOrder: 1},
 			},
 		},
 		{
@@ -134,9 +139,7 @@ func seedMenus(db *gorm.DB) error {
 			name: "Footer Navigation",
 			items: []models.MenuItem{
 				{Title: "Home", ItemType: "custom", URL: "/", Target: "_self", SortOrder: 0},
-				{Title: "About", ItemType: "custom", URL: "/about", Target: "_self", SortOrder: 1},
-				{Title: "Privacy", ItemType: "custom", URL: "/privacy", Target: "_self", SortOrder: 2},
-				{Title: "Terms", ItemType: "custom", URL: "/terms", Target: "_self", SortOrder: 3},
+				{Title: "Login", ItemType: "custom", URL: "/login", Target: "_self", SortOrder: 1},
 			},
 		},
 	}

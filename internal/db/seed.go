@@ -202,9 +202,9 @@ func Seed(db *gorm.DB) error {
 	}
 	// Email defaults (templates + rules + layouts) are seeded by the
 	// email-manager extension's migrations on activation, not by core.
-	// Seed default site name setting
-	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_name', 'Squilla', NOW()) ON CONFLICT (key) DO NOTHING`)
-	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('site_url', 'http://localhost:8099', NOW()) ON CONFLICT (key) DO NOTHING`)
+	// Seed default site name setting (language_code='en' = default language row; PK is (key, language_code) since migration 0038).
+	db.Exec(`INSERT INTO site_settings (key, language_code, value, updated_at) VALUES ('site_name', 'en', 'Squilla', NOW()) ON CONFLICT (key, language_code) DO NOTHING`)
+	db.Exec(`INSERT INTO site_settings (key, language_code, value, updated_at) VALUES ('site_url', 'en', 'http://localhost:8099', NOW()) ON CONFLICT (key, language_code) DO NOTHING`)
 	// Public registration is closed by default. Operators flip this to "true"
 	// in Admin → Security → Settings to allow self-registration. Stored under
 	// language_code='' — registration is a global capability, not per-locale.
@@ -326,6 +326,10 @@ func seedContentNode(db *gorm.DB) error {
 	seoSettings := json.RawMessage(`{"meta_title":"Welcome to Squilla","meta_description":"A high-performance, AI-native CMS."}`)
 	now := time.Now()
 
+	// Empty homepage. The active theme is responsible for populating
+	// real content via its own seed (theme.tengo or migrations). Core
+	// just guarantees a node exists at "/" so the public router has
+	// something to render — never an error page.
 	node := models.ContentNode{
 		NodeType:     "page",
 		Status:       "published",
@@ -344,8 +348,8 @@ func seedContentNode(db *gorm.DB) error {
 		return fmt.Errorf("failed to seed sample content node: %w", result.Error)
 	}
 
-	// Set as homepage
-	db.Exec(`INSERT INTO site_settings (key, value, updated_at) VALUES ('homepage_node_id', ?, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+	// Set as homepage (language_code='en' = default language row; PK is (key, language_code) since migration 0038).
+	db.Exec(`INSERT INTO site_settings (key, language_code, value, updated_at) VALUES ('homepage_node_id', 'en', ?, NOW()) ON CONFLICT (key, language_code) DO UPDATE SET value = EXCLUDED.value`,
 		fmt.Sprintf("%d", node.ID))
 
 	return nil
