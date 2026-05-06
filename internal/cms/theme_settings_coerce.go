@@ -26,8 +26,8 @@ func CoerceValue(fieldType, raw string) (value any, ok bool) {
 		return nil, true
 	}
 	switch fieldType {
-	case "text", "textarea", "richtext", "email", "url", "color", "date",
-		"select", "radio":
+	case "string", "text", "textarea", "richtext", "email", "url", "color",
+		"date", "select", "radio":
 		return raw, true
 	case "number", "range":
 		if f, err := strconv.ParseFloat(raw, 64); err == nil {

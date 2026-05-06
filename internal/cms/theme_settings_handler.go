@@ -335,6 +335,7 @@ func toPageDTO(p ThemeSettingsPage) pageDTO {
 // so numbers, booleans, and structured values round-trip cleanly through
 // CoerceValue on the read path.
 var textFamilyTypes = map[string]struct{}{
+	"string":   {}, // canonical alias for "text"
 	"text":     {},
 	"textarea": {},
 	"richtext": {},

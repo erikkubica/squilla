@@ -202,11 +202,11 @@ func collectTermSlugs(fields map[string]interface{}, defs []fieldSchemaDef, out 
 			} else {
 				add(val)
 			}
-		case "group":
+		case "object", "group":
 			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
 				collectTermSlugs(m, def.SubFields, out)
 			}
-		case "repeater":
+		case "array", "repeater":
 			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
 				for _, item := range arr {
 					if m, ok := item.(map[string]interface{}); ok {
@@ -251,11 +251,11 @@ func applyTermHydration(fields map[string]interface{}, defs []fieldSchemaDef, re
 			} else {
 				fields[def.Key] = resolve(val)
 			}
-		case "group":
+		case "object", "group":
 			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
 				applyTermHydration(m, def.SubFields, resolved)
 			}
-		case "repeater":
+		case "array", "repeater":
 			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
 				for _, item := range arr {
 					if m, ok := item.(map[string]interface{}); ok {
@@ -320,13 +320,13 @@ func applyRichTextMarking(fields map[string]interface{}, defs []fieldSchemaDef) 
 			case map[string]interface{}:
 				// Already a proper object — leave as-is.
 			}
-		case "group":
-			// Recurse into group sub-fields
+		case "object", "group":
+			// Recurse into nested object/group sub-fields
 			if m, ok := val.(map[string]interface{}); ok && len(def.SubFields) > 0 {
 				applyRichTextMarking(m, def.SubFields)
 			}
-		case "repeater":
-			// Recurse into each repeater row
+		case "array", "repeater":
+			// Recurse into each array/repeater row
 			if arr, ok := val.([]interface{}); ok && len(def.SubFields) > 0 {
 				for _, item := range arr {
 					if m, ok := item.(map[string]interface{}); ok {
