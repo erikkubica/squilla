@@ -37,6 +37,36 @@ func canReadNodeType(user *models.User, slug string) bool {
 	return access == "read" || access == "write"
 }
 
+// hasNavCap checks a single boolean capability on the user's role. Empty
+// capability string = no gate (item always shows). Mirrors
+// auth.HasCapability without the import (see canReadNodeType for why).
+func hasNavCap(user *models.User, capability string) bool {
+	if capability == "" {
+		return true
+	}
+	if user == nil {
+		return false
+	}
+	var caps map[string]interface{}
+	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
+		return false
+	}
+	v, ok := caps[capability].(bool)
+	return ok && v
+}
+
+// anyNavCap returns true if the user has at least one of the listed
+// capabilities. Used for parent-group visibility (e.g. Security group is
+// visible if the user has any of manage_users / manage_roles / manage_settings).
+func anyNavCap(user *models.User, capabilities ...string) bool {
+	for _, cap := range capabilities {
+		if hasNavCap(user, cap) {
+			return true
+		}
+	}
+	return false
+}
+
 // buildNavigation assembles the admin sidebar tree returned by
 // GenerateBootManifest. Lives in its own file because it's the
 // largest non-page-layout method on Engine and conceptually
@@ -114,27 +144,39 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 	extSiteSettings := []NavItem{}
 
 	for _, ext := range exts {
+		// Extensions opt into per-item capability gating with
+		// `required_capability`. Empty / missing = always shown to any
+		// admin_access user (the broad gate is enforced on the parent
+		// /admin/api group, so extensions don't need to repeat it). When
+		// set, the entry is hidden unless the user's role carries that
+		// capability — e.g. `manage_settings` for an extension that
+		// administers site-wide configuration. This is the extension
+		// equivalent of the kernel's per-section gating below.
 		var manifest struct {
 			AdminUI *struct {
 				Menu *struct {
-					Label    string `json:"label"`
-					Icon     string `json:"icon"`
-					Section  string `json:"section"`
-					Children []struct {
-						Label string `json:"label"`
-						Route string `json:"route"`
-						Icon  string `json:"icon"`
+					Label              string `json:"label"`
+					Icon               string `json:"icon"`
+					Section            string `json:"section"`
+					RequiredCapability string `json:"required_capability"`
+					Children           []struct {
+						Label              string `json:"label"`
+						Route              string `json:"route"`
+						Icon               string `json:"icon"`
+						RequiredCapability string `json:"required_capability"`
 					} `json:"children"`
 				} `json:"menu"`
 				SettingsMenu []struct {
-					Label string `json:"label"`
-					Route string `json:"route"`
-					Icon  string `json:"icon"`
+					Label              string `json:"label"`
+					Route              string `json:"route"`
+					Icon               string `json:"icon"`
+					RequiredCapability string `json:"required_capability"`
 				} `json:"settings_menu"`
 				SiteSettingsMenu []struct {
-					Label string `json:"label"`
-					Route string `json:"route"`
-					Icon  string `json:"icon"`
+					Label              string `json:"label"`
+					Route              string `json:"route"`
+					Icon               string `json:"icon"`
+					RequiredCapability string `json:"required_capability"`
 				} `json:"site_settings_menu"`
 			} `json:"admin_ui"`
 		}
@@ -143,11 +185,15 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 			continue
 		}
 
-		if m := manifest.AdminUI.Menu; m != nil {
+		if m := manifest.AdminUI.Menu; m != nil && hasNavCap(user, m.RequiredCapability) {
 			var navItem NavItem
+			emit := true
 			if len(m.Children) > 0 {
 				children := make([]NavItem, 0, len(m.Children))
 				for _, c := range m.Children {
+					if !hasNavCap(user, c.RequiredCapability) {
+						continue
+					}
 					children = append(children, NavItem{
 						ID:    "nav-ext-" + ext.Slug + "-" + c.Route,
 						Label: c.Label,
@@ -155,11 +201,18 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 						Path:  c.Route,
 					})
 				}
-				navItem = NavItem{
-					ID:       "nav-ext-" + ext.Slug,
-					Label:    m.Label,
-					Icon:     m.Icon,
-					Children: children,
+				if len(children) == 0 {
+					// Parent passed its own gate but every child filtered
+					// out — drop the whole group rather than render an
+					// empty expander.
+					emit = false
+				} else {
+					navItem = NavItem{
+						ID:       "nav-ext-" + ext.Slug,
+						Label:    m.Label,
+						Icon:     m.Icon,
+						Children: children,
+					}
 				}
 			} else {
 				navItem = NavItem{
@@ -169,21 +222,26 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 					Path:  "/admin/ext/" + ext.Slug + "/",
 				}
 			}
-			switch strings.ToLower(m.Section) {
-			case "content":
-				extContent = append(extContent, navItem)
-			case "design":
-				extDesign = append(extDesign, navItem)
-			case "development", "dev":
-				extDev = append(extDev, navItem)
-			case "settings":
-				extSettings = append(extSettings, navItem)
-			default:
-				extTopLevel = append(extTopLevel, navItem)
+			if emit {
+				switch strings.ToLower(m.Section) {
+				case "content":
+					extContent = append(extContent, navItem)
+				case "design":
+					extDesign = append(extDesign, navItem)
+				case "development", "dev":
+					extDev = append(extDev, navItem)
+				case "settings":
+					extSettings = append(extSettings, navItem)
+				default:
+					extTopLevel = append(extTopLevel, navItem)
+				}
 			}
 		}
 
 		for _, item := range manifest.AdminUI.SettingsMenu {
+			if !hasNavCap(user, item.RequiredCapability) {
+				continue
+			}
 			extSettings = append(extSettings, NavItem{
 				ID:    "nav-ext-" + ext.Slug + "-settings-" + item.Route,
 				Label: item.Label,
@@ -193,6 +251,9 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		}
 
 		for _, item := range manifest.AdminUI.SiteSettingsMenu {
+			if !hasNavCap(user, item.RequiredCapability) {
+				continue
+			}
 			extSiteSettings = append(extSiteSettings, NavItem{
 				ID:    "nav-ext-" + ext.Slug + "-site-settings-" + item.Route,
 				Label: item.Label,
@@ -202,7 +263,21 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		}
 	}
 
+	// Helper: emit a section header + items only when at least one item
+	// survived capability filtering. Without this, an editor with only
+	// content access would still see "Design", "Development", "Settings"
+	// headers stacked under each other with nothing under them.
+	appendSection := func(headerID, headerLabel string, items []NavItem) {
+		if len(items) == 0 {
+			return
+		}
+		nav = append(nav, NavItem{ID: headerID, Label: headerLabel, IsSection: true})
+		nav = append(nav, items...)
+	}
+
 	// ── Top level ──
+	// Dashboard is always visible to admin_access users — the API gate is
+	// what gets us here. Extension top-level items are pre-filtered above.
 	nav = append(nav, NavItem{
 		ID: "nav-dashboard", Label: "Dashboard", Icon: "LayoutDashboard",
 		Path: "/admin/dashboard",
@@ -210,8 +285,7 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 	nav = append(nav, extTopLevel...)
 
 	// ── Content section ──
-	nav = append(nav, NavItem{ID: "section-content", Label: "Content", IsSection: true})
-
+	contentItems := []NavItem{}
 	for _, nt := range nodeTypes {
 		// Capability gate: skip types the current user has no read access to.
 		// Resolves per-type override first then default_node_access — same
@@ -226,7 +300,6 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		displayLabel := labelFor(nt)
 
 		taxChildren := []NavItem{}
-		// First child: link to the main listing.
 		taxChildren = append(taxChildren, NavItem{
 			ID:    "nav-content-" + nt.Slug + "-all",
 			Label: displayLabel,
@@ -238,7 +311,6 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 			if taxLabel == "" {
 				taxLabel = tax.Label
 			}
-
 			taxChildren = append(taxChildren, NavItem{
 				ID:    "nav-content-" + nt.Slug + "-tax-" + tax.Slug,
 				Label: taxLabel,
@@ -254,73 +326,118 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 			Path:  basePath,
 		}
 		if len(taxChildren) > 1 {
-			// Only add children when there are taxonomies beyond the
-			// "All X" entry — otherwise keep it as a flat link.
 			item.Children = taxChildren
 		}
-		nav = append(nav, item)
+		contentItems = append(contentItems, item)
 	}
-	nav = append(nav, extContent...)
+	contentItems = append(contentItems, extContent...)
+	appendSection("section-content", "Content", contentItems)
 
 	// ── Design section ──
-	nav = append(nav, NavItem{ID: "section-design", Label: "Design", IsSection: true})
-	nav = append(nav, []NavItem{
-		{ID: "nav-templates", Label: "Templates", Icon: "FileCode", Path: "/admin/templates"},
-		{ID: "nav-layouts", Label: "Layouts", Icon: "LayoutPanelTop", Path: "/admin/layouts"},
-		{ID: "nav-block-types", Label: "Block Types", Icon: "Blocks", Path: "/admin/block-types"},
-		{ID: "nav-layout-blocks", Label: "Layout Blocks", Icon: "Component", Path: "/admin/layout-blocks"},
-		{ID: "nav-menus", Label: "Menus", Icon: "ListTree", Path: "/admin/menus"},
-	}...)
-	nav = append(nav, extDesign...)
+	// Per-item capability mapping mirrors the per-route guards in
+	// internal/cms/{template,layout,block_type,layout_block,menu}_handler.go.
+	// Templates/Layouts/Block Types/Layout Blocks all share manage_layouts
+	// because they're variants of the same "design tokens" capability;
+	// menus have their own manage_menus so editors with menu authority but
+	// no template authority still get the relevant entry.
+	designItems := []NavItem{}
+	if hasNavCap(user, "manage_layouts") {
+		designItems = append(designItems,
+			NavItem{ID: "nav-templates", Label: "Templates", Icon: "FileCode", Path: "/admin/templates"},
+			NavItem{ID: "nav-layouts", Label: "Layouts", Icon: "LayoutPanelTop", Path: "/admin/layouts"},
+			NavItem{ID: "nav-block-types", Label: "Block Types", Icon: "Blocks", Path: "/admin/block-types"},
+			NavItem{ID: "nav-layout-blocks", Label: "Layout Blocks", Icon: "Component", Path: "/admin/layout-blocks"},
+		)
+	}
+	if hasNavCap(user, "manage_menus") {
+		designItems = append(designItems,
+			NavItem{ID: "nav-menus", Label: "Menus", Icon: "ListTree", Path: "/admin/menus"},
+		)
+	}
+	designItems = append(designItems, extDesign...)
+	appendSection("section-design", "Design", designItems)
 
 	// ── Development section ──
-	nav = append(nav, NavItem{ID: "section-dev", Label: "Development", IsSection: true})
-	nav = append(nav, []NavItem{
-		{ID: "nav-content-types", Label: "Content Types", Icon: "Shapes", Path: "/admin/content-types"},
-		{ID: "nav-taxonomies", Label: "Taxonomies", Icon: "Tags", Path: "/admin/taxonomies"},
-		{ID: "nav-themes", Label: "Themes", Icon: "Brush", Path: "/admin/themes"},
-		{ID: "nav-extensions", Label: "Extensions", Icon: "Puzzle", Path: "/admin/extensions"},
-	}...)
-	nav = append(nav, extDev...)
+	// All four entries mutate site-wide schema (content types, taxonomies,
+	// themes, extensions) — manage_settings is the right gate. Editors and
+	// authors should not see this section at all.
+	devItems := []NavItem{}
+	if hasNavCap(user, "manage_settings") {
+		devItems = append(devItems,
+			NavItem{ID: "nav-content-types", Label: "Content Types", Icon: "Shapes", Path: "/admin/content-types"},
+			NavItem{ID: "nav-taxonomies", Label: "Taxonomies", Icon: "Tags", Path: "/admin/taxonomies"},
+			NavItem{ID: "nav-themes", Label: "Themes", Icon: "Brush", Path: "/admin/themes"},
+			NavItem{ID: "nav-extensions", Label: "Extensions", Icon: "Puzzle", Path: "/admin/extensions"},
+		)
+	}
+	devItems = append(devItems, extDev...)
+	appendSection("section-dev", "Development", devItems)
 
 	// ── Settings section ──
-	// Top-level groups: Site Settings (with sub-pages), Security
-	// (with sub-pages). Extension-contributed settings still slot in
-	// after the built-in groups via extSettings.
-	nav = append(nav, NavItem{ID: "section-settings", Label: "Settings", IsSection: true})
-	// Site Settings children = kernel-owned pages (General, Advanced,
-	// Languages) plus whatever active extensions contribute via their
-	// admin_ui.site_settings_menu entries. The kernel knows nothing
-	// about SEO, robots, or any other feature-specific page — those land
-	// here only when an extension is active and declares them.
-	siteChildren := []NavItem{
-		{ID: "nav-site-settings-general", Label: "General", Icon: "Globe", Path: "/admin/settings/site/general"},
+	// Two top-level groups (Site Settings, Security) plus extension
+	// contributions. Each group has its own visibility rules so the
+	// section disappears entirely for users with no settings authority.
+	settingsItems := []NavItem{}
+
+	// Site Settings: kernel pages (General/Advanced/Languages) require
+	// manage_settings. Extension-contributed children may set their own
+	// required_capability; if any child is visible the group is shown.
+	siteChildren := []NavItem{}
+	if hasNavCap(user, "manage_settings") {
+		siteChildren = append(siteChildren,
+			NavItem{ID: "nav-site-settings-general", Label: "General", Icon: "Globe", Path: "/admin/settings/site/general"},
+		)
 	}
 	siteChildren = append(siteChildren, extSiteSettings...)
-	siteChildren = append(siteChildren,
-		NavItem{ID: "nav-site-settings-advanced", Label: "Advanced", Icon: "FileCode", Path: "/admin/settings/site/advanced"},
-		NavItem{ID: "nav-site-settings-languages", Label: "Languages", Icon: "Languages", Path: "/admin/settings/site/languages"},
-	)
-	nav = append(nav, NavItem{
-		ID:       "nav-site-settings",
-		Label:    "Site Settings",
-		Icon:     "Globe",
-		Path:     "/admin/settings/site/general",
-		Children: siteChildren,
-	})
-	nav = append(nav, NavItem{
-		ID:    "nav-security",
-		Label: "Security",
-		Icon:  "Shield",
-		Path:  "/admin/security/users",
-		Children: []NavItem{
-			{ID: "nav-security-users", Label: "Users", Icon: "Users", Path: "/admin/security/users"},
-			{ID: "nav-security-roles", Label: "Roles", Icon: "Shield", Path: "/admin/security/roles"},
-			{ID: "nav-security-mcp-tokens", Label: "MCP Tokens", Icon: "Key", Path: "/admin/security/mcp-tokens"},
-			{ID: "nav-security-settings", Label: "Settings", Icon: "Settings", Path: "/admin/security/settings"},
-		},
-	})
-	nav = append(nav, extSettings...)
+	if hasNavCap(user, "manage_settings") {
+		siteChildren = append(siteChildren,
+			NavItem{ID: "nav-site-settings-advanced", Label: "Advanced", Icon: "FileCode", Path: "/admin/settings/site/advanced"},
+			NavItem{ID: "nav-site-settings-languages", Label: "Languages", Icon: "Languages", Path: "/admin/settings/site/languages"},
+		)
+	}
+	if len(siteChildren) > 0 {
+		// First visible child becomes the group's default landing path.
+		settingsItems = append(settingsItems, NavItem{
+			ID:       "nav-site-settings",
+			Label:    "Site Settings",
+			Icon:     "Globe",
+			Path:     siteChildren[0].Path,
+			Children: siteChildren,
+		})
+	}
+
+	// Security group — each child gated by its own capability so a
+	// manage_users-only role sees Users but not Roles, MCP Tokens, or
+	// security Settings. MCP tokens and security settings require
+	// manage_settings because tokens grant CMS-wide control and security
+	// settings tune login lockout / session policy.
+	securityChildren := []NavItem{}
+	if hasNavCap(user, "manage_users") {
+		securityChildren = append(securityChildren,
+			NavItem{ID: "nav-security-users", Label: "Users", Icon: "Users", Path: "/admin/security/users"})
+	}
+	if hasNavCap(user, "manage_roles") {
+		securityChildren = append(securityChildren,
+			NavItem{ID: "nav-security-roles", Label: "Roles", Icon: "Shield", Path: "/admin/security/roles"})
+	}
+	if hasNavCap(user, "manage_settings") {
+		securityChildren = append(securityChildren,
+			NavItem{ID: "nav-security-mcp-tokens", Label: "MCP Tokens", Icon: "Key", Path: "/admin/security/mcp-tokens"},
+			NavItem{ID: "nav-security-settings", Label: "Settings", Icon: "Settings", Path: "/admin/security/settings"},
+		)
+	}
+	if len(securityChildren) > 0 {
+		settingsItems = append(settingsItems, NavItem{
+			ID:       "nav-security",
+			Label:    "Security",
+			Icon:     "Shield",
+			Path:     securityChildren[0].Path,
+			Children: securityChildren,
+		})
+	}
+
+	settingsItems = append(settingsItems, extSettings...)
+	appendSection("section-settings", "Settings", settingsItems)
 
 	return nav
 }

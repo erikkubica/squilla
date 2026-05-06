@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"squilla/internal/auth"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -64,7 +66,14 @@ func registerThemeAssets(app *fiber.App, resolver *themeAssetsResolver) {
 // registerAdminSPA mounts the admin SPA static files. Hashed bundles
 // get a 1-year cache; shims/previews stay no-cache because their
 // filenames are stable and we re-deploy them in place.
-func registerAdminSPA(app *fiber.App) {
+//
+// The catch-all /admin/* handler enforces a session-aware gate: if a user
+// is logged in but lacks the admin_access capability, they're redirected
+// to the public homepage instead of being handed a shell they can't use.
+// Anonymous visitors still get index.html so the SPA's own login flow can
+// render — the admin API gate (CapabilityRequired in main.go) is what
+// hard-fails any subsequent data calls.
+func registerAdminSPA(app *fiber.App, sessionSvc *auth.SessionService) {
 	app.Static("/admin/assets", "./admin-ui/dist/assets", fiber.Static{
 		MaxAge: 31536000, // 1 year — filenames are hashed by Vite
 	})
@@ -77,6 +86,18 @@ func registerAdminSPA(app *fiber.App) {
 	app.Use("/admin/previews", noCache)
 	app.Static("/admin/previews", "./admin-ui/dist/previews")
 	app.Get("/admin/*", func(c *fiber.Ctx) error {
+		// Best-effort capability check — do NOT 401 on missing/expired
+		// sessions, the SPA itself handles that flow. Only redirect when
+		// we positively identified a logged-in user without admin_access:
+		// that's the case where the SPA would otherwise load and render
+		// a sidebar full of links that all 403 on first click.
+		if token := c.Cookies(auth.CookieName); token != "" {
+			if user, err := sessionSvc.ValidateSession(token); err == nil && user != nil {
+				if !auth.HasCapability(user, "admin_access") {
+					return c.Redirect("/", fiber.StatusFound)
+				}
+			}
+		}
 		c.Set("Cache-Control", "no-cache")
 		return c.SendFile("./admin-ui/dist/index.html")
 	})

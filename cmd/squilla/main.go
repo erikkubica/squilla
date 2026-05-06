@@ -365,11 +365,21 @@ func main() {
 	publicAPI := app.Group("/api/v1")
 	nodeHandler.RegisterPublicRoutes(publicAPI)
 
-	// --- Admin API routes (session auth required) ---
-	// AuthRequired runs first so the request has a user context; the JSON-only
-	// CSRF guard runs second on every mutation method (POST/PUT/PATCH/DELETE)
-	// to stop cross-origin form submissions even if a stale session leaks.
-	adminAPI := app.Group("/admin/api", auth.AuthRequired(sessionSvc), auth.JSONOnlyMutations())
+	// --- Admin API routes (session auth + admin_access required) ---
+	// AuthRequired runs first so the request has a user context; the
+	// admin_access capability gate runs second so logged-in members (who
+	// have no admin role) can't read admin lists like layouts, extensions,
+	// or boot manifests; the JSON-only CSRF guard runs last on every
+	// mutation method (POST/PUT/PATCH/DELETE) to stop cross-origin form
+	// submissions even if a stale session leaks. Per-feature capabilities
+	// (manage_users, manage_settings, etc.) are layered on individual
+	// routes inside each handler — admin_access is the broad "is this user
+	// even allowed in the admin shell?" check.
+	adminAPI := app.Group("/admin/api",
+		auth.AuthRequired(sessionSvc),
+		auth.CapabilityRequired("admin_access"),
+		auth.JSONOnlyMutations(),
+	)
 	userHandler.RegisterRoutes(adminAPI)
 	nodeHandler.RegisterRoutes(adminAPI)
 	nodeTypeHandler.RegisterRoutes(adminAPI)
@@ -523,7 +533,7 @@ func main() {
 	registerBlockAssets(app)
 	themeAssetsDir := newThemeAssetsResolver(database, eventBus, themePath)
 	registerThemeAssets(app, themeAssetsDir)
-	registerAdminSPA(app)
+	registerAdminSPA(app, sessionSvc)
 
 	// --- Theme script API routes ---
 	scriptEngine.MountHTTPRoutes(app)

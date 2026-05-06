@@ -76,6 +76,19 @@ func setFlash(c *fiber.Ctx, msg, flashType string) {
 	})
 }
 
+// postAuthRedirectPath returns where a freshly-authenticated user should
+// land. Users with admin_access go to the admin shell; everyone else is
+// pushed to the public homepage. This is the single place where "did the
+// SPA shell just open for someone who shouldn't be there?" is decided —
+// it must stay aligned with the /admin/* gate in static_routes.go and the
+// /admin/api capability check in main.go.
+func postAuthRedirectPath(user *models.User) string {
+	if HasCapability(user, "admin_access") {
+		return "/admin/dashboard"
+	}
+	return "/"
+}
+
 // isLoggedIn checks if the current request has a valid session.
 func (h *PageAuthHandler) isLoggedIn(c *fiber.Ctx) bool {
 	token := c.Cookies(CookieName)
@@ -191,7 +204,7 @@ func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
 	}
 
 	setFlash(c, "Welcome back!", "success")
-	return c.Redirect("/admin/dashboard", fiber.StatusFound)
+	return c.Redirect(postAuthRedirectPath(&user), fiber.StatusFound)
 }
 
 func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
@@ -262,6 +275,7 @@ func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
 		Email:        email,
 		PasswordHash: string(hash),
 		RoleID:       defaultRole.ID,
+		Role:         defaultRole, // populate so HasCapability works post-create without reloading
 		FullName:     &fullName,
 	}
 	if err := h.db.Create(&user).Error; err != nil {
@@ -295,7 +309,7 @@ func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
 	}
 
 	setFlash(c, "Account created!", "success")
-	return c.Redirect("/admin/dashboard", fiber.StatusFound)
+	return c.Redirect(postAuthRedirectPath(&user), fiber.StatusFound)
 }
 
 // ProcessForgotPassword issues a password reset token for a real account
