@@ -34,11 +34,15 @@ export function FormSelectorField({ value, onChange, id }: Props): React.JSX.Ele
     fetch("/admin/api/ext/forms/", { credentials: "include" })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<{ data?: FormSummary[] }>;
+        return r.json() as Promise<{ rows?: FormSummary[]; data?: FormSummary[] }>;
       })
       .then((res) => {
         if (cancelled) return;
-        setForms(Array.isArray(res?.data) ? res.data : []);
+        // forms extension returns {rows, total}; tolerate {data} too in
+        // case the response shape changes or another extension adopts
+        // the same field type.
+        const list = Array.isArray(res?.rows) ? res.rows : Array.isArray(res?.data) ? res.data : [];
+        setForms(list);
         setError(null);
       })
       .catch((e: unknown) => {

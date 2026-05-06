@@ -10673,7 +10673,7 @@ function Nr({ value: e, onChange: t, id: n }) {
 			if (!e.ok) throw Error(`HTTP ${e.status}`);
 			return e.json();
 		}).then((t) => {
-			e || (i(Array.isArray(t?.data) ? t.data : []), c(null));
+			e || (i(Array.isArray(t?.rows) ? t.rows : Array.isArray(t?.data) ? t.data : []), c(null));
 		}).catch((t) => {
 			e || c(t instanceof Error ? t.message : String(t));
 		}).finally(() => {
