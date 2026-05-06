@@ -30,15 +30,28 @@ func NewRoleHandler(db *gorm.DB, eventBus *events.EventBus) *RoleHandler {
 }
 
 // RegisterRoutes registers all role and system-action routes on the provided router group.
+//
+// Read vs. write split: GETs are open to any admin_access user (already
+// enforced by the parent group) so role pickers can populate dropdowns
+// — e.g. the email-manager rule editor lets an operator with
+// `manage_email_rules` send a notification "to all users with role X",
+// which needs the role list. Writes still require manage_roles so a
+// rule-author can't escalate themselves into editing roles.
+//
+// Listing role names/slugs/capabilities is not a meaningful information
+// disclosure: any admin_access user can already see this data when
+// editing their own role, and capability sets are explicitly designed
+// to be auditable.
 func (h *RoleHandler) RegisterRoutes(router fiber.Router) {
 	router.Get("/system-actions", h.ListSystemActions)
 
-	roles := router.Group("/roles", auth.CapabilityRequired("manage_roles"))
+	roles := router.Group("/roles")
 	roles.Get("/", h.List)
 	roles.Get("/:id", h.Get)
-	roles.Post("/", h.Create)
-	roles.Patch("/:id", h.Update)
-	roles.Delete("/:id", h.Delete)
+	manage := auth.CapabilityRequired("manage_roles")
+	roles.Post("/", manage, h.Create)
+	roles.Patch("/:id", manage, h.Update)
+	roles.Delete("/:id", manage, h.Delete)
 }
 
 // List handles GET /roles to retrieve roles. When `page` is absent, the full
