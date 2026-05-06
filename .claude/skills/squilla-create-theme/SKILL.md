@@ -55,18 +55,43 @@ Squilla used to swallow these silently. Most are now fail-loud (warnings in
 `docker compose logs app`, or hard rejection at theme load). Read them once
 so you don't have to debug them.
 
-### The asymmetry cheatsheet
+### Field schema vocabulary (canonical)
 
-| Where | Wrapping key | Field-key style | Options style | Term value |
-|---|---|---|---|---|
-| `nodes.create({...})` (top level) | **`fields_data:`** | n/a (your own keys) | n/a | `{slug, name}` object |
-| Inside `blocks_data: [{type, ...}]` | **`fields:`** | n/a | n/a | `{slug, name}` object |
-| `block.json` `field_schema` | n/a | **`key:`** | **`["a","b"]`** strings only | `term_node_type` required |
-| `nodetypes.register({field_schema:[...]})` | n/a | **`name:`** | strings or `{value,label}` ok | same |
+Every schema-bearing surface — `block.json`, `nodetypes.register`,
+`taxonomies.register`, theme settings JSON — uses the same homogeneous,
+recursive shape. Nest as deeply as you want; the shape never changes.
+
+| Key | Meaning |
+|---|---|
+| `name` | identifier used as the data key (template / API access) |
+| `title` | human-facing label shown in the editor |
+| `type` | field type — `string`, `array`, `object`, `reference`, `image`, ... |
+| `description` | helper text rendered under the input |
+| `initialValue` | default applied to fresh entries |
+| `fields` | nested fields (used by `object` and `array` types) |
+| `required`, `options`, `min`, `max`, `taxonomy`, `node_types`, ... | type-specific config |
+
+The back-compat reader still accepts the legacy aliases (`key`, `label`,
+`help`, `default`, `sub_fields`, `field_schema`, types
+`text`/`repeater`/`group`/`node`) but write the canonical names in any
+new schema.
+
+### The blocks_data vs fields_data cheatsheet
+
+| Where | Wrapping key | Term value |
+|---|---|---|
+| `nodes.create({...})` (top level) | **`fields_data:`** | `{slug, name}` object |
+| Inside `blocks_data: [{type, ...}]` | **`fields:`** (the actual block-instance values) | `{slug, name}` object |
 
 **Mismatching `fields:` vs `fields_data:` was the #1 silent data drop.** The
 runtime now logs a warning when it sees the wrong one — watch the app logs
 during seed runs.
+
+Note: the `fields:` key inside a `blocks_data` entry is the BLOCK INSTANCE'S
+DATA — the actual values for each declared field. The block's *schema* lives
+in `block.json` under the same `fields:` key (since the refactor — formerly
+`field_schema:`). The two `fields:` keys are at different levels and never
+collide: schema describes the shape, instance carries the values.
 
 **Object options on a `select` field in block.json** are now rejected at
 theme load with a hard error. They used to crash the admin with React error
@@ -124,7 +149,7 @@ routes. To redirect a public path either:
 | Change | What to do |
 |---|---|
 | Edit `view.html` (block) | Re-activate the theme: `core.theme.activate` |
-| Edit `block.json` `field_schema` | Re-activate. The `content_hash` gates resync — if your edit didn't change the hash, force it (see "Useful queries"). |
+| Edit `block.json` `fields` | Re-activate. The `content_hash` gates resync — if your edit didn't change the hash, force it (see "Useful queries"). |
 | Edit `layouts/*.html` or `partials/*.html` | Re-activate. Layouts/partials are loaded into the renderer cache at activation. |
 | `core.settings.set("homepage_node_id", …)` | Now publishes `setting.updated` and busts the cache. Older builds required a re-activate. |
 | `core.theme.deploy({body_base64})` | `theme.json` MUST declare `slug:` (regex `[A-Za-z0-9_-]+`). Local `make theme` works without it because the directory name is the slug; the deploy tool requires the field explicitly. |
@@ -235,10 +260,10 @@ themes/my-theme/
   "name": "Intro",
   "description": "Centered headline + body + optional image.",
   "category": "my-theme",
-  "field_schema": [
-    { "key": "heading", "label": "Heading", "type": "text",     "help": "The H1." },
-    { "key": "body",    "label": "Body",    "type": "textarea", "help": "1–3 sentences." },
-    { "key": "image",   "label": "Image",   "type": "image",    "help": "Hero photo." }
+  "fields": [
+    { "name": "heading", "title": "Heading", "type": "string",   "description": "The H1." },
+    { "name": "body",    "title": "Body",    "type": "textarea", "description": "1–3 sentences." },
+    { "name": "image",   "title": "Image",   "type": "image",    "description": "Hero photo." }
   ],
   "test_data": {
     "heading": "Welcome.",
@@ -333,18 +358,17 @@ The most common mismatches. Full table in `themes/README.md` §6.
 
 | `type` | `test_data` shape |
 |---|---|
-| `text`, `textarea`, `richtext`, `select`, `radio`, `color` | `"…"` (string) |
+| `string`, `textarea`, `richtext`, `select`, `radio`, `color` | `"…"` (string) |
 | `number` | `42` |
 | `toggle` / `checkbox` | `true` |
 | `link` | `{"text": "…", "url": "…", "target": "_self"}` |
 | `image` | `{"url": "theme-asset:<key>", "alt": "…"}` ← **NOT a bare string** |
 | `gallery` | array of `{url, alt}` objects |
 | `term` | `{"slug": "…", "name": "…"}` |
-| `node` | `{"slug": "…", "title": "…"}` (engine resolves `id`) |
+| `reference` | `{"slug": "…", "title": "…"}` (engine resolves `id`) |
 | `form_selector` | `"<form-slug>"` |
-| `repeater` | `[{...}, {...}]` (sub_fields define inner shape) |
-
-**Trap:** in Tengo schemas the field key is `name`; in `block.json` schemas it's `key`. Different parsers, same field types. See §6 + §8.1.
+| `array` | `[{...}, {...}]` (`fields:` declares inner shape) |
+| `object` | `{...}` (`fields:` declares inner shape) |
 
 ## Term-typed field lifecycle
 
@@ -381,7 +405,7 @@ any other field type. The lifecycle, end to end:
 
 3. **Field schema declares `term_node_type`:**
    ```json
-   { "key": "section", "type": "term",
+   { "name": "section", "title": "Section", "type": "term",
      "taxonomy": "doc_section",
      "term_node_type": "documentation" }
    ```
@@ -566,7 +590,7 @@ core.theme.checklist({ slug: "<your-theme-slug>" })
 It walks `themes/<slug>/` on disk and reports `pass | fail` for:
 
 - `theme.json` exists, parses, has `slug`, has a default layout.
-- Every `block.json` `field_schema` uses `key:` (not `name:`).
+- Every `block.json` `fields` array entry has a `name` and a known `type`.
 - Every `select`/`radio` field has plain string options.
 - Every `term`-typed field has `term_node_type` and `taxonomy`.
 - No `log.error(` in seed scripts (it's a Tengo parse error).

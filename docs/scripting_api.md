@@ -1273,9 +1273,13 @@ Register and inspect custom content types from a theme/extension script. The sam
 | `icon` | string | Lucide icon name (defaults to `file-text`) |
 | `description` | string | |
 | `taxonomies` | []string | Allowed taxonomy slugs |
-| `field_schema` | []map | Field definitions consumed by the editor |
+| `fields` | []map | Field definitions consumed by the editor (legacy alias `field_schema` still accepted) |
 | `url_prefixes` | map[string]string | Per-language URL prefix override |
 | `supports_blocks` | bool | If false, node has only `fields_data`, no block tree |
+
+Each field entry: `{ name, title, type, required?, options?, fields?, initialValue?, description? }`.
+Legacy keys (`key`, `label`, `help`, `default`, `sub_fields`) and legacy types
+(`text`, `repeater`, `group`, `node`) still load via the back-compat reader.
 
 ```tengo
 nodetypes := import("core/nodetypes")
@@ -1286,11 +1290,11 @@ nodetypes.register("recipe", {
     icon:         "chef-hat",
     description:  "Cooking recipe with ingredients and steps",
     taxonomies:   ["category", "cuisine"],
-    field_schema: [
-        { name: "prep_time", label: "Prep time (min)", type: "number" },
-        { name: "ingredients", label: "Ingredients", type: "repeater", fields: [
-            { name: "qty",  label: "Qty",  type: "text" },
-            { name: "name", label: "Item", type: "text" }
+    fields: [
+        { name: "prep_time", title: "Prep time (min)", type: "number" },
+        { name: "ingredients", title: "Ingredients", type: "array", fields: [
+            { name: "qty",  title: "Qty",  type: "string" },
+            { name: "name", title: "Item", type: "string" }
         ]}
     ],
     url_prefixes: { en: "recipes", fr: "recettes" }
@@ -1320,7 +1324,7 @@ Register taxonomies and CRUD their terms.
 | `hierarchical` | bool | True for nested categories, false for flat tags |
 | `show_ui` | bool | Whether the admin SPA exposes editing UI |
 | `node_types` | []string | Which node types this taxonomy applies to |
-| `field_schema` | []map | Per-term custom fields |
+| `fields` | []map | Per-term custom fields (legacy alias `field_schema` still accepted) |
 
 ```tengo
 tax := import("core/taxonomies")
@@ -1331,8 +1335,8 @@ tax.register("cuisine", {
     hierarchical: false,
     show_ui:      true,
     node_types:   ["recipe"],
-    field_schema: [
-        { name: "flag", label: "Flag emoji", type: "text" }
+    fields: [
+        { name: "flag", title: "Flag emoji", type: "string" }
     ]
 })
 ```

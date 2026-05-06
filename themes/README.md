@@ -371,22 +371,22 @@ blocks/<slug>/
   "category":    "hello-vietnam",                   // groups blocks in the picker
   "icon":        "image",                           // OPTIONAL — Lucide-style icon name; defaults to "square"
 
-  "field_schema": [
+  "fields": [
     {
-      "key":   "heading",        // identifier; use snake_case
-      "label": "Heading",        // editor-facing label
-      "type":  "text",           // see "Field types reference"
-      "help":  "The H1.",        // tooltip for the editor
+      "name":  "heading",        // identifier; use snake_case (data key)
+      "title": "Heading",        // editor-facing label
+      "type":  "string",         // see "Field types reference"
+      "description": "The H1.",  // tooltip for the editor
       "required": false          // OPTIONAL — admin enforces; default false
     },
     {
-      "key":   "items",
-      "label": "Cards",
-      "type":  "repeater",
-      "help":  "Up to 4 cards.",
-      "sub_fields": [             // ← repeater fields go here. KEY MUST BE "sub_fields", not "fields".
-        { "key": "title", "label": "Title", "type": "text" },
-        { "key": "color", "label": "Color", "type": "select", "options": ["red", "yellow", "green"] }
+      "name":  "items",
+      "title": "Cards",
+      "type":  "array",
+      "description": "Up to 4 cards.",
+      "fields": [                 // ← nested fields. Same shape as the top level.
+        { "name": "title", "title": "Title", "type": "string" },
+        { "name": "color", "title": "Color", "type": "select", "options": ["red", "yellow", "green"] }
       ]
     }
   ],
@@ -401,17 +401,36 @@ blocks/<slug>/
 }
 ```
 
+**Field-schema vocabulary** — every schema-bearing entity (block.json,
+nodetypes.register, taxonomies.register) uses the same homogeneous,
+recursive shape:
+
+| Key | Meaning |
+|---|---|
+| `name` | identifier used as the data key (template / API access) |
+| `title` | human-facing label shown in the editor |
+| `type` | field type (string, array, object, reference, image, ...) |
+| `description` | helper text rendered under the input |
+| `initialValue` | default applied to fresh entries |
+| `fields` | nested fields (for `object` and `array` types) |
+| `required`, `options`, `min`, `max`, ... | type-specific config |
+
+Legacy aliases (`key`, `label`, `help`, `default`, `sub_fields`,
+`field_schema`, types `text`/`repeater`/`group`/`node`) still load via
+the back-compat reader, but write the canonical names in any new
+schema.
+
 **Schema rules** (the engine and admin both rely on these):
 
 | Rule | Why |
 |---|---|
-| Every field read in `view.html` is declared in `field_schema` | Otherwise the admin form can't edit it. |
-| Every field in `field_schema` has a value in `test_data` | The block picker preview, the default-add behaviour, and the renderer canary all depend on it. |
+| Every field read in `view.html` is declared in `fields` | Otherwise the admin form can't edit it. |
+| Every field in `fields` has a value in `test_data` | The block picker preview, the default-add behaviour, and the renderer canary all depend on it. |
 | `test_data` shape exactly matches the field type | E.g. `image` is `{url, alt}` — not a bare string. |
-| Repeaters use `sub_fields`, not `fields` | The loader checks for `sub_fields`. |
+| Nested fields go under `fields` (not `sub_fields`) | Same key at every nesting level — homogeneous and recursive. |
 | `select` / `radio` / `checkbox` options are flat string arrays | Not `[{value, label}]` objects. |
-| `description` describes layout + behaviour | Editors lean on it; AI assistants can read it. |
-| `help` is set on every non-obvious field | Especially anything with a constrained shape (`color: red\|yellow\|green`). |
+| `description` (block-level) describes layout + behaviour | Editors lean on it; AI assistants can read it. |
+| `description` (field-level) is set on every non-obvious field | Especially anything with a constrained shape (`color: red\|yellow\|green`). |
 
 ### 5.2 `view.html` — the template
 
