@@ -83,93 +83,26 @@ func (e *Engine) GenerateBootManifest(user *models.User) (*BootManifest, error) 
 	// from bootExts; they have nothing for the SPA to load anyway.
 	bootExts := make([]BootExt, 0, len(exts))
 	for _, ext := range exts {
+		if !IsExtensionVisible(user, ext.Manifest) {
+			continue
+		}
+		// Re-parse to grab Entry/Components for the SPA's micro-frontend
+		// import map. IsExtensionVisible doesn't need these so it parses
+		// a different shape; the cost of the second decode is irrelevant
+		// next to the database fetch.
 		var manifest struct {
 			AdminUI *struct {
-				Entry              string   `json:"entry"`
-				Components         []string `json:"components"`
-				RequiredCapability string   `json:"required_capability"`
-				Section            string   `json:"section"`
-				FieldTypes         []struct {
-					Type string `json:"type"`
-				} `json:"field_types"`
-				Menu *struct {
-					Section            string `json:"section"`
-					RequiredCapability string `json:"required_capability"`
-					Children           []struct {
-						RequiredCapability string `json:"required_capability"`
-					} `json:"children"`
-				} `json:"menu"`
-				SettingsMenu []struct {
-					RequiredCapability string `json:"required_capability"`
-				} `json:"settings_menu"`
-				SiteSettingsMenu []struct {
-					RequiredCapability string `json:"required_capability"`
-				} `json:"site_settings_menu"`
+				Entry      string   `json:"entry"`
+				Components []string `json:"components"`
 			} `json:"admin_ui"`
 		}
 		_ = json.Unmarshal(ext.Manifest, &manifest)
-
-		// Backend-only — nothing for the SPA to load.
-		if manifest.AdminUI == nil {
-			continue
+		be := BootExt{Slug: ext.Slug, Name: ext.Name}
+		if manifest.AdminUI != nil {
+			be.Entry = manifest.AdminUI.Entry
+			be.Components = manifest.AdminUI.Components
 		}
-
-		visible := false
-		// Field-type-only extensions stay accessible to any admin user
-		// because the page editor needs them.
-		if len(manifest.AdminUI.FieldTypes) > 0 {
-			visible = true
-		}
-		if !visible && manifest.AdminUI.Menu != nil {
-			m := manifest.AdminUI.Menu
-			if len(m.Children) == 0 {
-				// Leaf menu — gate on its own required_capability.
-				if extNavPasses(user, m.Section, m.RequiredCapability) {
-					visible = true
-				}
-			} else {
-				// Group menu — visible if any child survives. Children
-				// inherit parent's required_capability when they don't
-				// declare their own (matches buildNavigation in
-				// engine_navigation.go).
-				for _, c := range m.Children {
-					childCap := c.RequiredCapability
-					if childCap == "" {
-						childCap = m.RequiredCapability
-					}
-					if extNavPasses(user, m.Section, childCap) {
-						visible = true
-						break
-					}
-				}
-			}
-		}
-		if !visible {
-			for _, item := range manifest.AdminUI.SettingsMenu {
-				if extNavPasses(user, "settings_menu", item.RequiredCapability) {
-					visible = true
-					break
-				}
-			}
-		}
-		if !visible {
-			for _, item := range manifest.AdminUI.SiteSettingsMenu {
-				if extNavPasses(user, "settings_menu", item.RequiredCapability) {
-					visible = true
-					break
-				}
-			}
-		}
-		if !visible {
-			continue
-		}
-
-		bootExts = append(bootExts, BootExt{
-			Slug:       ext.Slug,
-			Name:       ext.Name,
-			Entry:      manifest.AdminUI.Entry,
-			Components: manifest.AdminUI.Components,
-		})
+		bootExts = append(bootExts, be)
 	}
 
 	// Get taxonomies (for navigation sub-items under node types)

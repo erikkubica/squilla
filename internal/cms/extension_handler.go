@@ -12,6 +12,7 @@ import (
 	"squilla/internal/auth"
 	"squilla/internal/events"
 	"squilla/internal/models"
+	"squilla/internal/sdui"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -67,15 +68,30 @@ func (h *ExtensionHandler) SetThemeLoader(tl *ThemeLoader) {
 }
 
 // RegisterRoutes registers all admin API extension routes on the provided router group.
+//
+// Two distinct gates here:
+//
+//   - /extensions/manifests, /:slug/preview, /:slug/assets/*  — needed by
+//     every admin_access user so the SPA can load the micro-frontends
+//     they're entitled to. The Manifests handler does its own per-user
+//     visibility filtering so a manage_email-only role gets a manifest
+//     list containing only email-manager, not the full installed set.
+//     Without this split, a non-manage_settings user couldn't load any
+//     extension UI at all.
+//
+//   - everything else (list/install/delete/activate/deactivate/settings)
+//     stays gated by manage_settings — those are extension *management*
+//     endpoints and should be admin-only.
 func (h *ExtensionHandler) RegisterRoutes(router fiber.Router) {
+	router.Get("/extensions/manifests", h.Manifests)
+	router.Get("/extensions/:slug/preview", h.ServePreview)
+	router.Get("/extensions/:slug/assets/*", h.ServeAsset)
+
 	g := router.Group("/extensions", auth.CapabilityRequired("manage_settings"))
-	g.Get("/manifests", h.Manifests)
 	g.Get("/", h.List)
 	g.Get("/:slug/files", h.BrowseFiles)
 	g.Get("/:slug/settings", h.GetSettings)
 	g.Put("/:slug/settings", h.UpdateSettings)
-	g.Get("/:slug/preview", h.ServePreview)
-	g.Get("/:slug/assets/*", h.ServeAsset)
 	g.Get("/:slug", h.Get)
 	g.Post("/:slug/activate", h.Activate)
 	g.Post("/:slug/deactivate", h.Deactivate)
@@ -105,12 +121,23 @@ func (h *ExtensionHandler) Get(c *fiber.Ctx) error {
 	return api.Success(c, ext)
 }
 
-// Manifests handles GET /extensions/manifests — returns admin_ui manifests for all active extensions.
+// Manifests handles GET /extensions/manifests — returns admin_ui manifests
+// for the subset of active extensions the current user is entitled to load.
+//
+// Used by the SPA's ExtensionsProvider to build its micro-frontend import
+// map. The filter mirrors the boot-manifest filter (sdui.IsExtensionVisible)
+// so a manage_email-only role gets only email-manager's manifest, and
+// admin-only extensions never leak via this endpoint either. Without
+// the filter, this endpoint would either need manage_settings (locking
+// out legitimate non-admin users from their own extensions) or expose
+// the full installed set to anyone with admin_access.
 func (h *ExtensionHandler) Manifests(c *fiber.Ctx) error {
 	exts, err := h.loader.GetActive()
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list extensions")
 	}
+
+	user := auth.GetCurrentUser(c)
 
 	type manifestEntry struct {
 		Slug     string          `json:"slug"`
@@ -120,6 +147,9 @@ func (h *ExtensionHandler) Manifests(c *fiber.Ctx) error {
 
 	entries := make([]manifestEntry, 0, len(exts))
 	for _, ext := range exts {
+		if !sdui.IsExtensionVisible(user, ext.Manifest) {
+			continue
+		}
 		entries = append(entries, manifestEntry{
 			Slug:     ext.Slug,
 			Name:     ext.Name,
