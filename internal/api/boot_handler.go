@@ -58,7 +58,7 @@ func (h *BootHandler) Layout(c *fiber.Ctx) error {
 		userName = user.Email
 	}
 
-	layout, err := h.engine.GenerateLayout(pageSlug, params, userName)
+	layout, err := h.engine.GenerateLayout(pageSlug, params, userName, user)
 	if err != nil {
 		return Error(c, fiber.StatusInternalServerError, "LAYOUT_ERROR", "Failed to generate layout")
 	}

@@ -136,8 +136,12 @@ func (e *Engine) GenerateBootManifest(user *models.User) (*BootManifest, error) 
 
 // GenerateLayout creates a layout tree for a given page slug.
 // Results are cached until a state-change event invalidates them.
-// Dashboard layouts are never cached because they contain live data.
-func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userName string) (*LayoutNode, error) {
+// Dashboard layouts are never cached because they contain live data,
+// AND because their contents now vary per user (capability-aware
+// stat cards / quick actions / recent content).
+func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userName string, user *models.User) (*LayoutNode, error) {
+	// Per-user pages must skip cache — otherwise an admin's view leaks
+	// to a low-priv user. Anything that filters by capability lives here.
 	skipCache := pageSlug == "dashboard" || pageSlug == "node-list" || pageSlug == "taxonomy-terms" ||
 		pageSlug == "templates" || pageSlug == "layouts" || pageSlug == "block-types" || pageSlug == "layout-blocks" || pageSlug == "menus" ||
 		pageSlug == "themes" || pageSlug == "extensions" ||
@@ -156,7 +160,7 @@ func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userN
 
 	switch pageSlug {
 	case "dashboard":
-		layout = e.dashboardLayout(userName)
+		layout = e.dashboardLayout(userName, user)
 	case "list":
 		layout = e.listLayout(params["nodeType"])
 	case "content-types":
@@ -247,16 +251,54 @@ func firstName(full string) string {
 	return full
 }
 
-func (e *Engine) dashboardLayout(userName string) *LayoutNode {
-	var totalContent, published, drafts, totalUsers int64
-	e.db.Model(&models.ContentNode{}).Where("deleted_at IS NULL").Count(&totalContent)
-	e.db.Model(&models.ContentNode{}).Where("deleted_at IS NULL AND status = ?", "published").Count(&published)
-	e.db.Model(&models.ContentNode{}).Where("deleted_at IS NULL AND status = ?", "draft").Count(&drafts)
-	e.db.Model(&models.User{}).Count(&totalUsers)
+func (e *Engine) dashboardLayout(userName string, user *models.User) *LayoutNode {
+	// Build a set of node-type slugs the user can READ. Counts and
+	// recent-content listings will be scoped to this set so a member
+	// without access to "page" doesn't see page totals or page titles
+	// surfacing on the dashboard. nil set = no filter (admin role).
+	readableTypes := readableNodeTypeSet(e.db, user)
 
-	// 5 most recent content nodes (any status)
+	contentScope := func(q *gorm.DB) *gorm.DB {
+		q = q.Where("deleted_at IS NULL")
+		if readableTypes != nil {
+			if len(readableTypes) == 0 {
+				// No readable types — force empty result rather than
+				// leaking site-wide totals.
+				return q.Where("1 = 0")
+			}
+			q = q.Where("node_type IN ?", sliceFromSet(readableTypes))
+		}
+		return q
+	}
+
+	var totalContent, published, drafts int64
+	contentScope(e.db.Model(&models.ContentNode{})).Count(&totalContent)
+	contentScope(e.db.Model(&models.ContentNode{})).Where("status = ?", "published").Count(&published)
+	contentScope(e.db.Model(&models.ContentNode{})).Where("status = ?", "draft").Count(&drafts)
+
+	// Stat cards — base set is content-related, always shown to anyone
+	// who can read at least one node type. Users card joins only when
+	// the viewer has manage_users; otherwise we don't even count, no
+	// data to leak.
+	statCards := []LayoutNode{
+		{Type: "StatCard", Props: map[string]interface{}{"label": "Total Content", "value": fmt.Sprintf("%d", totalContent), "icon": "FileText", "color": "indigo"}},
+		{Type: "StatCard", Props: map[string]interface{}{"label": "Published", "value": fmt.Sprintf("%d", published), "icon": "Eye", "color": "emerald"}},
+		{Type: "StatCard", Props: map[string]interface{}{"label": "Drafts", "value": fmt.Sprintf("%d", drafts), "icon": "PenLine", "color": "amber"}},
+	}
+	if hasNavCap(user, "manage_users") {
+		var totalUsers int64
+		e.db.Model(&models.User{}).Count(&totalUsers)
+		statCards = append(statCards, LayoutNode{
+			Type:  "StatCard",
+			Props: map[string]interface{}{"label": "Users", "value": fmt.Sprintf("%d", totalUsers), "icon": "Users", "color": "violet"},
+		})
+	}
+
+	// Recent content / drafts — both scoped to readable types so authors
+	// with `default_node_access:read` on `page` only don't see the
+	// "Untitled draft on testimonial" entries.
 	var nodes []models.ContentNode
-	e.db.Where("deleted_at IS NULL").Order("updated_at DESC").Limit(5).Find(&nodes)
+	contentScope(e.db).Order("updated_at DESC").Limit(5).Find(&nodes)
 	recentNodes := make([]recentNode, 0, len(nodes))
 	for _, n := range nodes {
 		recentNodes = append(recentNodes, recentNode{
@@ -265,9 +307,8 @@ func (e *Engine) dashboardLayout(userName string) *LayoutNode {
 		})
 	}
 
-	// 5 most-recently-updated drafts → "Needs attention"
 	var draftNodes []models.ContentNode
-	e.db.Where("deleted_at IS NULL AND status = ?", "draft").
+	contentScope(e.db).Where("status = ?", "draft").
 		Order("updated_at DESC").Limit(5).Find(&draftNodes)
 	draftItems := make([]map[string]interface{}, 0, len(draftNodes))
 	for _, n := range draftNodes {
@@ -283,34 +324,58 @@ func (e *Engine) dashboardLayout(userName string) *LayoutNode {
 		})
 	}
 
+	// Quick actions — capability-gated. Same rules as the sidebar so a
+	// user who can't see Themes in the nav doesn't get a shortcut for
+	// it on the dashboard.
+	type quickAction struct {
+		label, path, icon, cap string
+	}
+	candidates := []quickAction{
+		{"Pages", "/admin/content/page", "FileText", ""},
+		{"Users", "/admin/security/users", "Users", "manage_users"},
+		{"Themes", "/admin/themes", "Palette", "manage_settings"},
+		{"Extensions", "/admin/extensions", "Puzzle", "manage_settings"},
+		{"Settings", "/admin/settings/site/general", "Settings", "manage_settings"},
+	}
+	actions := make([]map[string]interface{}, 0, len(candidates))
+	for _, qa := range candidates {
+		// "Pages" requires read access to the page node type, not a
+		// capability flag. Skip if user can't read pages.
+		if qa.label == "Pages" && !canReadNodeType(user, "page") {
+			continue
+		}
+		if qa.cap != "" && !hasNavCap(user, qa.cap) {
+			continue
+		}
+		actions = append(actions, map[string]interface{}{
+			"label": qa.label, "path": qa.path, "icon": qa.icon,
+		})
+	}
+
 	now := time.Now()
 	greeting := greetingFor(now) + ", " + firstName(userName)
+
+	// Banner CTA also has to honour capabilities — Create New Page
+	// makes no sense for someone who can't write pages.
+	bannerProps := map[string]interface{}{
+		"title":    greeting,
+		"subtitle": now.Format("Monday, January 2"),
+	}
+	if canWriteNodeType(user, "page") {
+		bannerProps["actionLabel"] = "Create New Page"
+		bannerProps["actionPath"] = "/admin/pages/new"
+	}
 
 	return &LayoutNode{
 		Type:  "VerticalStack",
 		Props: map[string]interface{}{"gap": 6},
 		Children: []LayoutNode{
+			{Type: "WelcomeBanner", Props: bannerProps},
 			{
-				Type: "WelcomeBanner",
-				Props: map[string]interface{}{
-					"title":       greeting,
-					"subtitle":    now.Format("Monday, January 2"),
-					"actionLabel": "Create New Page",
-					"actionPath":  "/admin/pages/new",
-				},
+				Type:     "Grid",
+				Props:    map[string]interface{}{"cols": len(statCards), "gap": 4},
+				Children: statCards,
 			},
-			// Stats
-			{
-				Type:  "Grid",
-				Props: map[string]interface{}{"cols": 4, "gap": 4},
-				Children: []LayoutNode{
-					{Type: "StatCard", Props: map[string]interface{}{"label": "Total Content", "value": fmt.Sprintf("%d", totalContent), "icon": "FileText", "color": "indigo"}},
-					{Type: "StatCard", Props: map[string]interface{}{"label": "Published", "value": fmt.Sprintf("%d", published), "icon": "Eye", "color": "emerald"}},
-					{Type: "StatCard", Props: map[string]interface{}{"label": "Drafts", "value": fmt.Sprintf("%d", drafts), "icon": "PenLine", "color": "amber"}},
-					{Type: "StatCard", Props: map[string]interface{}{"label": "Users", "value": fmt.Sprintf("%d", totalUsers), "icon": "Users", "color": "violet"}},
-				},
-			},
-			// Working area: drafts + quick actions
 			{
 				Type:  "Grid",
 				Props: map[string]interface{}{"cols": 2, "gap": 6},
@@ -324,31 +389,108 @@ func (e *Engine) dashboardLayout(userName string) *LayoutNode {
 						},
 					},
 					{
-						Type: "QuickActions",
-						Props: map[string]interface{}{
-							// Quick actions only link to kernel-owned admin pages.
-							// Extension-specific links (forms, media, etc.) are
-							// surfaced through each extension's manifest menu —
-							// hardcoding extension paths here would tie the
-							// dashboard to extensions that may not be installed.
-							"actions": []map[string]interface{}{
-								{"label": "Pages", "path": "/admin/content/page", "icon": "FileText"},
-								{"label": "Users", "path": "/admin/users", "icon": "Users"},
-								{"label": "Themes", "path": "/admin/themes", "icon": "Palette"},
-								{"label": "Extensions", "path": "/admin/extensions", "icon": "Puzzle"},
-								{"label": "Settings", "path": "/admin/settings", "icon": "Settings"},
-							},
-						},
+						Type:  "QuickActions",
+						Props: map[string]interface{}{"actions": actions},
 					},
 				},
 			},
-			// Recent content
 			{
 				Type:  "RecentContentTable",
 				Props: map[string]interface{}{"items": recentNodes},
 			},
 		},
 	}
+}
+
+// readableNodeTypeSet returns the set of node-type slugs the user has
+// READ (or write) access to. Returns nil when the user has unrestricted
+// access via default_node_access — caller should treat nil as "no
+// filter". Returns an empty (non-nil) map when the user can read no
+// node types — caller should produce zero-result queries.
+func readableNodeTypeSet(db *gorm.DB, user *models.User) map[string]bool {
+	if user == nil {
+		return map[string]bool{}
+	}
+	var caps map[string]interface{}
+	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
+		return map[string]bool{}
+	}
+
+	defAllowed := false
+	if def, ok := caps["default_node_access"].(map[string]interface{}); ok {
+		if a, ok := def["access"].(string); ok {
+			defAllowed = a == "read" || a == "write"
+		}
+	}
+
+	overrides := map[string]bool{}
+	if nodes, ok := caps["nodes"].(map[string]interface{}); ok {
+		for slug, ov := range nodes {
+			if om, ok := ov.(map[string]interface{}); ok {
+				if a, ok := om["access"].(string); ok {
+					overrides[slug] = a == "read" || a == "write"
+				}
+			}
+		}
+	}
+
+	if defAllowed && len(overrides) == 0 {
+		// Nothing to filter — user can read every type.
+		return nil
+	}
+
+	// Build the final allow-list by walking every registered node type.
+	// Any type without an override falls back to the default.
+	var nodeTypes []models.NodeType
+	db.Find(&nodeTypes)
+	allowed := make(map[string]bool, len(nodeTypes))
+	for _, nt := range nodeTypes {
+		if v, ok := overrides[nt.Slug]; ok {
+			if v {
+				allowed[nt.Slug] = true
+			}
+			continue
+		}
+		if defAllowed {
+			allowed[nt.Slug] = true
+		}
+	}
+	return allowed
+}
+
+// canWriteNodeType is the write-access counterpart to canReadNodeType.
+// Used to decide whether to render write CTAs (e.g. Create New Page).
+func canWriteNodeType(user *models.User, slug string) bool {
+	if user == nil {
+		return false
+	}
+	var caps map[string]interface{}
+	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
+		return false
+	}
+	if nodes, ok := caps["nodes"].(map[string]interface{}); ok {
+		if override, ok := nodes[slug].(map[string]interface{}); ok {
+			if a, ok := override["access"].(string); ok {
+				return a == "write"
+			}
+		}
+	}
+	if def, ok := caps["default_node_access"].(map[string]interface{}); ok {
+		if a, ok := def["access"].(string); ok {
+			return a == "write"
+		}
+	}
+	return false
+}
+
+// sliceFromSet returns the keys of m as a slice — convenience for
+// passing the set into a GORM IN clause.
+func sliceFromSet(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
 }
 
 func (e *Engine) listLayout(nodeType string) *LayoutNode {
