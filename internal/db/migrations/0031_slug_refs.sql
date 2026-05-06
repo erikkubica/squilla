@@ -5,31 +5,8 @@
 -- id FK is dropped, and drops the ON DELETE SET NULL cascade that used to wipe
 -- layout_id on every theme deactivate/reactivate.
 
--- ── media_files.slug ─────────────────────────────────────────────────────────
--- Nullable first so we can backfill without breaking existing rows.
-ALTER TABLE media_files ADD COLUMN IF NOT EXISTS slug TEXT;
-
--- Backfill: slugify original_name (fall back to filename).
-UPDATE media_files
-SET slug = regexp_replace(
-    lower(regexp_replace(coalesce(original_name, filename), '\.[^.]+$', '')),
-    '[^a-z0-9]+', '-', 'g'
-)
-WHERE slug IS NULL;
-
--- De-duplicate by appending -<id> to collisions.
-UPDATE media_files m
-SET slug = m.slug || '-' || m.id
-FROM (
-    SELECT slug
-    FROM media_files
-    WHERE slug IS NOT NULL
-    GROUP BY slug
-    HAVING count(*) > 1
-) dup
-WHERE m.slug = dup.slug;
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_media_files_slug ON media_files(slug);
+-- media_files.slug is handled by media-manager extension migration 007_media_files_slug.sql
+-- (moved out of core because media_files is an extension-owned table)
 
 -- ── content_nodes.layout_slug ────────────────────────────────────────────────
 ALTER TABLE content_nodes ADD COLUMN IF NOT EXISTS layout_slug TEXT;
