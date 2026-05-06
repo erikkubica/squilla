@@ -223,7 +223,14 @@ func seedRoles(db *gorm.DB) error {
 		// on activation — keeping them out of the kernel seed is what
 		// makes "disable the extension and see the kernel still work"
 		// actually true.
-		{Slug: "admin", Name: "Administrator", Description: "Full system access", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":true,"manage_roles":true,"manage_settings":true,"manage_menus":true,"manage_layouts":true,"default_node_access":{"access":"write","scope":"all"}}`)},
+		// "*":true is the wildcard that auto-grants every boolean
+		// capability — kernel and extension-contributed alike. This is
+		// what makes "install email-manager and the admin can immediately
+		// see Email" work without re-seeding. admin_access is still
+		// listed explicitly because the wildcard intentionally excludes
+		// it (so a misconfigured wildcard can't accidentally let a role
+		// into the admin shell).
+		{Slug: "admin", Name: "Administrator", Description: "Full system access", IsSystem: true, Capabilities: models.JSONB(`{"*":true,"admin_access":true,"manage_users":true,"manage_roles":true,"manage_settings":true,"manage_menus":true,"manage_layouts":true,"default_node_access":{"access":"write","scope":"all"}}`)},
 		{Slug: "editor", Name: "Editor", Description: "Can manage all content", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":true,"manage_layouts":false,"default_node_access":{"access":"write","scope":"all"}}`)},
 		{Slug: "author", Name: "Author", Description: "Can manage own content", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":true,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":false,"manage_layouts":false,"default_node_access":{"access":"write","scope":"own"}}`)},
 		{Slug: "member", Name: "Member", Description: "Public member, no admin access", IsSystem: true, Capabilities: models.JSONB(`{"admin_access":false,"manage_users":false,"manage_roles":false,"manage_settings":false,"manage_menus":false,"manage_layouts":false,"default_node_access":{"access":"read","scope":"all"}}`)},

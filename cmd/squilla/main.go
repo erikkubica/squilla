@@ -320,6 +320,20 @@ func main() {
 	settingsBridge.Subscribe()
 	settingsBridge.ReplayActive()
 
+	// Capability registry: kernel built-ins seeded in NewCapabilityRegistry.
+	// Extension and theme bridges layer in their own contributions on
+	// activation so the role editor surfaces the complete set without a
+	// hardcoded client-side list. Subscribe then ReplayActive matches the
+	// settings-bridge order — pending activations are caught by the
+	// subscription, already-active extensions/themes are picked up by
+	// the replay.
+	capabilityRegistry := auth.NewCapabilityRegistry()
+	capabilityBridge := cms.NewExtensionCapabilityBridge(extLoader, capabilityRegistry, eventBus)
+	capabilityBridge.Subscribe()
+	capabilityBridge.ReplayActive()
+	themeCapabilityBridge := cms.NewThemeCapabilityBridge(capabilityRegistry, eventBus)
+	themeCapabilityBridge.Subscribe()
+
 	// Drop-in watchers — eliminate the "drop a folder + restart" step. We
 	// only watch the data dirs because image-bundled dirs don't change at
 	// runtime (they're baked into the image). New theme/extension folders
@@ -401,6 +415,10 @@ func main() {
 	cms.NewFieldTypeHandler().RegisterRoutes(adminAPI)
 	publicHandler.RegisterAdminPreviewRoutes(adminAPI)
 	cms.NewRevisionHandler(database, contentSvc).RegisterRoutes(adminAPI)
+
+	// Capability registry — exposes the dynamic list (kernel + extension +
+	// theme) to the admin UI's role editor.
+	auth.NewCapabilityHandler(capabilityRegistry).RegisterRoutes(adminAPI)
 
 	// SDUI endpoints — boot manifest, layout trees, and SSE event stream.
 	bootHandler.RegisterRoutes(adminAPI)

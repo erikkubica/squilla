@@ -34,6 +34,13 @@
   "public_routes": [{ "method": "POST", "path": "/forms/submit/*" }],
   "admin_ui": {
     "entry": "admin-ui/dist/index.js",
+    "capabilities": [
+      {
+        "key": "manage_forms",
+        "label": "Manage Forms",
+        "description": "Create and edit form definitions; view, export, and delete submissions."
+      }
+    ],
     "routes": [
       { "path": "/", "component": "FormsList" },
       { "path": "/new", "component": "FormEditor" },
@@ -45,7 +52,8 @@
       "label": "Forms",
       "icon": "FormInput",
       "section": "content",
-      "position": "4"
+      "position": "4",
+      "required_capability": "manage_forms"
     },
     "field_types": [
       {

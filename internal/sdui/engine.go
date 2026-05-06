@@ -122,15 +122,24 @@ func (e *Engine) GenerateBootManifest(user *models.User) (*BootManifest, error) 
 		}
 		if !visible && manifest.AdminUI.Menu != nil {
 			m := manifest.AdminUI.Menu
-			if extNavPasses(user, m.Section, m.RequiredCapability) {
-				if len(m.Children) == 0 {
+			if len(m.Children) == 0 {
+				// Leaf menu — gate on its own required_capability.
+				if extNavPasses(user, m.Section, m.RequiredCapability) {
 					visible = true
-				} else {
-					for _, c := range m.Children {
-						if extNavPasses(user, m.Section, c.RequiredCapability) {
-							visible = true
-							break
-						}
+				}
+			} else {
+				// Group menu — visible if any child survives. Children
+				// inherit parent's required_capability when they don't
+				// declare their own (matches buildNavigation in
+				// engine_navigation.go).
+				for _, c := range m.Children {
+					childCap := c.RequiredCapability
+					if childCap == "" {
+						childCap = m.RequiredCapability
+					}
+					if extNavPasses(user, m.Section, childCap) {
+						visible = true
+						break
 					}
 				}
 			}

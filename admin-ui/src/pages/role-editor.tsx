@@ -31,21 +31,20 @@ import {
   updateRole,
   getNodeTypes,
   getSystemActions,
+  getCapabilities,
   type Role,
   type NodeType,
   type SystemAction,
+  type CapabilityDef,
 } from "@/api/client";
 
-// Capability keys and labels
-const CAPABILITY_KEYS = [
-  { key: "admin_access", label: "Admin Access" },
-  { key: "manage_users", label: "Manage Users" },
-  { key: "manage_roles", label: "Manage Roles" },
-  { key: "manage_settings", label: "Manage Settings" },
-  { key: "manage_menus", label: "Manage Menus" },
-  { key: "manage_layouts", label: "Manage Layouts" },
-  { key: "manage_email", label: "Manage Email" },
-] as const;
+// Capabilities are fetched dynamically from /admin/api/capabilities so
+// extension- and theme-contributed capabilities surface here without
+// requiring a client rebuild. The wildcard "*" capability is hidden from
+// this editor — it's a server-side superuser shortcut, not a per-role
+// toggle, and exposing it would let an operator accidentally promote a
+// role to omnipotent with one click.
+const HIDDEN_CAPABILITY_KEYS = new Set(["*"]);
 
 type AccessLevel = "default" | "none" | "read" | "write";
 type AccessScope = "all" | "own";
@@ -82,6 +81,7 @@ export default function RoleEditorPage() {
   const [role, setRole] = useState<Role | null>(null);
   const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
   const [systemActions, setSystemActions] = useState<SystemAction[]>([]);
+  const [capabilities, setCapabilities] = useState<CapabilityDef[]>([]);
 
   // Form state -- basic info
   const [formName, setFormName] = useState("");
@@ -110,17 +110,21 @@ export default function RoleEditorPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [nodeTypesData, actionsData] = await Promise.all([
+        const [nodeTypesData, actionsData, capabilitiesData] = await Promise.all([
           getNodeTypes(),
           getSystemActions(),
+          getCapabilities(),
         ]);
         setNodeTypes(nodeTypesData);
         setSystemActions(actionsData);
+        // Filter out internal-only flags ("*" wildcard) so the editor
+        // never offers them as toggles.
+        setCapabilities(capabilitiesData.filter((c) => !HIDDEN_CAPABILITY_KEYS.has(c.key)));
 
         if (isEditing) {
           const roleData = await getRole(Number(id));
           setRole(roleData);
-          populateForm(roleData);
+          populateForm(roleData, capabilitiesData);
         }
       } catch {
         toast.error("Failed to load data");
@@ -131,16 +135,20 @@ export default function RoleEditorPage() {
     fetchData();
   }, [id, isEditing]);
 
-  function populateForm(r: Role) {
+  function populateForm(r: Role, capabilityList: CapabilityDef[] = capabilities) {
     setFormName(r.name);
     setFormSlug(r.slug);
     setFormDescription(r.description);
     setAutoSlug(false);
 
-    // Parse capabilities
+    // Parse capabilities — initialize each known key from the role's
+    // stored map. Unknown keys present on the role (e.g. caps from a
+    // since-removed extension) are dropped silently rather than
+    // resurrected as orphaned toggles.
     const caps: FormCapabilities = {};
-    for (const { key } of CAPABILITY_KEYS) {
-      caps[key] = !!r.capabilities?.[key];
+    for (const def of capabilityList) {
+      if (HIDDEN_CAPABILITY_KEYS.has(def.key)) continue;
+      caps[def.key] = !!r.capabilities?.[def.key];
     }
     setFormCaps(caps);
 
@@ -170,11 +178,23 @@ export default function RoleEditorPage() {
   }
 
   function buildCapabilities(): Record<string, unknown> {
-    const capabilities: Record<string, unknown> = {};
+    const out: Record<string, unknown> = {};
 
-    // Boolean capabilities
-    for (const { key } of CAPABILITY_KEYS) {
-      capabilities[key] = !!formCaps[key];
+    // Preserve flags we don't manage in the form (wildcards, future
+    // server-side meta) so editing a role through the UI doesn't strip
+    // them. Without this round-trip, saving an admin role here would
+    // accidentally drop the "*" wildcard and break inheritance.
+    if (role?.capabilities) {
+      for (const [key, value] of Object.entries(role.capabilities)) {
+        if (HIDDEN_CAPABILITY_KEYS.has(key)) {
+          out[key] = value;
+        }
+      }
+    }
+
+    // Boolean capabilities — only known keys from the registry.
+    for (const def of capabilities) {
+      out[def.key] = !!formCaps[def.key];
     }
 
     // Node access
@@ -185,21 +205,21 @@ export default function RoleEditorPage() {
       nodes[slug] = { access: entry.access, scope: entry.scope };
     }
     if (Object.keys(nodes).length > 0) {
-      capabilities.nodes = nodes;
+      out.nodes = nodes;
     }
 
     // Default node access
-    capabilities.default_node_access = {
+    out.default_node_access = {
       access: formDefaultNodeAccess.access,
       scope: formDefaultNodeAccess.scope,
     };
 
     // Email subscriptions
     if (formEmailSubs.size > 0) {
-      capabilities.email_subscriptions = Array.from(formEmailSubs);
+      out.email_subscriptions = Array.from(formEmailSubs);
     }
 
-    return capabilities;
+    return out;
   }
 
   async function handleSave(e: FormEvent) {
@@ -410,24 +430,52 @@ export default function RoleEditorPage() {
           </CardContent>
         </Card>
 
-        {/* Card 2: Capabilities */}
+        {/* Card 2: Capabilities — grouped by source so kernel built-ins,
+            extension-contributed flags, and theme-contributed flags are
+            visually separated. The list is fetched at mount from
+            /admin/api/capabilities so installing an extension surfaces
+            its capability toggles here without a client rebuild. */}
         <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader title="Capabilities" />
-          <CardContent>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {CAPABILITY_KEYS.map(({ key, label }) => (
-                <label
-                  key={key}
-                  className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-border px-3 py-2 hover:bg-muted transition-colors"
-                >
-                  <span className="text-sm font-medium text-foreground truncate">{label}</span>
-                  <Switch
-                    checked={!!formCaps[key]}
-                    onCheckedChange={() => toggleCap(key)}
-                  />
-                </label>
+          <CardContent className="space-y-6">
+            {Object.entries(
+              capabilities.reduce<Record<string, CapabilityDef[]>>((acc, def) => {
+                (acc[def.source] ||= []).push(def);
+                return acc;
+              }, {})
+            )
+              .sort(([a], [b]) => {
+                if (a === "kernel") return -1;
+                if (b === "kernel") return 1;
+                return a.localeCompare(b);
+              })
+              .map(([source, defs]) => (
+                <div key={source} className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {source === "kernel" ? "Built-in" : source.replace(":", " · ")}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {defs.map((def) => (
+                      <label
+                        key={def.key}
+                        className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-border px-3 py-2 hover:bg-muted transition-colors"
+                        title={def.description || def.key}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">{def.label}</div>
+                          {def.description ? (
+                            <div className="text-xs text-muted-foreground truncate">{def.description}</div>
+                          ) : null}
+                        </div>
+                        <Switch
+                          checked={!!formCaps[def.key]}
+                          onCheckedChange={() => toggleCap(def.key)}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
-            </div>
           </CardContent>
         </Card>
 

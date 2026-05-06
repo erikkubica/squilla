@@ -78,11 +78,24 @@ func GetCurrentUser(c *fiber.Ctx) *models.User {
 }
 
 // HasCapability checks if the user's role has a specific boolean capability.
+// A role with the "*" wildcard set to true is treated as having every
+// boolean capability — this is how the seeded admin role inherits new
+// extension-contributed capabilities (manage_email, manage_forms, …)
+// without having to be re-seeded every time an extension activates.
+// admin_access is intentionally NOT covered by "*": that flag exists
+// to declare the role can enter the admin shell at all, and a wildcard
+// match here would let any role with "*" silently bypass the gate even
+// when the operator has explicitly toggled admin_access off.
 func HasCapability(user *models.User, capability string) bool {
 	if user == nil {
 		return false
 	}
 	caps := ParseCapabilities(user.Role.Capabilities)
+	if capability != "admin_access" {
+		if star, ok := caps["*"].(bool); ok && star {
+			return true
+		}
+	}
 	val, ok := caps[capability]
 	if !ok {
 		return false

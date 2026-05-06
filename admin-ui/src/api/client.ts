@@ -1214,6 +1214,25 @@ export async function getSystemActions(): Promise<SystemAction[]> {
   return res.data;
 }
 
+/**
+ * CapabilityDef describes one role capability the kernel knows about.
+ * The list is dynamic — kernel built-ins are joined by extension- and
+ * theme-contributed entries when those activate, so consumers must
+ * fetch via getCapabilities() rather than rely on a hardcoded array.
+ */
+export interface CapabilityDef {
+  key: string;
+  label: string;
+  description?: string;
+  source: string;
+}
+
+/** Fetch the registered capability list (kernel + extension + theme). */
+export async function getCapabilities(): Promise<CapabilityDef[]> {
+  const res = await api<ApiResponse<CapabilityDef[]>>("/admin/api/capabilities");
+  return res.data;
+}
+
 // --- Users ---
 
 export async function getUsers(params?: { page?: number; per_page?: number }): Promise<{ data: User[]; meta: PaginationMeta }> {

@@ -29,6 +29,18 @@
     ],
     "admin_ui": {
         "entry": "admin-ui/dist/index.js",
+        "capabilities": [
+            {
+                "key": "manage_email",
+                "label": "Manage Email",
+                "description": "Edit email templates, layouts, rules, and provider settings."
+            },
+            {
+                "key": "view_email_logs",
+                "label": "View Email Logs",
+                "description": "Read the email delivery log without granting template / rule write access."
+            }
+        ],
         "routes": [
             {"path": "/templates", "component": "EmailTemplates"},
             {"path": "/templates/new", "component": "EmailTemplateEditor"},
@@ -45,11 +57,12 @@
             "icon": "Mail",
             "position": "6",
             "section": "settings",
+            "required_capability": "manage_email",
             "children": [
                 {"label": "Templates", "route": "/admin/ext/email-manager/templates", "icon": "LayoutTemplate"},
                 {"label": "Layouts", "route": "/admin/ext/email-manager/layouts", "icon": "Layout"},
                 {"label": "Rules", "route": "/admin/ext/email-manager/rules", "icon": "Gavel"},
-                {"label": "Logs", "route": "/admin/ext/email-manager/logs", "icon": "ScrollText"},
+                {"label": "Logs", "route": "/admin/ext/email-manager/logs", "icon": "ScrollText", "required_capability": "view_email_logs"},
                 {"label": "Settings", "route": "/admin/ext/email-manager/settings", "icon": "Settings"}
             ]
         }

@@ -39,7 +39,10 @@ func canReadNodeType(user *models.User, slug string) bool {
 
 // hasNavCap checks a single boolean capability on the user's role. Empty
 // capability string = no gate (item always shows). Mirrors
-// auth.HasCapability without the import (see canReadNodeType for why).
+// auth.HasCapability without the import (see canReadNodeType for why),
+// including the "*" wildcard rule that lets the seeded admin role
+// inherit extension-contributed capabilities. admin_access is excluded
+// from the wildcard for the same reason as in auth.HasCapability.
 func hasNavCap(user *models.User, capability string) bool {
 	if capability == "" {
 		return true
@@ -50,6 +53,11 @@ func hasNavCap(user *models.User, capability string) bool {
 	var caps map[string]interface{}
 	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
 		return false
+	}
+	if capability != "admin_access" {
+		if star, ok := caps["*"].(bool); ok && star {
+			return true
+		}
 	}
 	v, ok := caps[capability].(bool)
 	return ok && v
@@ -255,16 +263,28 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 			continue
 		}
 
-		if m := manifest.AdminUI.Menu; m != nil && extNavPasses(user, m.Section, m.RequiredCapability) {
+		// Group menus (with children) are gated by child visibility, not
+		// the parent's own required_capability — that lets an extension
+		// declare a parent gate of `manage_email` for its overall area
+		// while still surfacing a `view_email_logs`-only sub-page to a
+		// log-auditor role. The parent's required_capability acts as a
+		// DEFAULT for any child that doesn't declare its own. Leaf menus
+		// (no children) still use the parent's gate directly.
+		if m := manifest.AdminUI.Menu; m != nil && (len(m.Children) > 0 || extNavPasses(user, m.Section, m.RequiredCapability)) {
 			var navItem NavItem
 			emit := true
 			if len(m.Children) > 0 {
 				children := make([]NavItem, 0, len(m.Children))
 				for _, c := range m.Children {
-					// Children inherit the parent's section for default
-					// capability resolution — a child of a settings menu
-					// is still admin-only unless it declares otherwise.
-					if !extNavPasses(user, m.Section, c.RequiredCapability) {
+					// Resolve child cap: own > parent's default > section
+					// default (the latter two via extNavPasses' empty-string
+					// branch). The cascade lets manifest authors set a
+					// reasonable default at the parent and override per-row.
+					childCap := c.RequiredCapability
+					if childCap == "" {
+						childCap = m.RequiredCapability
+					}
+					if !extNavPasses(user, m.Section, childCap) {
 						continue
 					}
 					children = append(children, NavItem{
