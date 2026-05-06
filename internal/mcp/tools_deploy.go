@@ -22,7 +22,10 @@ import (
 // chmod, size cap) applies regardless of who is calling.
 func (s *Server) registerDeployTools() {
 	mgmt := s.deps.ThemeMgmtSvc
-	extHandler := s.deps.ExtensionHandler
+	// NOTE: do NOT capture s.deps.ExtensionHandler into a local — it is
+	// wired AFTER construction via SetExtensionHandler() (server.go).
+	// Each closure reads s.deps.ExtensionHandler at call time so we see
+	// the post-wired value.
 
 	s.addTool(mcp.NewTool("core.theme.deploy",
 		mcp.WithDescription("Deploy a theme from a base64-encoded ZIP archive. The archive must contain a theme.json (at root or one level deep) declaring a unique 'slug'. The theme is unpacked into themes/<slug>/ via an atomic directory swap, registered with the database, and — if activate=true — activated immediately (no server restart). Use this to ship themes that live outside the primary git repo (local design handoff → MCP deploy → ready). Max archive size: 50 MB. Slug must match [A-Za-z0-9_-]+.\n\nFor archives >5 MB prefer core.theme.deploy_init + core.theme.deploy_finalize — direct binary PUT, no base64 overhead, 200 MB cap."),
@@ -68,6 +71,7 @@ func (s *Server) registerDeployTools() {
 		mcp.WithString("body_base64", mcp.Required(), mcp.Description("Base64-encoded ZIP of the extension directory. extension.json may sit at the archive root or in a single wrapper directory; both layouts are normalised on disk.")),
 		mcp.WithBoolean("activate", mcp.Description("If true, hot-activate the extension immediately after install. Default false — register only, leaving the extension inactive.")),
 	), "full", func(ctx context.Context, args map[string]any) (any, error) {
+		extHandler := s.deps.ExtensionHandler
 		if extHandler == nil {
 			return nil, fmt.Errorf("extension handler not wired")
 		}
@@ -105,6 +109,7 @@ func (s *Server) registerDeployTools() {
 		mcp.WithDescription("Delete an extension by slug. Wipes the data-dir copy (extensions/<slug> on disk) and removes the database row. Bundled extensions in the read-only image dir are not touched — the next scan re-registers them as fresh inactive entries, so this is effectively 'uninstall the operator override'.\n\nPrecondition: the extension MUST be inactive. Call core.extension.deactivate(slug) first; this tool will not auto-deactivate."),
 		mcp.WithString("slug", mcp.Required(), mcp.Description("Extension slug to delete")),
 	), "full", func(ctx context.Context, args map[string]any) (any, error) {
+		extHandler := s.deps.ExtensionHandler
 		if extHandler == nil {
 			return nil, fmt.Errorf("extension handler not wired")
 		}

@@ -59,7 +59,10 @@ func (s *Server) finalizeRow(token, sha string, kind uploads.Kind) (*uploads.Pen
 func (s *Server) registerUploadTools() {
 	api := s.deps.CoreAPI
 	mgmt := s.deps.ThemeMgmtSvc
-	extHandler := s.deps.ExtensionHandler
+	// NOTE: do NOT capture s.deps.ExtensionHandler into a local — it is
+	// wired AFTER construction via SetExtensionHandler() (see server.go).
+	// Reading s.deps.ExtensionHandler inside the closure ensures we see
+	// the post-wired value at call time.
 
 	// ─── Media ───────────────────────────────────────────────────────────
 	s.addTool(mcp.NewTool("core.media.upload_init",
@@ -260,6 +263,7 @@ func (s *Server) registerUploadTools() {
 		mcp.WithString("sha256", mcp.Description("Optional. Reject finalize if it doesn't match the hash computed during PUT.")),
 		mcp.WithBoolean("activate", mcp.Description("If true, hot-activate the extension immediately after install.")),
 	), "full", func(ctx context.Context, args map[string]any) (any, error) {
+		extHandler := s.deps.ExtensionHandler
 		if extHandler == nil {
 			return nil, fmt.Errorf("extension handler not wired")
 		}
