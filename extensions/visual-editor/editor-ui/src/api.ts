@@ -11,7 +11,11 @@ export interface BlockField {
   description?: string;
   initialValue?: unknown;
   fields?: BlockField[];
-  options?: Array<{ value: string; label: string }>;
+  /** Canonical kernel format is a plain string array. We accept the
+   *  legacy {value,label} object form too so older schemas keep
+   *  rendering, but theme_loader_register now rejects object options
+   *  on activation. */
+  options?: Array<string | { value: string; label: string }>;
 }
 
 export interface BlockType {

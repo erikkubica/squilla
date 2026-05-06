@@ -151,7 +151,7 @@ function Control({
         </label>
       );
     case "select": {
-      const options = field.options ?? [];
+      const options = normalizeOptions(field.options);
       return (
         <select
           id={id}
@@ -167,7 +167,7 @@ function Control({
       );
     }
     case "radio": {
-      const options = field.options ?? [];
+      const options = normalizeOptions(field.options);
       return (
         <div className="vedit-radio-group" role="radiogroup">
           {options.map((o) => (
@@ -186,8 +186,7 @@ function Control({
       );
     }
     case "checkbox": {
-      // Checkbox group — multi-select.
-      const options = field.options ?? [];
+      const options = normalizeOptions(field.options);
       const arr: string[] = Array.isArray(value) ? (value as string[]) : [];
       const toggle = (val: string): void => {
         if (arr.includes(val)) onChange(arr.filter((x) => x !== val));
@@ -234,4 +233,18 @@ function Control({
         />
       );
   }
+}
+
+/**
+ * Normalize a field's options array into {value, label} pairs. Canonical
+ * schemas store plain strings (`["heads-up", "note"]`); legacy object
+ * shape is tolerated for backward compatibility with older blocks.
+ */
+function normalizeOptions(
+  options: Array<string | { value: string; label: string }> | undefined,
+): Array<{ value: string; label: string }> {
+  if (!options) return [];
+  return options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label },
+  );
 }
