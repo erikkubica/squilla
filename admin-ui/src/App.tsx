@@ -11,7 +11,7 @@ import { SduiBlockTypesPage } from "@/pages/sdui-block-types";
 import { SduiLayoutBlocksPage } from "@/pages/sdui-layout-blocks";
 import { SduiMenusPage } from "@/pages/sdui-menus";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import { getNodeAccess } from "@/api/client";
+import { getNodeAccess, hasCapability } from "@/api/client";
 import { SduiThemesPage } from "@/pages/sdui-themes";
 import { SduiNodeEditorPage } from "@/pages/sdui-node-editor";
 import { SduiExtensionsPage } from "@/pages/sdui-extensions";
@@ -76,6 +76,40 @@ function NodeAccessGuard({
   return <>{children}</>;
 }
 
+/**
+ * CapabilityGuard redirects authenticated users without the required
+ * capability back to the dashboard. The server-side API gates still
+ * 403 every call, but rendering the page chrome (sidebar, breadcrumbs,
+ * empty list) only to fail on data fetch is poor UX and arguably a
+ * minor information disclosure (page exists, page is named X).
+ *
+ * Usage: wrap inside ProtectedRoute so anonymous users still hit the
+ * login flow first:
+ *   <ProtectedRoute>
+ *     <CapabilityGuard requires="manage_users">
+ *       <SduiUsersPage />
+ *     </CapabilityGuard>
+ *   </ProtectedRoute>
+ *
+ * `requires` accepts a single capability or an array (any-of). For
+ * "all-of" semantics nest two guards.
+ */
+function CapabilityGuard({
+  requires,
+  children,
+}: {
+  requires: string | string[];
+  children: React.ReactNode;
+}) {
+  const { user } = useAuth();
+  const required = Array.isArray(requires) ? requires : [requires];
+  const allowed = required.some((cap) => hasCapability(user, cap));
+  if (!allowed) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
 function DynamicNodeList() {
   const { nodeType } = useParams<{ nodeType: string }>();
   const type = nodeType || "page";
@@ -95,19 +129,17 @@ function AppRoutes() {
       <Route path="/admin/dashboard" element={<ProtectedRoute><SduiDashboardPage /></ProtectedRoute>} />
 
       {/* Content lists */}
-      <Route path="/admin/content-types" element={<ProtectedRoute><SduiContentTypesPage /></ProtectedRoute>} />
-      <Route path="/admin/taxonomies" element={<ProtectedRoute><SduiTaxonomiesPage /></ProtectedRoute>} />
       <Route path="/admin/content/:nodeType" element={<ProtectedRoute><DynamicNodeList /></ProtectedRoute>} />
       <Route path="/admin/content/:nodeType/taxonomies/:taxonomy" element={<ProtectedRoute><SduiTaxonomyTermsPage /></ProtectedRoute>} />
       <Route path="/admin/pages" element={<ProtectedRoute><SduiNodeListPage nodeTypeOverride="page" /></ProtectedRoute>} />
       <Route path="/admin/posts" element={<ProtectedRoute><SduiNodeListPage nodeTypeOverride="post" /></ProtectedRoute>} />
-      <Route path="/admin/templates" element={<ProtectedRoute><SduiTemplatesPage /></ProtectedRoute>} />
-      <Route path="/admin/layouts" element={<ProtectedRoute><SduiLayoutsPage /></ProtectedRoute>} />
-      <Route path="/admin/block-types" element={<ProtectedRoute><SduiBlockTypesPage /></ProtectedRoute>} />
-      <Route path="/admin/layout-blocks" element={<ProtectedRoute><SduiLayoutBlocksPage /></ProtectedRoute>} />
-      <Route path="/admin/menus" element={<ProtectedRoute><SduiMenusPage /></ProtectedRoute>} />
-      <Route path="/admin/themes" element={<ProtectedRoute><SduiThemesPage /></ProtectedRoute>} />
-      <Route path="/admin/extensions" element={<ProtectedRoute><SduiExtensionsPage /></ProtectedRoute>} />
+      <Route path="/admin/templates" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiTemplatesPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/layouts" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiLayoutsPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/block-types" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiBlockTypesPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/layout-blocks" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiLayoutBlocksPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/menus" element={<ProtectedRoute><CapabilityGuard requires="manage_menus"><SduiMenusPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/themes" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiThemesPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/extensions" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiExtensionsPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Node editor */}
       <Route path="/admin/pages/new" element={<ProtectedRoute><SduiNodeEditorPage nodeTypeProp="page" /></ProtectedRoute>} />
@@ -118,34 +150,36 @@ function AppRoutes() {
       <Route path="/admin/content/:nodeType/:id/edit" element={<ProtectedRoute><SduiNodeEditorPage /></ProtectedRoute>} />
 
       {/* Content type editors */}
-      <Route path="/admin/content-types/new" element={<ProtectedRoute><SduiNodeTypeEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/content-types/:id/edit" element={<ProtectedRoute><SduiNodeTypeEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/content-types" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiContentTypesPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/content-types/new" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiNodeTypeEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/content-types/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiNodeTypeEditorPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Block type editors */}
-      <Route path="/admin/block-types/new" element={<ProtectedRoute><SduiBlockTypeEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/block-types/:id/edit" element={<ProtectedRoute><SduiBlockTypeEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/block-types/new" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiBlockTypeEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/block-types/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiBlockTypeEditorPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Template editors */}
-      <Route path="/admin/templates/new" element={<ProtectedRoute><SduiTemplateEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/templates/:id/edit" element={<ProtectedRoute><SduiTemplateEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/templates/new" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiTemplateEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/templates/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiTemplateEditorPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Layout editors */}
-      <Route path="/admin/layouts/new" element={<ProtectedRoute><SduiLayoutEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/layouts/:id" element={<ProtectedRoute><SduiLayoutEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/layouts/new" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiLayoutEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/layouts/:id" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiLayoutEditorPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Layout block editors */}
-      <Route path="/admin/layout-blocks/new" element={<ProtectedRoute><SduiLayoutBlockEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/layout-blocks/:id" element={<ProtectedRoute><SduiLayoutBlockEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/layout-blocks/:id/edit" element={<ProtectedRoute><SduiLayoutBlockEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/layout-blocks/new" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiLayoutBlockEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/layout-blocks/:id" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiLayoutBlockEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/layout-blocks/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_layouts"><SduiLayoutBlockEditorPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Menu editors */}
-      <Route path="/admin/menus/new" element={<ProtectedRoute><SduiMenuEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/menus/:id" element={<ProtectedRoute><SduiMenuEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/menus/:id/edit" element={<ProtectedRoute><SduiMenuEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/menus/new" element={<ProtectedRoute><CapabilityGuard requires="manage_menus"><SduiMenuEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/menus/:id" element={<ProtectedRoute><CapabilityGuard requires="manage_menus"><SduiMenuEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/menus/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_menus"><SduiMenuEditorPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Taxonomy editors */}
-      <Route path="/admin/taxonomies/new" element={<ProtectedRoute><SduiTaxonomyEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/taxonomies/:slug/edit" element={<ProtectedRoute><SduiTaxonomyEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/taxonomies" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiTaxonomiesPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/taxonomies/new" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiTaxonomyEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/taxonomies/:slug/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiTaxonomyEditorPage /></CapabilityGuard></ProtectedRoute>} />
 
       {/* Term editors */}
       <Route path="/admin/content/:nodeType/taxonomies/:taxonomy/new" element={<ProtectedRoute><SduiTermEditorPage /></ProtectedRoute>} />
@@ -155,11 +189,11 @@ function AppRoutes() {
           by `section`. /admin/settings/site lands on General by redirect so
           deep links keep working. */}
       <Route path="/admin/settings/site" element={<Navigate to="/admin/settings/site/general" replace />} />
-      <Route path="/admin/settings/site/general" element={<ProtectedRoute><SduiSiteSettingsPage section="general" /></ProtectedRoute>} />
-      <Route path="/admin/settings/site/seo" element={<ProtectedRoute><SduiSiteSettingsPage section="seo" /></ProtectedRoute>} />
-      <Route path="/admin/settings/site/robots" element={<ProtectedRoute><SduiSiteSettingsPage section="robots" /></ProtectedRoute>} />
-      <Route path="/admin/settings/site/advanced" element={<ProtectedRoute><SduiSiteSettingsPage section="advanced" /></ProtectedRoute>} />
-      <Route path="/admin/settings/site/languages" element={<ProtectedRoute><SduiLanguagesPage /></ProtectedRoute>} />
+      <Route path="/admin/settings/site/general" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiSiteSettingsPage section="general" /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/settings/site/seo" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiSiteSettingsPage section="seo" /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/settings/site/robots" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiSiteSettingsPage section="robots" /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/settings/site/advanced" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiSiteSettingsPage section="advanced" /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/settings/site/languages" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiLanguagesPage /></CapabilityGuard></ProtectedRoute>} />
       {/* Languages used to live at /admin/languages — keep the old path
           working as an alias so bookmarks and external links don't 404. */}
       <Route path="/admin/languages" element={<Navigate to="/admin/settings/site/languages" replace />} />
@@ -168,20 +202,20 @@ function AppRoutes() {
           paths; legacy /admin/{users,roles,mcp-tokens} keep redirecting
           for muscle memory. */}
       <Route path="/admin/security" element={<Navigate to="/admin/security/users" replace />} />
-      <Route path="/admin/security/users" element={<ProtectedRoute><SduiUsersPage /></ProtectedRoute>} />
-      <Route path="/admin/security/users/new" element={<ProtectedRoute><SduiUserEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/security/users/:id/edit" element={<ProtectedRoute><SduiUserEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/security/roles" element={<ProtectedRoute><SduiRolesPage /></ProtectedRoute>} />
-      <Route path="/admin/security/roles/new" element={<ProtectedRoute><SduiRoleEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/security/roles/:id/edit" element={<ProtectedRoute><SduiRoleEditorPage /></ProtectedRoute>} />
-      <Route path="/admin/security/mcp-tokens" element={<ProtectedRoute><SduiMcpTokensPage /></ProtectedRoute>} />
-      <Route path="/admin/security/settings" element={<ProtectedRoute><SduiSecuritySettingsPage /></ProtectedRoute>} />
+      <Route path="/admin/security/users" element={<ProtectedRoute><CapabilityGuard requires="manage_users"><SduiUsersPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/security/users/new" element={<ProtectedRoute><CapabilityGuard requires="manage_users"><SduiUserEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/security/users/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_users"><SduiUserEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/security/roles" element={<ProtectedRoute><CapabilityGuard requires="manage_roles"><SduiRolesPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/security/roles/new" element={<ProtectedRoute><CapabilityGuard requires="manage_roles"><SduiRoleEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/security/roles/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_roles"><SduiRoleEditorPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/security/mcp-tokens" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiMcpTokensPage /></CapabilityGuard></ProtectedRoute>} />
+      <Route path="/admin/security/settings" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiSecuritySettingsPage /></CapabilityGuard></ProtectedRoute>} />
       <Route path="/admin/users" element={<Navigate to="/admin/security/users" replace />} />
       <Route path="/admin/users/new" element={<Navigate to="/admin/security/users/new" replace />} />
-      <Route path="/admin/users/:id/edit" element={<ProtectedRoute><SduiUserEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/users/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_users"><SduiUserEditorPage /></CapabilityGuard></ProtectedRoute>} />
       <Route path="/admin/roles" element={<Navigate to="/admin/security/roles" replace />} />
       <Route path="/admin/roles/new" element={<Navigate to="/admin/security/roles/new" replace />} />
-      <Route path="/admin/roles/:id/edit" element={<ProtectedRoute><SduiRoleEditorPage /></ProtectedRoute>} />
+      <Route path="/admin/roles/:id/edit" element={<ProtectedRoute><CapabilityGuard requires="manage_roles"><SduiRoleEditorPage /></CapabilityGuard></ProtectedRoute>} />
       <Route path="/admin/mcp-tokens" element={<Navigate to="/admin/security/mcp-tokens" replace />} />
 
       {/* File viewers */}

@@ -70,26 +70,97 @@ func (e *Engine) GenerateBootManifest(user *models.User) (*BootManifest, error) 
 		return nil, err
 	}
 
-	// Build boot extensions
+	// Build boot extensions — but only the ones this user can actually
+	// reach. The boot manifest is served to every admin_access user, so
+	// without this filter the slugs / labels of admin-only extensions
+	// (email-manager, etc.) leak to lower-privilege roles. An extension
+	// is included when at least one of:
+	//   1. it contributes a nav entry the user can see, OR
+	//   2. it declares field_types — content authors may need those
+	//      bundles to render form / media / etc. fields in the editor
+	//      even if they can't navigate to the extension's own pages.
+	// Backend-only extensions (no admin_ui at all) are always excluded
+	// from bootExts; they have nothing for the SPA to load anyway.
 	bootExts := make([]BootExt, 0, len(exts))
 	for _, ext := range exts {
 		var manifest struct {
 			AdminUI *struct {
-				Entry      string   `json:"entry"`
-				Components []string `json:"components"`
+				Entry              string   `json:"entry"`
+				Components         []string `json:"components"`
+				RequiredCapability string   `json:"required_capability"`
+				Section            string   `json:"section"`
+				FieldTypes         []struct {
+					Type string `json:"type"`
+				} `json:"field_types"`
+				Menu *struct {
+					Section            string `json:"section"`
+					RequiredCapability string `json:"required_capability"`
+					Children           []struct {
+						RequiredCapability string `json:"required_capability"`
+					} `json:"children"`
+				} `json:"menu"`
+				SettingsMenu []struct {
+					RequiredCapability string `json:"required_capability"`
+				} `json:"settings_menu"`
+				SiteSettingsMenu []struct {
+					RequiredCapability string `json:"required_capability"`
+				} `json:"site_settings_menu"`
 			} `json:"admin_ui"`
 		}
 		_ = json.Unmarshal(ext.Manifest, &manifest)
 
-		be := BootExt{
-			Slug: ext.Slug,
-			Name: ext.Name,
+		// Backend-only — nothing for the SPA to load.
+		if manifest.AdminUI == nil {
+			continue
 		}
-		if manifest.AdminUI != nil {
-			be.Entry = manifest.AdminUI.Entry
-			be.Components = manifest.AdminUI.Components
+
+		visible := false
+		// Field-type-only extensions stay accessible to any admin user
+		// because the page editor needs them.
+		if len(manifest.AdminUI.FieldTypes) > 0 {
+			visible = true
 		}
-		bootExts = append(bootExts, be)
+		if !visible && manifest.AdminUI.Menu != nil {
+			m := manifest.AdminUI.Menu
+			if extNavPasses(user, m.Section, m.RequiredCapability) {
+				if len(m.Children) == 0 {
+					visible = true
+				} else {
+					for _, c := range m.Children {
+						if extNavPasses(user, m.Section, c.RequiredCapability) {
+							visible = true
+							break
+						}
+					}
+				}
+			}
+		}
+		if !visible {
+			for _, item := range manifest.AdminUI.SettingsMenu {
+				if extNavPasses(user, "settings_menu", item.RequiredCapability) {
+					visible = true
+					break
+				}
+			}
+		}
+		if !visible {
+			for _, item := range manifest.AdminUI.SiteSettingsMenu {
+				if extNavPasses(user, "settings_menu", item.RequiredCapability) {
+					visible = true
+					break
+				}
+			}
+		}
+		if !visible {
+			continue
+		}
+
+		bootExts = append(bootExts, BootExt{
+			Slug:       ext.Slug,
+			Name:       ext.Name,
+			Entry:      manifest.AdminUI.Entry,
+			Components: manifest.AdminUI.Components,
+		})
 	}
 
 	// Get taxonomies (for navigation sub-items under node types)

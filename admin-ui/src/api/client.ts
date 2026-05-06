@@ -1606,6 +1606,19 @@ export async function getExtensionManifests(): Promise<Array<{
   return res.data;
 }
 
+/**
+ * hasCapability returns true when the user's role carries the given
+ * boolean capability flag. This is the SPA mirror of the kernel's
+ * auth.HasCapability and is the source of truth for client-side route
+ * guards. Server-side gates still apply to every API call — this helper
+ * just stops the SPA from rendering chrome the user can't actually use.
+ */
+export function hasCapability(user: User | null, capability: string): boolean {
+  if (!user) return false;
+  const caps = user.capabilities || {};
+  return caps[capability] === true;
+}
+
 // Role Access helper
 export function getNodeAccess(user: User | null, nodeType: string): { access: "none" | "read" | "write" | "all" } {
   if (!user) return { access: "none" };
