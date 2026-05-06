@@ -147,7 +147,19 @@ func (h *ExtensionHandler) Manifests(c *fiber.Ctx) error {
 
 	entries := make([]manifestEntry, 0, len(exts))
 	for _, ext := range exts {
-		if !sdui.IsExtensionVisible(user, ext.Manifest) {
+		// Backend-only extensions (no admin_ui) are always included.
+		// They have no UI surface to gate, and other extensions need
+		// to discover them — e.g. email-manager scans this list for
+		// `provides:["email.provider"]` to find SMTP / Resend / etc.
+		// Without the carve-out, a manage_email-only operator would
+		// see "no email provider extensions are active" because the
+		// providers are filtered out of the discovery feed.
+		//
+		// Slug / name / provides aren't sensitive — they're operational
+		// metadata. The capability gating that matters is on the
+		// extensions' API endpoints (admin_routes), which still
+		// applies regardless of what shows up here.
+		if hasAdminUIBlock(ext.Manifest) && !sdui.IsExtensionVisible(user, ext.Manifest) {
 			continue
 		}
 		entries = append(entries, manifestEntry{
@@ -157,6 +169,20 @@ func (h *ExtensionHandler) Manifests(c *fiber.Ctx) error {
 		})
 	}
 	return api.Success(c, entries)
+}
+
+// hasAdminUIBlock reports whether the manifest declares any admin_ui
+// content at all. Used to distinguish "this extension has UI we may
+// have to hide" from "this is a backend-only provider/integration
+// that should always be discoverable to admin_access users".
+func hasAdminUIBlock(manifest models.JSONB) bool {
+	var probe struct {
+		AdminUI *json.RawMessage `json:"admin_ui"`
+	}
+	if err := json.Unmarshal(manifest, &probe); err != nil {
+		return false
+	}
+	return probe.AdminUI != nil && string(*probe.AdminUI) != "null"
 }
 
 // GetSettings handles GET /extensions/:slug/settings — returns extension settings.
