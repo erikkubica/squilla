@@ -113,15 +113,17 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
 
   return (
     <>
-      <button
-        type="button"
-        className="vedit-toggle"
-        data-active={active}
-        onClick={() => setActive((v) => !v)}
-        aria-pressed={active}
-      >
-        {active ? "Done" : "Edit page"}
-      </button>
+      {!active && (
+        <button
+          type="button"
+          className="vedit-toggle"
+          data-active={false}
+          onClick={() => setActive(true)}
+          aria-pressed={false}
+        >
+          Edit page
+        </button>
+      )}
 
       {active && (
         <>
