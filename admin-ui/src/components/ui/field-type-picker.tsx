@@ -34,10 +34,12 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Images, File, Link2, FileSearch, Tags, Layers, Repeat,
 };
 
-// Fallback-only: used if /admin/api/field-types is unreachable. The canonical
-// list (with HowTo text) lives in internal/cms/field_types/registry.go.
+// Fallback-only: used if /admin/api/field-types is unreachable. Mirrors the
+// canonical 20 types in internal/cms/field_types/registry.go exactly. Any
+// addition there must be reflected here for offline behaviour to stay in
+// sync.
 const FALLBACK_OPTIONS: FieldTypeOption[] = [
-  { value: "text", label: "Text", description: "Single-line text input", icon: Type, group: "Basic" },
+  { value: "string", label: "String", description: "Single-line text input", icon: Type, group: "Basic" },
   { value: "textarea", label: "Textarea", description: "Multi-line text input", icon: AlignLeft, group: "Basic" },
   { value: "richtext", label: "Rich Text", description: "WYSIWYG rich text editor", icon: RichTextIcon, group: "Basic" },
   { value: "number", label: "Number", description: "Numeric input with constraints", icon: Hash, group: "Basic" },
@@ -54,10 +56,10 @@ const FALLBACK_OPTIONS: FieldTypeOption[] = [
   { value: "gallery", label: "Gallery", description: "Multiple image uploads", icon: Images, group: "Media" },
   { value: "file", label: "File", description: "File upload with type filtering", icon: File, group: "Media" },
   { value: "link", label: "Link", description: "URL with text, alt, and target", icon: Link2, group: "Relational" },
-  { value: "node", label: "Node Selector", description: "Reference to content nodes", icon: FileSearch, group: "Relational" },
+  { value: "reference", label: "Reference", description: "Reference to content nodes", icon: FileSearch, group: "Relational" },
   { value: "term", label: "Term Selector", description: "Reference to taxonomy terms", icon: Tags, group: "Relational" },
-  { value: "group", label: "Group", description: "Container for nested fields", icon: Layers, group: "Layout" },
-  { value: "repeater", label: "Repeater", description: "Repeatable set of fields", icon: Repeat, group: "Layout" },
+  { value: "object", label: "Object", description: "Container for nested fields", icon: Layers, group: "Layout" },
+  { value: "array", label: "Array", description: "Repeatable set of fields", icon: Repeat, group: "Layout" },
 ];
 
 export const FIELD_TYPE_OPTIONS = FALLBACK_OPTIONS;
@@ -102,8 +104,27 @@ interface FieldTypePickerProps {
   compact?: boolean;
 }
 
+/** Legacy field-type aliases that may appear in saved schemas from older
+ *  versions. Map them to their canonical equivalent so badges and field
+ *  rendering still work. New schemas should always be saved with the
+ *  canonical name. */
+export const LEGACY_TYPE_ALIASES: Record<string, string> = {
+  text: "string",
+  group: "object",
+  repeater: "array",
+  node: "reference",
+  boolean: "toggle",
+  wysiwyg: "richtext",
+  dropdown: "select",
+};
+
+export function canonicalFieldType(value: string): string {
+  return LEGACY_TYPE_ALIASES[value] ?? value;
+}
+
 export function getFieldTypeOption(value: string) {
-  return FALLBACK_OPTIONS.find((o) => o.value === value);
+  const canonical = canonicalFieldType(value);
+  return FALLBACK_OPTIONS.find((o) => o.value === canonical);
 }
 
 export function getFieldTypeGroups() {
@@ -144,7 +165,8 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
     return [...coreFiltered, ...extOptions];
   }, [coreOptions, extFieldTypes]);
 
-  const selected = mergedOptions.find((o) => o.value === value);
+  const canonicalValue = canonicalFieldType(value);
+  const selected = mergedOptions.find((o) => o.value === canonicalValue);
   const groups = [...new Set(mergedOptions.map((o) => o.group))];
 
   return (
@@ -199,7 +221,7 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
                     >
                       <div className={cn(
                         "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
-                        value === option.value
+                        canonicalValue === option.value
                           ? "border-border bg-accent text-accent-foreground"
                           : "border-border bg-muted text-muted-foreground"
                       )}>
@@ -212,7 +234,7 @@ export default function FieldTypePicker({ value, onValueChange, className, compa
                           <span className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{option.howTo}</span>
                         )}
                       </div>
-                      {value === option.value && (
+                      {canonicalValue === option.value && (
                         <Check className="ml-auto h-4 w-4 shrink-0 text-foreground" />
                       )}
                     </CommandItem>

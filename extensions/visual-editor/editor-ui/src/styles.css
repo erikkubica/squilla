@@ -1,0 +1,1010 @@
+/* Editor UI styles — scoped via shadow DOM, so no `body { ... }` and
+ * no theme leakage. Class names are short and prefixed `vedit-` for
+ * grep-ability when debugging the bundle. */
+
+:host {
+  /* CSS custom properties so the editor adapts to dark themes if we
+   * later choose to react to prefers-color-scheme. v1 ships a single
+   * light look. */
+  --vedit-bg: #ffffff;
+  --vedit-surface: #f8fafc;
+  --vedit-border: #e2e8f0;
+  --vedit-text: #0f172a;
+  --vedit-muted: #64748b;
+  --vedit-accent: #2563eb;
+  --vedit-accent-soft: rgba(37, 99, 235, 0.12);
+  --vedit-danger: #dc2626;
+
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vedit-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.vedit-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483600;
+  background: var(--vedit-accent);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.vedit-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 36px rgba(37, 99, 235, 0.45);
+}
+
+.vedit-toggle[data-active="true"] {
+  background: var(--vedit-text);
+}
+
+/* Outline overlay container — never receives pointer events itself,
+ * so clicks land on the underlying page. Individual outline rects
+ * are children with their own optional pointer behavior. */
+.vedit-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483500;
+}
+
+.vedit-outline {
+  position: absolute;
+  border: 2px solid var(--vedit-accent);
+  border-radius: 4px;
+  background: var(--vedit-accent-soft);
+  /* No CSS transition: the outline must snap to its new geometry as
+     the page scrolls. We position it imperatively in EditorRoot via
+     rAF; any CSS easing here introduces visible lag. */
+  will-change: transform, width, height;
+}
+
+.vedit-outline[data-kind="hover"] {
+  border-style: dashed;
+  background: transparent;
+}
+
+.vedit-outline[data-kind="selected"] {
+  border-style: solid;
+}
+
+.vedit-label {
+  position: absolute;
+  top: -22px;
+  left: -2px;
+  background: var(--vedit-accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px 4px 0 0;
+  white-space: nowrap;
+}
+
+/* Side panel — drawer pinned to the right. Width is set inline from
+ * SidePanel.tsx and persists via localStorage; the resize handle on the
+ * left edge drags it. */
+.vedit-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--vedit-bg);
+  border-left: 1px solid var(--vedit-border);
+  z-index: 2147483550;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 30px rgba(15, 23, 42, 0.12);
+}
+
+.vedit-resize-handle {
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 1;
+}
+.vedit-resize-handle:hover {
+  background: var(--vedit-accent-soft);
+}
+
+.vedit-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--vedit-border);
+  background: var(--vedit-surface);
+}
+
+.vedit-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vedit-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.vedit-panel-footer {
+  border-top: 1px solid var(--vedit-border);
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  background: var(--vedit-surface);
+}
+
+.vedit-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vedit-block-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--vedit-text);
+  background: var(--vedit-bg);
+}
+
+.vedit-block-item:hover {
+  background: var(--vedit-surface);
+  border-color: var(--vedit-border);
+}
+
+.vedit-block-item[aria-current="true"] {
+  background: var(--vedit-accent-soft);
+  border-color: var(--vedit-accent);
+}
+
+.vedit-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.vedit-btn[data-variant="primary"] {
+  background: var(--vedit-accent);
+  color: white;
+}
+.vedit-btn[data-variant="primary"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vedit-btn[data-variant="secondary"] {
+  background: var(--vedit-surface);
+  border: 1px solid var(--vedit-border);
+}
+
+.vedit-btn[data-variant="danger"] {
+  background: white;
+  color: var(--vedit-danger);
+  border: 1px solid var(--vedit-danger);
+}
+
+.vedit-empty {
+  color: var(--vedit-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 12px;
+}
+
+.vedit-section {
+  margin-bottom: 18px;
+}
+.vedit-section + .vedit-section {
+  border-top: 1px solid var(--vedit-border);
+  padding-top: 16px;
+}
+.vedit-section-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vedit-muted);
+}
+.vedit-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vedit-block-meta {
+  color: var(--vedit-muted);
+  margin-left: 6px;
+  font-size: 11px;
+}
+.vedit-stale-badge {
+  background: var(--vedit-accent-soft);
+  color: var(--vedit-accent);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vedit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vedit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vedit-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vedit-text);
+}
+.vedit-field-description {
+  margin: 0;
+  font-size: 11px;
+  color: var(--vedit-muted);
+}
+.vedit-input {
+  width: 100%;
+  padding: 7px 10px;
+  font: inherit;
+  border: 1px solid var(--vedit-border);
+  border-radius: 6px;
+  background: var(--vedit-bg);
+  color: var(--vedit-text);
+}
+.vedit-input:focus {
+  outline: none;
+  border-color: var(--vedit-accent);
+  box-shadow: 0 0 0 3px var(--vedit-accent-soft);
+}
+.vedit-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.vedit-toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.vedit-field-unsupported {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--vedit-surface);
+  border: 1px dashed var(--vedit-border);
+  border-radius: 6px;
+}
+.vedit-field-unsupported-summary {
+  font-size: 12px;
+  color: var(--vedit-text);
+}
+
+.vedit-link {
+  color: var(--vedit-accent);
+  font-size: 12px;
+  text-decoration: none;
+}
+.vedit-link:hover {
+  text-decoration: underline;
+}
+
+.vedit-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.vedit-error-text {
+  color: var(--vedit-danger);
+}
+
+.vedit-footer-status {
+  margin-right: auto;
+  color: var(--vedit-muted);
+  font-size: 12px;
+}
+
+.vedit-actions-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.vedit-add-block {
+  width: 100%;
+  padding: 8px 10px;
+  margin-top: 8px;
+  border: 1px dashed var(--vedit-border);
+  border-radius: 6px;
+  color: var(--vedit-accent);
+  font-weight: 600;
+  font-size: 13px;
+  background: var(--vedit-bg);
+}
+.vedit-add-block:hover {
+  background: var(--vedit-accent-soft);
+  border-color: var(--vedit-accent);
+}
+.vedit-add-block:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vedit-block-picker {
+  margin-top: 8px;
+  border: 1px solid var(--vedit-border);
+  border-radius: 6px;
+  background: var(--vedit-bg);
+  overflow: hidden;
+}
+.vedit-block-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--vedit-surface);
+  border-bottom: 1px solid var(--vedit-border);
+  font-size: 12px;
+  font-weight: 600;
+}
+.vedit-block-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.vedit-block-picker-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: left;
+}
+.vedit-block-picker-item:hover {
+  background: var(--vedit-surface);
+}
+
+.vedit-block-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.vedit-block-row .vedit-block-item {
+  flex: 1;
+}
+.vedit-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  border-radius: 6px;
+  color: var(--vedit-muted);
+  cursor: grab;
+  user-select: none;
+  font-weight: 700;
+}
+.vedit-drag-handle:hover {
+  background: var(--vedit-surface);
+  color: var(--vedit-text);
+}
+.vedit-drag-handle:active {
+  cursor: grabbing;
+}
+
+.vedit-gutters {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.vedit-insert-gutter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--vedit-bg);
+  border: 2px dashed var(--vedit-accent);
+  color: var(--vedit-accent);
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+  pointer-events: auto;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.vedit-insert-gutter:hover {
+  background: var(--vedit-accent);
+  color: white;
+  border-style: solid;
+}
+
+.vedit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 2147483560;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.vedit-modal {
+  width: 100%;
+  max-width: 420px;
+  background: var(--vedit-bg);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+}
+.vedit-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.vedit-modal-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ---- Drawer extras ---- */
+.vedit-panel-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vedit-panel-subtitle {
+  font-size: 11px;
+  color: var(--vedit-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vedit-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--vedit-muted);
+}
+.vedit-icon-btn:hover {
+  background: var(--vedit-surface);
+  color: var(--vedit-text);
+}
+.vedit-required {
+  color: var(--vedit-danger);
+  margin-left: 4px;
+}
+
+/* ---- Tiptap ---- */
+.vedit-tiptap {
+  border: 1px solid var(--vedit-border);
+  border-radius: 6px;
+  background: var(--vedit-bg);
+  overflow: hidden;
+}
+.vedit-tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 6px;
+  border-bottom: 1px solid var(--vedit-border);
+  background: var(--vedit-surface);
+}
+.vedit-tiptap-btn {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--vedit-text);
+}
+.vedit-tiptap-btn:hover { background: var(--vedit-bg); }
+.vedit-tiptap-btn[data-active="true"] {
+  background: var(--vedit-accent);
+  color: white;
+}
+.vedit-tiptap-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.vedit-tiptap-sep {
+  width: 1px;
+  background: var(--vedit-border);
+  margin: 2px 4px;
+}
+.vedit-tiptap .ProseMirror {
+  min-height: 140px;
+  padding: 10px 12px;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.vedit-tiptap .ProseMirror p { margin: 0 0 0.6em; }
+.vedit-tiptap .ProseMirror h2 { font-size: 1.25em; font-weight: 700; margin: 0.6em 0 0.3em; }
+.vedit-tiptap .ProseMirror h3 { font-size: 1.1em; font-weight: 700; margin: 0.6em 0 0.3em; }
+.vedit-tiptap .ProseMirror ul,
+.vedit-tiptap .ProseMirror ol { padding-left: 1.4em; margin: 0 0 0.6em; }
+.vedit-tiptap .ProseMirror blockquote {
+  border-left: 3px solid var(--vedit-border);
+  padding-left: 10px;
+  color: var(--vedit-muted);
+  margin: 0 0 0.6em;
+}
+.vedit-tiptap .ProseMirror code {
+  background: var(--vedit-surface);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.vedit-tiptap .ProseMirror pre {
+  background: var(--vedit-text);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+}
+.vedit-tiptap .ProseMirror a { color: var(--vedit-accent); text-decoration: underline; }
+.vedit-tiptap-loading {
+  padding: 10px;
+  color: var(--vedit-muted);
+  font-size: 12px;
+}
+
+/* ---- Range ---- */
+.vedit-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vedit-range input[type="range"] { flex: 1; }
+.vedit-range-value {
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--vedit-muted);
+}
+
+/* ---- Radio + checkbox group ---- */
+.vedit-radio-group,
+.vedit-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vedit-radio-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ---- Object / array ---- */
+.vedit-object {
+  border: 1px solid var(--vedit-border);
+  border-radius: 6px;
+  background: var(--vedit-surface);
+  overflow: hidden;
+}
+.vedit-collapsible-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vedit-muted);
+  background: var(--vedit-surface);
+  border-bottom: 1px solid var(--vedit-border);
+}
+.vedit-collapsible-head:hover { color: var(--vedit-text); }
+.vedit-collapsible-caret {
+  display: inline-block;
+  transition: transform 100ms ease;
+  font-size: 10px;
+}
+.vedit-collapsible-caret[data-open="true"] { transform: rotate(90deg); }
+.vedit-object-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--vedit-bg);
+}
+
+.vedit-array {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vedit-array-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vedit-array-item {
+  border: 1px solid var(--vedit-border);
+  border-radius: 6px;
+  background: var(--vedit-bg);
+  overflow: hidden;
+}
+.vedit-array-item-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--vedit-surface);
+  border-bottom: 1px solid var(--vedit-border);
+}
+.vedit-array-item-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+}
+.vedit-array-item-summary { color: var(--vedit-text); }
+.vedit-array-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+/* ---- Link ---- */
+.vedit-link-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vedit-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+/* ---- Tabs ---- */
+.vedit-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.vedit-tab {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  color: var(--vedit-muted);
+}
+.vedit-tab[data-active="true"] {
+  background: var(--vedit-accent-soft);
+  color: var(--vedit-accent);
+  font-weight: 600;
+}
+
+/* ---- Media picker ---- */
+.vedit-media-modal {
+  max-width: 720px;
+  max-height: 80vh;
+}
+.vedit-modal-footer {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--vedit-border);
+}
+.vedit-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 50vh;
+}
+.vedit-media-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: var(--vedit-surface);
+  text-align: left;
+  overflow: hidden;
+}
+.vedit-media-tile:hover { background: var(--vedit-accent-soft); }
+.vedit-media-tile[data-selected="true"] {
+  border-color: var(--vedit-accent);
+  background: var(--vedit-accent-soft);
+}
+.vedit-media-tile img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--vedit-border);
+}
+.vedit-media-fileicon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 90px;
+  font-size: 32px;
+  background: var(--vedit-bg);
+  border-radius: 4px;
+}
+.vedit-media-name {
+  font-size: 11px;
+  color: var(--vedit-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vedit-image-field { display: flex; flex-direction: column; gap: 6px; }
+.vedit-image-preview {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--vedit-border);
+  border-radius: 6px;
+  background: var(--vedit-surface);
+}
+.vedit-image-preview img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--vedit-border);
+  flex-shrink: 0;
+}
+.vedit-image-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vedit-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.vedit-gallery-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--vedit-surface);
+}
+.vedit-gallery-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vedit-gallery-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.7);
+  color: white;
+  font-size: 14px;
+  line-height: 1;
+}
+.vedit-gallery-remove:hover { background: var(--vedit-danger); }
+
+.vedit-info {
+  background: var(--vedit-accent-soft);
+  color: var(--vedit-accent);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+/* ---- Block row + inline actions ---- */
+.vedit-block-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--vedit-border);
+  border-radius: 8px;
+  background: var(--vedit-bg);
+  overflow: hidden;
+  transition: border-color 80ms ease, box-shadow 80ms ease, background 80ms ease;
+}
+.vedit-block-row:hover {
+  border-color: #cbd5e1;
+}
+.vedit-block-row[data-selected="true"] {
+  border-color: var(--vedit-accent);
+  box-shadow: 0 0 0 1px var(--vedit-accent);
+  background: var(--vedit-accent-soft);
+}
+.vedit-block-row .vedit-drag-handle {
+  width: 28px;
+  flex: 0 0 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vedit-muted);
+  cursor: grab;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.vedit-block-row .vedit-drag-handle:hover {
+  color: var(--vedit-text);
+  background: var(--vedit-surface);
+}
+.vedit-block-row .vedit-drag-handle:active {
+  cursor: grabbing;
+}
+.vedit-block-row .vedit-block-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  font-size: 13px;
+  color: var(--vedit-text);
+  text-align: left;
+  min-width: 0;
+}
+.vedit-block-row .vedit-block-item:hover {
+  background: transparent;
+}
+.vedit-block-row[data-selected="true"] .vedit-block-item {
+  background: transparent;
+}
+.vedit-block-item-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.vedit-block-item-label strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vedit-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-right: 4px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 80ms ease;
+}
+.vedit-block-row:hover .vedit-row-actions,
+.vedit-block-row[data-selected="true"] .vedit-row-actions,
+.vedit-block-row:focus-within .vedit-row-actions {
+  opacity: 1;
+}
+.vedit-row-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: var(--vedit-muted);
+  background: transparent;
+  border: none;
+}
+.vedit-row-icon:hover {
+  background: var(--vedit-surface);
+  color: var(--vedit-text);
+}
+.vedit-row-icon[data-variant="danger"]:hover {
+  background: #fee2e2;
+  color: var(--vedit-danger);
+}
+
+/* ---- Field section: clearly separated from the block list ---- */
+.vedit-fields-section {
+  margin: 16px -16px 0;
+  padding: 16px 16px 4px;
+  background: var(--vedit-surface);
+  border-top: 1px solid var(--vedit-border);
+}
+.vedit-fields-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vedit-text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.vedit-fields-subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--vedit-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* The Blocks section keeps its tight list styling; remove the
+ * automatic top divider (the field section now provides its own
+ * heavy break). */
+.vedit-section + .vedit-fields-section {
+  margin-top: 0;
+}

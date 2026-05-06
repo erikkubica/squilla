@@ -12,6 +12,7 @@ import type { NodeTypeField } from "@/api/client";
 
 function fieldTypeBadgeClass(type: string): string {
   switch (type) {
+    case "string":
     case "text":
       return "bg-blue-100 text-blue-700 hover:bg-blue-100";
     case "textarea":
@@ -46,6 +47,7 @@ function fieldTypeBadgeClass(type: string): string {
       return "bg-blue-100 text-blue-700 hover:bg-blue-100";
     case "url":
       return "bg-blue-100 text-blue-700 hover:bg-blue-100";
+    case "reference":
     case "node":
       return "bg-sky-100 text-sky-700 hover:bg-sky-100";
     case "term":
@@ -91,7 +93,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
       )}
 
       {/* Placeholder */}
-      {["text", "textarea", "number", "email", "url"].includes(field.type) && (
+      {["string", "text", "textarea", "number", "email", "url"].includes(field.type) && (
         <div className="space-y-1.5">
           <Label className={labelClass}>Placeholder</Label>
           <Input
@@ -146,7 +148,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
       )}
 
       {/* Text length constraints */}
-      {(field.type === "text" || field.type === "textarea") && (
+      {(field.type === "string" || field.type === "text" || field.type === "textarea") && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label className={labelClass}>Min Length</Label>
@@ -168,7 +170,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
       )}
 
       {/* Prepend / Append */}
-      {["text", "number", "email", "url"].includes(field.type) && (
+      {["string", "text", "number", "email", "url"].includes(field.type) && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label className={labelClass}>Prepend</Label>
@@ -219,7 +221,7 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
       )}
 
       {/* Node options */}
-      {field.type === "node" && (
+      {(field.type === "reference" || field.type === "node") && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label className={labelClass}>Node Type Filter</Label>
@@ -243,7 +245,7 @@ export default function NestedFieldsEditor({ value, onChange, label }: NestedFie
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldKey, setNewFieldKey] = useState("");
-  const [newFieldType, setNewFieldType] = useState<NodeTypeField["type"]>("text");
+  const [newFieldType, setNewFieldType] = useState<NodeTypeField["type"]>("string");
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [autoKey, setAutoKey] = useState(true);
 
@@ -260,7 +262,7 @@ export default function NestedFieldsEditor({ value, onChange, label }: NestedFie
   function reset() {
     setNewFieldLabel("");
     setNewFieldKey("");
-    setNewFieldType("text");
+    setNewFieldType("string");
     setNewFieldRequired(false);
     setNewFieldOptions("");
     setNewFieldPlaceholder("");
@@ -395,11 +397,11 @@ export default function NestedFieldsEditor({ value, onChange, label }: NestedFie
                     </div>
                   </div>
                   <TypeSpecificOptions field={sf} updateField={(updates) => updateField(i, updates)} size="compact" />
-                  {(sf.type === "group" || sf.type === "repeater") && (
+                  {(sf.type === "object" || sf.type === "array" || sf.type === "group" || sf.type === "repeater") && (
                     <NestedFieldsEditor
                       value={sf.fields || []}
                       onChange={(subFields) => updateField(i, { fields: subFields })}
-                      label={sf.type === "group" ? "Group sub-fields" : "Repeater row fields"}
+                      label={(sf.type === "object" || sf.type === "group") ? "Object sub-fields" : "Array row fields"}
                     />
                   )}
                 </div>
@@ -470,7 +472,7 @@ export default function NestedFieldsEditor({ value, onChange, label }: NestedFie
             )}
 
             {/* Placeholder */}
-            {["text", "textarea", "number", "email", "url"].includes(newFieldType) && (
+            {["string", "text", "textarea", "number", "email", "url"].includes(newFieldType) && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">Placeholder</Label>
                 <Input

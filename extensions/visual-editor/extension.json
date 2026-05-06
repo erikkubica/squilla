@@ -1,0 +1,20 @@
+{
+    "name": "Visual Editor",
+    "slug": "visual-editor",
+    "version": "0.1.0",
+    "author": "Squilla",
+    "description": "Live front-end block editor. When a logged-in admin visits the public site, this extension injects a small overlay that lets them edit, add, delete, reorder, and duplicate blocks directly on the rendered page. Saves go through the existing PATCH /admin/api/nodes endpoint.",
+    "priority": 50,
+    "auto_activate": true,
+    "capabilities": [
+        "events:subscribe",
+        "events:emit",
+        "log:write"
+    ],
+    "plugins": [
+        {
+            "binary": "bin/visual-editor",
+            "events": ["render.body_end"]
+        }
+    ]
+}

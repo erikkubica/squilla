@@ -68,10 +68,10 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	// body_end, footer. Each fires a PublishCollect on a render.* event
 	// and joins what subscribers return. Kernel-only deploys get empty
 	// strings on every slot — themes can call them unconditionally.
-	appData.HeadMeta = h.renderHead(node, nodeData, settings)
-	appData.BodyStart = h.renderBodyStart(node, nodeData, settings)
-	extensionBodyEnd := h.renderBodyEnd(node, nodeData, settings)
-	appData.Footer = h.renderFooter(node, nodeData, settings)
+	appData.HeadMeta = h.renderHead(node, nodeData, settings, user)
+	appData.BodyStart = h.renderBodyStart(node, nodeData, settings, user)
+	extensionBodyEnd := h.renderBodyEnd(node, nodeData, settings, user)
+	appData.Footer = h.renderFooter(node, nodeData, settings, user)
 	// Composite slots fold kernel-rendered asset tags into the same
 	// HTML block extensions contribute to, so themes can drop
 	// {{.app.head}} / {{.app.body_end}} once instead of iterating
@@ -348,14 +348,13 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 		LanguageCode: nodeData.LanguageCode,
 		NodeType:     nodeData.NodeType,
 	}
-	appData.HeadMeta = h.renderHead(syntheticNode, nodeData, notFoundSettings)
-	appData.BodyStart = h.renderBodyStart(syntheticNode, nodeData, notFoundSettings)
-	extensionBodyEnd := h.renderBodyEnd(syntheticNode, nodeData, notFoundSettings)
-	appData.Footer = h.renderFooter(syntheticNode, nodeData, notFoundSettings)
+	user := h.currentUser(c)
+	appData.HeadMeta = h.renderHead(syntheticNode, nodeData, notFoundSettings, user)
+	appData.BodyStart = h.renderBodyStart(syntheticNode, nodeData, notFoundSettings, user)
+	extensionBodyEnd := h.renderBodyEnd(syntheticNode, nodeData, notFoundSettings, user)
+	appData.Footer = h.renderFooter(syntheticNode, nodeData, notFoundSettings, user)
 	appData.Head = composeHead(appData)
 	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
-
-	user := h.currentUser(c)
 	templateData := TemplateData{
 		App:           appData,
 		Node:          nodeData,
@@ -429,10 +428,10 @@ func (h *PublicHandler) RenderWithLayout(c *fiber.Ctx, title string, innerHTML t
 		LanguageCode: nodeData.LanguageCode,
 		NodeType:     nodeData.NodeType,
 	}
-	appData.HeadMeta = h.renderHead(syntheticNode, nodeData, settings)
-	appData.BodyStart = h.renderBodyStart(syntheticNode, nodeData, settings)
-	extensionBodyEnd := h.renderBodyEnd(syntheticNode, nodeData, settings)
-	appData.Footer = h.renderFooter(syntheticNode, nodeData, settings)
+	appData.HeadMeta = h.renderHead(syntheticNode, nodeData, settings, user)
+	appData.BodyStart = h.renderBodyStart(syntheticNode, nodeData, settings, user)
+	extensionBodyEnd := h.renderBodyEnd(syntheticNode, nodeData, settings, user)
+	appData.Footer = h.renderFooter(syntheticNode, nodeData, settings, user)
 	appData.Head = composeHead(appData)
 	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 

@@ -159,6 +159,7 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 				blocks := parseBlocks(node.BlocksData)
 				h.resolveAssetRefsInBlocks(blocks)
 				renderedBlocks := h.renderBlocksBatch(blocks, node.LanguageCode)
+				renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
 
 				// Layout-based rendering
 				html, _, renderErr := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user)
@@ -224,6 +225,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	blocks := parseBlocks(node.BlocksData)
 	h.resolveAssetRefsInBlocks(blocks)
 	renderedBlocks := h.renderBlocksBatch(blocks, node.LanguageCode)
+	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
 
 	// Layout-based rendering
 	html, _, renderErr := h.renderNodeWithLayout(c, node, blocks, renderedBlocks, user)

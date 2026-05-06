@@ -56,6 +56,13 @@ deploy-local:
 		echo "    -> $$slug"; \
 		cd $$dir && npm install --silent && npm run build && cd ../../..; \
 	done
+	@echo "==> Building extension public-site bundles (editor-ui, etc.)..."
+	@for dir in extensions/*/editor-ui; do \
+		[ -f "$$dir/package.json" ] || continue; \
+		slug=$$(basename $$(dirname $$dir)); \
+		echo "    -> $$slug"; \
+		cd $$dir && npm install --silent && npm run build && cd ../../..; \
+	done
 	@echo "==> Building Go binary (linux/arm64)..."
 	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o squilla ./cmd/squilla
 	@echo "==> Building extension plugins (linux/arm64)..."

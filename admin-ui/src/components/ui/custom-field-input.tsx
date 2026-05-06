@@ -133,7 +133,7 @@ function getRowSummary(row: Record<string, unknown>, subFields: NodeTypeField[])
       if (text) parts.push(text.length > 40 ? text.slice(0, 40) + "..." : text);
     } else if (sf.type === "toggle") {
       if (val) parts.push(sf.title);
-    } else if (sf.type === "repeater" || sf.type === "group") {
+    } else if (sf.type === "array" || sf.type === "object" || sf.type === "repeater" || sf.type === "group") {
       const count = Array.isArray(val) ? val.length : val ? 1 : 0;
       if (count > 0) parts.push(`${count} ${sf.title}`);
     } else if (typeof val === "string" || typeof val === "number") {
@@ -712,6 +712,7 @@ function CustomFieldInput({
   const strVal = value == null ? (field.initialValue ?? "") : String(value);
 
   const input = (() => { switch (field.type) {
+    case "string":
     case "text":
       return (
         <div className="flex">
@@ -800,12 +801,15 @@ function CustomFieldInput({
       );
     case "link":
       return <LinkFieldInput value={value as Record<string, unknown> | null} onChange={onChange} />;
+    case "object":
     case "group":
       return <GroupFieldInput field={field} value={value as Record<string, unknown> | null} onChange={onChange} />;
+    case "array":
     case "repeater":
       return <RepeaterFieldInput field={field} value={value as unknown[] | null} onChange={onChange} />;
     case "term":
       return <TermSelectorInput field={field} value={value} onChange={onChange} languageCode={languageCode} />;
+    case "reference":
     case "node":
       return <NodeSelectorInput field={field} value={value} onChange={onChange} />;
     case "richtext":

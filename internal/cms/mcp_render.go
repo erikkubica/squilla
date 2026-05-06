@@ -176,10 +176,13 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides
 	appData := h.renderCtx.BuildAppData(settings, languages, currentLang, usedSlugs)
 	appData.Menus = menus
 	nodeData := h.renderCtx.BuildNodeData(&node, blocksHTML, languages)
-	appData.HeadMeta = h.renderHead(&node, nodeData, settings)
-	appData.BodyStart = h.renderBodyStart(&node, nodeData, settings)
-	extensionBodyEnd := h.renderBodyEnd(&node, nodeData, settings)
-	appData.Footer = h.renderFooter(&node, nodeData, settings)
+	// MCP previews run with no request user (preview is admin-driven via
+	// MCP). Pass nil so render-hook subscribers see anonymous and skip
+	// admin-only injections like the visual editor bootstrap.
+	appData.HeadMeta = h.renderHead(&node, nodeData, settings, nil)
+	appData.BodyStart = h.renderBodyStart(&node, nodeData, settings, nil)
+	extensionBodyEnd := h.renderBodyEnd(&node, nodeData, settings, nil)
+	appData.Footer = h.renderFooter(&node, nodeData, settings, nil)
 	appData.Head = composeHead(appData)
 	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 

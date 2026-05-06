@@ -32,6 +32,7 @@ func (h *PublicHandler) renderHook(
 	node *models.ContentNode,
 	nodeData NodeData,
 	settings map[string]string,
+	user *models.User,
 ) template.HTML {
 	if h.eventBus == nil {
 		return ""
@@ -42,6 +43,7 @@ func (h *PublicHandler) renderHook(
 		"node":         buildHookNodePayload(node, nodeData),
 		"settings":     settings,
 		"translations": nodeData.Translations,
+		"user":         buildHookUserPayload(user),
 	}
 
 	results := h.eventBus.PublishCollect(action, payload)
@@ -55,20 +57,20 @@ func (h *PublicHandler) renderHook(
 // wrappers so call sites read naturally and the event names stay in one
 // place. Adding a fifth hook is a one-line method here plus a matching
 // field on AppData and template.ToMap key.
-func (h *PublicHandler) renderHead(node *models.ContentNode, nodeData NodeData, settings map[string]string) template.HTML {
-	return h.renderHook("render.head", node, nodeData, settings)
+func (h *PublicHandler) renderHead(node *models.ContentNode, nodeData NodeData, settings map[string]string, user *models.User) template.HTML {
+	return h.renderHook("render.head", node, nodeData, settings, user)
 }
 
-func (h *PublicHandler) renderBodyStart(node *models.ContentNode, nodeData NodeData, settings map[string]string) template.HTML {
-	return h.renderHook("render.body_start", node, nodeData, settings)
+func (h *PublicHandler) renderBodyStart(node *models.ContentNode, nodeData NodeData, settings map[string]string, user *models.User) template.HTML {
+	return h.renderHook("render.body_start", node, nodeData, settings, user)
 }
 
-func (h *PublicHandler) renderBodyEnd(node *models.ContentNode, nodeData NodeData, settings map[string]string) template.HTML {
-	return h.renderHook("render.body_end", node, nodeData, settings)
+func (h *PublicHandler) renderBodyEnd(node *models.ContentNode, nodeData NodeData, settings map[string]string, user *models.User) template.HTML {
+	return h.renderHook("render.body_end", node, nodeData, settings, user)
 }
 
-func (h *PublicHandler) renderFooter(node *models.ContentNode, nodeData NodeData, settings map[string]string) template.HTML {
-	return h.renderHook("render.footer", node, nodeData, settings)
+func (h *PublicHandler) renderFooter(node *models.ContentNode, nodeData NodeData, settings map[string]string, user *models.User) template.HTML {
+	return h.renderHook("render.footer", node, nodeData, settings, user)
 }
 
 // composeHead bundles the kernel-rendered theme/block asset tags with
@@ -144,6 +146,27 @@ func buildHookNodePayload(node *models.ContentNode, nodeData NodeData) map[strin
 		"fields":         nodeData.Fields,
 		"featured_image": nodeData.FeaturedImage,
 		"taxonomies":     nodeData.Taxonomies,
+	}
+}
+
+// buildHookUserPayload returns the per-request user context for render
+// hooks, or nil for anonymous visitors. Subscribers gate behavior on
+// presence + role / capability — e.g. the visual-editor extension only
+// emits its bootstrap script when this is non-nil and the user has node
+// write capability for the rendered node's type.
+//
+// Kept small on purpose: id + role slug + a flag for "has at least one
+// admin capability" cover the common gates without forcing extensions
+// to round-trip through the host for every render. Extensions that
+// need richer info can call core.users.get with the id.
+func buildHookUserPayload(user *models.User) map[string]any {
+	if user == nil {
+		return nil
+	}
+	return map[string]any{
+		"id":        user.ID,
+		"email":     user.Email,
+		"role_slug": user.Role.Slug,
 	}
 }
 

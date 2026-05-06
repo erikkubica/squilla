@@ -28,6 +28,7 @@ function keyify(text: string): string {
 
 export function fieldTypeBadgeClass(type: string): string {
   switch (type) {
+    case "string":
     case "text":
       return "bg-blue-100 text-blue-700 hover:bg-blue-100";
     case "textarea":
@@ -44,10 +45,13 @@ export function fieldTypeBadgeClass(type: string): string {
       return "bg-emerald-100 text-emerald-700 hover:bg-emerald-100";
     case "link":
       return "bg-cyan-100 text-cyan-700 hover:bg-cyan-100";
+    case "object":
     case "group":
       return "bg-violet-100 text-violet-700 hover:bg-violet-100";
+    case "array":
     case "repeater":
       return "bg-orange-100 text-orange-700 hover:bg-orange-100";
+    case "reference":
     case "node":
       return "bg-sky-100 text-sky-700 hover:bg-sky-100";
     case "term":
@@ -98,7 +102,7 @@ export default function FieldSchemaEditor({
   const [showAddField, setShowAddField] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldKey, setNewFieldKey] = useState("");
-  const [newFieldType, setNewFieldType] = useState<NodeTypeField["type"]>("text");
+  const [newFieldType, setNewFieldType] = useState<NodeTypeField["type"]>("string");
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState("");
   const [newFieldSubFields, setNewFieldSubFields] = useState<NodeTypeField[]>([]);
@@ -129,7 +133,7 @@ export default function FieldSchemaEditor({
   function resetAddFieldForm() {
     setNewFieldLabel("");
     setNewFieldKey("");
-    setNewFieldType("text");
+    setNewFieldType("string");
     setNewFieldRequired(false);
     setNewFieldOptions("");
     setNewFieldSubFields([]);
@@ -195,14 +199,14 @@ export default function FieldSchemaEditor({
       if (newFieldMax.trim()) sf.max = Number(newFieldMax);
       if (newFieldStep.trim()) sf.step = Number(newFieldStep);
     }
-    if (newFieldType === "text" || newFieldType === "textarea") {
+    if (newFieldType === "string" || newFieldType === "text" || newFieldType === "textarea") {
       if (newFieldMinLength.trim()) sf.min_length = Number(newFieldMinLength);
       if (newFieldMaxLength.trim()) sf.max_length = Number(newFieldMaxLength);
     }
     if (newFieldType === "textarea" && newFieldRows.trim()) {
       sf.rows = Number(newFieldRows);
     }
-    if (["text", "number", "email", "url"].includes(newFieldType)) {
+    if (["string", "text", "number", "email", "url"].includes(newFieldType)) {
       if (newFieldPrepend.trim()) sf.prepend = newFieldPrepend.trim();
       if (newFieldAppend.trim()) sf.append = newFieldAppend.trim();
     }
@@ -406,7 +410,7 @@ export default function FieldSchemaEditor({
                   </div>
                 </div>
               )}
-              {(field.type === "text" || field.type === "textarea") && (
+              {(field.type === "string" || field.type === "text" || field.type === "textarea") && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label className="text-xs font-medium text-muted-foreground">Min Length</Label>
@@ -424,7 +428,7 @@ export default function FieldSchemaEditor({
                   <Input type="number" value={field.rows ?? ""} disabled={disabled} onChange={(e) => updateField(index, { rows: e.target.value ? Number(e.target.value) : undefined })} placeholder="4 (default)" className="h-8 text-sm" />
                 </div>
               )}
-              {["text", "number", "email", "url"].includes(field.type) && (
+              {["string", "text", "number", "email", "url"].includes(field.type) && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label className="text-xs font-medium text-muted-foreground">Prepend</Label>
@@ -524,15 +528,15 @@ export default function FieldSchemaEditor({
               </div>
             )}
 
-            {(newFieldType === "group" || newFieldType === "repeater") && (
+            {(newFieldType === "object" || newFieldType === "array" || newFieldType === "group" || newFieldType === "repeater") && (
               <NestedFieldsEditor
                 value={newFieldSubFields}
                 onChange={setNewFieldSubFields}
-                label={newFieldType === "group" ? "Group sub-fields" : "Repeater row fields"}
+                label={(newFieldType === "object" || newFieldType === "group") ? "Object sub-fields" : "Array row fields"}
               />
             )}
 
-            {newFieldType === "node" && (
+            {(newFieldType === "reference" || newFieldType === "node") && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground">Node Type Filter</Label>
@@ -638,7 +642,7 @@ export default function FieldSchemaEditor({
               </div>
             )}
 
-            {(newFieldType === "text" || newFieldType === "textarea") && (
+            {(newFieldType === "string" || newFieldType === "text" || newFieldType === "textarea") && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground">Min Length</Label>
@@ -658,7 +662,7 @@ export default function FieldSchemaEditor({
               </div>
             )}
 
-            {["text", "number", "email", "url"].includes(newFieldType) && (
+            {["string", "text", "number", "email", "url"].includes(newFieldType) && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground">Prepend</Label>

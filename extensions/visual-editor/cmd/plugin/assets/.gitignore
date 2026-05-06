@@ -1,0 +1,4 @@
+# Sourcemap is large (~1MB) and developer-only. The bundle itself
+# (editor.js) is tracked so //go:embed has a file to embed from a
+# fresh clone.
+*.map
