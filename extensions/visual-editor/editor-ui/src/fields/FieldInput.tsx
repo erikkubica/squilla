@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { BlockField } from "../api";
 import { ArrayField, LinkField, ObjectField } from "./Composite";
+import { FormSelectorField } from "./FormSelector";
 import { FileField, GalleryField, ImageField } from "./MediaPicker";
 import { NodeRefField, TermField } from "./RefPicker";
 import { RichText } from "./RichText";
@@ -215,6 +216,8 @@ function Control({
       return <NodeRefField field={field} value={value} onChange={onChange} />;
     case "term":
       return <TermField field={field} value={value} onChange={onChange} defaultNodeType={nodeType} />;
+    case "form_selector":
+      return <FormSelectorField value={value} onChange={onChange} id={id} />;
     default:
       return (
         <textarea
