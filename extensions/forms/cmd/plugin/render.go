@@ -206,8 +206,21 @@ func (p *FormsPlugin) renderFormHTML(form map[string]any) (string, error) {
 		"fields_by_id": fieldsByID,
 	}
 
-	// Merge top-level field keys into data so {{.email.label}} works
+	// Merge top-level field keys into data so {{.email.label}} works.
+	// Reserved keys win — a form with a field literally named "name"
+	// would otherwise shadow the form's name attribute, and the layout
+	// header "{{.name}}" would render the entire field map instead of
+	// "Contact" (or whatever the form is called). The shorthand still
+	// works for any field ID that doesn't collide; the longhand
+	// {{.fields.<id>.label}} works regardless.
+	reserved := map[string]bool{
+		"id": true, "name": true,
+		"fields": true, "fields_list": true, "fields_by_id": true,
+	}
 	for k, v := range topLevelFields {
+		if reserved[k] {
+			continue
+		}
 		data[k] = v
 	}
 

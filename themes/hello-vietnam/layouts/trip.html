@@ -200,8 +200,6 @@
 </div>
 {{renderLayoutBlock "site-footer"}}
 </div>
-{{- range .app.foot_scripts -}}<script src="{{.}}" defer></script>{{- end -}}
-{{.app.block_scripts}}
 {{- with .app.settings -}}{{- with index . "custom_footer_code"}}{{safeHTML .}}{{end -}}{{- end -}}
 {{.app.body_end}}
 </body>
