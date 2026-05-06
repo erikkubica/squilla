@@ -145,42 +145,46 @@ func (h *PublicHandler) RegisterRoutes(app *fiber.App) {
 	app.Get("/*", h.PageByFullURL)
 }
 
-// HomePage renders the public homepage. If a homepage node is configured in
-// site_settings, that node is rendered. Otherwise, recent published content is shown.
+// HomePage renders the public homepage when one is configured in
+// site_settings.homepage_node_id (themes set this on activation). When no
+// homepage is configured — fresh install before a theme has run, or after
+// the operator deletes their homepage node — we redirect to /admin so the
+// first-time visitor lands on something useful instead of an error page.
 func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 	user := h.currentUser(c)
 
-	// Check if a homepage node is configured
 	settings := h.loadSiteSettings()
-	if val, ok := settings["homepage_node_id"]; ok && val != "" {
-		if homepageID, err := strconv.Atoi(val); err == nil && homepageID > 0 {
-			var node models.ContentNode
-			if err := h.db.Where("id = ? AND status = ?", homepageID, "published").First(&node).Error; err == nil {
-				blocks := parseBlocks(node.BlocksData)
-				h.resolveAssetRefsInBlocks(blocks)
-				renderedBlocks := h.renderBlocksBatch(blocks, node.LanguageCode)
-				renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
-
-				// Layout-based rendering
-				html, _, renderErr := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user)
-				if renderErr != nil {
-					c.Set("Content-Type", "text/html; charset=utf-8")
-					return c.SendString(h.layoutErrorPage(renderErr, node.FullURL))
-				}
-				if html != "" {
-					c.Set("Content-Type", "text/html; charset=utf-8")
-					return c.SendString(html)
-				}
-				// No layout resolved — show error page
-				c.Set("Content-Type", "text/html; charset=utf-8")
-				return c.SendString(h.layoutErrorPage(fmt.Errorf("no layout resolved for homepage"), "/"))
-			}
-		}
+	val, ok := settings["homepage_node_id"]
+	if !ok || val == "" {
+		return c.Redirect("/admin", fiber.StatusFound)
+	}
+	homepageID, err := strconv.Atoi(val)
+	if err != nil || homepageID <= 0 {
+		return c.Redirect("/admin", fiber.StatusFound)
 	}
 
-	// No homepage node found — show error page
+	var node models.ContentNode
+	if err := h.db.Where("id = ? AND status = ?", homepageID, "published").First(&node).Error; err != nil {
+		// Configured node was deleted or unpublished — fall back to admin.
+		return c.Redirect("/admin", fiber.StatusFound)
+	}
+
+	blocks := parseBlocks(node.BlocksData)
+	h.resolveAssetRefsInBlocks(blocks)
+	renderedBlocks := h.renderBlocksBatch(blocks, node.LanguageCode)
+	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
+
+	html, _, renderErr := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user)
+	if renderErr != nil {
+		c.Set("Content-Type", "text/html; charset=utf-8")
+		return c.SendString(h.layoutErrorPage(renderErr, node.FullURL))
+	}
+	if html != "" {
+		c.Set("Content-Type", "text/html; charset=utf-8")
+		return c.SendString(html)
+	}
 	c.Set("Content-Type", "text/html; charset=utf-8")
-	return c.SendString(h.layoutErrorPage(fmt.Errorf("homepage content node not found"), "/"))
+	return c.SendString(h.layoutErrorPage(fmt.Errorf("no layout resolved for homepage"), "/"))
 }
 
 // PageByFullURL looks up a content node by matching the request path against full_url.

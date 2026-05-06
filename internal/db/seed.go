@@ -3,12 +3,10 @@ package db
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -182,9 +180,6 @@ func Seed(db *gorm.DB) error {
 	if err := seedAdminUser(db); err != nil {
 		return err
 	}
-	if err := seedContentNode(db); err != nil {
-		return err
-	}
 	if err := seedLayoutBlocks(db); err != nil {
 		return err
 	}
@@ -322,36 +317,4 @@ func envOr(key, fallback string) string {
 	return fallback
 }
 
-func seedContentNode(db *gorm.DB) error {
-	seoSettings := json.RawMessage(`{"meta_title":"Welcome to Squilla","meta_description":"A high-performance, AI-native CMS."}`)
-	now := time.Now()
-
-	// Empty homepage. The active theme is responsible for populating
-	// real content via its own seed (theme.tengo or migrations). Core
-	// just guarantees a node exists at "/" so the public router has
-	// something to render — never an error page.
-	node := models.ContentNode{
-		NodeType:     "page",
-		Status:       "published",
-		LanguageCode: "en",
-		Slug:         "home",
-		FullURL:      "/",
-		Title:        "Welcome to Squilla",
-		BlocksData:   models.JSONB(json.RawMessage(`[]`)),
-		SeoSettings:  models.JSONB(seoSettings),
-		Version:      1,
-		PublishedAt:  &now,
-	}
-
-	result := db.Where("full_url = ?", node.FullURL).FirstOrCreate(&node)
-	if result.Error != nil {
-		return fmt.Errorf("failed to seed sample content node: %w", result.Error)
-	}
-
-	// Set as homepage (language_code='en' = default language row; PK is (key, language_code) since migration 0038).
-	db.Exec(`INSERT INTO site_settings (key, language_code, value, updated_at) VALUES ('homepage_node_id', 'en', ?, NOW()) ON CONFLICT (key, language_code) DO UPDATE SET value = EXCLUDED.value`,
-		fmt.Sprintf("%d", node.ID))
-
-	return nil
-}
 
