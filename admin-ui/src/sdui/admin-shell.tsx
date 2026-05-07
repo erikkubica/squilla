@@ -323,7 +323,7 @@ function SidebarNav({
             style={{color: "var(--sb-fg-muted)"}}
             title="Expand sidebar"
           >
-            <ChevronRight size={14} className="rotate-180" />
+            <ChevronRight size={14} />
           </button>
         </div>
       )}
@@ -473,7 +473,7 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
               style={{color: "var(--sb-fg-muted)"}}
               title="Collapse sidebar"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={14} className="rotate-180" />
             </button>
           )}
           <button
