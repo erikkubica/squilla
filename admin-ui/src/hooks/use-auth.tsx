@@ -58,9 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Redirect to login if not authenticated and not already on login page
+  // Redirect to login if not authenticated and not already on a public auth
+  // route. Forgot/reset are unauthenticated by design — the user has no
+  // session yet, so the redirect-to-login loop would trap them.
   useEffect(() => {
-    if (!loading && !user && location.pathname !== "/admin/login") {
+    const publicAuthRoutes = ["/admin/login", "/admin/forgot-password", "/admin/reset-password"];
+    if (!loading && !user && !publicAuthRoutes.includes(location.pathname)) {
       navigate("/admin/login", { replace: true });
     }
   }, [loading, user, location.pathname, navigate]);

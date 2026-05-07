@@ -126,6 +126,50 @@ export async function getMe(): Promise<User> {
   return res.data;
 }
 
+// --- Admin auth flows (unauthenticated; backed by /admin/api/auth/*) ---
+
+export interface AdminAuthConfig {
+  allow_registration: boolean;
+  password_reset_enabled: boolean;
+}
+
+export async function getAdminAuthConfig(): Promise<AdminAuthConfig> {
+  return api<AdminAuthConfig>("/admin/api/auth/config");
+}
+
+export async function adminRegister(data: {
+  full_name: string;
+  email: string;
+  password: string;
+  password_confirm: string;
+}): Promise<{ user_id: number; email: string; sign_in: boolean }> {
+  const res = await api<ApiResponse<{ user_id: number; email: string; sign_in: boolean }>>(
+    "/admin/api/auth/register",
+    { method: "POST", body: JSON.stringify(data) },
+  );
+  return res.data;
+}
+
+export async function adminForgotPassword(email: string): Promise<{ message: string }> {
+  const res = await api<ApiResponse<{ message: string }>>("/admin/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  return res.data;
+}
+
+export async function adminResetPassword(data: {
+  token: string;
+  password: string;
+  password_confirm: string;
+}): Promise<{ message: string }> {
+  const res = await api<ApiResponse<{ message: string }>>("/admin/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
 export interface GetNodesParams {
   page?: number;
   per_page?: number;

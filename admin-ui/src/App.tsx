@@ -34,7 +34,7 @@ import { SduiUsersPage } from "@/pages/sdui-users";
 import { SduiRolesPage } from "@/pages/sdui-roles";
 import { SduiMcpTokensPage } from "@/pages/sdui-mcp-tokens";
 import { SduiSecuritySettingsPage } from "@/pages/sdui-security-settings";
-import LoginPage from "@/pages/login";
+import LoginPage, { ForgotPasswordPage, ResetPasswordPage } from "@/pages/login";
 import { SduiAdminShell } from "@/sdui/admin-shell";
 import { AdminLanguageProvider } from "@/hooks/use-admin-language";
 import { ExtensionsProvider } from "@/hooks/use-extensions";
@@ -124,6 +124,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/admin/login" element={<LoginPage />} />
+      <Route path="/admin/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/admin/reset-password" element={<ResetPasswordPage />} />
 
       {/* Dashboard */}
       <Route path="/admin/dashboard" element={<ProtectedRoute><SduiDashboardPage /></ProtectedRoute>} />

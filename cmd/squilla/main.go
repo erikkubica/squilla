@@ -237,6 +237,7 @@ func main() {
 	settingsSchemaHandler := settings.NewHandler(settingsRegistry, settingsStore, database, eventBus)
 
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, eventBus)
+	adminAuthHandler := auth.NewAdminAuthHandler(database, sessionSvc, eventBus)
 
 	// SDUI handlers — boot manifest, layout trees, and SSE events.
 	bootHandler := api.NewBootHandler(database, sduiEngine)
@@ -379,6 +380,7 @@ func main() {
 
 	// --- API Auth routes ---
 	authHandler.RegisterRoutes(app)
+	adminAuthHandler.RegisterRoutes(app)
 
 	// Health check.
 	app.Get("/api/v1/health", healthHandler.HealthCheck)
