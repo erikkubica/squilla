@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBoot } from "../hooks/use-boot";
 import { useAuth } from "../hooks/use-auth";
 import { useAdminLanguage } from "../hooks/use-admin-language";
+import { useBranding } from "../hooks/use-branding";
 import { getThemeSettingsPages, clearCache } from "../api/client";
 import type { NavItem } from "./types";
 import * as Lucide from "lucide-react";
@@ -438,6 +439,16 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
     [location.pathname],
   );
 
+  // Document title — "{last crumb} — {site title}", falling back to
+  // "{site title} Admin" on routes without breadcrumbs (e.g. dashboard).
+  // SduiAdminShell is the actual shell rendered by the SDUI pages; the
+  // sibling admin-layout.tsx covers the legacy non-SDUI routes.
+  const branding = useBranding();
+  useEffect(() => {
+    const last = breadcrumbs[breadcrumbs.length - 1];
+    document.title = last ? `${last} — ${branding.siteTitle}` : `${branding.siteTitle} Admin`;
+  }, [breadcrumbs, branding.siteTitle]);
+
   const navigation = useMemo<NavItem[]>(() => {
     const base = boot?.navigation || [];
     const pages = themePages?.pages || [];
@@ -496,23 +507,33 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
         <div className="flex shrink-0 items-center" style={{ height: 48, padding: "0 14px" }}>
           <div className="flex items-center" style={{ gap: 10 }}>
             <div
-              className="grid shrink-0 place-items-center"
+              className="grid shrink-0 place-items-center overflow-hidden"
               style={{
                 width: 22,
                 height: 22,
                 borderRadius: 6,
-                background: "var(--accent)",
+                background: branding.faviconUrl ? "transparent" : "var(--accent)",
                 color: "var(--accent-fg)",
                 fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 fontWeight: 600,
               }}
             >
-              S
+              {branding.faviconUrl ? (
+                <img
+                  src={branding.faviconUrl}
+                  alt=""
+                  width={22}
+                  height={22}
+                  style={{ width: 22, height: 22, objectFit: "contain" }}
+                />
+              ) : (
+                branding.siteTitle.charAt(0).toUpperCase() || "S"
+              )}
             </div>
             {!collapsed && (
               <span style={{ fontSize: 14, fontWeight: 600, color: "var(--sb-fg-active)", letterSpacing: "-0.02em" }}>
-                Squilla
+                {branding.siteTitle}
               </span>
             )}
           </div>
