@@ -329,7 +329,7 @@ export default function EmailRuleEditor() {
       </div>
 
       {/* Sidebar */}
-      <aside className="lg:sticky lg:top-4 lg:self-start">
+      <aside className="lg:sticky lg:self-start">
         <SidebarCard title="Publish">
           <div className="flex items-center justify-between gap-2">
             <Label className="text-sm font-medium text-foreground">Enabled</Label>

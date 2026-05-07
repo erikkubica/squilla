@@ -364,7 +364,7 @@ export default function EmailTemplateEditor() {
       </div>
 
       {/* Sidebar */}
-      <aside className="lg:sticky lg:top-4 lg:self-start">
+      <aside className="lg:sticky lg:self-start">
         <SidebarCard title="Publish">
           <LanguagePicker
             languages={languageOptions}
