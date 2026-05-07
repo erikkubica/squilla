@@ -214,7 +214,16 @@ const DENSITY_OPTIONS: { value: Density; label: string }[] = [
   { value: "spacious", label: "Spacious" },
 ];
 
-const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+// per_page derives from density so the grid is always full at the lg
+// breakpoint (cols × 6 rows). Changing density updates per_page in the URL
+// and triggers a refetch — the user no longer picks per_page directly.
+const PER_PAGE_BY_DENSITY: Record<Density, number> = {
+  spacious: 24, // 4 cols × 6 rows
+  comfy: 30,   // 5 cols × 6 rows
+  compact: 36, // 6 cols × 6 rows
+};
+const DEFAULT_DENSITY: Density = "comfy";
+const DEFAULT_PER_PAGE = PER_PAGE_BY_DENSITY[DEFAULT_DENSITY];
 
 // ---------- Main ----------
 
@@ -222,9 +231,6 @@ export default function MediaLibrary() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const perPage = PER_PAGE_OPTIONS.includes(Number(searchParams.get("per_page")))
-    ? Number(searchParams.get("per_page"))
-    : 25;
   const search = searchParams.get("q") || "";
   const mimeFilter = searchParams.get("kind") || searchParams.get("type") || "all";
   const sortBy = searchParams.get("sort") || "date_desc";
@@ -233,7 +239,13 @@ export default function MediaLibrary() {
     searchParams.get("density") as Density
   )
     ? (searchParams.get("density") as Density)
-    : "comfy";
+    : DEFAULT_DENSITY;
+  // per_page tracks density. URL value wins only if it matches the density's
+  // expected count (deep-link compat); otherwise the density's value is used
+  // and re-synced into the URL by setDensity.
+  const perPageFromDensity = PER_PAGE_BY_DENSITY[density];
+  const perPageFromUrl = Number(searchParams.get("per_page"));
+  const perPage = perPageFromUrl > 0 ? perPageFromUrl : perPageFromDensity;
 
   const updateParams = useCallback(
     (patch: Record<string, string | number | null>, opts: { replace?: boolean; resetPage?: boolean } = {}) => {
@@ -257,12 +269,20 @@ export default function MediaLibrary() {
     const next = typeof p === "function" ? p(page) : p;
     updateParams({ page: next === 1 ? null : next });
   }, [page, updateParams]);
-  const setPerPage = (n: number) => updateParams({ per_page: n === 25 ? null : n }, { resetPage: true });
   const setSearch = (s: string) => updateParams({ q: s || null }, { replace: true, resetPage: true });
   const setMimeFilter = (v: string) => updateParams({ kind: v === "all" ? null : v, type: null }, { resetPage: true });
   const setSortBy = (v: string) => updateParams({ sort: v === "date_desc" ? null : v }, { resetPage: true });
   const setViewMode = (v: "grid" | "list") => updateParams({ view: v === "grid" ? null : v });
-  const setDensity = (d: Density) => updateParams({ density: d === "comfy" ? null : d });
+  const setDensity = (d: Density) => {
+    const nextPerPage = PER_PAGE_BY_DENSITY[d];
+    updateParams(
+      {
+        density: d === DEFAULT_DENSITY ? null : d,
+        per_page: nextPerPage === DEFAULT_PER_PAGE ? null : nextPerPage,
+      },
+      { resetPage: true },
+    );
+  };
 
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
@@ -721,7 +741,6 @@ export default function MediaLibrary() {
             total={meta.total}
             perPage={perPage}
             onPage={setPage}
-            onPerPage={setPerPage}
             label="files"
           />
         )}

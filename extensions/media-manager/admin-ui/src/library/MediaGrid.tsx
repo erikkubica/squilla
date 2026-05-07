@@ -179,10 +179,13 @@ interface MediaGridProps {
   onDelete: (f: MediaFile) => void;
 }
 
+// Desktop column counts: spacious=4, comfy=5, compact=6.
+// PER_PAGE_BY_DENSITY in MediaLibrary.tsx is sized so each density yields a
+// full grid (multiple complete rows) at the lg breakpoint and up.
 const COL_CLASSES: Record<Density, string> = {
-  compact: "grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-9",
-  comfy: "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7",
-  spacious: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+  compact: "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6",
+  comfy: "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+  spacious: "grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4",
 };
 
 export default function MediaGrid({
