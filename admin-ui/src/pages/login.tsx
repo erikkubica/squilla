@@ -10,7 +10,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
@@ -46,7 +45,7 @@ function AuthShell({
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-2">
           <div
-            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden"
+            className="mx-auto flex h-12 w-12 items-center justify-center overflow-hidden"
             style={{
               borderRadius: 10,
               background: branding.faviconUrl ? "transparent" : "var(--accent)",
@@ -68,9 +67,17 @@ function AuthShell({
               branding.siteTitle.charAt(0).toUpperCase() || "S"
             )}
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
+          {/* Plain <h1> instead of <CardTitle>: the global
+              [data-slot=card-title] rule in index.css forces 12.5px
+              !important on every CardTitle so list/editor headers
+              stay uniform. We don't want that here — the auth card is
+              the one place where a large title is the design intent. */}
+          <h1
+            className="tracking-tight text-foreground"
+            style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", margin: 0 }}
+          >
             {title}
-          </CardTitle>
+          </h1>
           <CardDescription className="text-muted-foreground">{description}</CardDescription>
         </CardHeader>
         <CardContent className="p-8 pt-4">
