@@ -301,12 +301,18 @@ func (e *Engine) taxonomyTermsLayout(params map[string]string) *LayoutNode {
 		return e.defaultLayout("taxonomy-terms")
 	}
 
-	// Resolve display labels
+	// Resolve display labels with fallbacks: label_plural → label → slug.
+	// Without this the empty-state and table headers showed the raw slug
+	// (e.g. "No trip_tag yet") because the frontend received no label
+	// props and defaulted to the taxonomy slug.
+	labelSingular := tax.Label
+	if labelSingular == "" {
+		labelSingular = tax.Slug
+	}
 	labelPlural := tax.LabelPlural
 	if labelPlural == "" {
-		labelPlural = tax.Label
+		labelPlural = labelSingular
 	}
-	_ = labelPlural // currently unused in layout but kept for symmetry with sibling layouts
 
 	// 2. Get NodeType for context (best-effort, doesn't fail layout)
 	var nt models.NodeType
@@ -387,7 +393,7 @@ func (e *Engine) taxonomyTermsLayout(params map[string]string) *LayoutNode {
 				Props: map[string]interface{}{
 					"tabs":      []map[string]interface{}{{"value": "all", "label": "All", "count": int(termTotal)}},
 					"activeTab": "all",
-					"newLabel":  "New " + tax.Label,
+					"newLabel":  "New " + labelSingular,
 				},
 				Actions: map[string]ActionDef{
 					"onBack": {Type: "NAVIGATE", To: basePath},
@@ -405,12 +411,14 @@ func (e *Engine) taxonomyTermsLayout(params map[string]string) *LayoutNode {
 			{
 				Type: "TaxonomyTermsTable",
 				Props: map[string]interface{}{
-					"taxonomy":         taxonomySlug,
-					"nodeType":         nodeTypeSlug,
-					"rows":             rows,
-					"sortBy":           termSortBy,
-					"sortOrder":        termSortOrder,
-					"hasActiveFilters": hasFilters,
+					"taxonomy":            taxonomySlug,
+					"taxonomyLabel":       labelSingular,
+					"taxonomyLabelPlural": labelPlural,
+					"nodeType":            nodeTypeSlug,
+					"rows":                rows,
+					"sortBy":              termSortBy,
+					"sortOrder":           termSortOrder,
+					"hasActiveFilters":    hasFilters,
 					"pagination": map[string]interface{}{
 						"page": termPage, "perPage": termPerPage,
 						"total": int(termTotal), "totalPages": termTotalPages,
