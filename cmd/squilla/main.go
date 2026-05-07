@@ -388,6 +388,13 @@ func main() {
 	publicAPI := app.Group("/api/v1")
 	nodeHandler.RegisterPublicRoutes(publicAPI)
 
+	// Soft-branding endpoint, mounted UN-authenticated under /admin so the
+	// login page can fetch site_title + favicon URL before any session
+	// exists. The handler only echoes information that the public site
+	// already exposes — see internal/cms/branding_handler.go for the
+	// security rationale and the explicit do-not-add list.
+	cms.NewBrandingHandler(database).RegisterRoutes(app.Group("/admin"))
+
 	// --- Admin API routes (session auth + admin_access required) ---
 	// AuthRequired runs first so the request has a user context; the
 	// admin_access capability gate runs second so logged-in members (who

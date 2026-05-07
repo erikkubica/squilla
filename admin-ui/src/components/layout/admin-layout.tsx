@@ -52,10 +52,10 @@ import {
   clearCache,
   getNodeTypes,
   getTaxonomies,
-  getSiteSettings,
   type NodeType,
   type Taxonomy,
 } from "@/api/client";
+import { useBranding } from "@/hooks/use-branding";
 import { toast } from "sonner";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
 import { useExtensions } from "@/hooks/use-extensions";
@@ -221,21 +221,8 @@ function AdminLayoutInner() {
   const breadcrumbs =
     overrideCrumbs && overrideCrumbs.length > 0 ? overrideCrumbs : autoCrumbs;
 
-  const [siteTitle, setSiteTitle] = useState<string>("Squilla");
-
-  useEffect(() => {
-    let cancelled = false;
-    getSiteSettings()
-      .then((s) => {
-        if (cancelled) return;
-        const t = (s?.site_title || "").trim();
-        if (t) setSiteTitle(t);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const branding = useBranding();
+  const siteTitle = branding.siteTitle;
 
   useEffect(() => {
     const last = breadcrumbs[breadcrumbs.length - 1];
@@ -522,19 +509,29 @@ function AdminLayoutInner() {
         >
           <div className="flex items-center" style={{ gap: 10 }}>
             <div
-              className="grid place-items-center shrink-0"
+              className="grid place-items-center shrink-0 overflow-hidden"
               style={{
                 width: 22,
                 height: 22,
                 borderRadius: 6,
-                background: "var(--accent)",
+                background: branding.faviconUrl ? "transparent" : "var(--accent)",
                 color: "var(--accent-fg)",
                 fontSize: 11,
                 fontWeight: 600,
                 fontFamily: "var(--font-mono)",
               }}
             >
-              S
+              {branding.faviconUrl ? (
+                <img
+                  src={branding.faviconUrl}
+                  alt=""
+                  width={22}
+                  height={22}
+                  style={{ width: 22, height: 22, objectFit: "contain" }}
+                />
+              ) : (
+                siteTitle.charAt(0).toUpperCase() || "S"
+              )}
             </div>
             {!collapsed && (
               <span
@@ -545,7 +542,7 @@ function AdminLayoutInner() {
                   letterSpacing: "-0.02em",
                 }}
               >
-                Squilla
+                {siteTitle}
               </span>
             )}
           </div>

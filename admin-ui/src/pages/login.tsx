@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useBranding } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const branding = useBranding();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -37,20 +39,30 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-2">
           <div
-            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center"
+            className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden"
             style={{
               borderRadius: 10,
-              background: "var(--accent)",
+              background: branding.faviconUrl ? "transparent" : "var(--accent)",
               color: "var(--accent-fg)",
               fontFamily: "var(--font-mono)",
               fontSize: 18,
               fontWeight: 600,
             }}
           >
-            S
+            {branding.faviconUrl ? (
+              <img
+                src={branding.faviconUrl}
+                alt=""
+                width={40}
+                height={40}
+                style={{ width: 40, height: 40, objectFit: "contain" }}
+              />
+            ) : (
+              branding.siteTitle.charAt(0).toUpperCase() || "S"
+            )}
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
-            Squilla
+            {branding.siteTitle}
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             Sign in to your account
