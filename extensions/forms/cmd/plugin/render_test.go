@@ -55,51 +55,35 @@ func TestRenderFormHTML_FieldByIDAccess(t *testing.T) {
 	fields := []map[string]any{
 		{"id": "email", "label": "Email Address", "type": "email"},
 	}
-	form := simpleForm(`<form>{{.email.label}}</form>`, fields)
+	form := simpleForm(`<form>{{.fields.email.label}}</form>`, fields)
 	html, err := p.renderFormHTML(form)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(html, "Email Address") {
-		t.Errorf("template shorthand .email.label should render label, got: %s", html)
+		t.Errorf(".fields.email.label should render label, got: %s", html)
 	}
 }
 
-// Reserved field IDs (id, name, fields, fields_list, fields_by_id) cannot use
-// the shorthand because they would shadow built-in template keys. The
-// longhand {{.fields.<id>.label}} must keep working for them. Regression
-// guard for commit e7b8cdb.
-func TestRenderFormHTML_ReservedFieldIDLonghand(t *testing.T) {
+// .form.name renders the form's title even when a field has id "name" —
+// the two namespaces are isolated so collisions are structurally
+// impossible.
+func TestRenderFormHTML_FormNameIsolated(t *testing.T) {
 	p := newPlugin(NewFakeHost())
 	fields := []map[string]any{
 		{"id": "name", "label": "Full Name", "type": "text"},
 	}
-	form := simpleForm(`<form>{{(index .fields "name").label}}</form>`, fields)
-	form["name"] = "Contact Form"
-	html, err := p.renderFormHTML(form)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(html, "Full Name") {
-		t.Errorf("longhand should render reserved-id field label, got: %s", html)
-	}
-}
-
-// The form's own .name (the form title) must NOT be shadowed by a field
-// whose id is "name" — this is what e7b8cdb fixed.
-func TestRenderFormHTML_FormNameNotShadowedByField(t *testing.T) {
-	p := newPlugin(NewFakeHost())
-	fields := []map[string]any{
-		{"id": "name", "label": "Full Name", "type": "text"},
-	}
-	form := simpleForm(`<form><h1>{{.name}}</h1></form>`, fields)
+	form := simpleForm(`<form><h1>{{.form.name}}</h1>{{.fields.name.label}}</form>`, fields)
 	form["name"] = "Contact Form"
 	html, err := p.renderFormHTML(form)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(html, "<h1>Contact Form</h1>") {
-		t.Errorf("form .name should render the form title, not the field map; got: %s", html)
+		t.Errorf(".form.name should render the form title; got: %s", html)
+	}
+	if !strings.Contains(html, "Full Name") {
+		t.Errorf(".fields.name.label should render the field label; got: %s", html)
 	}
 }
 

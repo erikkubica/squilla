@@ -38,16 +38,20 @@ function buildFakeValue(field: any): string {
   }
 }
 
-function buildTestData(fields: any[]): Record<string, unknown> {
+function buildTestData(form: any): Record<string, unknown> {
+  const fields = Array.isArray(form?.fields) ? form.fields : [];
   const fieldsById: Record<string, any> = {};
   for (const field of fields) {
     fieldsById[field.id] = { ...field, value: buildFakeValue(field) };
   }
   return {
-    ...fieldsById,
+    form: {
+      id: form?.id ?? 0,
+      name: form?.name ?? "Preview Form",
+      slug: form?.slug ?? "",
+    },
     fields: fieldsById,
-    fields_list: fields.map((f) => ({ ...f, value: buildFakeValue(f) })),
-    fields_by_id: fieldsById,
+    fields_list: fields.map((f: any) => ({ ...f, value: buildFakeValue(f) })),
   };
 }
 
@@ -80,7 +84,7 @@ export default function PreviewTab({ form }: any) {
     setLoading(true);
     setError(null);
     try {
-      const testData = buildTestData(currentForm.fields || []);
+      const testData = buildTestData(currentForm);
       const res = await fetch("/admin/api/block-types/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1,10 +1,7 @@
 {{/* Template variables available:
-     .fields_list    — ordered array of all field objects (use {{range .fields_list}})
+     .form           — form metadata: .form.id, .form.name, .form.slug
      .fields         — map keyed by field ID:   .fields.email.label
-     .fields_by_id   — same map, explicit access: .fields_by_id.email.label
-     (shorthand)     — each field at top level by ID: .email.label, .email.value
-     .id             — form ID
-     .name           — form name
+     .fields_list    — ordered array of all field objects (use {{range .fields_list}})
 
      Each field has: .id, .label, .type, .placeholder, .required, .options (for selects)
      Select options are objects: .label and .value

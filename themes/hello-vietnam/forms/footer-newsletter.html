@@ -8,10 +8,12 @@
   inline <form> had before it was wired to forms-ext.
 
   Variables exposed by the forms extension:
-    .fields_list, .fields, .fields_by_id, .id, .name (forms-ext defaults)
+    .form           — form metadata: .form.id, .form.name, .form.slug
+    .fields         — map keyed by field ID:   .fields.email.label
+    .fields_list    — ordered array of field objects (use {{range .fields_list}})
     Each field: .id .label .type .placeholder .required .options
 */}}
 <form style="display: flex; flex-direction: column; gap: 10px;">
-<input class="input" name="{{.email.id}}" type="email" placeholder="{{.email.placeholder}}" {{if .email.required}}required{{end}} style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: var(--cream);" />
+<input class="input" name="{{.fields.email.id}}" type="email" placeholder="{{.fields.email.placeholder}}" {{if .fields.email.required}}required{{end}} style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: var(--cream);" />
 <button type="submit" class="btn btn-yellow" style="justify-content: center; padding: 12px 16px;">Subscribe</button>
 </form>

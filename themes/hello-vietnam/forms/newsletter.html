@@ -4,10 +4,12 @@
   horizontal layout designed to live inside the red lead-magnet banner.
 
   Variables exposed by the forms extension:
-    .fields_list, .fields, .fields_by_id, .id, .name (forms-ext defaults)
+    .form           — form metadata: .form.id, .form.name, .form.slug
+    .fields         — map keyed by field ID:   .fields.email.label
+    .fields_list    — ordered array of field objects (use {{range .fields_list}})
     Each field: .id .label .type .placeholder .required .options
 */}}
 <form style="display: flex; gap: 10px; max-width: 440px; flex-wrap: wrap;">
-<input class="input lead-input" name="{{.email.id}}" type="email" placeholder="{{.email.placeholder}}" {{if .email.required}}required{{end}} style="background: rgba(255, 255, 255, 0.95); border-color: rgba(255, 255, 255, 0.95); color: var(--ink); flex: 1; min-width: 200px;" />
+<input class="input lead-input" name="{{.fields.email.id}}" type="email" placeholder="{{.fields.email.placeholder}}" {{if .fields.email.required}}required{{end}} style="background: rgba(255, 255, 255, 0.95); border-color: rgba(255, 255, 255, 0.95); color: var(--ink); flex: 1; min-width: 200px;" />
 <button class="btn btn-yellow" type="submit">Send me the map</button>
 </form>

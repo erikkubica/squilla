@@ -115,16 +115,16 @@ export default function LayoutTab({ form, setForm }: any) {
         <p className="font-semibold mb-2">Template Variables</p>
         <div className="grid gap-1 sm:grid-cols-3 font-mono text-[11px]">
           <p>
-            <span className="bg-blue-100 px-1 rounded">{"{{range .fields_list}}"}</span>{" "}
-            Loop all fields
-          </p>
-          <p>
-            <span className="bg-blue-100 px-1 rounded">{"{{.email.label}}"}</span>{" "}
-            Shorthand field access
+            <span className="bg-blue-100 px-1 rounded">{"{{.form.name}}"}</span>{" "}
+            Form metadata (id, name, slug)
           </p>
           <p>
             <span className="bg-blue-100 px-1 rounded">{"{{.fields.email.label}}"}</span>{" "}
-            Via fields map
+            Field by id
+          </p>
+          <p>
+            <span className="bg-blue-100 px-1 rounded">{"{{range .fields_list}}"}</span>{" "}
+            Iterate fields in order
           </p>
         </div>
       </div>

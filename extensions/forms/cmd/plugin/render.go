@@ -180,15 +180,12 @@ func (p *FormsPlugin) renderFormHTML(form map[string]any) (string, error) {
 		normalizeFieldOptions(fields[i])
 	}
 
-	// Build lookup map by field ID, and add each field as a top-level key
-	// so templates can use {{.email.label}} shorthand.
+	// Build a map keyed by field ID for {{.fields.<id>.<prop>}} access.
 	fieldsByID := make(map[string]any)
-	topLevelFields := make(map[string]any)
 	for _, f := range fields {
 		id, _ := f["id"].(string)
 		if id != "" {
 			fieldsByID[id] = f
-			topLevelFields[strings.ToLower(id)] = f
 		}
 	}
 
@@ -197,33 +194,21 @@ func (p *FormsPlugin) renderFormHTML(form map[string]any) (string, error) {
 		return "", fmt.Errorf("layout parse error: %w", err)
 	}
 
-	var buf bytes.Buffer
+	// Two namespaces, no collisions:
+	//   {{.form.<key>}}            — form metadata (id, name, slug)
+	//   {{.fields.<id>.<prop>}}    — field by id
+	//   {{range .fields_list}}     — ordered iteration
 	data := map[string]any{
-		"id":           form["id"],
-		"name":         form["name"],
-		"fields":       fieldsByID, // map keyed by field ID — enables {{.fields.name.label}}
-		"fields_list":  fields,     // ordered array — use {{range .fields_list}}
-		"fields_by_id": fieldsByID,
+		"form": map[string]any{
+			"id":   form["id"],
+			"name": form["name"],
+			"slug": form["slug"],
+		},
+		"fields":      fieldsByID,
+		"fields_list": fields,
 	}
 
-	// Merge top-level field keys into data so {{.email.label}} works.
-	// Reserved keys win — a form with a field literally named "name"
-	// would otherwise shadow the form's name attribute, and the layout
-	// header "{{.name}}" would render the entire field map instead of
-	// "Contact" (or whatever the form is called). The shorthand still
-	// works for any field ID that doesn't collide; the longhand
-	// {{.fields.<id>.label}} works regardless.
-	reserved := map[string]bool{
-		"id": true, "name": true,
-		"fields": true, "fields_list": true, "fields_by_id": true,
-	}
-	for k, v := range topLevelFields {
-		if reserved[k] {
-			continue
-		}
-		data[k] = v
-	}
-
+	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("template execute error: %w", err)
 	}
