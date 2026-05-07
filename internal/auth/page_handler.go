@@ -370,7 +370,7 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 		return c.Redirect("/forgot-password", fiber.StatusFound)
 	}
 
-	resetURL := buildResetURL(c, rawToken)
+	resetURL := buildResetURL(h.db, c, rawToken)
 
 	// Sync publish so the email-sending rule chain runs before we
 	// redirect — otherwise the user could refresh the success page
@@ -460,15 +460,12 @@ func (h *PageAuthHandler) ProcessResetPassword(c *fiber.Ctx) error {
 	return c.Redirect("/login", fiber.StatusFound)
 }
 
-// buildResetURL composes an absolute reset URL using site_url when set,
-// falling back to the request's host. Falling back via the request
+// buildResetURL composes an absolute reset URL for the public theme
+// page. Origin is resolved by siteOriginFor (site_url setting
+// preferred, request Host as fallback). Falling back via the request
 // preserves dev-time correctness (no env config required).
-func buildResetURL(c *fiber.Ctx, token string) string {
-	scheme := "http"
-	if IsSecureRequest(c) {
-		scheme = "https"
-	}
-	return fmt.Sprintf("%s://%s/reset-password?token=%s", scheme, c.Hostname(), token)
+func buildResetURL(db *gorm.DB, c *fiber.Ctx, token string) string {
+	return fmt.Sprintf("%s/reset-password?token=%s", siteOriginFor(db, c), token)
 }
 
 func (h *PageAuthHandler) Logout(c *fiber.Ctx) error {

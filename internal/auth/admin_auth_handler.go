@@ -248,7 +248,7 @@ func (h *AdminAuthHandler) ForgotPassword(c *fiber.Ctx) error {
 		return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
 	}
 
-	resetURL := buildAdminResetURL(c, rawToken)
+	resetURL := buildAdminResetURL(h.db, c, rawToken)
 	h.eventBus.PublishSync("user.password_reset_requested", events.Payload{
 		"user_id":     user.ID,
 		"user_email":  user.Email,
@@ -340,12 +340,9 @@ func (h *AdminAuthHandler) ResetPassword(c *fiber.Ctx) error {
 }
 
 // buildAdminResetURL composes an absolute reset URL that lands inside the
-// admin shell. Mirrors buildResetURL in page_handler.go but targets the
-// SPA route.
-func buildAdminResetURL(c *fiber.Ctx, token string) string {
-	scheme := "http"
-	if IsSecureRequest(c) {
-		scheme = "https"
-	}
-	return fmt.Sprintf("%s://%s/admin/reset-password?token=%s", scheme, c.Hostname(), token)
+// admin shell. Origin is resolved by siteOriginFor (site_url setting
+// preferred, request Host as fallback) so a misconfigured edge proxy
+// can't turn forgot-password into a token-leak vector.
+func buildAdminResetURL(db *gorm.DB, c *fiber.Ctx, token string) string {
+	return fmt.Sprintf("%s/admin/reset-password?token=%s", siteOriginFor(db, c), token)
 }
