@@ -10,7 +10,14 @@ interface EditorRootProps {
 }
 
 export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
+  // `active` flips on the first time the user opens the editor and stays
+  // on for the lifetime of the page so SidePanel's in-memory edit state
+  // survives a close. `hidden` is the visual toggle: clicking × hides
+  // the panel + overlays so the user can see the full page, but state
+  // is retained until refresh.
   const [active, setActive] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const live = active && !hidden;
   const [entries, setEntries] = useState<BlockEntry[]>([]);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -23,14 +30,12 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
   const guttersRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!active) {
-      setEntries([]);
+    if (!live) {
       setHoverIndex(null);
-      setSelectedIndex(null);
       return;
     }
     setEntries(indexBlockMarkers(document.body));
-  }, [active]);
+  }, [live]);
 
   // Imperative outline + insert-gutter positioning loop. While active,
   // each animation frame reads getBoundingClientRect for the hovered
@@ -38,7 +43,7 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
   // directly. No React render in this hot path → outline snaps to the
   // page during scroll instead of trailing it.
   useEffect(() => {
-    if (!active) return;
+    if (!live) return;
     let frame = 0;
     let lastSig = "";
     const tick = () => {
@@ -65,10 +70,10 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [active, entries, hoverIndex, selectedIndex]);
+  }, [live, entries, hoverIndex, selectedIndex]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!live) return;
     const onPointerMove = (e: PointerEvent) => {
       const target = e.target as Node | null;
       if (!target) return;
@@ -93,7 +98,7 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
       document.removeEventListener("pointermove", onPointerMove, true);
       document.removeEventListener("click", onClick, true);
     };
-  }, [active, entries]);
+  }, [live, entries]);
 
   // (Escape-to-close is owned by SidePanel so the dirty check stays
   // co-located with the unsaved-changes state.)
@@ -107,12 +112,15 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
 
   return (
     <>
-      {!active && (
+      {!live && (
         <button
           type="button"
           className="vedit-toggle"
           data-active={false}
-          onClick={() => setActive(true)}
+          onClick={() => {
+            setActive(true);
+            setHidden(false);
+          }}
           aria-pressed={false}
         >
           Edit page
@@ -120,7 +128,7 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
       )}
 
       {active && (
-        <>
+        <div style={hidden ? { display: "none" } : undefined}>
           <div className="vedit-overlay" aria-hidden="true">
             <div ref={hoverRef} className="vedit-outline" data-kind="hover" style={{ display: "none" }}>
               <span className="vedit-label" />
@@ -136,11 +144,11 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
             domEntries={entries}
             selectedIndex={selectedIndex}
             onSelect={setSelectedIndex}
-            onClose={() => setActive(false)}
+            onClose={() => setHidden(true)}
             onReindex={reindex}
             onSaved={() => window.location.reload()}
           />
-        </>
+        </div>
       )}
     </>
   );

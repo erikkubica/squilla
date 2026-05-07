@@ -388,30 +388,14 @@ export function SidePanel({
     window.location.reload();
   };
 
-  // requestClose gates the close action on unsaved changes. Called by
-  // both the × button and the Escape-key handler below. When clean,
-  // closes immediately (DOM has not been mutated, nothing to revert).
-  // When dirty, prompts before discarding so an accidental click on
-  // the × or a stray Escape doesn't silently throw away work the user
-  // has already typed into the panel.
+  // Closing the panel only hides it — neither saves nor discards. The
+  // parent keeps SidePanel mounted across hide/show, so unsaved edits
+  // (both block list mutations and field values) survive until the user
+  // explicitly saves, discards, or refreshes the page.
   const requestClose = (): void => {
-    if (!dirty) {
-      onClose();
-      return;
-    }
-    const ok = window.confirm(
-      "You have unsaved changes. Discard them and close the editor?",
-    );
-    if (!ok) return;
-    // Confirmed: live DOM has been mutated by inserts/deletes, so
-    // reload to repaint from the server's canonical HTML before the
-    // editor closes.
-    window.location.reload();
+    onClose();
   };
 
-  // Escape closes the panel — gated by the same confirm so it can't
-  // silently drop work. Owned here (rather than in EditorRoot) so the
-  // dirty check stays co-located with the state that drives it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== "Escape") return;
@@ -420,7 +404,7 @@ export function SidePanel({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [dirty]);
+  }, []);
 
   // Resize handle: drag to set drawer width. Persists to localStorage.
   const startResize = (e: React.PointerEvent): void => {
