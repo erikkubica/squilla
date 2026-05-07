@@ -23812,18 +23812,14 @@ function Ny({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 	}, _e = () => {
 		p && window.location.reload();
 	}, ve = () => {
-		if (!D) {
-			i();
-			return;
-		}
-		window.confirm("You have unsaved changes. Discard them and close the editor?") && window.location.reload();
+		i();
 	};
 	(0, _.useEffect)(() => {
 		let e = (e) => {
 			e.key === "Escape" && (e.preventDefault(), ve());
 		};
 		return window.addEventListener("keydown", e), () => window.removeEventListener("keydown", e);
-	}, [D]);
+	}, []);
 	let ye = (e) => {
 		e.preventDefault();
 		let t = e.clientX, n = w, r = (e) => {
@@ -24253,84 +24249,89 @@ function Uy(e, t) {
 //#endregion
 //#region src/EditorRoot.tsx
 function Wy({ config: e }) {
-	let [t, n] = (0, _.useState)(!1), [r, i] = (0, _.useState)([]), [a, o] = (0, _.useState)(null), [s, c] = (0, _.useState)(null), l = (0, _.useRef)(null), u = (0, _.useRef)(null), d = (0, _.useRef)(null);
+	let [t, n] = (0, _.useState)(!1), [r, i] = (0, _.useState)(!1), a = t && !r, [o, s] = (0, _.useState)([]), [c, l] = (0, _.useState)(null), [u, d] = (0, _.useState)(null), f = (0, _.useRef)(null), p = (0, _.useRef)(null), m = (0, _.useRef)(null);
 	(0, _.useEffect)(() => {
-		if (!t) {
-			i([]), o(null), c(null);
+		if (!a) {
+			l(null);
 			return;
 		}
-		i(x(document.body));
-	}, [t]), (0, _.useEffect)(() => {
-		if (!t) return;
-		let e = 0, n = "", i = () => {
-			let t = a == null ? null : r.find((e) => e.index === a) ?? null, o = s == null ? null : r.find((e) => e.index === s) ?? null, c = t ? re(t) : null, f = o ? re(o) : null;
-			Gy(l.current, c, t && a !== s ? t.slug : null), Gy(u.current, f, o ? o.slug : null);
-			let p = `${r.length}`;
-			p !== n && d.current && (Ky(d.current, r.length), n = p), qy(d.current, r), e = requestAnimationFrame(i);
+		s(x(document.body));
+	}, [a]), (0, _.useEffect)(() => {
+		if (!a) return;
+		let e = 0, t = "", n = () => {
+			let r = c == null ? null : o.find((e) => e.index === c) ?? null, i = u == null ? null : o.find((e) => e.index === u) ?? null, a = r ? re(r) : null, s = i ? re(i) : null;
+			Gy(f.current, a, r && c !== u ? r.slug : null), Gy(p.current, s, i ? i.slug : null);
+			let l = `${o.length}`;
+			l !== t && m.current && (Ky(m.current, o.length), t = l), qy(m.current, o), e = requestAnimationFrame(n);
 		};
-		return e = requestAnimationFrame(i), () => cancelAnimationFrame(e);
+		return e = requestAnimationFrame(n), () => cancelAnimationFrame(e);
 	}, [
-		t,
-		r,
 		a,
-		s
+		o,
+		c,
+		u
 	]), (0, _.useEffect)(() => {
-		if (!t) return;
+		if (!a) return;
 		let e = (e) => {
 			let t = e.target;
 			if (!t || e.target?.closest?.("[data-vedit-host]")) return;
-			let n = w(t, r);
-			o(n ? n.index : null);
-		}, n = (e) => {
+			let n = w(t, o);
+			l(n ? n.index : null);
+		}, t = (e) => {
 			let t = e.target;
 			if (!t || e.target?.closest?.("[data-vedit-host]")) return;
-			let n = w(t, r);
-			n && (e.preventDefault(), e.stopPropagation(), c(n.index));
+			let n = w(t, o);
+			n && (e.preventDefault(), e.stopPropagation(), d(n.index));
 		};
-		return document.addEventListener("pointermove", e, !0), document.addEventListener("click", n, !0), () => {
-			document.removeEventListener("pointermove", e, !0), document.removeEventListener("click", n, !0);
+		return document.addEventListener("pointermove", e, !0), document.addEventListener("click", t, !0), () => {
+			document.removeEventListener("pointermove", e, !0), document.removeEventListener("click", t, !0);
 		};
-	}, [t, r]);
-	let f = (0, _.useMemo)(() => () => i(x(document.body)), []);
-	return /* @__PURE__ */ (0, M.jsxs)(M.Fragment, { children: [!t && /* @__PURE__ */ (0, M.jsx)("button", {
+	}, [a, o]);
+	let h = (0, _.useMemo)(() => () => s(x(document.body)), []);
+	return /* @__PURE__ */ (0, M.jsxs)(M.Fragment, { children: [!a && /* @__PURE__ */ (0, M.jsx)("button", {
 		type: "button",
 		className: "vedit-toggle",
 		"data-active": !1,
-		onClick: () => n(!0),
+		onClick: () => {
+			n(!0), i(!1);
+		},
 		"aria-pressed": !1,
 		children: "Edit page"
-	}), t && /* @__PURE__ */ (0, M.jsxs)(M.Fragment, { children: [/* @__PURE__ */ (0, M.jsxs)("div", {
-		className: "vedit-overlay",
-		"aria-hidden": "true",
-		children: [
-			/* @__PURE__ */ (0, M.jsx)("div", {
-				ref: l,
-				className: "vedit-outline",
-				"data-kind": "hover",
-				style: { display: "none" },
-				children: /* @__PURE__ */ (0, M.jsx)("span", { className: "vedit-label" })
-			}),
-			/* @__PURE__ */ (0, M.jsx)("div", {
-				ref: u,
-				className: "vedit-outline",
-				"data-kind": "selected",
-				style: { display: "none" },
-				children: /* @__PURE__ */ (0, M.jsx)("span", { className: "vedit-label" })
-			}),
-			/* @__PURE__ */ (0, M.jsx)("div", {
-				ref: d,
-				className: "vedit-gutters"
-			})
-		]
-	}), /* @__PURE__ */ (0, M.jsx)(Ny, {
-		config: e,
-		domEntries: r,
-		selectedIndex: s,
-		onSelect: c,
-		onClose: () => n(!1),
-		onReindex: f,
-		onSaved: () => window.location.reload()
-	})] })] });
+	}), t && /* @__PURE__ */ (0, M.jsxs)("div", {
+		style: r ? { display: "none" } : void 0,
+		children: [/* @__PURE__ */ (0, M.jsxs)("div", {
+			className: "vedit-overlay",
+			"aria-hidden": "true",
+			children: [
+				/* @__PURE__ */ (0, M.jsx)("div", {
+					ref: f,
+					className: "vedit-outline",
+					"data-kind": "hover",
+					style: { display: "none" },
+					children: /* @__PURE__ */ (0, M.jsx)("span", { className: "vedit-label" })
+				}),
+				/* @__PURE__ */ (0, M.jsx)("div", {
+					ref: p,
+					className: "vedit-outline",
+					"data-kind": "selected",
+					style: { display: "none" },
+					children: /* @__PURE__ */ (0, M.jsx)("span", { className: "vedit-label" })
+				}),
+				/* @__PURE__ */ (0, M.jsx)("div", {
+					ref: m,
+					className: "vedit-gutters"
+				})
+			]
+		}), /* @__PURE__ */ (0, M.jsx)(Ny, {
+			config: e,
+			domEntries: o,
+			selectedIndex: u,
+			onSelect: d,
+			onClose: () => i(!0),
+			onReindex: h,
+			onSaved: () => window.location.reload()
+		})]
+	})] });
 }
 function Gy(e, t, n) {
 	if (!e) return;
