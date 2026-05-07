@@ -142,6 +142,12 @@
   html, body {
     margin: 0;
     padding: 0;
+    /* Browsers paint the overscroll/rubber-band area from <html>'s
+       background, not <body>'s. Without this, scrolling past the bottom
+       of an admin page reveals the user-agent default white, which on
+       a beige app surface looks like the sidebar suddenly ends. */
+    background: var(--app-bg);
+    overscroll-behavior-y: none;
   }
   body {
     font-family: var(--font-body);
