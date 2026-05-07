@@ -63,9 +63,9 @@ export default function FormEditor() {
       {
         name: "Admin Notification",
         enabled: true,
-        recipients: "{{.SiteEmail}}",
-        subject: "New submission: {{.FormName}}",
-        body: "You have a new submission.\n\n{{range .Data}}\n{{.Label}}: {{.Value}}\n{{end}}",
+        recipients: "{{.site_email}}",
+        subject: "New submission: {{.form.name}}",
+        body: "You have a new submission.\n\n{{range .data}}\n{{.label}}: {{.value}}\n{{end}}",
         reply_to: "",
       },
     ] as any[],

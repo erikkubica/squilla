@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
-	"time"
 
 	"squilla/internal/coreapi"
 	pb "squilla/pkg/plugin/proto"
@@ -78,17 +77,6 @@ func (p *FormsPlugin) handleNotificationTest(ctx context.Context, formID uint, i
 	// 5. Build sample template data
 	fields := getFormFields(form)
 	formName, _ := form["name"].(string)
-	formSlug, _ := form["slug"].(string)
-	formIDStr := fmt.Sprintf("%v", form["id"])
-
-	labelMap := make(map[string]string)
-	for _, f := range fields {
-		fid, _ := f["id"].(string)
-		flabel, _ := f["label"].(string)
-		if fid != "" {
-			labelMap[fid] = flabel
-		}
-	}
 
 	// Use provided sample data or auto-generate from field defaults
 	sampleData := body.SampleData
@@ -124,27 +112,7 @@ func (p *FormsPlugin) handleNotificationTest(ctx context.Context, formID uint, i
 		}
 	}
 
-	tplData := notificationTemplateData{
-		FormName:    formName,
-		FormSlug:    formSlug,
-		FormID:      formIDStr,
-		SubmittedAt: time.Now().Format(time.RFC3339),
-		Data:        make([]notificationField, 0, len(sampleData)),
-		Field:       make(map[string]string),
-	}
-	for k, v := range sampleData {
-		valStr := fmt.Sprintf("%v", v)
-		label := labelMap[k]
-		if label == "" {
-			label = k
-		}
-		tplData.Data = append(tplData.Data, notificationField{
-			Label: label,
-			Value: valStr,
-			Key:   k,
-		})
-		tplData.Field[k] = valStr
-	}
+	tplData := buildNotificationTemplateData(form, sampleData)
 
 	// 6. Render subject and body
 	subjectTmpl, _ := config["subject"].(string)

@@ -18,10 +18,10 @@ export default function NotificationsTab({ form, setForm }: any) {
       name: "New Notification",
       type: "admin",
       enabled: true,
-      recipients: "{{.SiteEmail}}",
+      recipients: "{{.site_email}}",
       recipient_field: "",
-      subject: "New submission: {{.FormName}}",
-      body: "You have a new submission.\n\n{{range .Data}}\n{{.Label}}: {{.Value}}\n{{end}}",
+      subject: "New submission: {{.form.name}}",
+      body: "You have a new submission.\n\n{{range .data}}\n{{.label}}: {{.value}}\n{{end}}",
       reply_to: "",
       cc: "",
       bcc: "",
@@ -42,16 +42,16 @@ export default function NotificationsTab({ form, setForm }: any) {
     if (key === "type" && value === "auto-responder") {
       const field = emailFields.length > 0 ? emailFields[0].id : "";
       newNotifs[index].recipient_field = field;
-      if (field) newNotifs[index].recipients = `{{.Field.${field}}}`;
+      if (field) newNotifs[index].recipients = `{{.field.${field}}}`;
     }
     if (key === "type" && value === "admin") {
       newNotifs[index].recipient_field = "";
-      if (!newNotifs[index].recipients || newNotifs[index].recipients.startsWith("{{.Field.")) {
-        newNotifs[index].recipients = "{{.SiteEmail}}";
+      if (!newNotifs[index].recipients || newNotifs[index].recipients.startsWith("{{.field.")) {
+        newNotifs[index].recipients = "{{.site_email}}";
       }
     }
     if (key === "recipient_field" && value) {
-      newNotifs[index].recipients = `{{.Field.${value}}}`;
+      newNotifs[index].recipients = `{{.field.${value}}}`;
     }
 
     setForm({ ...form, notifications: newNotifs });

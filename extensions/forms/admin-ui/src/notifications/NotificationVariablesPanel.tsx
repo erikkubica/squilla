@@ -4,22 +4,22 @@ import { Code } from "@squilla/icons";
 const { AccordionRow } = (window as any).__SQUILLA_SHARED__.ui;
 
 const TEMPLATE_VARS = [
-  { syntax: "{{.FormName}}", desc: "Form display name" },
-  { syntax: "{{.FormSlug}}", desc: "Form URL slug" },
-  { syntax: "{{.FormID}}", desc: "Form database ID" },
-  { syntax: "{{.SubmittedAt}}", desc: "Submission timestamp" },
+  { syntax: "{{.form.name}}", desc: "Form display name" },
+  { syntax: "{{.form.slug}}", desc: "Form URL slug" },
+  { syntax: "{{.form.id}}", desc: "Form database ID" },
+  { syntax: "{{.submitted_at}}", desc: "Submission timestamp" },
   {
-    syntax: "{{range .Data}}",
+    syntax: "{{range .data}}",
     desc: "Loop all submitted fields",
     children: [
-      { syntax: "  {{.Label}}", desc: "Field label" },
-      { syntax: "  {{.Value}}", desc: "Submitted value" },
-      { syntax: "  {{.Key}}", desc: "Field key" },
+      { syntax: "  {{.label}}", desc: "Field label" },
+      { syntax: "  {{.value}}", desc: "Submitted value" },
+      { syntax: "  {{.key}}", desc: "Field key" },
       { syntax: "{{end}}", desc: "End loop" },
     ],
   },
-  { syntax: "{{.Field.email}}", desc: "Direct access to specific field value" },
-  { syntax: "{{.Field.name}}", desc: "Replace email/name with your field keys" },
+  { syntax: "{{.field.email}}", desc: "Direct access to specific submitted value" },
+  { syntax: "{{.field.name}}", desc: "Replace email/name with your field keys" },
 ];
 
 export default function NotificationVariablesPanel() {

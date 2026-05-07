@@ -12,20 +12,56 @@ import (
 	"squilla/internal/coreapi"
 )
 
-// notificationTemplateData holds the data available to notification templates.
-type notificationTemplateData struct {
-	FormName    string
-	FormSlug    string
-	FormID      string
-	SubmittedAt string
-	Data        []notificationField
-	Field       map[string]string
-}
+// buildNotificationTemplateData returns the data context exposed to
+// notification subject/body Go templates. Keys are snake_case to match
+// the kernel's template-variable convention and the form-rendering
+// namespace ({{.form.*}}). Available keys:
+//
+//	{{.form.id}} / {{.form.name}} / {{.form.slug}}   — form metadata
+//	{{.field.<id>}}                                  — submitted value by id
+//	{{range .data}}{{.label}}: {{.value}}{{end}}     — ordered iteration
+//	{{.submitted_at}}                                — RFC3339 timestamp
+func buildNotificationTemplateData(form map[string]any, submission map[string]any) map[string]any {
+	formName, _ := form["name"].(string)
+	formSlug, _ := form["slug"].(string)
+	formID := fmt.Sprintf("%v", form["id"])
 
-type notificationField struct {
-	Label string
-	Value string
-	Key   string
+	fields := getFormFields(form)
+	labelByID := make(map[string]string, len(fields))
+	for _, f := range fields {
+		id, _ := f["id"].(string)
+		label, _ := f["label"].(string)
+		if id != "" && label != "" {
+			labelByID[id] = label
+		}
+	}
+
+	field := make(map[string]string, len(submission))
+	data := make([]map[string]any, 0, len(submission))
+	for k, v := range submission {
+		valStr := fmt.Sprintf("%v", v)
+		label := labelByID[k]
+		if label == "" {
+			label = k
+		}
+		field[k] = valStr
+		data = append(data, map[string]any{
+			"label": label,
+			"value": valStr,
+			"key":   k,
+		})
+	}
+
+	return map[string]any{
+		"form": map[string]any{
+			"id":   formID,
+			"name": formName,
+			"slug": formSlug,
+		},
+		"field":        field,
+		"data":         data,
+		"submitted_at": time.Now().Format(time.RFC3339),
+	}
 }
 
 func (p *FormsPlugin) triggerNotifications(form map[string]any, data map[string]any) {
@@ -50,45 +86,7 @@ func (p *FormsPlugin) triggerNotifications(form map[string]any, data map[string]
 
 // processNotifications renders notification subjects and bodies as Go templates.
 func (p *FormsPlugin) processNotifications(ctx context.Context, notifications []any, form map[string]any, submissionData map[string]any) {
-	formName, _ := form["name"].(string)
-	formSlug, _ := form["slug"].(string)
-	formID := fmt.Sprintf("%v", form["id"])
-
-	fields := getFormFields(form)
-
-	// Build a label lookup from form fields
-	labelMap := make(map[string]string)
-	for _, f := range fields {
-		id, _ := f["id"].(string)
-		label, _ := f["label"].(string)
-		if id != "" && label != "" {
-			labelMap[id] = label
-		}
-	}
-
-	// Build notification template data
-	tplData := notificationTemplateData{
-		FormName:    formName,
-		FormSlug:    formSlug,
-		FormID:      formID,
-		SubmittedAt: time.Now().Format(time.RFC3339),
-		Data:        make([]notificationField, 0, len(submissionData)),
-		Field:       make(map[string]string),
-	}
-
-	for k, v := range submissionData {
-		valStr := fmt.Sprintf("%v", v)
-		label := labelMap[k]
-		if label == "" {
-			label = k
-		}
-		tplData.Data = append(tplData.Data, notificationField{
-			Label: label,
-			Value: valStr,
-			Key:   k,
-		})
-		tplData.Field[k] = valStr
-	}
+	tplData := buildNotificationTemplateData(form, submissionData)
 
 	for _, n := range notifications {
 		config, ok := n.(map[string]any)
@@ -144,7 +142,7 @@ func (p *FormsPlugin) processNotifications(ctx context.Context, notifications []
 }
 
 // renderNotificationTemplate renders a Go html/template string with notification data.
-func renderNotificationTemplate(name, text string, data notificationTemplateData) (string, error) {
+func renderNotificationTemplate(name, text string, data map[string]any) (string, error) {
 	if text == "" {
 		return "", nil
 	}
@@ -160,15 +158,21 @@ func renderNotificationTemplate(name, text string, data notificationTemplateData
 }
 
 // defaultNotificationHTML generates a simple HTML table for the submission data.
-func defaultNotificationHTML(data notificationTemplateData) string {
+func defaultNotificationHTML(data map[string]any) string {
+	form, _ := data["form"].(map[string]any)
+	formName, _ := form["name"].(string)
+	rows, _ := data["data"].([]map[string]any)
+
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("<h2>New submission for: %s</h2>", data.FormName))
+	buf.WriteString(fmt.Sprintf("<h2>New submission for: %s</h2>", template.HTMLEscapeString(formName)))
 	buf.WriteString("<table border='1' cellpadding='6' cellspacing='0'>")
 	buf.WriteString("<tr><th>Field</th><th>Value</th></tr>")
-	for _, f := range data.Data {
+	for _, row := range rows {
+		label, _ := row["label"].(string)
+		value, _ := row["value"].(string)
 		buf.WriteString(fmt.Sprintf("<tr><td><b>%s</b></td><td>%s</td></tr>",
-			template.HTMLEscapeString(f.Label),
-			template.HTMLEscapeString(f.Value),
+			template.HTMLEscapeString(label),
+			template.HTMLEscapeString(value),
 		))
 	}
 	buf.WriteString("</table>")

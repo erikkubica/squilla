@@ -158,7 +158,7 @@ events.emit("forms:upsert", {
         {
             enabled: true,
             to:      "admin@squilla.local",
-            subject: "New contact form submission from {{ .Field.name }}",
+            subject: "New contact form submission from {{ .field.name }}",
             body:    ""
         }
     ]

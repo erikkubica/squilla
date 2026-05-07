@@ -278,7 +278,7 @@ export default function NotificationCard({
               placeholder="admin@example.com"
             />
             <p className="text-[10px] text-muted-foreground">
-              Comma separated. Supports templates like <code>{"{{.SiteEmail}}"}</code>
+              Comma separated. Supports templates like <code>{"{{.site_email}}"}</code>
             </p>
           </div>
         )}

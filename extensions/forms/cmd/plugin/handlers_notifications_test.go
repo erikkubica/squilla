@@ -23,8 +23,8 @@ func seedFormWithNotifConfig(h *FakeHost) {
 			{
 				"enabled": true,
 				"to": "admin@example.com",
-				"subject": "Test from {{.FormName}}",
-				"body": "<p>{{.Field.message}}</p>"
+				"subject": "Test from {{.form.name}}",
+				"body": "<p>{{.field.message}}</p>"
 			}
 		]`,
 	})
@@ -178,7 +178,7 @@ func TestHandleNotificationTest_FallbackToUserEmail(t *testing.T) {
 		"settings": `{}`,
 		"notifications": `[{
 			"enabled": true,
-			"to": "{{.Field.email}}",
+			"to": "{{.field.email}}",
 			"subject": "Sub",
 			"body": "Body"
 		}]`,

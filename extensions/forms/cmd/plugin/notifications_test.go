@@ -78,8 +78,8 @@ func TestProcessNotifications_TemplateRendering(t *testing.T) {
 			map[string]any{
 				"enabled": true,
 				"to":      "admin@example.com",
-				"subject": "New submission from {{.Field.name}}",
-				"body":    "<p>Name: {{.Field.name}}</p>",
+				"subject": "New submission from {{.field.name}}",
+				"body":    "<p>Name: {{.field.name}}</p>",
 			},
 		},
 	}
@@ -202,7 +202,7 @@ func TestProcessNotifications_JSONStringNotifications(t *testing.T) {
 // ---- renderNotificationTemplate ----
 
 func TestRenderNotificationTemplate_Empty(t *testing.T) {
-	result, err := renderNotificationTemplate("test", "", notificationTemplateData{})
+	result, err := renderNotificationTemplate("test", "", map[string]any{})
 	if err != nil {
 		t.Errorf("empty template should not error: %v", err)
 	}
@@ -212,11 +212,11 @@ func TestRenderNotificationTemplate_Empty(t *testing.T) {
 }
 
 func TestRenderNotificationTemplate_WithData(t *testing.T) {
-	tplData := notificationTemplateData{
-		FormName: "My Form",
-		Field:    map[string]string{"email": "test@example.com"},
+	tplData := map[string]any{
+		"form":  map[string]any{"name": "My Form"},
+		"field": map[string]string{"email": "test@example.com"},
 	}
-	result, err := renderNotificationTemplate("test", "Form: {{.FormName}}, Email: {{.Field.email}}", tplData)
+	result, err := renderNotificationTemplate("test", "Form: {{.form.name}}, Email: {{.field.email}}", tplData)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -229,7 +229,7 @@ func TestRenderNotificationTemplate_WithData(t *testing.T) {
 }
 
 func TestRenderNotificationTemplate_InvalidTemplate(t *testing.T) {
-	_, err := renderNotificationTemplate("test", "{{.Unclosed", notificationTemplateData{})
+	_, err := renderNotificationTemplate("test", "{{.Unclosed", map[string]any{})
 	if err == nil {
 		t.Error("invalid template should return error")
 	}
@@ -238,11 +238,11 @@ func TestRenderNotificationTemplate_InvalidTemplate(t *testing.T) {
 // ---- defaultNotificationHTML ----
 
 func TestDefaultNotificationHTML(t *testing.T) {
-	tplData := notificationTemplateData{
-		FormName: "Contact Us",
-		Data: []notificationField{
-			{Label: "Name", Value: "Alice", Key: "name"},
-			{Label: "Email", Value: "alice@example.com", Key: "email"},
+	tplData := map[string]any{
+		"form": map[string]any{"name": "Contact Us"},
+		"data": []map[string]any{
+			{"label": "Name", "value": "Alice", "key": "name"},
+			{"label": "Email", "value": "alice@example.com", "key": "email"},
 		},
 	}
 	html := defaultNotificationHTML(tplData)
