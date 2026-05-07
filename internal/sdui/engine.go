@@ -549,7 +549,10 @@ func isBuiltinNodeType(slug string) bool {
 
 func (e *Engine) themesLayout() *LayoutNode {
 	var themes []models.Theme
-	e.db.Order("is_active DESC, name ASC").Find(&themes)
+	// Sort by name only — sorting by is_active makes the entire grid
+	// reorder every time the operator toggles the active theme, which is
+	// disorienting when re-activating the same theme to apply changes.
+	e.db.Order("name ASC").Find(&themes)
 
 	themeList := make([]interface{}, 0, len(themes))
 	for _, t := range themes {
@@ -587,7 +590,9 @@ func (e *Engine) themesLayout() *LayoutNode {
 
 func (e *Engine) extensionsLayout() *LayoutNode {
 	var exts []models.Extension
-	e.db.Order("is_active DESC, name ASC").Find(&exts)
+	// Sort by name only — see themesLayout: re-ordering on activate/deactivate
+	// makes the grid jump around and loses the operator's place.
+	e.db.Order("name ASC").Find(&exts)
 
 	extList := make([]interface{}, 0, len(exts))
 	for _, ext := range exts {
