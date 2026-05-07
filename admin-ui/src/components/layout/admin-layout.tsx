@@ -52,6 +52,7 @@ import {
   clearCache,
   getNodeTypes,
   getTaxonomies,
+  getSiteSettings,
   type NodeType,
   type Taxonomy,
 } from "@/api/client";
@@ -220,10 +221,26 @@ function AdminLayoutInner() {
   const breadcrumbs =
     overrideCrumbs && overrideCrumbs.length > 0 ? overrideCrumbs : autoCrumbs;
 
+  const [siteTitle, setSiteTitle] = useState<string>("Squilla");
+
+  useEffect(() => {
+    let cancelled = false;
+    getSiteSettings()
+      .then((s) => {
+        if (cancelled) return;
+        const t = (s?.site_title || "").trim();
+        if (t) setSiteTitle(t);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const last = breadcrumbs[breadcrumbs.length - 1];
-    document.title = last ? `${last} — Squilla` : "Squilla Admin";
-  }, [breadcrumbs]);
+    document.title = last ? `${last} — ${siteTitle}` : `${siteTitle} Admin`;
+  }, [breadcrumbs, siteTitle]);
 
   useEffect(() => {
     getNodeTypes()
