@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBoot } from "../hooks/use-boot";
 import { useAuth } from "../hooks/use-auth";
@@ -137,6 +137,23 @@ function hasActiveDescendant(items: NavItem[], pathname: string): boolean {
   return false;
 }
 
+// firstNavigablePath returns the first descendant path the operator can
+// reach. The boot-manifest navigation has already been permission-filtered
+// server-side, so anything still in `children` is allowed — we just walk
+// in order, skipping section headers and groups whose own children are
+// also empty. Returns null when nothing inside is navigable, in which
+// case the parent header acts as a pure expand/collapse control.
+function firstNavigablePath(items: NavItem[] | undefined): string | null {
+  if (!items) return null;
+  for (const item of items) {
+    if (item.is_section) continue;
+    if (item.path) return item.path;
+    const nested = firstNavigablePath(item.children);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function SidebarNav({
   navigation,
   collapsed,
@@ -144,11 +161,17 @@ function SidebarNav({
   onClose,
 }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   // Tracks groups explicitly toggled by the user (overrides auto-open logic).
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = useCallback((id: string, currentlyOpen: boolean) => {
     setOpenGroups((prev) => ({ ...prev, [id]: !currentlyOpen }));
+  }, []);
+  // openGroup forces a group open without toggling — used when the parent
+  // row navigates so the destination's group is visible after the jump.
+  const openGroup = useCallback((id: string) => {
+    setOpenGroups((prev) => ({ ...prev, [id]: true }));
   }, []);
 
   const isActive = useCallback(
@@ -213,34 +236,61 @@ function SidebarNav({
     }
 
     if (hasChildren) {
+      // Two click targets in one row, so the operator gets two predictable
+      // behaviors: clicking the label area jumps to the first navigable
+      // child (and ensures the group is open), clicking the chevron pure-
+      // toggles without navigating. ownPath wins over the descendant walk
+      // so a parent that *also* declares its own path (rare but valid in
+      // the manifest) still routes to itself.
+      const ownPath = item.path;
+      const targetPath = ownPath || firstNavigablePath(item.children);
+      const handleNavigate = () => {
+        if (targetPath) navigate(targetPath);
+        openGroup(item.id);
+        if (window.innerWidth < 1024) onClose();
+      };
       return (
         <div key={item.id}>
-          <button
-            onClick={() => toggleGroup(item.id, isOpen)}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors`}
+          <div
+            className="group flex w-full items-stretch rounded-lg text-[13px] font-medium transition-colors"
             style={{color: childActive ? "var(--sb-fg-active)" : "var(--sb-fg)"}}
-            title={collapsed ? item.label : undefined}
           >
-            {IconComp && (
-              <IconComp
-                size={15}
-                className="shrink-0"
-                style={{color: childActive ? "var(--sb-fg-active)" : "var(--sb-fg-muted)", opacity: childActive ? 1 : 0.7}}
-              />
-            )}
+            <button
+              type="button"
+              onClick={handleNavigate}
+              className="flex flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-left min-w-0"
+              title={collapsed ? item.label : undefined}
+            >
+              {IconComp && (
+                <IconComp
+                  size={15}
+                  className="shrink-0"
+                  style={{color: childActive ? "var(--sb-fg-active)" : "var(--sb-fg-muted)", opacity: childActive ? 1 : 0.7}}
+                />
+              )}
+              {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+            </button>
             {!collapsed && (
-              <>
-                <span className="flex-1 truncate">{item.label}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleGroup(item.id, isOpen);
+                }}
+                className="grid place-items-center rounded-r-lg px-2"
+                aria-label={isOpen ? "Collapse" : "Expand"}
+                aria-expanded={isOpen}
+                style={{color: "var(--sb-fg-muted)"}}
+              >
                 <ChevronDown
                   size={12}
                   className={`shrink-0 transition-transform duration-150 ${
                     isOpen ? "rotate-0" : "-rotate-90"
                   }`}
-                  style={{color: "var(--sb-fg-muted)"}}
                 />
-              </>
+              </button>
             )}
-          </button>
+          </div>
           {isOpen && !collapsed && (
             <div className="mt-0.5 ml-3 border-l space-y-[1px]" style={{borderColor: "var(--sb-border)"}}>
               {item.children!.map((child) => renderItem(child, depth + 1))}
