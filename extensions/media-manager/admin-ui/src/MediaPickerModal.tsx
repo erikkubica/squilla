@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Upload,
   Search,
@@ -155,7 +155,7 @@ export default function MediaPickerModal({
   const [uploading, setUploading] = useState(false);
   const [mimeType, setMimeType] = useState(mimeFilter || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const load = useCallback(async (page: number, searchOverride?: string) => {
     setLoading(true);
@@ -226,7 +226,7 @@ export default function MediaPickerModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v: boolean) => !v && onClose()}>
       <DialogContent className="flex flex-col" style={{ maxWidth: "72rem", maxHeight: "90vh" }}>
         <DialogHeader>
           <DialogTitle>Select Media</DialogTitle>
@@ -240,11 +240,11 @@ export default function MediaPickerModal({
             <Input
               placeholder="Search files..."
               value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
               className="pl-9 rounded-lg border-border"
             />
           </div>
-          <Select value={mimeType} onValueChange={(v) => { setMimeType(v === "all" ? "" : v); }}>
+          <Select value={mimeType} onValueChange={(v: string) => { setMimeType(v === "all" ? "" : v); }}>
             <SelectTrigger className="w-[150px] rounded-lg border-border">
               <SelectValue placeholder="All types" />
             </SelectTrigger>

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   Image as ImageIcon,
   FileText,
@@ -223,7 +223,7 @@ function SingleMediaPreview({
             <Input
               placeholder="Alt text..."
               value={media.alt || ""}
-              onChange={(e) => onAltChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAltChange(e.target.value)}
               className="h-8 text-xs rounded-md border-border"
             />
           )}
@@ -363,10 +363,10 @@ function GalleryItem({
               <Input
                 placeholder="Describe this image..."
                 value={editAlt}
-                onChange={(e) => setEditAlt(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditAlt(e.target.value)}
                 className="h-7 text-xs rounded-md border-border"
                 autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); }}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handleSaveEdit(); }}
               />
             </div>
             {media.filename && (

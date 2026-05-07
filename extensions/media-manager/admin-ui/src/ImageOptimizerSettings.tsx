@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Settings,
   Trash2,
@@ -681,7 +681,7 @@ export default function ImageOptimizerSettings() {
                 min={100}
                 max={20000}
                 value={settings.normalize_max_dimension}
-                onChange={(e) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSettings((s) => ({ ...s, normalize_max_dimension: parseInt(e.target.value) || 5000 }))
                 }
               />
@@ -807,7 +807,7 @@ export default function ImageOptimizerSettings() {
                   <Input
                     placeholder="e.g. hero"
                     value={newSize.name}
-                    onChange={(e) => setNewSize((s) => ({ ...s, name: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSize((s) => ({ ...s, name: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") }))}
                   />
                 </div>
                 <div className="space-y-1">
@@ -816,7 +816,7 @@ export default function ImageOptimizerSettings() {
                     type="number"
                     min={1}
                     value={newSize.width}
-                    onChange={(e) => setNewSize((s) => ({ ...s, width: parseInt(e.target.value) || 0 }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSize((s) => ({ ...s, width: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div className="space-y-1">
@@ -825,12 +825,12 @@ export default function ImageOptimizerSettings() {
                     type="number"
                     min={1}
                     value={newSize.height}
-                    onChange={(e) => setNewSize((s) => ({ ...s, height: parseInt(e.target.value) || 0 }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSize((s) => ({ ...s, height: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Mode</Label>
-                  <Select value={newSize.mode} onValueChange={(v) => setNewSize((s) => ({ ...s, mode: v }))}>
+                  <Select value={newSize.mode} onValueChange={(v: string) => setNewSize((s) => ({ ...s, mode: v }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
