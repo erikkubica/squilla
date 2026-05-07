@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 225">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="225" fill="url(#bg)"/>
+  <g transform="translate(200,85)" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-26" y="-30" width="52" height="60" rx="6"/>
+    <path d="M-14 -16 h28"/>
+    <path d="M-14 -4 h28"/>
+    <path d="M-14 8 h16"/>
+    <path d="M8 14 l4 4 8-10" stroke-width="3"/>
+  </g>
+  <text x="200" y="155" text-anchor="middle" fill="white" font-family="system-ui,sans-serif" font-size="18" font-weight="600">Forms</text>
+  <text x="200" y="175" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-family="system-ui,sans-serif" font-size="12">Form builder &amp; submissions</text>
+</svg>
