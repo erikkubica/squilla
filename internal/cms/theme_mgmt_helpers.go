@@ -32,6 +32,14 @@ func extractZipFile(f *zip.File, destPath string) error {
 }
 
 // findAndParseManifest looks for theme.json in dir or one level deep.
+//
+// Ambiguous-archive guard: when theme.json sits at the root, a sibling
+// subdirectory whose name equals the manifest slug is rejected. Without this
+// check, copyDir(tmpDir, stagingDir) in InstallFromZip would faithfully copy
+// that sibling into themes/<slug>/<slug>/, baking a permanent nesting bug
+// into the deploy. This was the root cause of curriculum-vitae shipping with
+// themes/curriculum-vitae/curriculum-vitae/ on a live site — a polluted
+// source tree got re-zipped, and the deploy had no defense.
 func findAndParseManifest(dir string) (*themeMgmtManifest, string, error) {
 	// Check root.
 	rootManifest := filepath.Join(dir, "theme.json")
@@ -39,6 +47,15 @@ func findAndParseManifest(dir string) (*themeMgmtManifest, string, error) {
 		var m themeMgmtManifest
 		if err := json.Unmarshal(data, &m); err != nil {
 			return nil, "", fmt.Errorf("failed to parse theme.json: %w", err)
+		}
+		if m.Slug != "" {
+			nested := filepath.Join(dir, m.Slug)
+			if info, statErr := os.Stat(nested); statErr == nil && info.IsDir() {
+				return nil, "", fmt.Errorf(
+					"ambiguous archive: theme.json at root declares slug %q but the archive also contains a sibling directory %q/ — this would deploy as themes/%s/%s/. Re-zip from a clean source tree or remove the duplicate wrapper directory before deploying",
+					m.Slug, m.Slug, m.Slug, m.Slug,
+				)
+			}
 		}
 		return &m, dir, nil
 	}
