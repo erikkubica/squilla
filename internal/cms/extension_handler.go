@@ -140,9 +140,10 @@ func (h *ExtensionHandler) Manifests(c *fiber.Ctx) error {
 	user := auth.GetCurrentUser(c)
 
 	type manifestEntry struct {
-		Slug     string          `json:"slug"`
-		Name     string          `json:"name"`
-		Manifest json.RawMessage `json:"manifest"`
+		Slug          string          `json:"slug"`
+		Name          string          `json:"name"`
+		Manifest      json.RawMessage `json:"manifest"`
+		HasAdminUICSS bool            `json:"has_admin_ui_css"`
 	}
 
 	entries := make([]manifestEntry, 0, len(exts))
@@ -163,12 +164,54 @@ func (h *ExtensionHandler) Manifests(c *fiber.Ctx) error {
 			continue
 		}
 		entries = append(entries, manifestEntry{
-			Slug:     ext.Slug,
-			Name:     ext.Name,
-			Manifest: json.RawMessage(ext.Manifest),
+			Slug:          ext.Slug,
+			Name:          ext.Name,
+			Manifest:      json.RawMessage(ext.Manifest),
+			HasAdminUICSS: extensionHasAdminUICSS(ext.Path, ext.Manifest),
 		})
 	}
 	return api.Success(c, entries)
+}
+
+// extensionHasAdminUICSS reports whether the extension ships a CSS file
+// alongside its admin-UI JS entry. The frontend uses this to decide
+// whether to inject a <link rel="stylesheet"> — without it, extensions
+// that ship no CSS (e.g. backend-only providers, or UIs that style only
+// via shared @squilla/ui primitives) trigger a noisy 404 in DevTools on
+// every shell mount. Returns false when no admin-UI block is declared
+// or the manifest can't be parsed; the frontend falls back to "no CSS"
+// in that case which is the right default.
+func extensionHasAdminUICSS(extPath string, manifest models.JSONB) bool {
+	if extPath == "" {
+		return false
+	}
+	var probe struct {
+		AdminUI struct {
+			Entry string `json:"entry"`
+		} `json:"admin_ui"`
+	}
+	if err := json.Unmarshal(manifest, &probe); err != nil {
+		return false
+	}
+	entry := probe.AdminUI.Entry
+	if entry == "" {
+		return false
+	}
+	// Mirror the frontend's path derivation: swap the .js / .mjs
+	// suffix for .css. Anything that doesn't end in a JS suffix has
+	// no derivable CSS sibling.
+	cssRel := ""
+	switch {
+	case strings.HasSuffix(entry, ".js"):
+		cssRel = strings.TrimSuffix(entry, ".js") + ".css"
+	case strings.HasSuffix(entry, ".mjs"):
+		cssRel = strings.TrimSuffix(entry, ".mjs") + ".css"
+	default:
+		return false
+	}
+	full := filepath.Join(extPath, filepath.FromSlash(cssRel))
+	info, err := os.Stat(full)
+	return err == nil && !info.IsDir()
 }
 
 // hasAdminUIBlock reports whether the manifest declares any admin_ui

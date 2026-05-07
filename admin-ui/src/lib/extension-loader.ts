@@ -49,6 +49,10 @@ export interface ExtensionManifestEntry {
     provides?: string[];
     settings_schema?: Record<string, unknown>;
   };
+  // Server-side stat of <ext>/<admin_ui.entry-with-.css>. The frontend
+  // honors this to skip injecting a <link> that would 404 — extensions
+  // with no CSS (backend-only providers, JS-only UIs) are common.
+  has_admin_ui_css?: boolean;
 }
 
 export interface LoadedExtension {
@@ -72,8 +76,9 @@ const injectedStylesheets = new Set<string>();
 function injectExtensionStylesheet(slug: string, entry: string): void {
   const cleanEntry = entry.replace(/^admin-ui\/dist\//, "");
   // Sibling CSS file next to the JS entry — Vite lib build with cssFileName: "index"
-  // emits <name>.css alongside <name>.js. Extensions that ship no CSS get a 404
-  // which is harmless (the <link> just fails to load).
+  // emits <name>.css alongside <name>.js. The has_admin_ui_css flag from the
+  // manifests endpoint already gates this caller, so by the time we get here
+  // the file is known to exist; the suffix swap below is just deriving its path.
   const cssEntry = cleanEntry.replace(/\.(m?js)$/, ".css");
   if (cssEntry === cleanEntry) return;
 
@@ -102,6 +107,7 @@ function injectExtensionStylesheet(slug: string, entry: string): void {
 export async function loadExtensionModule(
   slug: string,
   entry: string,
+  hasCSS: boolean = false,
 ): Promise<Record<string, React.ComponentType<unknown>>> {
   const cleanEntry = entry.replace(/^admin-ui\/dist\//, "");
   const url = `/admin/api/extensions/${encodeURIComponent(slug)}/assets/${cleanEntry}`;
@@ -111,7 +117,9 @@ export async function loadExtensionModule(
     throw new Error(`Invalid extension entry path for ${slug}`);
   }
 
-  injectExtensionStylesheet(slug, entry);
+  if (hasCSS) {
+    injectExtensionStylesheet(slug, entry);
+  }
 
   try {
     const mod = await import(/* @vite-ignore */ url);
@@ -133,7 +141,7 @@ export async function loadExtension(
   if (!adminUI?.entry) return null;
 
   try {
-    const module = await loadExtensionModule(entry.slug, adminUI.entry);
+    const module = await loadExtensionModule(entry.slug, adminUI.entry, entry.has_admin_ui_css === true);
     const loaded: LoadedExtension = { entry, module };
     extensionCache.set(entry.slug, loaded);
     return loaded;
