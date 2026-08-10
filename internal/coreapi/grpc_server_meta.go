@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	pb "squilla/pkg/plugin/coreapipb"
 
@@ -164,3 +165,32 @@ func (s *GRPCHostServer) QueryUsers(ctx context.Context, req *pb.QueryUsersReque
 
 // --- Fetch RPCs ---
 
+
+// --- Providers ---
+
+func (s *GRPCHostServer) CallProvider(ctx context.Context, req *pb.CallProviderRequest) (*pb.CallProviderResponse, error) {
+	apiReq := ProviderRequest{
+		Method:      req.Method,
+		Path:        req.Path,
+		Headers:     req.Headers,
+		Body:        req.Body,
+		QueryParams: req.QueryParams,
+	}
+	resp, err := s.api.CallProvider(s.ctx(ctx), req.Tag, apiReq)
+
+	pbResp := &pb.CallProviderResponse{}
+	if err != nil {
+		if errors.Is(err, ErrNoProvider) {
+			pbResp.ErrorNoProvider = true
+		} else {
+			pbResp.Error = err.Error()
+		}
+		return pbResp, nil
+	}
+
+	pbResp.StatusCode = int32(resp.StatusCode)
+	pbResp.Headers = resp.Headers
+	pbResp.Body = resp.Body
+
+	return pbResp, nil
+}

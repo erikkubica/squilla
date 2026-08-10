@@ -10,6 +10,7 @@ var (
 	ErrNotFound         = errors.New("not found")
 	ErrValidation       = errors.New("validation error")
 	ErrInternal         = errors.New("internal error")
+	ErrNoProvider       = errors.New("no provider for tag")
 )
 
 type APIError struct {

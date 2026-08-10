@@ -1,0 +1,14 @@
+#!/bin/bash
+cat << 'PATCH' > cap_test.patch
+--- internal/coreapi/capability_test.go
++++ internal/coreapi/capability_test.go
+@@ -370,6 +370,9 @@
+		{"StoreFile", "files:write", func(ctx context.Context, a CoreAPI) error { _, e := a.StoreFile(ctx, "", nil); return e }},
+		{"DeleteFile", "files:delete", func(ctx context.Context, a CoreAPI) error { return a.DeleteFile(ctx, "") }},
++
++		// Providers
++		{"CallProvider", "providers:call", func(ctx context.Context, a CoreAPI) error { _, e := a.CallProvider(ctx, "", ProviderRequest{}); return e }},
+	}
+ }
+PATCH
+patch internal/coreapi/capability_test.go cap_test.patch
