@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.21.12
-// source: squilla_coreapi.proto
+// source: proto/coreapi/squilla_coreapi.proto
 
 package coreapipb
 
@@ -1643,5 +1643,5 @@ var SquillaHost_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "squilla_coreapi.proto",
+	Metadata: "proto/coreapi/squilla_coreapi.proto",
 }
