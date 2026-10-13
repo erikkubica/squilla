@@ -1,4 +1,4 @@
-FROM node:20-alpine AS frontend
+FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend
 WORKDIR /app/admin-ui
 COPY admin-ui/package*.json ./
 RUN npm ci
@@ -6,7 +6,7 @@ COPY admin-ui/ .
 RUN node scripts/generate-icon-shim.cjs && npm run build
 
 # Build all extension admin-UI micro-frontends
-FROM node:20-alpine AS ext-frontend
+FROM --platform=$BUILDPLATFORM node:20-alpine AS ext-frontend
 WORKDIR /app
 # Copy all extension admin-ui source at once
 COPY extensions/ /tmp/extensions/
@@ -22,13 +22,14 @@ RUN for dir in /tmp/extensions/*/admin-ui; do \
       rm -rf node_modules src; \
     done
 
-FROM golang:1.24-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
+ARG TARGETOS TARGETARCH
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 # Build core
-RUN CGO_ENABLED=0 go build -o squilla ./cmd/squilla
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o squilla ./cmd/squilla
 # Build all extension plugins. Fail the build if any plugin fails to compile,
 # and list the resulting binaries so CI logs make missing builds obvious.
 RUN set -eux; \
@@ -37,7 +38,7 @@ RUN set -eux; \
       [ -f "$dir/main.go" ] || continue; \
       slug=$(echo "$dir" | cut -d/ -f2); \
       echo "Building plugin: $slug"; \
-      CGO_ENABLED=0 go build -o "extensions/$slug/bin/$slug" "./$dir/"; \
+      CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o "extensions/$slug/bin/$slug" "./$dir/"; \
       found=$((found+1)); \
     done; \
     echo "Built $found extension plugin(s)"; \
@@ -49,7 +50,6 @@ RUN apk add --no-cache ca-certificates git openssh-client gcompat libc6-compat \
     jpegoptim optipng pngquant imagemagick ffmpeg
 WORKDIR /app
 COPY --from=builder /app/squilla .
-COPY --from=builder /app/ui/templates ./ui/templates
 COPY --from=builder /app/themes ./themes
 COPY --from=builder /app/extensions ./extensions
 COPY --from=frontend /app/admin-ui/dist ./admin-ui/dist

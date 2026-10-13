@@ -98,6 +98,19 @@ func buildHeadMeta(
 	ogImage = absoluteURL(siteURL, ogImage)
 
 	canonical := absoluteURL(siteURL, nodeFullURL)
+	// Per-node canonical override (seo_settings.canonical_url or .canonical).
+	if cv := pickString(seo, "canonical_url"); cv != "" {
+		canonical = absoluteURL(siteURL, cv)
+	} else if cv := pickString(seo, "canonical"); cv != "" {
+		canonical = absoluteURL(siteURL, cv)
+	} else if hp := strings.TrimSpace(settings["homepage_node_id"]); hp != "" {
+		// Site homepage canonicalizes to "/" instead of "/<slug>".
+		if id, ok := node["id"]; ok {
+			if fmt.Sprintf("%v", id) == hp {
+				canonical = strings.TrimRight(siteURL, "/") + "/"
+			}
+		}
+	}
 
 	twitterHandle := strings.TrimSpace(settings["seo_twitter_handle"])
 	if twitterHandle != "" && !strings.HasPrefix(twitterHandle, "@") {

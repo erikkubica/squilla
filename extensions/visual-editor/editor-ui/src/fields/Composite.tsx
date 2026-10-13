@@ -219,8 +219,9 @@ interface LinkProps {
 
 export function LinkField({ value, onChange, id }: LinkProps): React.JSX.Element {
   const v = typeof value === "object" && value !== null
-    ? (value as { url?: string; label?: string; target?: string; rel?: string })
+    ? (value as { url?: string; label?: string; text?: string; target?: string; rel?: string })
     : {};
+  const currentLabel = v.label ?? v.text ?? "";
   return (
     <div className="vedit-link-field">
       <input
@@ -228,8 +229,8 @@ export function LinkField({ value, onChange, id }: LinkProps): React.JSX.Element
         type="text"
         className="vedit-input"
         placeholder="Label"
-        value={v.label ?? ""}
-        onChange={(e) => onChange({ ...v, label: e.target.value })}
+        value={currentLabel}
+        onChange={(e) => onChange({ ...v, label: e.target.value, text: e.target.value })}
       />
       <input
         type="url"

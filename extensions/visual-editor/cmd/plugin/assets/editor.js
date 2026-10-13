@@ -10613,10 +10613,11 @@ function jr({ value: e, onChange: t, id: n }) {
 				type: "text",
 				className: "vedit-input",
 				placeholder: "Label",
-				value: r.label ?? "",
+				value: r.label ?? r.text ?? "",
 				onChange: (e) => t({
 					...r,
-					label: e.target.value
+					label: e.target.value,
+					text: e.target.value
 				})
 			}),
 			/* @__PURE__ */ (0, M.jsx)("input", {

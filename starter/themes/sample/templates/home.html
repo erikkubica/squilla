@@ -1,0 +1,22 @@
+{{define "content"}}
+<div class="max-w-4xl mx-auto px-4 py-16 text-center">
+    {{- if .node.title }}
+    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-gray-900 mb-6">
+        {{ .node.title }}
+    </h1>
+    {{- end }}
+    {{- with index .node.data "subtitle" }}
+    <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-10">
+        {{ . }}
+    </p>
+    {{- end }}
+    <div class="flex justify-center gap-4">
+        <a href="/admin" class="inline-flex items-center px-6 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition">
+            Open Admin Panel
+        </a>
+        <a href="https://github.com/erikkubica/squilla" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-6 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 transition">
+            Documentation
+        </a>
+    </div>
+</div>
+{{end}}

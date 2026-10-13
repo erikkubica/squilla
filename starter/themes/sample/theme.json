@@ -1,0 +1,15 @@
+{
+  "name": "Sample Theme",
+  "version": "1.0.0",
+  "description": "Minimal starter theme for Squilla",
+  "author": "Squilla",
+  "styles": [],
+  "scripts": [],
+  "layouts": [
+    { "slug": "default", "name": "Default Layout", "file": "default.html", "is_default": true }
+  ],
+  "partials": [],
+  "templates": [
+    { "slug": "home", "name": "Home Page", "file": "home.html", "layout": "default" }
+  ]
+}

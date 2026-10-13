@@ -3,7 +3,6 @@ RUN apk add --no-cache ca-certificates git openssh-client gcompat libc6-compat \
     jpegoptim optipng pngquant imagemagick ffmpeg
 WORKDIR /app
 COPY squilla .
-COPY ui/templates ./ui/templates
 COPY themes ./themes
 COPY extensions ./extensions
 COPY admin-ui/dist ./admin-ui/dist

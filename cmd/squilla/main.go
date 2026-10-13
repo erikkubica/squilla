@@ -32,6 +32,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -115,6 +116,15 @@ func main() {
 	app.Use(logging.RequestID())
 	app.Use(fiberlogger.New())
 	app.Use(recover.New())
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelDefault,
+		Next: func(c *fiber.Ctx) bool {
+			// Skip streaming endpoints so SSE and JSON-RPC streams are not buffered
+			return strings.HasPrefix(c.Path(), "/mcp") ||
+				c.Path() == "/admin/api/events" ||
+				strings.Contains(c.Get("Accept"), "text/event-stream")
+		},
+	}))
 	// Strict admin/public CORS: cookie-bearing requests (admin SPA, SSE)
 	// must originate from the configured allowlist. /mcp is intentionally
 	// excluded — it's bearer-token gated and meant to be reachable by any
@@ -170,7 +180,7 @@ func main() {
 	layoutBlockSvc := cms.NewLayoutBlockService(database, eventBus, themeAssets)
 	menuSvc := cms.NewMenuService(database, eventBus)
 	isDev := cfg.AppEnv == "development"
-	renderer := rendering.NewTemplateRenderer("ui/templates", isDev)
+	renderer := rendering.NewTemplateRenderer("", isDev)
 
 	// Allow operators (or the media-manager extension on activation)
 	// to override the URL convention used by image_url / image_srcset

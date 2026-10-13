@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="{{ if .node.language_code }}{{ .node.language_code }}{{ else }}en{{ end }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ if .node.title }}{{ .node.title }}{{ else }}Squilla Site{{ end }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col justify-between">
+    <header class="border-b bg-white">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="/" class="text-xl font-bold tracking-tight">Squilla</a>
+            <a href="/admin" class="text-sm font-medium text-gray-600 hover:text-gray-900">Admin</a>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+        {{- template "content" . -}}
+    </main>
+
+    <footer class="border-t bg-white py-6 text-center text-sm text-gray-500">
+        Powered by Squilla CMS
+    </footer>
+</body>
+</html>

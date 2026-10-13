@@ -25,6 +25,7 @@ extensions/*/admin-ui/node_modules/
 extensions/*/bin/
 extensions/*/plugin
 /squilla
+/squilla-*
 /plugin
 extensions/*/admin-ui/dist/
 *.jpeg
