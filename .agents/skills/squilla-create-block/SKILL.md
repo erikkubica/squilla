@@ -49,13 +49,29 @@ The directory name under `blocks/` must match the slug in `theme.json` exactly.
 
 ### 2.1 Atomic Block Boundaries & Composition
 1. **Single Responsibility**: Each block owns exactly ONE cohesive visual section (e.g., Hero, Features, Pricing, Testimonials, FAQ, CTA, RichText, Form, Stats, Team).
-2. **Mega-Blocks Are Strictly Forbidden**: Never create monolithic blocks like `homepage_content` or `all_in_one_landing` that combine hero, features, and FAQs into a single block. Divide distinct sections into atomic, standalone blocks.
+2. **Mega-Blocks Are Strictly Forbidden**: Never create monolithic blocks like `homepage_content`, `all_in_one_landing`, `experience_detail`, or `product_detail` that combine an entire page into a single block. Divide distinct sections into atomic, standalone blocks.
 3. **Chrome Isolation**: Blocks **never** render global site chrome like `<header>` with site navigation, breadcrumbs, or `<footer>`. Page chrome belongs strictly in theme layouts (`layouts/*.html`) or partials (`partials/*.html`). Blocks only render section body content (`<section>`, `<article>`, `<div>`).
 4. **Re-Orderability**: Blocks must be completely decoupled and independent. Any block must be able to appear multiple times on a page, in any order, without breaking styling or JavaScript behavior.
 
+### 2.2 Content Modeling Law: Node Type Custom Fields vs. Content Blocks
+Before creating any block, determine whether the data belongs to the **Node Entity** or to the **Page Layout**:
+
+| Category | Entity Custom Field (`nodetypes.register` -> `fields_data`) | Content Block (`block.json` -> `blocks_data`) |
+|---|---|---|
+| **What it is** | Inherent properties of the entity (e.g. Tour price, duration, location, max_guests, difficulty, gallery) | Modular, editorial section in the page body (e.g. "Our Story", "FAQ Accordion", "Customer Reviews") |
+| **Where it appears** | Archive grid cards (`/experiences`), search filters, booking sidebars, schema.org / JSON-LD, and page hero | Strictly inside the flow of that specific page |
+| **Reusability** | Queryable across the entire site by filters and templates | Isolated to the single page where it is placed |
+| **BANNED Anti-Pattern** | Dumping entity attributes into a page block (`experience-detail-block`), leaving the node with zero custom fields | Building hardcoded page-specific blocks instead of generic modular sections |
+
+### 2.3 The Forms Extension Law (No Forms in Blocks)
+- **STRICTLY FORBIDDEN**: Creating form inputs (`name`, `email`, `phone`, `date`, `guests`, `message`) as fields in `block.json` or hardcoding HTML `<form>` elements in `view.html`.
+- **MANDATORY**: All forms belong to the official Squilla `forms` extension. Forms are registered in `scripts/theme.tengo` via `forms:upsert` and embedded in templates via:
+  `{{ event "forms:render" (dict "form_id" "booking-form") }}`.
+  The forms extension handles validation, notifications, CSRF protection, and database submissions.
+
 ---
 
-### 2.2 The Zero Fallbacks Rule (CRITICAL)
+### 2.4 The Zero Fallbacks Rule (CRITICAL)
 
 > **STRICT RULE**: Using `{{ or .heading "Lorem Ipsum" }}` or `{{ or .title "Default Title" }}` in `view.html` is **STRICTLY FORBIDDEN**.
 
@@ -114,6 +130,8 @@ Squilla enforces strict, structured field typing. Avoid legacy flat CMS patterns
 | **Buttons & Links** | **ALWAYS** use `type: "link"`. Stores `{ "url", "text", "target", "new_tab" }`. | **NEVER** create separate loose text fields like `link_text` and `link_url`. |
 | **Lists & Grids** | **ALWAYS** use `type: "repeater"` (canonical: `array`). Defines nested `fields`. | **NEVER** flatten repeating items into numbered fields (`item_1_title`, `item_2_title`). |
 | **Images & Media** | **ALWAYS** use `type: "image"` or `type: "media"`. Stores `{ "url", "alt", "width", "height" }`. | **NEVER** create separate loose text fields like `image_url` and `image_alt`. |
+| **Galleries** | **ALWAYS** use `type: "gallery"` or `type: "repeater"` of image objects. | **NEVER** create numbered image fields (`gallery_1`, `gallery_2`, `gallery_3`, `gallery_4`). A single image is NOT a gallery. |
+| **Interactive Forms** | **ALWAYS** integrate with the official `forms` extension via `{{ event "forms:render" ... }}`. | **NEVER** build input fields (`name`, `email`, `phone`, `date`) inside a block schema or write HTML `<form>` tags in block templates. |
 | **Booleans & Flags** | **ALWAYS** use `type: "toggle"` or `type: "checkbox"`. Stores boolean `true`/`false`. | **NEVER** use text inputs with `"true"`/`"false"` or `"yes"`/`"no"`. |
 | **Variants & Styles** | **ALWAYS** use `type: "select"` or `type: "radio"` with explicit `options: ["opt1", "opt2"]`. | **NEVER** use free-form text strings for layout variants, alignments, or color themes. |
 | **Editorial Copy** | **ALWAYS** use `type: "richtext"` for WYSIWYG formatted text. | **NEVER** put raw HTML in `text` or `textarea` fields. |

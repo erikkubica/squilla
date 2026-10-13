@@ -83,3 +83,34 @@ When executing specialized tasks, consult the matching skill in `.agents/skills/
 - **Minimal Diff**: Touch only the exact files and lines required for the requested change.
 - **Fail-Closed**: Always validate inputs at boundaries and reject malformed data cleanly.
 - **No Unused Code in Core**: Always protect kernel boundaries against feature creep.
+
+---
+
+## 5. Content Modeling & Architectural Laws
+
+Every agent authoring themes, blocks, or custom post types MUST obey these non-negotiable architectural laws:
+
+### A. Entity Attributes (`fields_data`) vs. Page Storytelling (`blocks_data`)
+- **Node Type Custom Fields (`fields_data`)**:
+  - Registered via `core/nodetypes.register` in `scripts/theme.tengo`.
+  - Used for inherent attributes of an entity (e.g. for `experience` / `product` / `tour`: `price`, `duration`, `location`, `max_guests`, `inclusions`, `gallery`).
+  - **WHY**: These attributes must be reusable across the site: in archive / listing cards (`/experiences`), search filters, schema.org / JSON-LD, booking sidebars, and the detail page header.
+- **Content Blocks (`blocks_data`)**:
+  - Reorderable, optional editorial sections inserted in the page body (`rich-text`, `testimonials`, `faq-accordion`, `feature-grid`).
+- **FORBIDDEN (The Mega-Block Anti-Pattern)**:
+  - Never create a single monolithic page block (e.g. `experience-detail`, `product-detail`, `page-content`) that dumps an entire entity's attributes and body into one giant block.
+
+### B. The Media & Gallery Law
+- A single image is `type: "image"`.
+- A collection of images is `type: "gallery"` (or `type: "repeater"` with nested image fields).
+- **FORBIDDEN**: Numbered image fields (`gallery_1`, `gallery_2`, `gallery_3`, `gallery_4`, `image_1`, `image_2`). A single image is not a gallery.
+
+### C. The Forms Extension Law
+- **FORBIDDEN**: Creating form inputs (`name`, `email`, `phone`, `date`, `guests`) as block fields or hardcoding HTML `<form>` tags in templates.
+- **MANDATORY**: Forms must be registered with the official `forms` extension via `forms:upsert` in `theme.tengo` and rendered with:
+  `{{ event "forms:render" (dict "form_id" "booking-form") }}`.
+  The forms extension handles validation, notifications, submission storage, and CSRF protection.
+
+### D. The Zero-SQL Theme Seeding Law
+- **FORBIDDEN**: Writing raw SQL queries (`INSERT INTO ...`), manual migrations, or API hacks to seed theme demo content.
+- **MANDATORY**: Themes must self-seed their node types, taxonomies, demo pages, and forms idempotently in `scripts/theme.tengo` on theme activation.

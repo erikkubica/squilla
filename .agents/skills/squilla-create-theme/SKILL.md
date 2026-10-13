@@ -46,6 +46,20 @@ Squilla enforces a strict separation of concerns across three template surfaces.
 | **Partial** | `partials/*.html` | Defines persistent global chrome: `<header>`, site navigation, `<footer>`, language switcher. Included via `{{ renderLayoutBlock "partial-slug" }}`. | NEVER put page-specific content or marketing blocks into partials. |
 | **Block** | `blocks/<slug>/` | Self-contained, reorderable section units: Hero, Features grid, Testimonials, CTA banner, Pricing matrix, FAQ accordion. | **STRICTLY FORBIDDEN: Monolithic blocks.** Never dump an entire multi-section page or global header/footer into a block. |
 
+### Content Modeling: Node Type Custom Fields vs. Page Blocks
+Before building any theme components, map your data to the correct layer:
+
+| Category | Entity Custom Field (`nodetypes.register` -> `fields_data`) | Content Block (`block.json` -> `blocks_data`) |
+|---|---|---|
+| **What it is** | Inherent properties of the entity (e.g. Tour price, duration, location, max_guests, difficulty, gallery) | Modular, editorial section in the page body (e.g. "Our Story", "FAQ Accordion", "Customer Reviews") |
+| **Where it appears** | Archive grid cards (`/experiences`), search filters, booking sidebars, schema.org / JSON-LD, and page hero | Strictly inside the flow of that specific page |
+| **Reusability** | Queryable across the entire site by filters and templates | Isolated to the single page where it is placed |
+| **BANNED Anti-Pattern** | Dumping entity attributes into a page block (`experience-detail-block`), leaving the node with zero custom fields | Building hardcoded page-specific blocks instead of generic modular sections |
+
+### The Zero-SQL Seeding Law
+- **STRICTLY FORBIDDEN**: Running raw SQL queries or manual DB migrations to seed theme content.
+- **MANDATORY**: All node types, taxonomies, demo pages, and forms MUST be seeded via `scripts/theme.tengo` on theme activation using the official `core/nodetypes`, `core/nodes`, and `core/taxonomies` modules.
+
 ---
 
 ## 2. The ZERO FALLBACKS Rule
@@ -94,6 +108,8 @@ For in-depth block development, schema mechanics, and editor controls, consult t
 |---|---|---|
 | Separate `link_text` + `link_url` strings | `type: "link"` | Provides target (`_self`/`_blank`), internal page picker, and URL validation in a single atomic object: `{"text": "...", "url": "...", "target": "_self"}`. |
 | Numbered fields (`badge_1_title`, `badge_2_title`, `card_1_img`, `card_2_img`) | `type: "repeater"` (or `type: "array"`) | Dynamic lists must be arrays with nested `fields`. Numbered fields pollute schemas and prevent editors from reordering or scaling items. |
+| Numbered image fields (`gallery_1`, `gallery_2`, `gallery_3`, `gallery_4`) | `type: "gallery"` (or `type: "repeater"` of images) | A single image is NOT a gallery. Collections of images must be a `gallery` or array of image objects. |
+| Building form input fields inside block schemas | Official `forms` extension (`forms:upsert`) | Forms must never be modeled as block fields. Use the `forms` extension and embed with `{{ event "forms:render" (dict "form_id" "...") }}`. |
 | Raw string URL for images (`type: "string"`, `name: "image_url"`) | `type: "image"` | Images are structured objects `{"url": "theme-asset:<key>", "alt": "..."}` that plug into media optimization and responsive srcset pipelines. |
 | String `"yes"` / `"no"` or `"true"` / `"false"` | `type: "toggle"` (or `type: "checkbox"`) | Booleans must be native JSON booleans (`true`/`false`), never loose strings. |
 | Object array for select options `[{"label": "Red", "value": "red"}]` | Flat string array `["red", "blue", "green"]` | Squilla `select` and `radio` fields expect flat string options. Objects crash the admin editor with React errors. |
