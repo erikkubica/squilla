@@ -474,3 +474,11 @@ func (g *capabilityGuard) DeleteFile(ctx context.Context, path string) error {
 	}
 	return g.inner.DeleteFile(ctx, path)
 }
+
+// --- Providers ---
+func (g *capabilityGuard) CallProvider(ctx context.Context, tag string, req ProviderRequest) (*ProviderResponse, error) {
+	if err := checkCapability(ctx, "providers:call"); err != nil {
+		return nil, err
+	}
+	return g.inner.CallProvider(ctx, tag, req)
+}

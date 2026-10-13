@@ -388,3 +388,8 @@ func matchesRaw(row map[string]any, raw string, args []any) bool {
 	// Tests that care about precise filtering should use Where instead.
 	return true
 }
+
+// CallProvider
+func (f *FakeHost) CallProvider(ctx context.Context, tag string, req coreapi.ProviderRequest) (*coreapi.ProviderResponse, error) {
+	return nil, coreapi.ErrNoProvider
+}

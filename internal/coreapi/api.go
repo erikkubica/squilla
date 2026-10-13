@@ -6,6 +6,22 @@ import (
 	"time"
 )
 
+// ProviderRequest is the input shape for CallProvider
+type ProviderRequest struct {
+	Method      string
+	Path        string
+	Headers     map[string]string
+	Body        []byte
+	QueryParams map[string]string
+}
+
+// ProviderResponse is the response shape for CallProvider
+type ProviderResponse struct {
+	StatusCode int
+	Headers    map[string]string
+	Body       []byte
+}
+
 type CoreAPI interface {
 	// Nodes
 	GetNode(ctx context.Context, id uint) (*Node, error)
@@ -101,6 +117,9 @@ type CoreAPI interface {
 	// File Storage
 	StoreFile(ctx context.Context, path string, data []byte) (string, error)
 	DeleteFile(ctx context.Context, path string) error
+
+	// Providers
+	CallProvider(ctx context.Context, tag string, req ProviderRequest) (*ProviderResponse, error)
 }
 
 type EventHandler func(action string, payload map[string]any)

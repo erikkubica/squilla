@@ -1,0 +1,481 @@
+syntax = "proto3";
+package squilla.coreapi;
+option go_package = "squilla/pkg/plugin/coreapipb";
+
+service SquillaHost {
+  rpc GetNode(GetNodeRequest) returns (NodeResponse);
+  rpc QueryNodes(QueryNodesRequest) returns (QueryNodesResponse);
+  rpc ListTaxonomyTerms(ListTaxonomyTermsRequest) returns (ListTaxonomyTermsResponse);
+  rpc CreateNode(CreateNodeRequest) returns (NodeResponse);
+  rpc UpdateNode(UpdateNodeRequest) returns (NodeResponse);
+  rpc DeleteNode(DeleteNodeRequest) returns (Empty);
+
+  // Taxonomies
+  rpc ListTerms(ListTermsRequest) returns (ListTermsResponse);
+  rpc GetTerm(GetTermRequest) returns (TermResponse);
+  rpc CreateTerm(CreateTermRequest) returns (TermResponse);
+  rpc UpdateTerm(UpdateTermRequest) returns (TermResponse);
+  rpc DeleteTerm(DeleteTermRequest) returns (Empty);
+
+  // Taxonomy Definitions
+  rpc RegisterTaxonomy(TaxonomyInputMessage) returns (TaxonomyResponse);
+  rpc GetTaxonomy(GetTaxonomyRequest) returns (TaxonomyResponse);
+  rpc ListTaxonomies(Empty) returns (TaxonomyListResponse);
+  rpc UpdateTaxonomy(UpdateTaxonomyRequest) returns (TaxonomyResponse);
+  rpc DeleteTaxonomy(DeleteTaxonomyRequest) returns (Empty);
+
+  rpc GetSetting(GetSettingRequest) returns (SettingResponse);
+  rpc SetSetting(SetSettingRequest) returns (Empty);
+  rpc GetSettings(GetSettingsRequest) returns (SettingsResponse);
+  rpc EmitEvent(EmitEventRequest) returns (Empty);
+  rpc SendEmail(SendEmailRequest) returns (Empty);
+  rpc GetMenu(GetMenuRequest) returns (MenuResponse);
+  rpc GetMenus(Empty) returns (MenuListResponse);
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc QueryUsers(QueryUsersRequest) returns (UserListResponse);
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+  rpc Log(LogRequest) returns (Empty);
+  rpc DataGet(DataGetRequest) returns (DataRowResponse);
+  rpc DataQuery(DataQueryRequest) returns (DataQueryResponse);
+  rpc DataCreate(DataCreateRequest) returns (DataRowResponse);
+  rpc DataUpdate(DataUpdateRequest) returns (Empty);
+  rpc DataDelete(DataDeleteRequest) returns (Empty);
+  rpc DataExec(DataExecRequest) returns (DataExecResponse);
+  rpc StoreFile(StoreFileRequest) returns (StoreFileResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (Empty);
+  rpc RegisterNodeType(NodeTypeInputMessage) returns (NodeTypeResponse);
+  rpc GetNodeType(GetNodeTypeRequest) returns (NodeTypeResponse);
+  rpc ListNodeTypes(Empty) returns (NodeTypeListResponse);
+  rpc UpdateNodeType(UpdateNodeTypeRequest) returns (NodeTypeResponse);
+  rpc DeleteNodeType(DeleteNodeTypeRequest) returns (Empty);
+}
+
+message Empty {}
+
+// --- Node messages ---
+
+message GetNodeRequest {
+  uint32 id = 1;
+}
+
+message QueryNodesRequest {
+  string node_type = 1;
+  string status = 2;
+  uint32 parent_id = 3;
+  bool has_parent_id = 4;
+  string language_code = 5;
+  string slug = 6;
+  string search = 7;
+  int32 limit = 8;
+  int32 offset = 9;
+  string order_by = 10;
+  string category = 11;
+  string tax_query_json = 12; // JSON-encoded map[string][]string for taxonomy filtering
+}
+
+message CreateNodeRequest {
+  NodeInput input = 1;
+}
+
+message UpdateNodeRequest {
+  uint32 id = 1;
+  NodeInput input = 2;
+}
+
+message DeleteNodeRequest {
+  uint32 id = 1;
+}
+
+message ListTaxonomyTermsRequest {
+  string node_type = 1;
+  string taxonomy = 2;
+}
+
+message ListTaxonomyTermsResponse {
+  repeated string terms = 1;
+}
+
+message NodeInput {
+  uint32 parent_id = 1;
+  bool has_parent_id = 2;
+  string node_type = 3;
+  string status = 4;
+  string language_code = 5;
+  string slug = 6;
+  string title = 7;
+  string blocks_data_json = 8;   // JSON-encoded
+  string fields_data_json = 9;   // JSON-encoded map[string]any
+  map<string, string> seo_settings = 10;
+  string featured_image_json = 11;
+  string excerpt = 12;
+  string taxonomies_json = 13; // JSON-encoded map[string][]string
+}
+
+message NodeResponse {
+  NodeMessage node = 1;
+}
+
+message QueryNodesResponse {
+  repeated NodeMessage nodes = 1;
+  int64 total = 2;
+}
+
+message NodeMessage {
+  uint32 id = 1;
+  string uuid = 2;
+  uint32 parent_id = 3;
+  bool has_parent_id = 4;
+  string node_type = 5;
+  string status = 6;
+  string language_code = 7;
+  string slug = 8;
+  string full_url = 9;
+  string title = 10;
+  string blocks_data_json = 11;  // JSON-encoded
+  string fields_data_json = 12;  // JSON-encoded map[string]any
+  map<string, string> seo_settings = 13;
+  string published_at = 14;      // RFC3339 or empty
+  string created_at = 15;        // RFC3339
+  string updated_at = 16;        // RFC3339
+  string featured_image_json = 17;
+  string excerpt = 18;
+  string taxonomies_json = 19; // JSON-encoded map[string][]string
+}
+
+// --- Taxonomy messages ---
+
+message ListTermsRequest {
+  string node_type = 1;
+  string taxonomy = 2;
+}
+
+message ListTermsResponse {
+  repeated TermMessage terms = 1;
+}
+
+message GetTermRequest {
+  uint32 id = 1;
+}
+
+message CreateTermRequest {
+  TermMessage term = 1;
+}
+
+message UpdateTermRequest {
+  uint32 id = 1;
+  string updates_json = 2; // JSON-encoded map[string]any
+}
+
+message DeleteTermRequest {
+  uint32 id = 1;
+}
+
+message TermResponse {
+  TermMessage term = 1;
+}
+
+message TermMessage {
+  uint32 id = 1;
+  string node_type = 2;
+  string taxonomy = 3;
+  string slug = 4;
+  string name = 5;
+  string description = 6;
+  uint32 parent_id = 7;
+  bool has_parent_id = 8;
+  int32 count = 9;
+  string created_at = 10;
+  string updated_at = 11;
+  string fields_data_json = 12; // JSON-encoded map[string]any
+}
+
+// --- Taxonomy Definition messages ---
+
+message TaxonomyInputMessage {
+  string slug = 1;
+  string label = 2;
+  string description = 3;
+  repeated string node_types = 4;
+  repeated NodeTypeFieldMessage field_schema = 5;
+}
+
+message TaxonomyMessage {
+  uint32 id = 1;
+  string slug = 2;
+  string label = 3;
+  string description = 4;
+  repeated string node_types = 5;
+  repeated NodeTypeFieldMessage field_schema = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message TaxonomyResponse {
+  TaxonomyMessage taxonomy = 1;
+}
+
+message TaxonomyListResponse {
+  repeated TaxonomyMessage taxonomies = 1;
+}
+
+message GetTaxonomyRequest {
+  string slug = 1;
+}
+
+message UpdateTaxonomyRequest {
+  string slug = 1;
+  TaxonomyInputMessage input = 2;
+}
+
+message DeleteTaxonomyRequest {
+  string slug = 1;
+}
+
+// --- Settings messages ---
+
+message GetSettingRequest {
+  string key = 1;
+}
+
+message SettingResponse {
+  string value = 1;
+}
+
+message SetSettingRequest {
+  string key = 1;
+  string value = 2;
+}
+
+message GetSettingsRequest {
+  string prefix = 1;
+}
+
+message SettingsResponse {
+  map<string, string> settings = 1;
+}
+
+// --- Event messages ---
+
+message EmitEventRequest {
+  string action = 1;
+  string payload_json = 2; // JSON-encoded map[string]any
+}
+
+// --- Email messages ---
+
+message SendEmailRequest {
+  repeated string to = 1;
+  string subject = 2;
+  string html = 3;
+}
+
+// --- Menu messages ---
+
+message GetMenuRequest {
+  string slug = 1;
+}
+
+message MenuResponse {
+  MenuMessage menu = 1;
+}
+
+message MenuListResponse {
+  repeated MenuMessage menus = 1;
+}
+
+message MenuMessage {
+  uint32 id = 1;
+  string name = 2;
+  string slug = 3;
+  repeated MenuItemMessage items = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message MenuItemMessage {
+  uint32 id = 1;
+  string label = 2;
+  string url = 3;
+  string target = 4;
+  uint32 parent_id = 5;
+  bool has_parent_id = 6;
+  int32 position = 7;
+  repeated MenuItemMessage children = 8;
+}
+
+// --- User messages ---
+
+message GetUserRequest {
+  uint32 id = 1;
+}
+
+message QueryUsersRequest {
+  string role_slug = 1;
+  string search = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message UserResponse {
+  UserMessage user = 1;
+}
+
+message UserListResponse {
+  repeated UserMessage users = 1;
+}
+
+message UserMessage {
+  uint32 id = 1;
+  string email = 2;
+  string name = 3;
+  uint32 role_id = 4;
+  bool has_role_id = 5;
+  string role_slug = 6;
+  int32 language_id = 7;
+  bool has_language_id = 8;
+}
+
+// --- Fetch messages ---
+
+message FetchRequest {
+  string method = 1;
+  string url = 2;
+  map<string, string> headers = 3;
+  string body = 4;
+  int32 timeout = 5;
+}
+
+message FetchResponse {
+  int32 status_code = 1;
+  map<string, string> headers = 2;
+  string body = 3;
+}
+
+// --- Log messages ---
+
+message LogRequest {
+  string level = 1;
+  string message = 2;
+  string fields_json = 3; // JSON-encoded map[string]any
+}
+
+// --- Data Store messages ---
+
+message DataGetRequest {
+  string table = 1;
+  uint32 id = 2;
+}
+
+message DataRowResponse {
+  bytes row_json = 1; // JSON-encoded map[string]any
+}
+
+message DataQueryRequest {
+  string table = 1;
+  string where_json = 2;   // JSON-encoded map[string]any
+  string search = 3;
+  string order_by = 4;
+  int32 limit = 5;
+  int32 offset = 6;
+  string raw = 7;
+  string args_json = 8;    // JSON-encoded []any
+}
+
+message DataQueryResponse {
+  repeated bytes rows_json = 1; // each entry is JSON-encoded map[string]any
+  int64 total = 2;
+}
+
+message DataCreateRequest {
+  string table = 1;
+  bytes data_json = 2;     // JSON-encoded map[string]any
+}
+
+message DataUpdateRequest {
+  string table = 1;
+  uint32 id = 2;
+  bytes data_json = 3;     // JSON-encoded map[string]any
+}
+
+message DataDeleteRequest {
+  string table = 1;
+  uint32 id = 2;
+}
+
+message DataExecRequest {
+  string sql = 1;
+  string args_json = 2;    // JSON-encoded []any
+}
+
+message DataExecResponse {
+  int64 rows_affected = 1;
+}
+
+// --- File Storage messages ---
+
+message StoreFileRequest {
+  string path = 1;
+  bytes data = 2;
+}
+
+message StoreFileResponse {
+  string url = 1;
+}
+
+message DeleteFileRequest {
+  string path = 1;
+}
+
+// --- Node Type messages ---
+
+message NodeTypeFieldMessage {
+  string name = 1;
+  string label = 2;
+  string type = 3;
+  bool required = 4;
+  repeated string options = 5;
+}
+
+message NodeTypeInputMessage {
+  string slug = 1;
+  string label = 2;
+  string icon = 3;
+  string description = 4;
+  repeated NodeTypeFieldMessage field_schema = 5;
+  map<string, string> url_prefixes = 6;
+  string taxonomies_json = 7; // JSON-encoded []TaxonomyDefinition
+}
+
+message NodeTypeMessage {
+  int32 id = 1;
+  string slug = 2;
+  string label = 3;
+  string icon = 4;
+  string description = 5;
+  repeated NodeTypeFieldMessage field_schema = 6;
+  map<string, string> url_prefixes = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  string taxonomies_json = 10; // JSON-encoded []TaxonomyDefinition
+}
+
+message NodeTypeResponse {
+  NodeTypeMessage node_type = 1;
+}
+
+message NodeTypeListResponse {
+  repeated NodeTypeMessage node_types = 1;
+}
+
+message GetNodeTypeRequest {
+  string slug = 1;
+}
+
+message UpdateNodeTypeRequest {
+  string slug = 1;
+  NodeTypeInputMessage input = 2;
+}
+
+message DeleteNodeTypeRequest {
+  string slug = 1;
+}

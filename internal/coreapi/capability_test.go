@@ -387,6 +387,9 @@ func guardCases() []guardCase {
 		// File Storage.
 		{"StoreFile", "files:write", func(ctx context.Context, a CoreAPI) error { _, e := a.StoreFile(ctx, "", nil); return e }},
 		{"DeleteFile", "files:delete", func(ctx context.Context, a CoreAPI) error { return a.DeleteFile(ctx, "") }},
+
+		// Providers
+		{"CallProvider", "providers:call", func(ctx context.Context, a CoreAPI) error { _, e := a.CallProvider(ctx, "", ProviderRequest{}); return e }},
 	}
 }
 
@@ -502,3 +505,8 @@ func isCapabilityErr(err error) bool {
 // wouldn't compile when a test is added that needs them.
 var _ = io.Discard
 var _ = time.Second
+
+func (s *stubCoreAPI) CallProvider(_ context.Context, _ string, _ ProviderRequest) (*ProviderResponse, error) {
+	s.record("CallProvider")
+	return nil, nil
+}

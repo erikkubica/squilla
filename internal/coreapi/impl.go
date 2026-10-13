@@ -23,6 +23,7 @@ type coreImpl struct {
 	contentSvc    *cms.ContentService
 	menuSvc       *cms.MenuService
 	mediaResolver MediaProviderResolver
+	getPM         func() *cms.PluginManager
 	nodeTypeSvc   *cms.NodeTypeService
 	app           *fiber.App
 	secrets       *secrets.Service // may be nil (encryption disabled in dev)
@@ -50,6 +51,7 @@ func NewCoreImpl(
 	contentSvc *cms.ContentService,
 	menuSvc *cms.MenuService,
 	mediaResolver MediaProviderResolver,
+	getPM func() *cms.PluginManager,
 	nodeTypeSvc *cms.NodeTypeService,
 	app *fiber.App,
 	secretsSvc *secrets.Service,
@@ -60,6 +62,7 @@ func NewCoreImpl(
 		contentSvc:    contentSvc,
 		menuSvc:       menuSvc,
 		mediaResolver: mediaResolver,
+		getPM:         getPM,
 		nodeTypeSvc:   nodeTypeSvc,
 		app:           app,
 		secrets:       secretsSvc,

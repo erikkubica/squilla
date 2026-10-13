@@ -306,7 +306,7 @@ func main() {
 	// extensions are up.
 	var pluginManager *cms.PluginManager
 	mediaResolver := coreapi.NewMediaProviderResolver(func() *cms.PluginManager { return pluginManager })
-	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, mediaResolver, nodeTypeSvc, app, secretsSvc)
+	coreAPI := coreapi.NewCoreImpl(database, eventBus, contentSvc, menuSvc, mediaResolver, func() *cms.PluginManager { return pluginManager }, nodeTypeSvc, app, secretsSvc)
 	guardedAPI := coreapi.NewCapabilityGuard(coreAPI)
 	themeSettingsHandler := cms.NewThemeSettingsHandler(themeLoader.SettingsRegistry, coreAPI, database, secretsSvc, eventBus)
 

@@ -1,0 +1,37 @@
+#!/bin/bash
+cat << 'PATCH' > proto.patch
+--- proto/coreapi/squilla_coreapi.proto
++++ proto/coreapi/squilla_coreapi.proto
+@@ -37,6 +37,9 @@
+   rpc ListNodeTypes(Empty) returns (NodeTypeListResponse);
+   rpc UpdateNodeType(UpdateNodeTypeRequest) returns (NodeTypeResponse);
+   rpc DeleteNodeType(DeleteNodeTypeRequest) returns (Empty);
++
++  // Providers
++  rpc CallProvider(CallProviderRequest) returns (CallProviderResponse);
+ }
+
+ message Empty {}
+@@ -345,3 +348,19 @@
+ message DeleteNodeTypeRequest {
+   string slug = 1;
+ }
++
++message CallProviderRequest {
++  string tag = 1;
++  string method = 2;
++  string path = 3;
++  map<string, string> headers = 4;
++  bytes body = 5;
++  map<string, string> query_params = 6;
++}
++
++message CallProviderResponse {
++  int32 status_code = 1;
++  map<string, string> headers = 2;
++  bytes body = 3;
++  bool error_no_provider = 4;
++  string error = 5;
++}
+PATCH
+patch proto/coreapi/squilla_coreapi.proto proto.patch
