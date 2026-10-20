@@ -182,7 +182,7 @@ function SortableItem({
 
   return (
     <li ref={setNodeRef} style={style} className="vedit-array-item">
-      <div className="vedit-array-item-head">
+      <div className="vedit-array-item-head" data-open={open}>
         <button type="button" className="vedit-drag-handle" aria-label="Drag" {...attributes} {...listeners}>⋮⋮</button>
         <button type="button" className="vedit-array-item-toggle" onClick={() => setOpen((o) => !o)}>
           <span className="vedit-collapsible-caret" data-open={open}>▸</span>

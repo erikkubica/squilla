@@ -123,7 +123,7 @@ func (h *NodeHandler) Search(c *fiber.Ctx) error {
 	}
 
 	query := h.db.Model(&models.ContentNode{}).
-		Select("id, title, slug, node_type, status, language_code, author_id").
+		Select("id, title, slug, node_type, status, language_code, author_id, full_url, featured_image").
 		Where("deleted_at IS NULL").
 		Where("node_type IN (?)", h.db.Model(&models.NodeType{}).Select("slug"))
 
@@ -142,12 +142,14 @@ func (h *NodeHandler) Search(c *fiber.Ctx) error {
 
 	// Return lightweight results
 	type searchResult struct {
-		ID           int    `json:"id"`
-		Title        string `json:"title"`
-		Slug         string `json:"slug"`
-		NodeType     string `json:"node_type"`
-		Status       string `json:"status"`
-		LanguageCode string `json:"language_code"`
+		ID            int          `json:"id"`
+		Title         string       `json:"title"`
+		Slug          string       `json:"slug"`
+		NodeType      string       `json:"node_type"`
+		Status        string       `json:"status"`
+		LanguageCode  string       `json:"language_code"`
+		FullURL       string       `json:"full_url"`
+		FeaturedImage models.JSONB `json:"featured_image,omitempty"`
 	}
 
 	// Apply per-node-type read access (and scope='own' if applicable). This
@@ -163,12 +165,14 @@ func (h *NodeHandler) Search(c *fiber.Ctx) error {
 			continue
 		}
 		results = append(results, searchResult{
-			ID:           n.ID,
-			Title:        n.Title,
-			Slug:         n.Slug,
-			NodeType:     n.NodeType,
-			Status:       n.Status,
-			LanguageCode: n.LanguageCode,
+			ID:            n.ID,
+			Title:         n.Title,
+			Slug:          n.Slug,
+			NodeType:      n.NodeType,
+			Status:        n.Status,
+			LanguageCode:  n.LanguageCode,
+			FullURL:       n.FullURL,
+			FeaturedImage: n.FeaturedImage,
 		})
 	}
 
@@ -327,7 +331,7 @@ func (h *NodeHandler) Create(c *fiber.Ctx) error {
 		BlocksData:    models.JSONB(req.BlocksData),
 		FieldsData:    models.JSONB(req.FieldsData),
 		SeoSettings:   models.JSONB(req.SeoSettings),
-		FeaturedImage:  models.JSONB(req.FeaturedImage),
+		FeaturedImage: models.JSONB(req.FeaturedImage),
 		Excerpt:       req.Excerpt,
 		Taxonomies:    models.JSONB(req.Taxonomies),
 		LayoutData:    models.JSONB(req.LayoutData),
@@ -389,9 +393,9 @@ func (h *NodeHandler) Update(c *fiber.Ctx) error {
 	delete(body, "created_at")
 	delete(body, "updated_at")
 	delete(body, "deleted_at")
-	delete(body, "author_id")  // protected: scope='own' RBAC depends on it.
-	delete(body, "node_type")  // node type is set on Create only — switching it would bypass per-type ACL.
-	delete(body, "full_url")   // computed by buildFullURL on every Create/Update.
+	delete(body, "author_id") // protected: scope='own' RBAC depends on it.
+	delete(body, "node_type") // node type is set on Create only — switching it would bypass per-type ACL.
+	delete(body, "full_url")  // computed by buildFullURL on every Create/Update.
 
 	// Validate status against the canonical set. The DB column is a plain
 	// text column without a CHECK constraint (per migrations review), so a
@@ -488,4 +492,3 @@ func (h *NodeHandler) Delete(c *fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
-

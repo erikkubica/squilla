@@ -34,9 +34,13 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		Fields:         models.JSONB(fieldSchemaJSON),
 		URLPrefixes:    models.JSONB(urlPrefixesJSON),
 		SupportsBlocks: true,
+		Public:         true,
 	}
 	if input.SupportsBlocks != nil {
 		nt.SupportsBlocks = *input.SupportsBlocks
+	}
+	if input.Public != nil {
+		nt.Public = *input.Public
 	}
 	if nt.Icon == "" {
 		nt.Icon = "file-text"
@@ -80,6 +84,9 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		if input.SupportsBlocks != nil {
 			updates["supports_blocks"] = *input.SupportsBlocks
 		}
+		if input.Public != nil {
+			updates["public"] = *input.Public
+		}
 
 		updated, err := c.nodeTypeSvc.Update(existing.ID, updates)
 		if err != nil {
@@ -94,7 +101,6 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		}
 		return nil, NewInternal(err.Error())
 	}
-
 	return nodeTypeFromModel(nt), nil
 }
 
@@ -188,6 +194,7 @@ func nodeTypeFromModel(nt *models.NodeType) *NodeType {
 		Icon:           nt.Icon,
 		Description:    nt.Description,
 		SupportsBlocks: nt.SupportsBlocks,
+		Public:         nt.Public,
 		CreatedAt:      nt.CreatedAt,
 		UpdatedAt:      nt.UpdatedAt,
 	}

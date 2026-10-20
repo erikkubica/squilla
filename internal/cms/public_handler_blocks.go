@@ -135,10 +135,30 @@ func (h *PublicHandler) renderBlocks(blocks []map[string]interface{}, locale str
 }
 
 // renderBlocksBatch is the optimized version that performs batch node hydration.
+// It renders without a visitor request or page node (MCP block previews):
+// `request` and `node` are empty.
 func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, locale string) []string {
+	return h.renderBlocksBatchFor(blocks, locale, nil, nil)
+}
+
+// renderBlocksBatchFor renders the blocks of one page. Block templates read
+// the visitor request through `request` (page, query, archive) and the node
+// that owns the blocks through `node` (title, fields, taxonomies, …), so a
+// block placed on an experience can show that experience's own data. Pass
+// nil for either when there is none.
+func (h *PublicHandler) renderBlocksBatchFor(blocks []map[string]interface{}, locale string, req map[string]interface{}, current map[string]interface{}) []string {
+	if req == nil {
+		req = emptyRequestData()
+	}
+	// Only page-one, non-archive output is identical across requests.
+	shareable := isDefaultRequest(req)
 	var rendered []string
 	if len(blocks) == 0 {
 		return rendered
+	}
+	var currentFields map[string]interface{}
+	if current != nil {
+		currentFields, _ = current["fields"].(map[string]interface{})
 	}
 
 	// Load theme settings once per page render so the GetSettings round-trip
@@ -153,6 +173,11 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 			fields = block
 		}
 		collectNodeIDs(fields, allNodeIDs)
+	}
+	// References inside the page node's own fields (e.g. an experience's
+	// FAQs) are hydrated in the same batch.
+	if currentFields != nil {
+		collectNodeIDs(currentFields, allNodeIDs)
 	}
 
 	// Step 2: Batch fetch nodes if any IDs were found
@@ -184,37 +209,13 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 				typeSchemaMap[nt.Slug] = nt.Fields
 			}
 
-			for _, n := range nodes {
-				fields := make(map[string]interface{})
-				json.Unmarshal(n.FieldsData, &fields)
-				schema := typeSchemaMap[n.NodeType]
-				markRichTextFields(fields, schema)
-
-				var featuredImage interface{}
-				if len(n.FeaturedImage) > 0 {
-					json.Unmarshal(n.FeaturedImage, &featuredImage)
-				}
-
-				var taxonomies map[string][]string
-				if len(n.Taxonomies) > 0 {
-					json.Unmarshal(n.Taxonomies, &taxonomies)
-				}
-
-				nodeMap[n.ID] = map[string]interface{}{
-					"id":             n.ID,
-					"title":          n.Title,
-					"slug":           n.Slug,
-					"full_url":       n.FullURL,
-					"featured_image": featuredImage,
-					"excerpt":        n.Excerpt,
-					"taxonomies":     taxonomies,
-					"fields":         fields,
-					"node_type":      n.NodeType,
-					"language_code":  n.LanguageCode,
-					"status":         n.Status,
-				}
+			for i := range nodes {
+				nodeMap[nodes[i].ID] = nodeTemplateData(&nodes[i], typeSchemaMap[nodes[i].NodeType])
 			}
 		}
+	}
+	if currentFields != nil {
+		applyHydratedNodes(currentFields, nodeMap)
 	}
 
 	// Step 3: Render each block with pre-hydrated nodeMap
@@ -249,8 +250,8 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 		applyHydratedNodes(fields, nodeMap)
 
 		// Check block output cache (only for blocks with cache_output enabled)
-		if bt.CacheOutput {
-			outputKey := blockOutputKey(blockType, fields)
+		if bt.CacheOutput && shareable {
+			outputKey := blockOutputKey(blockType, fields, current)
 			h.cacheMu.RLock()
 			cached, hit := h.blockOutputCache[outputKey]
 			h.cacheMu.RUnlock()
@@ -297,6 +298,8 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 				}
 			}()
 			err = h.renderer.RenderParsed(&buf, tmplCacheKey, tmplContent, fields, mergeFuncMaps(template.FuncMap{
+				"request": func() map[string]interface{} { return req },
+				"node":    func() map[string]interface{} { return current },
 				"safeHTML": func(s interface{}) template.HTML {
 					return template.HTML(fmt.Sprintf("%v", s))
 				},
@@ -323,8 +326,8 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 		output := buf.String()
 
 		// Store in block output cache if enabled
-		if bt.CacheOutput {
-			outputKey := blockOutputKey(blockType, fields)
+		if bt.CacheOutput && shareable {
+			outputKey := blockOutputKey(blockType, fields, current)
 			h.cacheMu.Lock()
 			h.blockOutputCache[outputKey] = output
 			h.cacheMu.Unlock()
@@ -336,11 +339,68 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 }
 
 // blockOutputKey generates a cache key for a rendered block based on
-// its type and field content. The key is short (16 bytes of SHA-256
-// hex) so it's cheap to compare and unlikely to collide for the
-// per-block render-cache map sizes we expect.
-func blockOutputKey(blockType string, fields map[string]interface{}) string {
+// its type, field content and the page node it renders for (blocks can
+// read that node). The key is short (16 bytes of SHA-256 hex) so it's
+// cheap to compare and unlikely to collide for the per-block render-cache
+// map sizes we expect.
+func blockOutputKey(blockType string, fields map[string]interface{}, current map[string]interface{}) string {
 	b, _ := json.Marshal(fields)
+	if current != nil {
+		nb, _ := json.Marshal(current)
+		b = append(b, nb...)
+	}
 	hash := sha256.Sum256(b)
 	return blockType + ":" + hex.EncodeToString(hash[:16])
+}
+
+// nodeTemplateData is the template-facing shape of a node, used for
+// hydrated references and for the `node` func in block templates.
+func nodeTemplateData(n *models.ContentNode, schema models.JSONB) map[string]interface{} {
+	fields := make(map[string]interface{})
+	json.Unmarshal(n.FieldsData, &fields)
+	markRichTextFields(fields, schema)
+
+	var featuredImage interface{}
+	if len(n.FeaturedImage) > 0 {
+		json.Unmarshal(n.FeaturedImage, &featuredImage)
+	}
+
+	var taxonomies map[string][]string
+	if len(n.Taxonomies) > 0 {
+		json.Unmarshal(n.Taxonomies, &taxonomies)
+	}
+
+	return map[string]interface{}{
+		"id":             n.ID,
+		"title":          n.Title,
+		"slug":           n.Slug,
+		"full_url":       n.FullURL,
+		"featured_image": featuredImage,
+		"excerpt":        n.Excerpt,
+		"taxonomies":     taxonomies,
+		"fields":         fields,
+		"node_type":      n.NodeType,
+		"language_code":  n.LanguageCode,
+		"status":         n.Status,
+	}
+}
+
+// pageNodeData returns the `node` value for blocks rendered on n's page.
+func (h *PublicHandler) pageNodeData(n *models.ContentNode) map[string]interface{} {
+	var nt models.NodeType
+	var schema models.JSONB
+	if err := h.db.Select("field_schema").Where("slug = ?", n.NodeType).First(&nt).Error; err == nil {
+		schema = nt.Fields
+	}
+	return nodeTemplateData(n, schema)
+}
+
+// nodeTypeIsPublic reports whether nodes of this type have public pages.
+// Unknown types are treated as public so a missing row never hides content.
+func (h *PublicHandler) nodeTypeIsPublic(slug string) bool {
+	var nt models.NodeType
+	if err := h.db.Select("public").Where("slug = ?", slug).First(&nt).Error; err != nil {
+		return true
+	}
+	return nt.Public
 }

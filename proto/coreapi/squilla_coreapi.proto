@@ -457,6 +457,8 @@ message NodeTypeMessage {
   string created_at = 8;
   string updated_at = 9;
   string taxonomies_json = 10; // JSON-encoded []TaxonomyDefinition
+  // Inverse of NodeType.Public so hosts that predate the field decode as public.
+  bool private = 11;
 }
 
 message NodeTypeResponse {

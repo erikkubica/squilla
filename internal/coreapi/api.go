@@ -108,40 +108,45 @@ type FilterHandler func(value any) any
 type UnsubscribeFunc func()
 
 type Node struct {
-	ID           uint              `json:"id"`
-	UUID         string            `json:"uuid"`
-	ParentID     *uint             `json:"parent_id,omitempty"`
-	NodeType     string            `json:"node_type"`
-	Status       string            `json:"status"`
-	LanguageCode string            `json:"language_code"`
-	Slug         string            `json:"slug"`
-	FullURL      string            `json:"full_url"`
-	LayoutSlug   string            `json:"layout_slug,omitempty"`
-	Title        string            `json:"title"`
-	FeaturedImage any               `json:"featured_image,omitempty"`
-	Excerpt       string            `json:"excerpt,omitempty"`
-	Taxonomies    map[string][]string `json:"taxonomies,omitempty"`
-	BlocksData   any               `json:"blocks_data,omitempty"`
-	FieldsData   map[string]any    `json:"fields_data,omitempty"`
-	SeoSettings  map[string]string `json:"seo_settings,omitempty"`
-	PublishedAt  *time.Time        `json:"published_at,omitempty"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
-	Translations []map[string]interface{} `json:"translations,omitempty"`
+	ID            uint                     `json:"id"`
+	UUID          string                   `json:"uuid"`
+	ParentID      *uint                    `json:"parent_id,omitempty"`
+	NodeType      string                   `json:"node_type"`
+	Status        string                   `json:"status"`
+	LanguageCode  string                   `json:"language_code"`
+	Slug          string                   `json:"slug"`
+	FullURL       string                   `json:"full_url"`
+	LayoutSlug    string                   `json:"layout_slug,omitempty"`
+	Title         string                   `json:"title"`
+	FeaturedImage any                      `json:"featured_image,omitempty"`
+	Excerpt       string                   `json:"excerpt,omitempty"`
+	Taxonomies    map[string][]string      `json:"taxonomies,omitempty"`
+	BlocksData    any                      `json:"blocks_data,omitempty"`
+	FieldsData    map[string]any           `json:"fields_data,omitempty"`
+	SeoSettings   map[string]string        `json:"seo_settings,omitempty"`
+	PublishedAt   *time.Time               `json:"published_at,omitempty"`
+	CreatedAt     time.Time                `json:"created_at"`
+	UpdatedAt     time.Time                `json:"updated_at"`
+	Translations  []map[string]interface{} `json:"translations,omitempty"`
 }
 
 type NodeQuery struct {
-	NodeType     string `json:"node_type,omitempty"`
-	Status       string `json:"status,omitempty"`
-	ParentID     *uint  `json:"parent_id,omitempty"`
-	LanguageCode string `json:"language_code,omitempty"`
-	Slug         string `json:"slug,omitempty"`
-	Search       string `json:"search,omitempty"`
-	Limit        int    `json:"limit,omitempty"`
-	Offset       int    `json:"offset,omitempty"`
-	OrderBy      string `json:"order_by,omitempty"`
-	Category     string `json:"category,omitempty"`
+	NodeType     string              `json:"node_type,omitempty"`
+	Status       string              `json:"status,omitempty"`
+	ParentID     *uint               `json:"parent_id,omitempty"`
+	LanguageCode string              `json:"language_code,omitempty"`
+	Slug         string              `json:"slug,omitempty"`
+	Search       string              `json:"search,omitempty"`
+	Limit        int                 `json:"limit,omitempty"`
+	Offset       int                 `json:"offset,omitempty"`
+	OrderBy      string              `json:"order_by,omitempty"`
+	Category     string              `json:"category,omitempty"`
 	TaxQuery     map[string][]string `json:"tax_query,omitempty"`
+	ExcludeIDs   []uint              `json:"exclude_ids,omitempty"`
+	// RefQuery keeps nodes whose reference field points at the given node
+	// id — single references and multi-reference lists both match
+	// ({"experience": 12} finds reviews of experience 12).
+	RefQuery map[string]uint `json:"ref_query,omitempty"`
 }
 
 type NodeList struct {
@@ -150,19 +155,19 @@ type NodeList struct {
 }
 
 type NodeInput struct {
-	ParentID     *uint             `json:"parent_id,omitempty"`
-	NodeType     string            `json:"node_type,omitempty"`
-	Status       string            `json:"status,omitempty"`
-	LanguageCode string            `json:"language_code,omitempty"`
-	Slug         string            `json:"slug,omitempty"`
-	Title        string            `json:"title,omitempty"`
-	LayoutSlug    string             `json:"layout_slug,omitempty"`
-	FeaturedImage any               `json:"featured_image,omitempty"`
-	Excerpt       string            `json:"excerpt,omitempty"`
+	ParentID      *uint               `json:"parent_id,omitempty"`
+	NodeType      string              `json:"node_type,omitempty"`
+	Status        string              `json:"status,omitempty"`
+	LanguageCode  string              `json:"language_code,omitempty"`
+	Slug          string              `json:"slug,omitempty"`
+	Title         string              `json:"title,omitempty"`
+	LayoutSlug    string              `json:"layout_slug,omitempty"`
+	FeaturedImage any                 `json:"featured_image,omitempty"`
+	Excerpt       string              `json:"excerpt,omitempty"`
 	Taxonomies    map[string][]string `json:"taxonomies,omitempty"`
-	BlocksData   any               `json:"blocks_data,omitempty"`
-	FieldsData   map[string]any    `json:"fields_data,omitempty"`
-	SeoSettings  map[string]string `json:"seo_settings,omitempty"`
+	BlocksData    any                 `json:"blocks_data,omitempty"`
+	FieldsData    map[string]any      `json:"fields_data,omitempty"`
+	SeoSettings   map[string]string   `json:"seo_settings,omitempty"`
 }
 
 type Menu struct {
@@ -283,6 +288,7 @@ type NodeType struct {
 	Fields         []NodeTypeField      `json:"fields"`
 	URLPrefixes    map[string]string    `json:"url_prefixes"`
 	SupportsBlocks bool                 `json:"supports_blocks"`
+	Public         bool                 `json:"public"`
 	CreatedAt      time.Time            `json:"created_at"`
 	UpdatedAt      time.Time            `json:"updated_at"`
 }
@@ -315,7 +321,6 @@ type NodeTypeField struct {
 	Taxonomy       string   `json:"taxonomy,omitempty"`         // `term` field: taxonomy slug (e.g. "trip_tag")
 	TermNodeType   string   `json:"term_node_type,omitempty"`   // `term` field: owning node_type slug for the taxonomy
 }
-
 
 // OptionsToStrings coerces the polymorphic Options slice to strings for
 // gRPC proto wire compatibility. Map-shaped {label,value} options are
@@ -363,6 +368,7 @@ type NodeTypeInput struct {
 	Fields         []NodeTypeField      `json:"fields,omitempty"`
 	URLPrefixes    map[string]string    `json:"url_prefixes,omitempty"`
 	SupportsBlocks *bool                `json:"supports_blocks,omitempty"`
+	Public         *bool                `json:"public,omitempty"`
 }
 
 type TaxonomyDefinition struct {

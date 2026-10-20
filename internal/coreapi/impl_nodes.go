@@ -108,25 +108,29 @@ func (c *coreImpl) QueryNodes(ctx context.Context, q NodeQuery) (*NodeList, erro
 	if q.Search != "" {
 		query = query.Where("title ILIKE ?", "%"+q.Search+"%")
 	}
+	// Taxonomy filters use JSONB containment (@>) rather than the `?`
+	// existence operator, which collides with GORM's `?` placeholders.
 	if q.Category != "" {
-		// Compatibility: search in "category" taxonomy
-		query = query.Where("taxonomies->'category' ? ?", q.Category)
+		b, _ := json.Marshal([]string{q.Category})
+		query = query.Where("taxonomies -> 'category' @> ?::jsonb", string(b))
 	}
-	if len(q.TaxQuery) > 0 {
-		for tax, terms := range q.TaxQuery {
-			if len(terms) > 0 {
-				b, _ := json.Marshal(terms)
-				// Check if taxonomies[tax] contains ANY of the terms
-				// Using JSONB @> for exact match or ? for single term existence
-				if len(terms) == 1 {
-					query = query.Where("taxonomies->? ? ?", tax, terms[0])
-				} else {
-					// For multiple terms, we'd need a more complex OR query or use JSONB operators
-					// Simple implementation: must contain ALL provided terms
-					query = query.Where("taxonomies->? @> ?", tax, b)
-				}
-			}
+	for tax, terms := range q.TaxQuery {
+		if len(terms) == 0 {
+			continue
 		}
+		// A node matches when it carries ALL of the given terms.
+		b, _ := json.Marshal(terms)
+		query = query.Where("taxonomies -> ? @> ?::jsonb", tax, string(b))
+	}
+
+	if len(q.ExcludeIDs) > 0 {
+		query = query.Where("id NOT IN ?", q.ExcludeIDs)
+	}
+
+	for field, id := range q.RefQuery {
+		one := fmt.Sprintf(`{"id":%d}`, id)
+		query = query.Where("(fields_data -> ? @> ?::jsonb OR fields_data -> ? @> ?::jsonb)",
+			field, one, field, "["+one+"]")
 	}
 
 	var total int64

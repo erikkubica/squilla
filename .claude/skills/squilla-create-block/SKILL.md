@@ -136,7 +136,7 @@ Squilla enforces strict, structured field typing. Avoid legacy flat CMS patterns
 | **Variants & Styles** | **ALWAYS** use `type: "select"` or `type: "radio"` with explicit `options: ["opt1", "opt2"]`. | **NEVER** use free-form text strings for layout variants, alignments, or color themes. |
 | **Editorial Copy** | **ALWAYS** use `type: "richtext"` for WYSIWYG formatted text. | **NEVER** put raw HTML in `text` or `textarea` fields. |
 | **Composite Objects**| **ALWAYS** use `type: "group"` (canonical: `object`) with child `fields`. | **NEVER** flatten into `author_name`, `author_role`, `author_avatar`. |
-| **Relations & Nodes**| **ALWAYS** use `type: "reference"` (or `term` for taxonomy). | **NEVER** store raw integer IDs or taxonomy slugs in text fields. |
+| **Relations & Existing Entities** | **ALWAYS** use `type: "reference"` with `node_type_filter` (and `multiple: true/false`). | **NEVER** create a `type: "repeater"` with manual fields (`title`, `image`, `price`, `url`) when referencing existing node types ("Related Experiences", "Featured Posts"). Duplicating database entities inside a repeater is strictly forbidden! |
 | **Colors** | **ALWAYS** use `type: "color"`, or `type: "select"` for a curated design system palette. | **NEVER** use generic text fields for hex codes. |
 
 ---
@@ -187,6 +187,10 @@ Always gate with `{{ with .cta_primary }}` and verify that both `.url` and `.tex
 ## 5. The Repeater Field Type (`type: "repeater"` / `type: "array"`)
 
 When repeating items occur (feature cards, pricing tiers, FAQs, team members, client logos, statistics), use `type: "repeater"` (canonical name: `"array"`).
+
+> [!CAUTION] The Repeater Anti-Pattern: Never Duplicate Database Entities
+> Use `type: "repeater"` ONLY for ad-hoc, page-specific list items that DO NOT exist elsewhere in the database (e.g. features list, FAQ accordion questions, stats milestones).
+> If you are building "Related Experiences", "Featured Trips", "Author Profiles", or "Recommended Articles", those entities ALREADY EXIST as content nodes! You MUST use `type: "reference"` with `node_type_filter: "<type>"`, NEVER a repeater with manual `title`, `image`, `price`, `url` fields.
 
 ### Schema Definition (`block.json`)
 Declare nested child fields inside the `fields` array:
@@ -248,13 +252,99 @@ Iterate through the array with `{{ range .items }}`. Inside the loop, context `.
 
 ---
 
-## 6. Complete Field Types Reference
+## 6. The Reference Field Type (`type: "reference"`) — Relationships vs Repeaters
+
+When a block or node refers to content entities that already exist in the database (e.g. "Related Experiences", "Featured Trips", "Author", "Recommended Posts"), use `type: "reference"`.
+
+### Schema Definition (`block.json`)
+For multiple references (e.g. "Related Experiences"):
+```json
+{
+  "name": "related_experiences",
+  "title": "Related Experiences",
+  "type": "reference",
+  "node_type_filter": "experience",
+  "multiple": true,
+  "description": "Select related experiences to display. If left empty, the template falls back to the latest experiences."
+}
+```
+
+For a single entity reference (e.g. "Featured Trip" or "Primary Author"):
+```json
+{
+  "name": "featured_trip",
+  "title": "Featured Trip",
+  "type": "reference",
+  "node_type_filter": "trip",
+  "multiple": false,
+  "description": "Select the featured trip"
+}
+```
+
+### Stored Data Shape
+In the CMS, a `reference` field stores:
+- Single (`multiple: false`): `{ "id": 42, "title": "Hanoi Street Food Tour", "slug": "hanoi-food-tour", "node_type": "experience" }`
+- Multiple (`multiple: true`): `[{ "id": 42, "title": "...", "slug": "..." }, { "id": 43, "title": "...", "slug": "..." }]`
+
+### Go Template Usage (`view.html`)
+To access the full entity attributes (`fields_data`, `full_url`), resolve the node ID using `filter "get_node"`:
+
+```html
+{{/* Multiple References */}}
+{{ with .related_experiences }}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {{ range . }}
+      {{ $exp := filter "get_node" (dict "id" .id) }}
+      {{ if $exp }}
+        <div class="experience-card">
+          {{ with $exp.fields_data.hero_image }}
+            {{ with .url }}<img src="{{ . }}" alt="{{ $exp.title }}">{{ end }}
+          {{ end }}
+          <h3>{{ $exp.title }}</h3>
+          {{ with $exp.fields_data.price }}<span class="price">${{ . }}</span>{{ end }}
+          <a href="{{ $exp.full_url }}" class="btn">View Experience</a>
+        </div>
+      {{ end }}
+    {{ end }}
+  </div>
+{{ end }}
+```
+
+### Dynamic Fallback Pattern (Editorial Override + Query Fallback)
+When editors can either hand-pick related items OR let the system show the latest entries dynamically:
+```html
+{{- $items := .related_experiences -}}
+{{- if not $items -}}
+  {{- $items = filter "list_nodes" (dict "type" "experience" "limit" 3 "order_by" "created_at desc") -}}
+{{- end -}}
+{{- if $items -}}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {{- range $items -}}
+      {{- $node := . -}}
+      {{- if not $node.fields_data -}}
+        {{- $node = filter "get_node" (dict "id" .id) -}}
+      {{- end -}}
+      {{- if $node -}}
+        <div class="card">
+          <h3>{{ $node.title }}</h3>
+          {{ with $node.fields_data.price }}<span>${{ . }}</span>{{ end }}
+          <a href="{{ $node.full_url }}">Read more</a>
+        </div>
+      {{ end }}
+    {{- end -}}
+  </div>
+{{- end -}}
+```
+
+---
+
+## 7. Complete Field Types Reference
 
 Every field type supported by the Squilla kernel is documented below with its JSON schema and Go template rendering pattern.
 
 ---
 
-### 6.1 `text` (canonical: `string`)
+### 7.1 `text` (canonical: `string`)
 Single-line plain text.
 - **Schema**:
 ```json
@@ -275,7 +365,7 @@ Single-line plain text.
 
 ---
 
-### 6.2 `textarea`
+### 7.2 `textarea`
 Multi-line plain text.
 - **Schema**:
 ```json
@@ -296,7 +386,7 @@ Multi-line plain text.
 
 ---
 
-### 6.3 `richtext`
+### 7.3 `richtext`
 WYSIWYG HTML formatted text.
 - **Schema**:
 ```json
@@ -319,7 +409,7 @@ WYSIWYG HTML formatted text.
 
 ---
 
-### 6.4 `number`
+### 7.4 `number`
 Numeric values (integer or float).
 - **Schema**:
 ```json
@@ -340,7 +430,7 @@ Numeric values (integer or float).
 
 ---
 
-### 6.5 `email`
+### 7.5 `email`
 Validated email address.
 - **Schema**:
 ```json
@@ -360,7 +450,7 @@ Validated email address.
 
 ---
 
-### 6.6 `url`
+### 7.6 `url`
 Standalone web address string. Use `url` when only a destination string is required without custom anchor text. If clickable text is needed, use `link` instead.
 - **Schema**:
 ```json
@@ -380,7 +470,7 @@ Standalone web address string. Use `url` when only a destination string is requi
 
 ---
 
-### 6.7 `color`
+### 7.7 `color`
 Hex color code picker.
 - **Schema**:
 ```json
@@ -400,7 +490,7 @@ Hex color code picker.
 
 ---
 
-### 6.8 `range`
+### 7.8 `range`
 Slider input with min, max, and step attributes.
 - **Schema**:
 ```json
@@ -423,7 +513,7 @@ Slider input with min, max, and step attributes.
 
 ---
 
-### 6.9 `date`
+### 7.9 `date`
 ISO date string picker.
 - **Schema**:
 ```json
@@ -443,7 +533,7 @@ ISO date string picker.
 
 ---
 
-### 6.10 `select`
+### 7.10 `select`
 Dropdown selection from predefined options.
 
 > **CRITICAL**: In Squilla `block.json`, `options` must be a flat array of strings (`["opt1", "opt2"]`). Do **not** use objects like `[{"label": "...", "value": "..."}]` in `block.json`, as the block schema loader will reject them with an error.
@@ -466,7 +556,7 @@ Dropdown selection from predefined options.
 
 ---
 
-### 6.11 `radio`
+### 7.11 `radio`
 Radio button group for selecting one of 2–4 visible options.
 - **Schema**:
 ```json
@@ -486,7 +576,7 @@ Radio button group for selecting one of 2–4 visible options.
 
 ---
 
-### 6.12 `checkbox`
+### 7.12 `checkbox`
 Multi-selection checkbox group storing an array of selected strings.
 - **Schema**:
 ```json
@@ -511,7 +601,7 @@ Multi-selection checkbox group storing an array of selected strings.
 
 ---
 
-### 6.13 `toggle`
+### 7.13 `toggle`
 Binary on/off boolean switch.
 - **Schema**:
 ```json
@@ -531,7 +621,7 @@ Binary on/off boolean switch.
 
 ---
 
-### 6.14 `link`
+### 7.14 `link`
 Clickable hyperlink with URL, label text, and target options.
 - **Schema**:
 ```json
@@ -563,7 +653,7 @@ Clickable hyperlink with URL, label text, and target options.
 
 ---
 
-### 6.15 `repeater` (canonical: `array`)
+### 7.15 `repeater` (canonical: `array`)
 Repeatable rows of structured nested fields.
 - **Schema**:
 ```json
@@ -600,7 +690,7 @@ Repeatable rows of structured nested fields.
 
 ---
 
-### 6.16 `group` (canonical: `object`)
+### 7.16 `group` (canonical: `object`)
 Single composite object containing nested fields.
 - **Schema**:
 ```json
@@ -645,7 +735,7 @@ Single composite object containing nested fields.
 
 ---
 
-### 6.17 `image`
+### 7.17 `image`
 Single media asset with URL and accessibility metadata.
 - **Schema**:
 ```json
@@ -679,7 +769,7 @@ Single media asset with URL and accessibility metadata.
 
 ---
 
-### 6.18 `media` / `file`
+### 7.18 `media` / `file`
 Downloadable file asset (PDF, ZIP, spreadsheet).
 - **Schema**:
 ```json
@@ -710,7 +800,7 @@ Downloadable file asset (PDF, ZIP, spreadsheet).
 
 ---
 
-### 6.19 `gallery`
+### 7.19 `gallery`
 Array of images for carousels, masonry grids, or photo showcases.
 - **Schema**:
 ```json
@@ -742,7 +832,86 @@ Array of images for carousels, masonry grids, or photo showcases.
 
 ---
 
-## 7. Complete Production Examples
+### 7.20 `reference`
+Relational reference to existing content nodes in the database (`experiences`, `posts`, `products`, `trips`, etc.).
+- **Schema (Multiple Entities — e.g. Related Experiences)**:
+```json
+{
+  "name": "related_experiences",
+  "title": "Related Experiences",
+  "type": "reference",
+  "node_type_filter": "experience",
+  "multiple": true,
+  "description": "Select related experiences to display"
+}
+```
+- **Schema (Single Entity — e.g. Featured Trip)**:
+```json
+{
+  "name": "featured_trip",
+  "title": "Featured Trip",
+  "type": "reference",
+  "node_type_filter": "trip",
+  "multiple": false,
+  "description": "Select the featured trip"
+}
+```
+- **Test Data**:
+```json
+[
+  { "id": 1, "title": "Halong Bay Cruise", "slug": "halong-bay-cruise", "node_type": "experience" },
+  { "id": 2, "title": "Hanoi Old Quarter Street Food", "slug": "hanoi-street-food", "node_type": "experience" }
+]
+```
+- **Template**:
+```html
+{{ with .related_experiences }}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {{ range . }}
+      {{ $node := filter "get_node" (dict "id" .id) }}
+      {{ if $node }}
+        <div class="card">
+          {{ with $node.fields_data.hero_image }}
+            {{ with .url }}<img src="{{ . }}" alt="{{ $node.title }}">{{ end }}
+          {{ end }}
+          <h3>{{ $node.title }}</h3>
+          {{ with $node.fields_data.price }}<span>${{ . }}</span>{{ end }}
+          <a href="{{ $node.full_url }}" class="btn">View</a>
+        </div>
+      {{ end }}
+    {{ end }}
+  </div>
+{{ end }}
+```
+
+---
+
+### 7.21 `term`
+Taxonomy term reference (categories, tags, regions).
+- **Schema**:
+```json
+{
+  "name": "category",
+  "title": "Category",
+  "type": "term",
+  "taxonomy": "experience_category",
+  "description": "Filter or badge by taxonomy term"
+}
+```
+- **Test Data**:
+```json
+{ "slug": "adventure", "name": "Adventure" }
+```
+- **Template**:
+```html
+{{ with .category }}
+  <span class="badge">{{ .name }}</span>
+{{ end }}
+```
+
+---
+
+## 8. Complete Production Examples
 
 ### Example 1: Hero Block (`hero`)
 

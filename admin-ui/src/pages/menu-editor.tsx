@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Titlebar } from "@/components/ui/titlebar";
 import { MetaRow, MetaList } from "@/components/ui/meta-row";
@@ -22,7 +23,11 @@ import {
   updateMenu,
   replaceMenuItems,
   getLanguages,
+  getMenus,
+  getMenuLocations,
+  assignMenuLocations,
   type Menu,
+  type MenuLocation,
   type MenuItem,
   type Language,
 } from "@/api/client";
@@ -78,6 +83,11 @@ export default function MenuEditorPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [originalMenu, setOriginalMenu] = useState<Menu | null>(null);
+  // Theme menu locations: what's assigned now, and which ones this menu
+  // should own after saving (keyed by location slug).
+  const [locations, setLocations] = useState<MenuLocation[]>([]);
+  const [menuNames, setMenuNames] = useState<Record<string, string>>({});
+  const [ownedLocations, setOwnedLocations] = useState<Record<string, boolean>>({});
 
   usePageMeta([
     "Menus",
@@ -106,6 +116,39 @@ export default function MenuEditorPage() {
   useEffect(() => {
     fetchMenu();
   }, [fetchMenu]);
+
+  useEffect(() => {
+    getMenuLocations().then(setLocations).catch(() => {});
+    getMenus()
+      .then((all) => setMenuNames(Object.fromEntries(all.map((m) => [m.slug, m.name]))))
+      .catch(() => {});
+  }, []);
+
+  // Tick the locations this menu currently fills once both are known.
+  const loadedSlug = originalMenu?.slug ?? "";
+  useEffect(() => {
+    if (!loadedSlug) return;
+    setOwnedLocations(Object.fromEntries(locations.map((l) => [l.slug, l.menu_slug === loadedSlug])));
+  }, [locations, loadedSlug]);
+
+  // Locations whose assignment changes on save: ticked ones point at this
+  // menu, unticked ones this menu used to fill are cleared.
+  function locationChanges(menuSlug: string): Record<string, string> {
+    const changes: Record<string, string> = {};
+    for (const loc of locations) {
+      const owned = !!ownedLocations[loc.slug];
+      const ownedBefore = !!loadedSlug && loc.menu_slug === loadedSlug;
+      if (owned && loc.menu_slug !== menuSlug) changes[loc.slug] = menuSlug;
+      else if (!owned && ownedBefore) changes[loc.slug] = "";
+    }
+    return changes;
+  }
+
+  async function saveLocations(menuSlug: string) {
+    const changes = locationChanges(menuSlug);
+    if (Object.keys(changes).length === 0) return;
+    setLocations(await assignMenuLocations(changes));
+  }
 
   useEffect(() => {
     getLanguages(true)
@@ -165,6 +208,7 @@ export default function MenuEditorPage() {
           language_id: languageId,
           items: cleanItems,
         });
+        await saveLocations(menu.slug);
         toast.success("Menu created successfully");
         navigate(`/admin/menus/${menu.id}`, { replace: true });
       } else {
@@ -178,6 +222,8 @@ export default function MenuEditorPage() {
         try {
           const updated = await replaceMenuItems(id!, version, cleanItems);
           setVersion(updated.version);
+          await saveLocations(slug);
+          setOriginalMenu((m) => (m ? { ...m, slug } : m));
           toast.success("Menu saved successfully");
         } catch (err: unknown) {
           if (
@@ -307,6 +353,39 @@ export default function MenuEditorPage() {
             </MetaList>
           )}
         </SidebarCard>
+
+        {locations.length > 0 && (
+          <SidebarCard title="Display location">
+            <p className="text-xs text-muted-foreground">
+              Where the theme shows this menu. Each location holds one menu.
+            </p>
+            <div className="space-y-3">
+              {locations.map((loc) => {
+                const elsewhere =
+                  loc.menu_slug && loc.menu_slug !== loadedSlug ? menuNames[loc.menu_slug] ?? loc.menu_slug : "";
+                const checked = !!ownedLocations[loc.slug];
+                return (
+                  <label key={loc.slug} className="flex cursor-pointer items-start gap-2.5">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={checked}
+                      onCheckedChange={(v) => setOwnedLocations((prev) => ({ ...prev, [loc.slug]: v === true }))}
+                    />
+                    <span className="min-w-0 space-y-0.5">
+                      <span className="block text-sm font-medium leading-tight text-foreground">{loc.label}</span>
+                      {loc.description && <span className="block text-xs text-muted-foreground">{loc.description}</span>}
+                      {elsewhere && (
+                        <span className="block text-xs" style={{ color: checked ? "var(--warning, #b45309)" : "var(--text-muted, inherit)" }}>
+                          {checked ? `Replaces “${elsewhere}” on save` : `Currently: ${elsewhere}`}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </SidebarCard>
+        )}
       </aside>
     </div>
   );

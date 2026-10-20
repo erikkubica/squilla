@@ -74,6 +74,7 @@ func (h *PublicHandler) RenderLayoutPreview(layoutSlug string, blocks []map[stri
 	usedSlugs := extractBlockSlugs(blocks)
 	appData := h.renderCtx.BuildAppData(settings, languages, currentLang, usedSlugs)
 	appData.Menus = menus
+	appData.MenuLocations = h.renderCtx.ResolveMenuLocations(menus)
 
 	// Stub node data — preview has no real node.
 	fakeNode := &models.ContentNode{
@@ -147,7 +148,7 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides
 	}
 
 	blocks := parseBlocks(node.BlocksData)
-	renderedBlocks := h.renderBlocksBatch(blocks, node.LanguageCode)
+	renderedBlocks := h.renderBlocksBatchFor(blocks, node.LanguageCode, nil, h.pageNodeData(&node))
 
 	// Reuse the main render path but pass nil for Fiber ctx and nil user —
 	// renderNodeWithLayout reads from c only via currentUser which we skip.
@@ -175,6 +176,7 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides
 	usedSlugs := extractBlockSlugs(blocks)
 	appData := h.renderCtx.BuildAppData(settings, languages, currentLang, usedSlugs)
 	appData.Menus = menus
+	appData.MenuLocations = h.renderCtx.ResolveMenuLocations(menus)
 	nodeData := h.renderCtx.BuildNodeData(&node, blocksHTML, languages)
 	// MCP previews run with no request user (preview is admin-driven via
 	// MCP). Pass nil so render-hook subscribers see anonymous and skip

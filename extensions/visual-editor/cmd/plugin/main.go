@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"path"
 	"strings"
@@ -37,6 +39,18 @@ type VisualEditorPlugin struct {
 
 //go:embed assets/*
 var staticAssets embed.FS
+
+// bundleVersion is a content hash of the embedded editor bundle, appended as
+// ?v= so browsers fetch a fresh copy after every rebuild despite the
+// Cache-Control max-age on static assets.
+var bundleVersion = func() string {
+	body, err := staticAssets.ReadFile("assets/editor.js")
+	if err != nil {
+		return "dev"
+	}
+	sum := sha256.Sum256(body)
+	return hex.EncodeToString(sum[:])[:12]
+}()
 
 func (p *VisualEditorPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
 	// Priority 100: well after seo-extension (priority 50 on render.head)
@@ -118,7 +132,7 @@ func (p *VisualEditorPlugin) handleRenderBodyEnd(payload []byte) (*pb.EventRespo
 		`<script type="application/json" id="__squilla_vedit_config">`,
 		string(cfgJSON),
 		`</script>`,
-		`<script type="module" src="/admin/api/ext/visual-editor/static/editor.js" defer></script>`,
+		`<script type="module" src="/admin/api/ext/visual-editor/static/editor.js?v=` + bundleVersion + `" defer></script>`,
 	}, "")
 
 	return &pb.EventResponse{Handled: true, Result: []byte(html)}, nil

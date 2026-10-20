@@ -3,7 +3,9 @@ package sdui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
+	"squilla/internal/menuloc"
 	"squilla/internal/models"
 )
 
@@ -80,8 +82,21 @@ func (e *Engine) menusLayout(params map[string]string) *LayoutNode {
 		}
 	}
 
+	// Theme menu locations each menu fills, shown as "Primary, Footer 1".
+	locationsByMenu := make(map[string][]string)
+	assigned := menuloc.LoadAssignments(e.db)
+	for _, def := range menuloc.List() {
+		if slug := assigned[def.Slug]; slug != "" {
+			locationsByMenu[slug] = append(locationsByMenu[slug], def.Label)
+		}
+	}
+
 	rows := make([]map[string]interface{}, 0, len(menus))
 	for _, m := range menus {
+		locationLabel := "—"
+		if labels := locationsByMenu[m.Slug]; len(labels) > 0 {
+			locationLabel = strings.Join(labels, ", ")
+		}
 		langDisplay := "All"
 		var langFlag, langCode string
 		if m.LanguageID != nil {
@@ -98,6 +113,7 @@ func (e *Engine) menusLayout(params map[string]string) *LayoutNode {
 			"id":          m.ID,
 			"name":        m.Name,
 			"slug":        m.Slug,
+			"locations":   locationLabel,
 			"version":     m.Version,
 			"itemCount":   itemCountMap[m.ID],
 			"languageID":  m.LanguageID,
@@ -135,6 +151,7 @@ func (e *Engine) menusLayout(params map[string]string) *LayoutNode {
 				"columns": []map[string]interface{}{
 					{"key": "name", "label": "Name", "sortable": true},
 					{"key": "slug", "label": "Slug", "width": 180},
+					{"key": "locations", "label": "Location", "width": 170},
 					{"key": "langDisplay", "label": "Language", "width": 130},
 					{"key": "version", "label": "Version", "width": 90, "align": "center"},
 					{"key": "itemCount", "label": "Items", "width": 80, "align": "center"},

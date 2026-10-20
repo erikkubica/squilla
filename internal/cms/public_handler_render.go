@@ -62,13 +62,17 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	usedSlugs := extractBlockSlugs(blocks)
 	appData := h.renderCtx.BuildAppData(settings, languages, currentLang, usedSlugs)
 	appData.Menus = menus
+	appData.MenuLocations = h.renderCtx.ResolveMenuLocations(menus)
 
 	nodeData := h.renderCtx.BuildNodeData(node, blocksHTML, languages)
 	// Render-time hook surface for extensions: head, body_start,
 	// body_end, footer. Each fires a PublishCollect on a render.* event
 	// and joins what subscribers return. Kernel-only deploys get empty
 	// strings on every slot — themes can call them unconditionally.
-	appData.HeadMeta = h.renderHead(node, nodeData, settings, user)
+	// Archive and paginated views describe themselves to head/SEO hooks
+	// (canonical, og:url, title) instead of claiming the listing node's URL.
+	hookNode := requestHookNode(nodeData, requestDataFrom(c))
+	appData.HeadMeta = h.renderHead(node, hookNode, settings, user)
 	appData.BodyStart = h.renderBodyStart(node, nodeData, settings, user)
 	extensionBodyEnd := h.renderBodyEnd(node, nodeData, settings, user)
 	appData.Footer = h.renderFooter(node, nodeData, settings, user)
@@ -97,6 +101,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 
 	// Build per-partial data from layout_data with fallback chain
 	dataMap := templateData.ToMap()
+	dataMap["request"] = requestDataFrom(c)
 	partialData := h.buildPartialData(node, layout, languageID, dataMap)
 
 	// Render via the layout engine
@@ -323,6 +328,7 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 	// state when blocks_html is empty.
 	appData := h.renderCtx.BuildAppData(settings, languages, defaultLang, []string{})
 	appData.Menus = menus
+	appData.MenuLocations = h.renderCtx.ResolveMenuLocations(menus)
 
 	nodeData := NodeData{
 		Title:        "Page Not Found",
@@ -407,6 +413,7 @@ func (h *PublicHandler) RenderWithLayout(c *fiber.Ctx, title string, innerHTML t
 
 	appData := h.renderCtx.BuildAppData(settings, languages, defaultLang, []string{})
 	appData.Menus = menus
+	appData.MenuLocations = h.renderCtx.ResolveMenuLocations(menus)
 
 	nodeData := NodeData{
 		Title:        title,

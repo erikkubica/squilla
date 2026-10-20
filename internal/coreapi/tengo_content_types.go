@@ -107,11 +107,22 @@ func nodeTypeInputFromMap(m map[string]tengo.Object) NodeTypeInput {
 	if v, ok := m["label"]; ok {
 		input.Label = tengoToString(v)
 	}
+	if v, ok := m["label_plural"]; ok {
+		input.LabelPlural = tengoToString(v)
+	}
 	if v, ok := m["icon"]; ok {
 		input.Icon = tengoToString(v)
 	}
 	if v, ok := m["description"]; ok {
 		input.Description = tengoToString(v)
+	}
+	if v, ok := m["supports_blocks"]; ok {
+		b := tengoToBool(v)
+		input.SupportsBlocks = &b
+	}
+	if v, ok := m["public"]; ok {
+		b := tengoToBool(v)
+		input.Public = &b
 	}
 	if v, ok := m["taxonomies"]; ok {
 		if arr, ok := v.(*tengo.Array); ok {
@@ -257,6 +268,9 @@ func taxonomyInputFromMap(m map[string]tengo.Object) TaxonomyInput {
 	}
 	if v, ok := m["label"]; ok {
 		input.Label = tengoToString(v)
+	}
+	if v, ok := m["label_plural"]; ok {
+		input.LabelPlural = tengoToString(v)
 	}
 	if v, ok := m["description"]; ok {
 		input.Description = tengoToString(v)

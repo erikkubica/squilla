@@ -169,9 +169,10 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 		return c.Redirect("/admin", fiber.StatusFound)
 	}
 
+	c.Locals(requestLocalsKey, buildRequestData(c, nil))
 	blocks := parseBlocks(node.BlocksData)
 	h.resolveAssetRefsInBlocks(blocks)
-	renderedBlocks := h.renderBlocksBatch(blocks, node.LanguageCode)
+	renderedBlocks := h.renderBlocksBatchFor(blocks, node.LanguageCode, requestDataFrom(c), h.pageNodeData(&node))
 	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
 
 	html, _, renderErr := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user)
@@ -213,6 +214,18 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 		node, found = h.findNodeWithPrefixFallback(path)
 	}
 
+	// Taxonomy-term archive: /<prefix>/<taxonomy>/<term> renders the
+	// listing node at /<prefix> with request.archive set.
+	var archive *termArchive
+	if !found {
+		node, archive, found = h.resolveTermArchive(path)
+	}
+
+	// Nodes of non-public types (reviews, FAQs, …) have no page of their own.
+	if found && !h.nodeTypeIsPublic(node.NodeType) {
+		found = false
+	}
+
 	if !found {
 		// Try rendering 404 with the default layout
 		if html, ok := h.render404WithLayout(c); ok {
@@ -226,9 +239,10 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 		return c.SendString(h.layoutErrorPage(fmt.Errorf("page not found and no 404 layout available"), c.Path()))
 	}
 
+	c.Locals(requestLocalsKey, buildRequestData(c, archive))
 	blocks := parseBlocks(node.BlocksData)
 	h.resolveAssetRefsInBlocks(blocks)
-	renderedBlocks := h.renderBlocksBatch(blocks, node.LanguageCode)
+	renderedBlocks := h.renderBlocksBatchFor(blocks, node.LanguageCode, requestDataFrom(c), h.pageNodeData(node))
 	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
 
 	// Layout-based rendering

@@ -113,6 +113,7 @@ For in-depth block development, schema mechanics, and editor controls, consult t
 | Raw string URL for images (`type: "string"`, `name: "image_url"`) | `type: "image"` | Images are structured objects `{"url": "theme-asset:<key>", "alt": "..."}` that plug into media optimization and responsive srcset pipelines. |
 | String `"yes"` / `"no"` or `"true"` / `"false"` | `type: "toggle"` (or `type: "checkbox"`) | Booleans must be native JSON booleans (`true`/`false`), never loose strings. |
 | Object array for select options `[{"label": "Red", "value": "red"}]` | Flat string array `["red", "blue", "green"]` | Squilla `select` and `radio` fields expect flat string options. Objects crash the admin editor with React errors. |
+| Creating a repeater with manual fields (`title`, `image`, `price`, `url`) for existing entities ("Related Experiences", "Featured Posts") | `type: "reference"` with `node_type_filter` | Entities already exist in the database. Duplicating entity attributes inside repeaters creates disconnected duplicate data that goes stale. |
 
 ### Complete Field Types Reference Table
 
@@ -130,9 +131,9 @@ For in-depth block development, schema mechanics, and editor controls, consult t
 | `image` | Media asset picker | `map[string]any` | `{"url": "theme-asset:hero", "alt": "Hero banner"}` | `{{ with .image }}{{ with .url }}<img src="{{ image_url . "large" }}" alt="{{ $.image.alt }}">{{ end }}{{ end }}` |
 | `gallery` | Multi-image selector | `[]map[string]any` | `[{"url": "theme-asset:g1", "alt": "A"}, {"url": "theme-asset:g2", "alt": "B"}]` | `{{ range .gallery }}<img src="{{ .url }}" alt="{{ .alt }}">{{ end }}` |
 | `term` | Taxonomy term selector | `map[string]any` | `{"slug": "foodie", "name": "Foodie"}` | `{{ with .category }}<span class="tag">{{ .name }}</span>{{ end }}` |
-| `reference` | Node picker | `map[string]any` | `{"slug": "hanoi-tour", "title": "Hanoi Tour"}` | `{{ with .featured_node }}<a href="/trips/{{ .slug }}">{{ .title }}</a>{{ end }}` |
+| `reference` | Node relationship picker (`node_type_filter`, `multiple: true/false`) | `map[string]any` or `[]map[string]any` | `[{"id": 1, "title": "Hanoi Tour", "slug": "hanoi-tour"}]` | `{{ range .related_nodes }}{{ $n := filter "get_node" (dict "id" .id) }}<a href="{{ $n.full_url }}">{{ $n.title }}</a>{{ end }}` |
 | `form_selector` | Forms dropdown | `string` (slug) | `"contact"` | `{{ safeHTML (event "forms:render" (dict "form_id" .form_slug)) }}` |
-| `repeater` / `array` | Nested array list | `[]map[string]any` | `[{"title": "Item 1"}, {"title": "Item 2"}]` | `{{ range .items }}<div>{{ .title }}</div>{{ end }}` |
+| `repeater` / `array` | Nested array list (ad-hoc items only!) | `[]map[string]any` | `[{"title": "Item 1"}, {"title": "Item 2"}]` | `{{ range .items }}<div>{{ .title }}</div>{{ end }}` |
 | `object` | Key-value container | `map[string]any` | `{"title": "Card", "link": {"url": "..."}}` | `{{ with .card }}<h3>{{ .title }}</h3>{{ end }}` |
 
 ---

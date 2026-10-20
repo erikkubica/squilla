@@ -147,6 +147,19 @@ export interface NodeSummary {
   slug: string;
   node_type: string;
   full_url?: string;
+  status?: string;
+  /** Raw featured_image JSON: an {url, alt} object or a bare URL string. */
+  featured_image?: unknown;
+}
+
+/** Best-effort thumbnail URL from a node's featured_image payload. */
+export function nodeThumb(img: unknown): string {
+  // theme-asset:<key> refs only resolve server-side at render time.
+  if (typeof img === "string") return img.startsWith("theme-asset:") ? "" : img;
+  if (img && typeof img === "object" && typeof (img as { url?: unknown }).url === "string") {
+    return (img as { url: string }).url;
+  }
+  return "";
 }
 
 export async function searchNodes(opts: { search?: string; nodeType?: string; limit?: number } = {}): Promise<NodeSummary[]> {

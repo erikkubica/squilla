@@ -8,6 +8,7 @@
   "auto_activate": true,
   "capabilities": [
     "nodes:read",
+    "nodetypes:read",
     "settings:read",
     "settings:write",
     "events:subscribe",

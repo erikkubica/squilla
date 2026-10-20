@@ -29,6 +29,9 @@ import (
 //     these should NOT also drop the composites or they'll double-emit.
 type AppData struct {
 	Menus        map[string]interface{}
+	// MenuLocations maps each theme-declared location to its assigned menu
+	// (nil when unassigned): {{ with .app.menu_locations.primary }}.
+	MenuLocations map[string]interface{}
 	Settings     map[string]string
 	Languages    []models.Language
 	CurrentLang  *models.Language
@@ -91,6 +94,7 @@ func (td TemplateData) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"app": map[string]interface{}{
 			"menus":         td.App.Menus,
+			"menu_locations": td.App.MenuLocations,
 			"settings":      td.App.Settings,
 			"languages":     languagesToMaps(td.App.Languages),
 			"current_lang":  languageToMap(td.App.CurrentLang),

@@ -9,6 +9,7 @@ import (
 
 	"squilla/internal/api"
 	"squilla/internal/auth"
+	"squilla/internal/menuloc"
 	"squilla/internal/models"
 )
 
@@ -32,6 +33,46 @@ func (h *MenuHandler) RegisterRoutes(router fiber.Router) {
 	router.Patch("/menus/:id", manage, h.Update)
 	router.Delete("/menus/:id", manage, h.Delete)
 	router.Put("/menus/:id/items", manage, h.ReplaceItems)
+	router.Get("/menu-locations", h.ListLocations)
+	router.Put("/menu-locations", manage, h.AssignLocations)
+}
+
+// ListLocations handles GET /menu-locations: the active theme's declared
+// locations with the menu slug currently assigned to each ("" if none).
+func (h *MenuHandler) ListLocations(c *fiber.Ctx) error {
+	return api.Success(c, menuLocationViews(h.svc.db))
+}
+
+// assignLocationsRequest maps location slug → menu slug ("" clears it).
+type assignLocationsRequest struct {
+	Assignments map[string]string `json:"assignments"`
+}
+
+// AssignLocations handles PUT /menu-locations. Only the listed locations
+// change; each must be declared by the active theme and each menu must exist.
+func (h *MenuHandler) AssignLocations(c *fiber.Ctx) error {
+	var req assignLocationsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_BODY", "Invalid request body")
+	}
+	for loc, menuSlug := range req.Assignments {
+		if !menuloc.Declared(loc) {
+			return api.Error(c, fiber.StatusBadRequest, "UNKNOWN_LOCATION", "The active theme has no menu location \""+loc+"\"")
+		}
+		if menuSlug != "" {
+			var count int64
+			h.svc.db.Model(&models.Menu{}).Where("slug = ?", menuSlug).Count(&count)
+			if count == 0 {
+				return api.Error(c, fiber.StatusBadRequest, "UNKNOWN_MENU", "No menu with slug \""+menuSlug+"\"")
+			}
+		}
+	}
+	for loc, menuSlug := range req.Assignments {
+		if err := menuloc.Assign(h.svc.db, loc, menuSlug); err != nil {
+			return api.Error(c, fiber.StatusInternalServerError, "ASSIGN_FAILED", "Failed to save menu locations")
+		}
+	}
+	return api.Success(c, menuLocationViews(h.svc.db))
 }
 
 // List handles GET /menus to retrieve all menus with optional language filter.

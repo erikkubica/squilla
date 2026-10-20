@@ -144,10 +144,20 @@ func (p *SitemapPlugin) buildAllSitemaps() error {
 	// in "sitemap_languages". If not set, derive from the nodes themselves.
 	languages := p.getLanguages(ctx, nodeList.Nodes)
 
+	// Nodes of non-public types (reviews, FAQs, …) have no page to list.
+	private := make(map[string]bool)
+	if types, err := p.host.ListNodeTypes(ctx); err == nil {
+		for _, nt := range types {
+			if !nt.Public {
+				private[nt.Slug] = true
+			}
+		}
+	}
+
 	// Group nodes by language_code -> node_type -> []node
 	grouped := make(map[string]map[string][]*coreapi.Node)
 	for _, node := range nodeList.Nodes {
-		if node.FullURL == "" {
+		if node.FullURL == "" || private[node.NodeType] {
 			continue
 		}
 		lang := node.LanguageCode

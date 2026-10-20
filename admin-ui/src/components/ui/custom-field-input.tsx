@@ -33,9 +33,11 @@ import { useExtensions } from "@/hooks/use-extensions";
 function LinkFieldInput({
   value,
   onChange,
+  namePath,
 }: {
   value: Record<string, unknown> | null;
   onChange: (val: unknown) => void;
+  namePath?: string;
 }) {
   const defaultLink = { text: "", url: "", alt: "", target: "" };
   const link = (value && typeof value === "object" && !Array.isArray(value) && "url" in value)
@@ -43,28 +45,31 @@ function LinkFieldInput({
     : defaultLink;
   const update = (key: string, val: unknown) => onChange({ ...link, [key]: val });
   const inputClass = "rounded-lg";
+  const basePath = namePath || "link";
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-muted p-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
+        <div className="space-y-1" data-slug="text">
           <Label className="text-xs font-medium text-muted-foreground">Link Text</Label>
-          <Input value={String(link.text || "")} onChange={(e) => update("text", e.target.value)} placeholder="Click here" className={inputClass} />
+          <Input name={`${basePath}[text]`} data-slug="text" value={String(link.text || "")} onChange={(e) => update("text", e.target.value)} placeholder="Click here" className={inputClass} />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1" data-slug="url">
           <Label className="text-xs font-medium text-muted-foreground">URL</Label>
-          <Input value={String(link.url || "")} onChange={(e) => update("url", e.target.value)} placeholder="https://example.com" className={inputClass} />
+          <Input name={`${basePath}[url]`} data-slug="url" value={String(link.url || "")} onChange={(e) => update("url", e.target.value)} placeholder="https://example.com" className={inputClass} />
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
+        <div className="space-y-1" data-slug="alt">
           <Label className="text-xs font-medium text-muted-foreground">Alt / Title</Label>
-          <Input value={String(link.alt || "")} onChange={(e) => update("alt", e.target.value)} placeholder="Link description" className={inputClass} />
+          <Input name={`${basePath}[alt]`} data-slug="alt" value={String(link.alt || "")} onChange={(e) => update("alt", e.target.value)} placeholder="Link description" className={inputClass} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
           <label className="flex items-center gap-2 h-9 cursor-pointer">
             <Switch
+              name={`${basePath}[target]`}
+              data-slug="target"
               checked={link.target === "_blank"}
               onCheckedChange={(c) => update("target", c ? "_blank" : "")}
             />
@@ -81,37 +86,42 @@ function GroupFieldInput({
   field,
   value,
   onChange,
+  namePath,
 }: {
   field: NodeTypeField;
   value: Record<string, unknown> | null;
   onChange: (val: unknown) => void;
+  namePath?: string;
 }) {
   const group = (value && typeof value === "object" && !Array.isArray(value)) ? value as Record<string, unknown> : {};
   const subFields = field.fields || [];
+  const basePath = namePath || field.name;
 
   if (subFields.length === 0) {
     return <p className="text-sm italic">No sub-fields defined for this group.</p>;
   }
 
   return (
-    <div className="rounded-lg border border-border bg-muted p-3">
+    <div className="rounded-lg border border-border bg-muted p-3" data-slug={field.name}>
       <div className="flex flex-wrap" style={{ gap: "12px 12px" }}>
         {subFields.map((sf) => {
           const w = typeof sf.width === "number" && sf.width > 0 && sf.width <= 100 ? sf.width : 100;
           return (
             <div
               key={sf.name}
+              data-slug={sf.name}
               className="space-y-1 min-w-0"
               style={{ flex: `0 0 calc(${w}% - 12px)`, maxWidth: `calc(${w}% - 12px)` }}
             >
-              <Label className="text-xs font-medium text-muted-foreground">
+              <Label className="flex items-center" data-slug={sf.name}>
                 {sf.title}
-                {sf.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
+                {sf.required && <span className="ml-1 text-destructive">*</span>}
               </Label>
               <CustomFieldInput
                 field={sf}
                 value={group[sf.name]}
                 onChange={(val) => onChange({ ...group, [sf.name]: val })}
+                namePath={`${basePath}[${sf.name}]`}
               />
             </div>
           );
@@ -149,13 +159,16 @@ function RepeaterFieldInput({
   field,
   value,
   onChange,
+  namePath,
 }: {
   field: NodeTypeField;
   value: unknown[] | null;
   onChange: (val: unknown) => void;
+  namePath?: string;
 }) {
   const rows = (Array.isArray(value) ? value : []) as Record<string, unknown>[];
   const subFields = field.fields || [];
+  const basePath = namePath || field.name;
   const [collapsedRows, setCollapsedRows] = useState<Set<number>>(() => new Set());
 
   if (subFields.length === 0) {
@@ -237,39 +250,39 @@ function RepeaterFieldInput({
             key={rowIndex}
             className="overflow-hidden"
             style={{
-              border: "1px solid var(--border)",
+              border: "1px solid var(--border-strong)",
               borderRadius: "var(--radius)",
               background: "var(--card-bg)",
             }}
           >
             {/* Row header */}
             <div
-              className="flex items-center gap-2 cursor-pointer select-none"
+              className="flex items-center gap-2.5 cursor-pointer select-none"
               style={{
-                padding: "6px 10px",
+                padding: "9px 12px",
                 background: "var(--sub-bg)",
-                borderBottom: isCollapsed ? "none" : "1px solid var(--border)",
+                borderBottom: isCollapsed ? "none" : "1px solid var(--border-strong)",
               }}
               onClick={() => toggleCollapse(rowIndex)}
             >
               <ChevronDown
                 className="shrink-0 transition-transform"
-                size={12}
+                size={14}
                 style={{
-                  color: "var(--fg-muted)",
+                  color: "var(--fg-2)",
                   transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
                 }}
               />
               <span
-                className="shrink-0 font-mono"
-                style={{ fontSize: 11, color: "var(--fg-muted)" }}
+                className="shrink-0 font-mono font-medium"
+                style={{ fontSize: 12, color: "var(--fg-2)" }}
               >
                 #{rowIndex + 1}
               </span>
               {isCollapsed && (
                 <span
                   className="truncate"
-                  style={{ fontSize: 12, color: "var(--fg-muted)" }}
+                  style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}
                 >
                   {getRowSummary(row, subFields)}
                 </span>
@@ -281,20 +294,20 @@ function RepeaterFieldInput({
                   onClick={() => moveRow(rowIndex, "up")}
                   disabled={rowIndex === 0}
                   className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
-                  style={{ color: "var(--fg-muted)" }}
+                  style={{ color: "var(--fg-2)" }}
                   title="Move up"
                 >
-                  <ChevronUp className="h-3.5 w-3.5" />
+                  <ChevronUp className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => moveRow(rowIndex, "down")}
                   disabled={rowIndex === rows.length - 1}
                   className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
-                  style={{ color: "var(--fg-muted)" }}
+                  style={{ color: "var(--fg-2)" }}
                   title="Move down"
                 >
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
@@ -303,31 +316,33 @@ function RepeaterFieldInput({
                   style={{ color: "var(--danger)" }}
                   title="Remove row"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
             {/* Row fields - collapsible */}
             {!isCollapsed && (
-              <div style={{ padding: "10px 12px 12px" }}>
-                <div className="flex flex-wrap" style={{ gap: "12px 12px" }}>
+              <div style={{ padding: "14px 16px 18px" }}>
+                <div className="flex flex-wrap" style={{ gap: "18px 14px" }}>
                   {subFields.map((sf) => {
                     const w = typeof sf.width === "number" && sf.width > 0 && sf.width <= 100 ? sf.width : 100;
                     return (
                       <div
                         key={sf.name}
-                        className="space-y-1.5 min-w-0"
-                        style={{ flex: `0 0 calc(${w}% - 12px)`, maxWidth: `calc(${w}% - 12px)` }}
+                        data-slug={sf.name}
+                        className="space-y-2 min-w-0"
+                        style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
                       >
-                        <Label className="font-medium" style={{ fontSize: 12, color: "var(--fg-2)" }}>
+                        <Label className="flex items-center" data-slug={sf.name}>
                           {sf.title}
-                          {sf.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
+                          {sf.required && <span className="ml-1 text-destructive">*</span>}
                         </Label>
                         <CustomFieldInput
                           field={sf}
                           value={row[sf.name]}
                           onChange={(val) => updateRow(rowIndex, sf.name, val)}
+                          namePath={`${basePath}[${rowIndex}][${sf.name}]`}
                         />
                       </div>
                     );
@@ -341,7 +356,7 @@ function RepeaterFieldInput({
       <Button
         type="button"
         variant="outline"
-        className="w-full rounded-lg border-dashed border-border text-muted-foreground hover:bg-muted"
+        className="w-full rounded-lg border border-border-strong text-foreground hover:bg-muted font-medium py-2 shadow-2xs"
         onClick={addRow}
       >
         <Plus className="mr-2 h-4 w-4" />
@@ -588,7 +603,7 @@ function NodeSelectorInput({
           />
           {/* Dropdown results */}
           {showResults && (searchQuery.trim() || searching) && (
-            <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
+            <div className="mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
               {searching ? (
                 <div className="px-3 py-2 text-sm">Searching...</div>
               ) : results.length === 0 ? (
@@ -668,6 +683,7 @@ function CustomFieldInput({
   value,
   onChange,
   languageCode,
+  namePath,
 }: {
   field: NodeTypeField;
   value: unknown;
@@ -676,9 +692,11 @@ function CustomFieldInput({
   // When omitted the underlying list calls fall back to the admin's current
   // header language.
   languageCode?: string;
+  namePath?: string;
 }) {
   const { getFieldComponent, loading: extensionsLoading } = useExtensions();
   const extField = getFieldComponent(field.type);
+  const fieldName = namePath || field.name;
 
   // For field types that typically require an extension, wait until
   // extensions finish loading before falling back to the "required"
@@ -698,7 +716,7 @@ function CustomFieldInput({
   if (extField) {
     const ExtComponent = extField.Component as React.ComponentType<{ field: NodeTypeField; value: unknown; onChange: (val: unknown) => void }>;
     return (
-      <div>
+      <div data-slug={field.name}>
         {field.description && (
           <p className="mb-1 text-xs">{field.description}</p>
         )}
@@ -708,16 +726,18 @@ function CustomFieldInput({
   }
 
   const inputClass =
-    "rounded-lg";
+    "rounded-lg border-[rgba(20,18,15,0.22)] bg-card shadow-2xs";
   const strVal = value == null ? (field.initialValue ?? "") : String(value);
 
   const input = (() => { switch (field.type) {
     case "string":
     case "text":
       return (
-        <div className="flex">
+        <div className="flex" data-slug={field.name}>
           {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
+            name={fieldName}
+            data-slug={field.name}
             placeholder={field.placeholder || `Enter ${field.title.toLowerCase()}`}
             value={strVal}
             onChange={(e) => onChange(e.target.value)}
@@ -731,6 +751,8 @@ function CustomFieldInput({
     case "textarea":
       return (
         <Textarea
+          name={fieldName}
+          data-slug={field.name}
           placeholder={field.placeholder || `Enter ${field.title.toLowerCase()}`}
           value={strVal}
           onChange={(e) => onChange(e.target.value)}
@@ -741,10 +763,12 @@ function CustomFieldInput({
       );
     case "number":
       return (
-        <div className="flex">
+        <div className="flex" data-slug={field.name}>
           {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
             type="number"
+            name={fieldName}
+            data-slug={field.name}
             placeholder={field.placeholder || "0"}
             value={strVal}
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
@@ -761,6 +785,8 @@ function CustomFieldInput({
       return (
         <Input
           type="date"
+          name={fieldName}
+          data-slug={field.name}
           value={strVal}
           onChange={(e) => onChange(e.target.value)}
           required={field.required}
@@ -769,8 +795,8 @@ function CustomFieldInput({
       );
     case "select":
       return (
-        <Select value={strVal} onValueChange={(v) => onChange(v)}>
-          <SelectTrigger className="rounded-lg border-border">
+        <Select value={strVal} onValueChange={(v) => onChange(v)} name={fieldName}>
+          <SelectTrigger className="rounded-lg border-border" data-slug={field.name}>
             <SelectValue placeholder={`Select ${field.title.toLowerCase()}`} />
           </SelectTrigger>
           <SelectContent>
@@ -786,9 +812,11 @@ function CustomFieldInput({
       return <NodeTypeSelectInput value={strVal} onChange={(v) => onChange(v)} />;
     case "toggle":
       return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" data-slug={field.name}>
           <button
             type="button"
+            name={fieldName}
+            data-slug={field.name}
             onClick={() => onChange(!value)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-ring ${
               value ? "bg-primary" : "bg-border"
@@ -800,13 +828,13 @@ function CustomFieldInput({
         </div>
       );
     case "link":
-      return <LinkFieldInput value={value as Record<string, unknown> | null} onChange={onChange} />;
+      return <LinkFieldInput value={value as Record<string, unknown> | null} onChange={onChange} namePath={fieldName} />;
     case "object":
     case "group":
-      return <GroupFieldInput field={field} value={value as Record<string, unknown> | null} onChange={onChange} />;
+      return <GroupFieldInput field={field} value={value as Record<string, unknown> | null} onChange={onChange} namePath={fieldName} />;
     case "array":
     case "repeater":
-      return <RepeaterFieldInput field={field} value={value as unknown[] | null} onChange={onChange} />;
+      return <RepeaterFieldInput field={field} value={value as unknown[] | null} onChange={onChange} namePath={fieldName} />;
     case "term":
       return <TermSelectorInput field={field} value={value} onChange={onChange} languageCode={languageCode} />;
     case "reference":
@@ -822,10 +850,12 @@ function CustomFieldInput({
       );
     case "email":
       return (
-        <div className="flex">
+        <div className="flex" data-slug={field.name}>
           {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
             type="email"
+            name={fieldName}
+            data-slug={field.name}
             placeholder={field.placeholder || "email@example.com"}
             value={strVal}
             onChange={(e) => onChange(e.target.value)}
@@ -837,10 +867,12 @@ function CustomFieldInput({
       );
     case "url":
       return (
-        <div className="flex">
+        <div className="flex" data-slug={field.name}>
           {field.prepend && <span className="inline-flex items-center rounded-l-lg border border-r-0 border-border bg-muted px-3 text-sm text-muted-foreground">{field.prepend}</span>}
           <Input
             type="url"
+            name={fieldName}
+            data-slug={field.name}
             placeholder={field.placeholder || "https://example.com"}
             value={strVal}
             onChange={(e) => onChange(e.target.value)}
@@ -852,14 +884,18 @@ function CustomFieldInput({
       );
     case "color":
       return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" data-slug={field.name}>
           <input
             type="color"
+            name={`${fieldName}_picker`}
+            data-slug={field.name}
             value={strVal || "#000000"}
             onChange={(e) => onChange(e.target.value)}
             className="h-10 w-14 cursor-pointer rounded-lg border border-border p-1"
           />
           <Input
+            name={fieldName}
+            data-slug={field.name}
             placeholder="#000000"
             value={strVal}
             onChange={(e) => onChange(e.target.value)}
@@ -875,10 +911,12 @@ function CustomFieldInput({
       );
     case "range":
       return (
-        <div className="space-y-2">
+        <div className="space-y-2" data-slug={field.name}>
           <div className="flex items-center gap-4">
             <input
               type="range"
+              name={fieldName}
+              data-slug={field.name}
               min={field.min ?? 0}
               max={field.max ?? 100}
               step={field.step ?? 1}
@@ -901,13 +939,13 @@ function CustomFieldInput({
     case "media":
     case "gallery":
       return (
-        <p className="text-sm italic py-2">
+        <p className="text-sm italic py-2" data-slug={field.name}>
           Media extension required for this field type.
         </p>
       );
     case "radio":
       return (
-        <div className="space-y-2">
+        <div className="space-y-2" data-slug={field.name}>
           {(field.options || []).map((opt) => (
             <label key={opt} className="flex items-center gap-2.5 cursor-pointer group" onClick={() => onChange(opt)}>
               <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${strVal === opt ? "border-primary bg-primary" : "border-border group-hover:border-border"}`}>
@@ -921,11 +959,13 @@ function CustomFieldInput({
     case "checkbox": {
       const checked: string[] = Array.isArray(value) ? (value as string[]) : (value == null && field.initialValue ? [field.initialValue] : []);
       return (
-        <div className="space-y-2">
+        <div className="space-y-2" data-slug={field.name}>
           {(field.options || []).map((opt) => (
             <label key={opt} className="flex items-center gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
+                name={`${fieldName}[]`}
+                data-slug={field.name}
                 checked={checked.includes(opt)}
                 onChange={(e) => {
                   if (e.target.checked) {
@@ -945,6 +985,8 @@ function CustomFieldInput({
     default:
       return (
         <Input
+          name={fieldName}
+          data-slug={field.name}
           value={strVal}
           onChange={(e) => onChange(e.target.value)}
           className={inputClass}

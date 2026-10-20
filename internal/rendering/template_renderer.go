@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
@@ -199,6 +200,15 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 	r.filterRunner = func(name string, value interface{}, ctx interface{}) interface{} { return value }
 
 	r.funcMap = template.FuncMap{
+		// request is replaced per render with the visitor's request context
+		// (page, query, archive); this default keeps templates parseable in
+		// renders that have no request.
+		"request": func() map[string]interface{} {
+			return map[string]interface{}{"path": "", "page": 1, "query": map[string]interface{}{}, "archive": nil}
+		},
+		// node is replaced per page render with the node that owns the
+		// blocks being rendered; nil when blocks render on their own.
+		"node": func() map[string]interface{} { return nil },
 		"filter": func(name string, value interface{}) interface{} {
 			return r.filterRunner(name, value, nil)
 		},
@@ -300,7 +310,13 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 		"split": func(sep, s string) []string {
 			return strings.Split(s, sep)
 		},
-		"trim": strings.TrimSpace,
+		// paragraphs splits plain text on blank lines into trimmed,
+		// non-empty paragraphs: {{ range paragraphs .body }}<p>{{ . }}</p>{{ end }}
+		"paragraphs": textParagraphs,
+		// initials returns the upper-cased first letters of the first and
+		// last words ("Liam & Chloe" -> "LC", "Tessa" -> "T").
+		"initials": textInitials,
+		"trim":     strings.TrimSpace,
 		"mod": func(a, b int) int {
 			if b == 0 {
 				return 0
@@ -316,7 +332,9 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 		"list": func(items ...interface{}) []interface{} {
 			return items
 		},
-		"seq": func(n int) []int {
+		// seq accepts any number — JSON field values arrive as float64.
+		"seq": func(v interface{}) []int {
+			n := toInt(v)
 			if n <= 0 {
 				return nil
 			}
@@ -537,4 +555,58 @@ func (r *TemplateRenderer) RenderLayout(w io.Writer, templateCode string, data i
 	return r.RenderParsed(w, cacheKey, templateCode, data, template.FuncMap{
 		"renderLayoutBlock": renderBlock,
 	})
+}
+
+func textParagraphs(s string) []string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	var out []string
+	for _, p := range strings.Split(s, "\n\n") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func textInitials(s string) string {
+	var letters []rune
+	for _, w := range strings.Fields(s) {
+		for _, r := range w {
+			if unicode.IsLetter(r) {
+				letters = append(letters, unicode.ToUpper(r))
+				break
+			}
+		}
+	}
+	switch len(letters) {
+	case 0:
+		return ""
+	case 1:
+		return string(letters[0])
+	}
+	return string([]rune{letters[0], letters[len(letters)-1]})
+}
+
+// toInt converts template numbers (int kinds, float64 from JSON, numeric
+// strings) to int; anything else is 0.
+func toInt(v interface{}) int {
+	switch n := v.(type) {
+	case int:
+		return n
+	case int64:
+		return int(n)
+	case int32:
+		return int(n)
+	case float64:
+		return int(n)
+	case float32:
+		return int(n)
+	case json.Number:
+		i, _ := n.Int64()
+		return int(i)
+	case string:
+		i, _ := strconv.Atoi(strings.TrimSpace(n))
+		return i
+	}
+	return 0
 }

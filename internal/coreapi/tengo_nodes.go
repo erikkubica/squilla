@@ -190,15 +190,26 @@ func applyNodeQueryFromMap(m map[string]tengo.Object, q *NodeQuery) {
 		if tq := getTengoMap(v); tq != nil {
 			q.TaxQuery = make(map[string][]string)
 			for tax, termsObj := range tq {
-				if arr, ok := termsObj.(*tengo.Array); ok {
-					var terms []string
-					for _, item := range arr.Value {
-						terms = append(terms, tengoToString(item))
-					}
+				if terms, ok := tengoStringList(termsObj); ok {
 					q.TaxQuery[tax] = terms
-				} else if s, ok := termsObj.(*tengo.String); ok {
-					q.TaxQuery[tax] = []string{s.Value}
 				}
+			}
+		}
+	}
+	if v, ok := m["ref_query"]; ok {
+		if rm := getTengoMap(v); rm != nil {
+			q.RefQuery = make(map[string]uint, len(rm))
+			for field, idv := range rm {
+				if id := tengoToInt(idv); id > 0 {
+					q.RefQuery[field] = uint(id)
+				}
+			}
+		}
+	}
+	if v, ok := m["exclude_ids"]; ok {
+		for _, item := range getTengoArray(v) {
+			if id := tengoToInt(item); id > 0 {
+				q.ExcludeIDs = append(q.ExcludeIDs, uint(id))
 			}
 		}
 	}
@@ -274,14 +285,8 @@ func nodeInputFromMap(m map[string]tengo.Object) NodeInput {
 		if txMap := getTengoMap(v); txMap != nil {
 			input.Taxonomies = make(map[string][]string)
 			for tax, termsObj := range txMap {
-				if arr, ok := termsObj.(*tengo.Array); ok {
-					var terms []string
-					for _, item := range arr.Value {
-						terms = append(terms, tengoToString(item))
-					}
+				if terms, ok := tengoStringList(termsObj); ok {
 					input.Taxonomies[tax] = terms
-				} else if s, ok := termsObj.(*tengo.String); ok {
-					input.Taxonomies[tax] = []string{s.Value}
 				}
 			}
 		}

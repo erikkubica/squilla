@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"squilla/internal/events"
+	"squilla/internal/menuloc"
 	"squilla/internal/models"
 
 	"gorm.io/gorm"
@@ -105,6 +106,7 @@ func (tl *ThemeLoader) LoadTheme(themeDir string) error {
 	// theme slug match the DB row.
 	themeSlug := strings.ToLower(strings.ReplaceAll(manifest.Name, " ", "-"))
 	tl.SettingsRegistry.SetActive(themeSlug, LoadSettingsPages(themeDir, manifest))
+	menuloc.SetActive(manifest.MenuLocations)
 
 	log.Printf("theme loaded: %s (%d layouts, %d partials, %d blocks, %d styles, %d scripts)",
 		manifest.Name, len(manifest.Layouts), len(manifest.Partials), len(manifest.Blocks),

@@ -31,6 +31,9 @@ type ThemeManifest struct {
 	// a JSON file (relative to the theme directory) that follows the standard
 	// field-schema format. Optional — themes without settings UI omit this.
 	SettingsPages []ThemeSettingsPageDef `json:"settings_pages,omitempty"`
+	// MenuLocations declares the named menu slots the theme renders
+	// (header, footer columns). Editors assign menus to them in the admin.
+	MenuLocations []ThemeMenuLocationDef `json:"menu_locations,omitempty"`
 }
 
 // ThemeSettingsPageDef declares a single settings page in theme.json.

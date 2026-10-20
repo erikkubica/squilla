@@ -201,6 +201,7 @@ func nodeTypeFromProto(msg *pb.NodeTypeMessage) *NodeType {
 		Icon:        msg.Icon,
 		Description: msg.Description,
 		URLPrefixes: msg.UrlPrefixes,
+		Public:      !msg.Private,
 	}
 	if msg.CreatedAt != "" {
 		if t, err := time.Parse(time.RFC3339, msg.CreatedAt); err == nil {

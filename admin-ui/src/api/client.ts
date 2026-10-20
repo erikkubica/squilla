@@ -1172,6 +1172,30 @@ export async function replaceMenuItems(id: number | string, version: number, ite
   return res.data;
 }
 
+// --- Menu locations ---
+
+/** A theme-declared menu slot and the menu slug assigned to it ("" if none). */
+export interface MenuLocation {
+  slug: string;
+  label: string;
+  description?: string;
+  menu_slug: string;
+}
+
+export async function getMenuLocations(): Promise<MenuLocation[]> {
+  const res = await api<ApiResponse<MenuLocation[]>>("/admin/api/menu-locations");
+  return res.data ?? [];
+}
+
+/** Assign menus to locations by slug; "" clears a location. Unlisted locations are untouched. */
+export async function assignMenuLocations(assignments: Record<string, string>): Promise<MenuLocation[]> {
+  const res = await api<ApiResponse<MenuLocation[]>>("/admin/api/menu-locations", {
+    method: "PUT",
+    body: JSON.stringify({ assignments }),
+  });
+  return res.data ?? [];
+}
+
 // --- Roles ---
 
 export interface Role {

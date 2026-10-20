@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, useRef, type FormEvent } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   Save,
@@ -122,6 +122,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!isEdit);
+  const manualSlugRef = useRef<string>("");
   const [activeTab, setActiveTab] = useState<"blocks" | "excerpt" | "seo" | "custom">("blocks");
 
   // Languages
@@ -284,6 +285,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
         setOriginalNode(node);
         setTitle(node.title);
         setSlug(node.slug);
+        manualSlugRef.current = node.slug;
         setStatus(node.status);
         setLanguageCode(node.language_code || "en");
         setLayoutId(node.layout_id ? String(node.layout_id) : "");
@@ -428,6 +430,17 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
       setSlug(slugify(title));
     }
   }, [title, autoSlug]);
+
+  function handleAutoSlugToggle() {
+    if (!autoSlug) {
+      manualSlugRef.current = slug;
+      setAutoSlug(true);
+      setSlug(slugify(title));
+    } else {
+      setAutoSlug(false);
+      setSlug(manualSlugRef.current || originalNode?.slug || "");
+    }
+  }
 
   // Auto-load template from query parameter (e.g. ?template=slug)
   useEffect(() => {
@@ -646,6 +659,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
         const updated = await updateNode(id, nodeData);
         setOriginalNode(updated);
         setStatus(updated.status);
+        manualSlugRef.current = updated.slug;
         toast.success(`${label} updated successfully`);
         return true;
       }
@@ -784,10 +798,14 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
             onTitleChange={setTitle}
             titlePlaceholder={`Enter ${label.toLowerCase()} title`}
             slug={slug}
-            onSlugChange={(v) => { setAutoSlug(false); setSlug(v); }}
+            onSlugChange={(v) => {
+              setAutoSlug(false);
+              setSlug(v);
+              manualSlugRef.current = v;
+            }}
             slugPrefix={`/${langSlug ? `${langSlug}/` : ""}${urlPrefix ? `${urlPrefix}/` : ""}${parentNode ? `${parentNode.slug}/` : ""}`}
             autoSlug={autoSlug}
-            onAutoSlugToggle={() => setAutoSlug(!autoSlug)}
+            onAutoSlugToggle={handleAutoSlugToggle}
             id={isEdit ? id : undefined}
             viewHref={isEdit && originalNode && status === "published" ? originalNode.full_url : undefined}
             onBack={() => navigate(basePath)}
@@ -861,17 +879,20 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                 const isCollapsed = collapsedBlocks.has(index);
                 const blockFields = blockTypeDef?.fields || [];
 
-                const typeCategory = block.type.split("-")[0];
                 return (
                   <div
                     key={index}
+                    data-block-type={block.type}
+                    data-slug={block.type}
                     style={{
-                      borderTop: index === 0 ? "none" : "1px solid var(--divider)",
+                      borderTop: index === 0 ? "none" : "1px solid var(--border-strong)",
                     }}
                   >
                     {/* Block header — flat row, no bg, no border. Active state via type weight. */}
                     <div
                       className="flex items-center cursor-pointer select-none"
+                      data-block-type={block.type}
+                      data-slug={block.type}
                       style={{
                         gap: 8,
                         padding: "11px 12px",
@@ -915,26 +936,6 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                       >
                         {getBlockLabel(block.type)}
                       </span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-subtle)" }}>
-                        {block.type}
-                      </span>
-                      {typeCategory && typeCategory !== block.type && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 500,
-                            fontFamily: "var(--font-mono)",
-                            padding: "1.5px 6px",
-                            borderRadius: 3,
-                            background: !isCollapsed ? "var(--accent-weak)" : "var(--sub-bg)",
-                            color: !isCollapsed ? "var(--accent-strong)" : "var(--fg-muted)",
-                            textTransform: "lowercase",
-                            letterSpacing: "0.02em",
-                          }}
-                        >
-                          {typeCategory}
-                        </span>
-                      )}
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-subtle)", marginLeft: 4 }}>
                         · {blockFields.length} {blockFields.length === 1 ? "field" : "fields"}
                       </span>
@@ -976,18 +977,19 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
 
                     {/* Block fields */}
                     {!isCollapsed && (
-                      <div style={{ padding: "4px 12px 16px" }} className="space-y-3">
+                      <div style={{ padding: "6px 12px 20px" }} className="space-y-4">
                         {blockTypeDef?.description && (
                           <div
                             style={{
-                              fontSize: 11.5,
-                              color: "var(--fg-muted)",
-                              padding: "10px 12px",
+                              fontSize: 12.5,
+                              color: "var(--fg-2)",
+                              padding: "10px 14px",
                               background: "var(--sub-bg)",
+                              border: "1px solid var(--border)",
+                              borderLeft: "3px solid var(--fg-muted)",
                               borderRadius: 7,
                               lineHeight: 1.55,
-                              fontStyle: "italic",
-                              marginBottom: 12,
+                              marginBottom: 18,
                             }}
                           >
                             {blockTypeDef.description}
@@ -998,24 +1000,23 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                             This block type has no fields defined.
                           </p>
                         ) : (
-                          <div className="flex flex-wrap" style={{ gap: "11px 14px" }}>
+                          <div className="flex flex-wrap" style={{ gap: "22px 16px" }}>
                             {blockFields.map((field) => {
                               const w = getFieldWidth(field);
-                              const fieldKey = field.name;
                               return (
                                 <div
                                   key={field.name}
                                   className="min-w-0 flex flex-col"
+                                  data-slug={field.name}
                                   style={{
-                                    flex: `0 0 calc(${w}% - 14px)`,
-                                    maxWidth: `calc(${w}% - 14px)`,
-                                    gap: 5,
+                                    flex: `0 0 calc(${w}% - 16px)`,
+                                    maxWidth: `calc(${w}% - 16px)`,
+                                    gap: 7,
                                   }}
                                 >
-                                  <Label className="flex items-center" style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em", gap: 5 }}>
+                                  <Label className="flex items-center gap-1.5" data-slug={field.name}>
                                     {field.title}
-                                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-subtle)", fontWeight: 400, marginLeft: 4 }}>{fieldKey}</span>
-                                    {field.required && <span style={{ color: "var(--danger)" }}>*</span>}
+                                    {field.required && <span className="text-destructive">*</span>}
                                   </Label>
                                   {(field as { hint?: string }).hint && (
                                     <span style={{ fontSize: 11.5, color: "var(--fg-muted)", lineHeight: 1.45 }}>{(field as { hint?: string }).hint}</span>
@@ -1025,6 +1026,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                     value={block.fields[field.name]}
                                     onChange={(val) => updateBlockField(index, field.name, val)}
                                     languageCode={languageCode}
+                                    namePath={`blocks[${index}][${field.name}]`}
                                   />
                                 </div>
                               );
@@ -1257,23 +1259,23 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   <div className="flex flex-wrap" style={{ gap: "16px 14px" }}>
                     {customFields.map((field) => {
                       const w = getFieldWidth(field);
-                      const fieldKey = field.name || field.name;
                       return (
                         <div
                           key={field.name}
                           className="space-y-1.5 min-w-0"
+                          data-slug={field.name}
                           style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
                         >
-                          <Label className="flex items-center" style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em", gap: 5 }}>
+                          <Label className="flex items-center gap-1.5" data-slug={field.name}>
                             {field.title}
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-subtle)", fontWeight: 400, marginLeft: 4 }}>{fieldKey}</span>
-                            {field.required && <span style={{ color: "var(--danger)" }}>*</span>}
+                            {field.required && <span className="text-destructive">*</span>}
                           </Label>
                           <CustomFieldInput
                             field={field}
                             value={fieldsData[field.name]}
                             onChange={(val) => updateFieldValue(field.name, val)}
                             languageCode={languageCode}
+                            namePath={field.name}
                           />
                         </div>
                       );
@@ -1494,7 +1496,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         className="h-9 rounded-lg text-sm"
                       />
                       {showParentResults && (parentSearch.trim() || parentSearching) && (
-                        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
+                        <div className="mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
                           {parentSearching ? (
                             <div className="px-3 py-2 text-sm" style={{ color: "var(--fg-subtle)" }}>Searching...</div>
                           ) : parentResults.length === 0 ? (
@@ -1662,9 +1664,14 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                   const isOpen = taxonomyDropdownOpen[tax.slug] || false;
                   const terms = availableTerms[tax.slug] || [];
                   const selectedTerms = taxonomies[tax.slug] || [];
+                  // Nodes store term slugs (what archives and themes match on);
+                  // older records may hold names, so match either.
+                  const isSelected = (t: TaxonomyTerm) => selectedTerms.includes(t.slug) || selectedTerms.includes(t.name);
+                  const termLabel = (value: string) =>
+                    terms.find(t => t.slug === value)?.name ?? terms.find(t => t.name === value)?.name ?? value;
                   const filtered = searchValue.trim()
-                    ? terms.filter(t => t.name.toLowerCase().includes(searchValue.toLowerCase()) && !selectedTerms.includes(t.name))
-                    : terms.filter(t => !selectedTerms.includes(t.name));
+                    ? terms.filter(t => t.name.toLowerCase().includes(searchValue.toLowerCase()) && !isSelected(t))
+                    : terms.filter(t => !isSelected(t));
                   const exactMatch = terms.some(t => t.name.toLowerCase() === searchValue.trim().toLowerCase());
 
                   return (
@@ -1675,7 +1682,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         <div className="flex flex-wrap gap-1.5">
                           {selectedTerms.map((term, i) => (
                             <Badge key={i} variant="secondary" className="gap-1 px-2 py-0.5 text-xs" style={{ background: "var(--accent-weak)", color: "var(--accent-strong)", borderColor: "var(--accent-mid)" }}>
-                              {term}
+                              {termLabel(term)}
                               <button
                                 type="button"
                                 className="hover:text-destructive ml-0.5"
@@ -1705,7 +1712,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           className="h-8 rounded-lg text-xs"
                         />
                         {isOpen && (searchValue.trim() || filtered.length > 0) && (
-                          <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-40 overflow-y-auto">
+                          <div className="mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-40 overflow-y-auto">
                             {filtered.length === 0 && !searchValue.trim() && (
                               <div className="px-3 py-2 text-xs" style={{ color: "var(--fg-subtle)" }}>No terms available</div>
                             )}
@@ -1717,9 +1724,9 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => {
                                   if (!tax.multiple && selectedTerms.length > 0) {
-                                    setTaxonomies({ ...taxonomies, [tax.slug]: [term.name] });
+                                    setTaxonomies({ ...taxonomies, [tax.slug]: [term.slug] });
                                   } else {
-                                    setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, term.name] });
+                                    setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, term.slug] });
                                   }
                                   setTaxonomySearch(prev => ({ ...prev, [tax.slug]: "" }));
                                   setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
@@ -1735,12 +1742,13 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent transition-colors border-t border-border"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={async () => {
-                                  const val = searchValue.trim();
+                                  let val = searchValue.trim();
                                   // Persist a real taxonomy_terms row in the node's
                                   // language so the term appears in the term list
-                                  // and other nodes can reuse it. Pre-existing rows
-                                  // surface SLUG_CONFLICT — fall back to selecting
-                                  // the name without creating a duplicate row.
+                                  // and other nodes can reuse it, then select its
+                                  // slug. Pre-existing rows surface SLUG_CONFLICT —
+                                  // fall back to the typed text without creating a
+                                  // duplicate row.
                                   try {
                                     const created = await createTerm(nodeTypeProp, tax.slug, {
                                       name: val,
@@ -1750,6 +1758,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                                       ...prev,
                                       [tax.slug]: [...(prev[tax.slug] || []), created],
                                     }));
+                                    val = created.slug;
                                   } catch {
                                     // Non-fatal: a row may already exist in another
                                     // language scope. The selection below still

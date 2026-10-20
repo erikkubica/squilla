@@ -96,11 +96,23 @@ func (s *NodeTypeService) Create(nt *models.NodeType) error {
 		return fmt.Errorf("slug conflict: node type with slug %q already exists", nt.Slug)
 	}
 
+	// GORM leaves false booleans that have a column default out of the
+	// INSERT and back-fills the default (true), so write them explicitly.
+	wantBlocks, wantPublic := nt.SupportsBlocks, nt.Public
 	if err := s.db.Create(nt).Error; err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505") {
 			return fmt.Errorf("slug conflict: node type with slug %q already exists", nt.Slug)
 		}
 		return fmt.Errorf("creating node type: %w", err)
+	}
+	if !wantBlocks || !wantPublic {
+		if err := s.db.Model(nt).Updates(map[string]interface{}{
+			"supports_blocks": wantBlocks,
+			"public":          wantPublic,
+		}).Error; err != nil {
+			return fmt.Errorf("storing node type flags: %w", err)
+		}
+		nt.SupportsBlocks, nt.Public = wantBlocks, wantPublic
 	}
 
 	s.emit("node_type.created", nt.ID, nt.Slug)

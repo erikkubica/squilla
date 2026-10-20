@@ -114,3 +114,13 @@ Every agent authoring themes, blocks, or custom post types MUST obey these non-n
 ### D. The Zero-SQL Theme Seeding Law
 - **FORBIDDEN**: Writing raw SQL queries (`INSERT INTO ...`), manual migrations, or API hacks to seed theme demo content.
 - **MANDATORY**: Themes must self-seed their node types, taxonomies, demo pages, and forms idempotently in `scripts/theme.tengo` on theme activation.
+
+### E. The Relational Field Law (Relationships vs. Repeaters)
+- **The Core Law**: When content refers to items that already exist as entities in the CMS database (`experiences`, `posts`, `products`, `trips`, `authors`, `locations`), referencing them MUST use `type: "reference"` (with `node_type_filter: "<type>"` and `multiple: true/false`).
+- **FORBIDDEN (The Fake-Relationship Repeater Anti-Pattern)**:
+  - **NEVER** create a `type: "repeater"` with manual fields (`title`, `image`, `price`, `description`, `url`) when asked for "Related <Entity>", "Featured <Entity>", "Recommended <Entity>", or "Selected <Entity>".
+  - Duplicating an existing entity's attributes inside a repeater creates disconnected duplicate data that immediately desynchronizes when the original entity is edited.
+- **Decision Matrix (Repeater vs. Reference)**:
+  - **`type: "repeater"`**: ONLY for pure editorial, ad-hoc items that do NOT exist elsewhere in the database (e.g. FAQ accordion questions, feature bullets, stats counters, timeline steps).
+  - **`type: "reference"`**: ALWAYS for referencing existing CMS entities (e.g. "Related Experiences", "Featured Trips", "Author", "Recommended Articles").
+

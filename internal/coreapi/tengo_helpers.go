@@ -154,6 +154,34 @@ func tengoToInt(obj tengo.Object) int {
 }
 
 // getTengoMap extracts the underlying map from a Tengo Map or ImmutableMap.
+// getTengoArray returns the elements of a mutable or immutable Tengo array
+// (helpers.json_decode yields immutable ones), or nil for anything else.
+func getTengoArray(obj tengo.Object) []tengo.Object {
+	switch v := obj.(type) {
+	case *tengo.Array:
+		return v.Value
+	case *tengo.ImmutableArray:
+		return v.Value
+	default:
+		return nil
+	}
+}
+
+// tengoStringList converts a string or array of strings into []string.
+func tengoStringList(obj tengo.Object) ([]string, bool) {
+	if s, ok := obj.(*tengo.String); ok {
+		return []string{s.Value}, true
+	}
+	if arr := getTengoArray(obj); arr != nil {
+		out := make([]string, 0, len(arr))
+		for _, item := range arr {
+			out = append(out, tengoToString(item))
+		}
+		return out, true
+	}
+	return nil, false
+}
+
 func getTengoMap(obj tengo.Object) map[string]tengo.Object {
 	switch v := obj.(type) {
 	case *tengo.Map:

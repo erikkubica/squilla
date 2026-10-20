@@ -195,6 +195,7 @@ func nodeTypeToProto(nt *NodeType) *pb.NodeTypeMessage {
 		UrlPrefixes: nt.URLPrefixes,
 		CreatedAt:   nt.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   nt.UpdatedAt.Format(time.RFC3339),
+		Private:     !nt.Public,
 	}
 	if nt.Taxonomies != nil {
 		if b, err := json.Marshal(nt.Taxonomies); err == nil {
