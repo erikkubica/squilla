@@ -1,0 +1,92 @@
+{
+  "name": "Analytics",
+  "slug": "analytics",
+  "version": "1.0.0",
+  "author": "Squilla",
+  "description": "First-party, cookieless web analytics measured on the server. Zero JavaScript on the public site; optional CSS beacon for viewport and colour scheme. Bots and AI crawlers are counted separately.",
+  "provides": ["analytics"],
+  "auto_activate": false,
+  "capabilities": [
+    "data:read",
+    "data:write",
+    "data:delete",
+    "data:call",
+    "http:observe",
+    "log:write",
+    "settings:read"
+  ],
+  "data_owned_tables": [
+    "analytics_events",
+    "analytics_daily",
+    "analytics_bots_daily",
+    "analytics_goals",
+    "analytics_links",
+    "analytics_config"
+  ],
+  "data_owned_functions": [
+    "analytics_ingest",
+    "analytics_ingest_bots",
+    "analytics_confirm",
+    "analytics_rollup",
+    "analytics_purge",
+    "analytics_summary",
+    "analytics_timeseries",
+    "analytics_breakdown",
+    "analytics_realtime",
+    "analytics_heatmap",
+    "analytics_bots",
+    "analytics_goal_stats",
+    "analytics_link_clicks",
+    "analytics_export_events",
+    "analytics_status"
+  ],
+  "plugins": [
+    {
+      "binary": "bin/analytics",
+      "events": []
+    }
+  ],
+  "public_routes": [
+    { "method": "GET", "path": "/go/*" },
+    { "method": "GET", "path": "/_s/*" }
+  ],
+  "admin_routes": [
+    { "method": "GET", "path": "/**", "required_capability": "view_analytics" },
+    { "method": "*", "path": "/**", "required_capability": "manage_analytics" }
+  ],
+  "admin_ui": {
+    "entry": "admin-ui/dist/index.js",
+    "capabilities": [
+      {
+        "key": "view_analytics",
+        "label": "View Analytics",
+        "description": "Read dashboards, breakdowns, bot reports, goals, links, settings and exports."
+      },
+      {
+        "key": "manage_analytics",
+        "label": "Manage Analytics",
+        "description": "Create and edit goals and tracked links, and change analytics settings."
+      }
+    ],
+    "routes": [
+      { "path": "/", "component": "AnalyticsDashboard" },
+      { "path": "/breakdown/:dim", "component": "AnalyticsBreakdown" },
+      { "path": "/bots", "component": "AnalyticsBots" },
+      { "path": "/goals", "component": "AnalyticsGoals" },
+      { "path": "/settings", "component": "AnalyticsSettings" }
+    ],
+    "menu": {
+      "label": "Analytics",
+      "icon": "ChartNoAxesCombined",
+      "section": "content",
+      "position": "1",
+      "required_capability": "view_analytics",
+      "children": [
+        { "label": "Overview", "route": "/admin/ext/analytics" },
+        { "label": "Bots & AI", "route": "/admin/ext/analytics/bots" },
+        { "label": "Goals & links", "route": "/admin/ext/analytics/goals" },
+        { "label": "Settings", "route": "/admin/ext/analytics/settings" }
+      ]
+    }
+  }
+}

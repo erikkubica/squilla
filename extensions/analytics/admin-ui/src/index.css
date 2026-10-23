@@ -1,0 +1,155 @@
+/* Analytics extension stylesheet.
+   Tailwind scans only this extension's source. Admin-ui ships the base
+   design tokens; this file adds the `.an-root` chart/surface tokens (light
+   and `.dark`) and exposes them as `an-*` Tailwind colors. Utilities named
+   `an-*` cannot collide with admin-ui's in the shared utilities layer. */
+@import "tailwindcss";
+@source "./**/*.{ts,tsx}";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-an-canvas: var(--an-canvas);
+  --color-an-surface: var(--an-surface);
+  --color-an-surface-2: var(--an-surface-2);
+  --color-an-hover: var(--an-hover);
+  --color-an-ink: var(--an-ink);
+  --color-an-ink-2: var(--an-ink-2);
+  --color-an-muted: var(--an-muted);
+  --color-an-subtle: var(--an-subtle);
+  --color-an-line: var(--an-line);
+  --color-an-grid: var(--an-grid);
+  --color-an-up: var(--an-up);
+  --color-an-down: var(--an-down);
+  --color-an-warn: var(--an-warn);
+  --color-an-warn-bg: var(--an-warn-bg);
+  --color-an-c1: var(--an-c1);
+  --color-an-bar: var(--an-bar);
+}
+
+.an-root {
+  /* Surfaces & ink — follow admin-ui tokens in light mode. */
+  --an-canvas: var(--app-bg, #f5f4f1);
+  --an-surface: var(--card-bg, #fdfcfa);
+  --an-surface-2: var(--sub-bg, #f0efeb);
+  --an-hover: var(--hover-bg, #ecebe6);
+  --an-ink: var(--fg, #131211);
+  --an-ink-2: var(--fg-2, #2c2a27);
+  --an-muted: #6e6a64;
+  --an-subtle: #898781;
+  --an-line: var(--border, rgba(20, 18, 15, 0.08));
+  --an-grid: #e1e0d9;
+  --an-shadow: var(--shadow-card, 0 1px 2px rgba(20, 18, 15, 0.05));
+
+  /* Status (never color alone — always paired with an icon/label). */
+  --an-up: #006300;
+  --an-down: #d03b3b;
+  --an-warn: #8a5a00;
+  --an-warn-bg: #fdf6e8;
+
+  /* Categorical, fixed order. */
+  --an-c1: #2a78d6;
+  --an-c2: #eb6834;
+  --an-c3: #1baf7a;
+  --an-c4: #eda100;
+  --an-c5: #e87ba4;
+  --an-c6: #008300;
+  --an-c7: #6250d6;
+  --an-c8: #e34948;
+
+  /* Sequential blue ramp, light → dark. */
+  --an-s1: #cde2fb;
+  --an-s2: #9ec5f4;
+  --an-s3: #6da7ec;
+  --an-s4: #3987e5;
+  --an-s5: #256abf;
+  --an-s6: #184f95;
+  --an-s7: #0d366b;
+  --an-s0: var(--an-surface-2);
+  /* Share-bar wash behind table labels (ink stays readable on it). */
+  --an-bar: #cde2fb;
+
+  color: var(--an-ink);
+}
+
+.dark .an-root,
+.an-root.dark {
+  --an-canvas: #121211;
+  --an-surface: #1b1b1a;
+  --an-surface-2: #242422;
+  --an-hover: #2c2c2a;
+  --an-ink: #ecebe7;
+  --an-ink-2: #d4d2cc;
+  --an-muted: #a9a69f;
+  --an-subtle: #898781;
+  --an-line: rgba(255, 255, 255, 0.08);
+  --an-grid: #2c2c2a;
+  --an-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --an-up: #0ca30c;
+  --an-warn: #e3b14f;
+  --an-warn-bg: #2a2416;
+
+  --an-c1: #3987e5;
+  --an-c2: #d95926;
+  --an-c3: #199e70;
+  --an-c4: #c98500;
+  --an-c5: #d55181;
+  --an-c6: #008300;
+  --an-c7: #9085e9;
+  --an-c8: #e66767;
+  --an-bar: #184f95;
+
+  /* Re-skin shared admin primitives rendered inside the extension. */
+  --card-bg: var(--an-surface);
+  --panel-bg: var(--an-surface);
+  --sub-bg: var(--an-surface-2);
+  --hover-bg: var(--an-hover);
+  --fg: var(--an-ink);
+  --fg-2: var(--an-ink-2);
+  --fg-muted: var(--an-muted);
+  --fg-subtle: var(--an-subtle);
+  --border: var(--an-line);
+  --border-input: rgba(255, 255, 255, 0.16);
+}
+
+.an-card {
+  background: var(--an-surface);
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: var(--an-shadow), 0 0 0 1px var(--an-line);
+}
+
+.an-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.an-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes an-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.an-skeleton {
+  background: var(--an-surface-2);
+  border-radius: 6px;
+  animation: an-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .an-skeleton { animation: none; }
+}
+
+.an-focus:focus-visible {
+  outline: 2px solid var(--an-c1);
+  outline-offset: 2px;
+}
