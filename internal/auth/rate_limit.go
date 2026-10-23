@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"squilla/internal/api"
+	"squilla/internal/httpobs"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/time/rate"
@@ -67,13 +68,13 @@ func (p *PerIPLimiter) CleanIdle(maxAge time.Duration) {
 }
 
 // Middleware returns a Fiber handler that consults this limiter and
-// rejects with 429 when the budget is exhausted. Uses Fiber's c.IP()
-// — which respects X-Forwarded-For only when the app is configured to
-// trust proxies; otherwise it falls back to RemoteAddr. Operators
-// behind a proxy must configure trusted proxies on the Fiber app.
+// rejects with 429 when the budget is exhausted. Keys on
+// httpobs.ClientIP(c) — the forwarding header is honoured only when the
+// TCP peer is in TRUSTED_PROXIES (X-Forwarded-For walked right-to-left);
+// otherwise the peer address is used.
 func (p *PerIPLimiter) Middleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		if !p.Allow(c.IP()) {
+		if !p.Allow(httpobs.ClientIP(c)) {
 			return api.Error(c, fiber.StatusTooManyRequests, "RATE_LIMITED", "Too many requests — please try again in a minute")
 		}
 		return c.Next()

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"squilla/internal/events"
+	"squilla/internal/httpobs"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -45,6 +46,13 @@ type wellKnownRoute struct {
 // Event handler registration (used during theme/extension script loading)
 // ---------------------------------------------------------------------------
 
+// Capability gate for the kernel's explicit-only request stream
+// (internal/httpobs.Event).
+const (
+	httpObserveEvent      = "http.requests"
+	httpObserveCapability = "http:observe"
+)
+
 // EventsOn handles events.on(name, script_path[, priority])
 // Registers a handler script for the given event name.
 // This is called from theme.tengo / extension.tengo entry scripts.
@@ -55,6 +63,13 @@ func (e *ScriptEngine) EventsOn(name, scriptPath string, priority int) {
 	// Strip leading "./"
 	if len(scriptPath) > 2 && scriptPath[:2] == "./" {
 		scriptPath = scriptPath[2:]
+	}
+
+	// http.requests carries raw client IPs and headers; like gRPC plugins
+	// (plugin_manager.subscriptionAllowed), scripts need http:observe.
+	if name == httpObserveEvent && !e.activeCapabilities[httpObserveCapability] {
+		log.Printf("[script] WARNING: %s subscribes to %q without capability %q — handler skipped", e.activeSlug, name, httpObserveCapability)
+		return
 	}
 
 	handler := scriptHandler{
@@ -86,6 +101,13 @@ func (e *ScriptEngine) FiltersAdd(name, scriptPath string, priority int) {
 	}
 	if len(scriptPath) > 2 && scriptPath[:2] == "./" {
 		scriptPath = scriptPath[2:]
+	}
+
+	// http.requests carries raw client IPs and headers; like gRPC plugins
+	// (plugin_manager.subscriptionAllowed), scripts need http:observe.
+	if name == httpObserveEvent && !e.activeCapabilities[httpObserveCapability] {
+		log.Printf("[script] WARNING: %s subscribes to %q without capability %q — handler skipped", e.activeSlug, name, httpObserveCapability)
+		return
 	}
 
 	handler := scriptHandler{
@@ -438,7 +460,7 @@ func (e *ScriptEngine) makeHTTPHandler(scriptPath, slug string, capabilities map
 			"params":  params,
 			"headers": headers,
 			"body":    body,
-			"ip":      c.IP(),
+			"ip":      httpobs.ClientIP(c),
 		}
 
 		vars := map[string]interface{}{

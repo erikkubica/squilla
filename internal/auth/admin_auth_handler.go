@@ -8,6 +8,7 @@ import (
 
 	"squilla/internal/api"
 	"squilla/internal/events"
+	"squilla/internal/httpobs"
 	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
@@ -96,7 +97,7 @@ type registerRequest struct {
 // — same allow-list gate, same default-role lookup, same auto-login on
 // success — just with structured errors instead of flash redirects.
 func (h *AdminAuthHandler) Register(c *fiber.Ctx) error {
-	if !h.signupLimiter.Allow(c.IP()) {
+	if !h.signupLimiter.Allow(httpobs.ClientIP(c)) {
 		return api.Error(c, fiber.StatusTooManyRequests, "RATE_LIMITED", "Too many registration attempts")
 	}
 
@@ -166,7 +167,7 @@ func (h *AdminAuthHandler) Register(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "An unexpected error occurred")
 	}
 
-	token, err := h.sessionSvc.CreateSession(user.ID, c.IP(), c.Get("User-Agent"))
+	token, err := h.sessionSvc.CreateSession(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
 	if err != nil {
 		// Account was created but session failed — surface a soft-fail so
 		// the SPA can redirect to the login form with a helpful message.
@@ -223,7 +224,7 @@ func (h *AdminAuthHandler) ForgotPassword(c *fiber.Ctx) error {
 			"Password reset is unavailable — no email provider is configured. Contact your administrator (the CLI 'squilla reset-password' command is available for recovery).")
 	}
 
-	if !h.forgotLimiter.Allow(c.IP()) {
+	if !h.forgotLimiter.Allow(httpobs.ClientIP(c)) {
 		// Same generic message — never tell attackers they're rate-limited.
 		return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
 	}
@@ -242,7 +243,7 @@ func (h *AdminAuthHandler) ForgotPassword(c *fiber.Ctx) error {
 		return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
 	}
 
-	rawToken, expires, err := h.resetSvc.IssueToken(user.ID, c.IP(), c.Get("User-Agent"))
+	rawToken, expires, err := h.resetSvc.IssueToken(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
 	if err != nil {
 		log.Printf("issue reset token user=%d: %v", user.ID, err)
 		return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
@@ -256,7 +257,7 @@ func (h *AdminAuthHandler) ForgotPassword(c *fiber.Ctx) error {
 		"reset_url":   resetURL,
 		"reset_token": rawToken,
 		"expires_at":  expires.Format(time.RFC3339),
-		"ip_address":  c.IP(),
+		"ip_address":  httpobs.ClientIP(c),
 	})
 
 	return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
@@ -275,7 +276,7 @@ type resetPasswordRequest struct {
 // outstanding tokens and wipes every session for the user, so an attacker
 // holding a stolen session is forcibly logged out.
 func (h *AdminAuthHandler) ResetPassword(c *fiber.Ctx) error {
-	if !h.resetLimiter.Allow(c.IP()) {
+	if !h.resetLimiter.Allow(httpobs.ClientIP(c)) {
 		return api.Error(c, fiber.StatusTooManyRequests, "RATE_LIMITED", "Too many reset attempts")
 	}
 
@@ -332,7 +333,7 @@ func (h *AdminAuthHandler) ResetPassword(c *fiber.Ctx) error {
 	if h.eventBus != nil {
 		go h.eventBus.Publish("user.password_reset_completed", events.Payload{
 			"user_id":    userID,
-			"ip_address": c.IP(),
+			"ip_address": httpobs.ClientIP(c),
 		})
 	}
 

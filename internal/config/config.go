@@ -62,7 +62,19 @@ type Config struct {
 	// tokens. Empty in dev means "store plaintext"; production startup
 	// rejects an empty value via Validate().
 	SecretKey string
+	// TrustedProxies lists the CIDRs/IPs whose forwarding header is
+	// believed (TRUSTED_PROXIES, comma-separated). Defaults to loopback
+	// and private ranges — the usual Docker/Traefik topology.
+	TrustedProxies []string
+	// ClientIPHeader names the header a trusted proxy uses to carry the
+	// client address (CLIENT_IP_HEADER). X-Forwarded-For is walked
+	// right-to-left; single-value headers (CF-Connecting-IP, X-Real-IP)
+	// are taken as-is. Empty disables proxy handling entirely.
+	ClientIPHeader string
 }
+
+// DefaultTrustedProxies is used when TRUSTED_PROXIES is unset.
+const DefaultTrustedProxies = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7"
 
 // Load reads configuration from environment variables with sensible defaults.
 // If DATABASE_URL is set (postgres://user:pass@host:port/dbname?sslmode=...),
@@ -83,6 +95,13 @@ func Load() *Config {
 		StorageDriver:      envOrDefault("STORAGE_DRIVER", "local"),
 		StoragePath:        envOrDefault("STORAGE_PATH", "./storage"),
 		SecretKey:          envOrDefault("SQUILLA_SECRET_KEY", ""),
+		TrustedProxies:     splitList(envOrDefault("TRUSTED_PROXIES", DefaultTrustedProxies)),
+		ClientIPHeader:     DefaultClientIPHeader,
+	}
+	// CLIENT_IP_HEADER="" is meaningful (disable proxy handling), so
+	// distinguish "set to empty" from "unset" instead of envOrDefault.
+	if v, ok := os.LookupEnv("CLIENT_IP_HEADER"); ok {
+		cfg.ClientIPHeader = strings.TrimSpace(v)
 	}
 	if dburl := os.Getenv("DATABASE_URL"); dburl != "" {
 		applyDatabaseURL(cfg, dburl)
@@ -203,6 +222,20 @@ func applyDatabaseURL(cfg *Config, dburl string) {
 func (c *Config) DSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode)
+}
+
+// DefaultClientIPHeader is used when CLIENT_IP_HEADER is unset.
+const DefaultClientIPHeader = "X-Forwarded-For"
+
+// splitList splits a comma-separated env value, trimming blanks.
+func splitList(v string) []string {
+	var out []string
+	for _, part := range strings.Split(v, ",") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // envOrDefault returns the value of the environment variable named by key,

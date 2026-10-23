@@ -101,7 +101,9 @@ Common capabilities include:
 - `users:read`
 - `http:fetch` (Outbound requests)
 - `log:write`
-- `data:read`, `data:write`, `data:exec` (Access to custom SQL tables)
+- `data:read`, `data:write`, `data:delete` (Access to custom SQL tables listed in `data_owned_tables`)
+- `data:call` (Call extension-owned SQL functions listed in `data_owned_functions` via `DataCall`)
+- `http:observe` (Subscribe to the `http.requests` stream — see §5.7)
 - `files:write` (Local filesystem storage)
 
 ---
@@ -266,7 +268,8 @@ Extensions can have their own isolated PostgreSQL tables via migrations. Use the
 - **`DataCreate(table string, data map[string]any)`**
 - **`DataUpdate(table string, id uint, data map[string]any)`**
 - **`DataDelete(table string, id uint)`**
-- **`DataExec(sql string, args ...any)`**: Run raw SQL statements.
+- **`DataExec(sql string, args ...any)`**: Run raw SQL statements. **Internal callers only** — extensions are denied.
+- **`DataCall(fn string, args ...any) ([]map[string]any, error)`**: Run an extension-owned set-returning SQL function as `SELECT * FROM "<fn>"($1, …)` inside a transaction with a 30 s statement timeout. Requires `data:call` and `fn` listed in the manifest's `data_owned_functions` (names must match `^[a-z_][a-z0-9_]*$`, unqualified, and start with the extension slug prefix — `my-ext` → `my_ext_…`; other entries are ignored; the call is schema-qualified so built-ins can never be reached). Put aggregation/complex SQL in your migrations as functions and call them here. Return only `text`, `bigint`/`int`, `double precision`, `boolean`, `timestamptz`, `date` and `jsonb` columns; `jsonb` comes back parsed. Always return a row set (e.g. `RETURNS TABLE(ok boolean)` for "void" functions). Over gRPC, args/rows travel as JSON (`args_json`/`rows_json`); the host converts whole-number args to `int64`, and maps/slices bind as JSON text (use `jsonb` parameters).
 
 ### 5.4 Media & Files
 - **`UploadMedia(req MediaUploadRequest)`**: Send raw file bits to the Media Library.
@@ -285,6 +288,13 @@ Extensions can have their own isolated PostgreSQL tables via migrations. Use the
 - **`Log(level, message string, fields map[string]any)`**: Logs centrally with your extension slug as the prefix.
 - **`GetUser(id uint)` / `QueryUsers(query UserQuery)`**: Read-only user access.
 - **`GetSetting(key)` / `SetSetting(key, val)`**: Access global site settings.
+
+### 5.7 Observing HTTP requests (`http.requests`)
+The kernel's `internal/httpobs` middleware publishes completed requests in batches (every 2 s or 500 records) as the **explicit-only** event `http.requests` — wildcard (`*`) subscribers never receive it, and nothing is recorded while no plugin subscribes. Subscribing requires the `http:observe` capability; without it the plugin manager skips the subscription with a warning. Payload: `{"records": [Record…], "dropped": n}` where `dropped` counts records lost because the 8192-slot queue was full since the previous batch.
+
+Record fields: `ts`, `method`, `host`, `path`, `query` (raw, ≤2048), `status`, `duration_ms`, `content_type`, `bytes`, `ip` (trusted client IP, see `TRUSTED_PROXIES` / `CLIENT_IP_HEADER`), `user_agent` (≤512), `referer` (≤1024), `headers` (allowlist, lower-case: `accept`, `accept-language`, `sec-fetch-*`, `sec-ch-ua*`, `sec-purpose`, `purpose`, `sec-gpc`, `dnt`, `upgrade-insecure-requests`; `cf-ipcountry` only when `CLIENT_IP_HEADER=CF-Connecting-IP`), `has_session`, `user_id`, `node_id`/`node_type`/`language` (set when the public handler rendered a node), `request_id`. SSE responses are not recorded.
+
+Plugin `HandleEvent` calls have a 10 s deadline, and plugin subscriptions are removed when the plugin stops.
 
 ---
 

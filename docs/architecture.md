@@ -227,6 +227,8 @@ nodetypes:read, nodetypes:write
 menus:read, menus:write, menus:delete
 media:read, media:write, media:delete
 data:read, data:write, data:delete
+data:call               # DataCall on functions in data_owned_functions
+http:observe            # subscribe to the explicit-only http.requests stream
 files:write, files:delete
 settings:read, settings:write
 events:emit, events:subscribe
@@ -239,13 +241,15 @@ routes:register
 admin_access            # separate gate, used by extension admin proxy routes
 ```
 
-That's **27 enforcement capabilities + `admin_access`** as of `internal/coreapi/capability.go`. Notes:
+That's **28 CoreAPI enforcement capabilities + `http:observe` (plugin-manager subscription gate) + `admin_access`** as of `internal/coreapi/capability.go`. Notes:
 
 - There is no `nodetypes:delete` — `DeleteNodeType` is gated by `nodetypes:write`.
 - There is no `data:exec` capability. `DataExec` is **internal-only** (not exposed through the gRPC client interface, so extensions cannot call it). The MCP `core.data.exec` tool is a separate path, env-gated by `SQUILLA_MCP_ALLOW_RAW_SQL=true` (matched case-insensitively via `strings.EqualFold` in `internal/mcp/server.go`).
 - There is no `files:read` or `routes:remove`.
 - Each capability is enforced strictly; **there is no fallback** from `data:delete` to `data:write` or any similar shortcut.
 - The data-store calls add a second check on top of capabilities: the table must appear in the extension manifest's `data_owned_tables`, and the kernel-private deny list (`users`, `sessions`, `password_reset_tokens`, `roles`, `role_capabilities`, `audit_log`, `schema_migrations`, `site_settings`, `mcp_tokens`, `mcp_audit_log`, `mcp_token_audit`, `languages`) is rejected unconditionally for non-internal callers.
+- `DataCall` likewise requires the function name in the manifest's `data_owned_functions` (default deny; names must be bare `^[a-z_][a-z0-9_]*$` identifiers starting with the slug prefix, e.g. `my_ext_`; calls are schema-qualified so built-ins are unreachable).
+- `http:observe` is not a CoreAPI method gate: the plugin manager refuses `http.requests` subscriptions from extensions that don't declare it, because records carry raw client IPs and request headers.
 
 ---
 

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"squilla/internal/api"
+	"squilla/internal/httpobs"
 	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
@@ -46,7 +47,7 @@ func (h *AuthHandler) RegisterRoutes(app *fiber.App) {
 // Login authenticates a user with email and password, creates a session,
 // and sets an HTTP-only session cookie.
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
-	if !h.loginLimiter.Allow(c.IP()) {
+	if !h.loginLimiter.Allow(httpobs.ClientIP(c)) {
 		return api.Error(c, fiber.StatusTooManyRequests, "RATE_LIMITED", "Too many sign-in attempts")
 	}
 
@@ -86,7 +87,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	h.lockout.RecordSuccess(req.Email)
 
-	token, err := h.sessionSvc.CreateSession(user.ID, c.IP(), c.Get("User-Agent"))
+	token, err := h.sessionSvc.CreateSession(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create session")
 	}

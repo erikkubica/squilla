@@ -48,6 +48,7 @@ service SquillaHost {
   rpc ListNodeTypes(Empty) returns (NodeTypeListResponse);
   rpc UpdateNodeType(UpdateNodeTypeRequest) returns (NodeTypeResponse);
   rpc DeleteNodeType(DeleteNodeTypeRequest) returns (Empty);
+  rpc DataCall(DataCallRequest) returns (DataCallResponse);
 }
 
 message Empty {}
@@ -480,4 +481,17 @@ message UpdateNodeTypeRequest {
 
 message DeleteNodeTypeRequest {
   string slug = 1;
+}
+
+// --- DataCall messages ---
+
+// DataCallRequest invokes an extension-owned set-returning SQL function
+// (listed in the manifest's data_owned_functions).
+message DataCallRequest {
+  string function = 1;
+  bytes args_json = 2;    // JSON-encoded []any (positional $1..$n)
+}
+
+message DataCallResponse {
+  bytes rows_json = 1;    // JSON-encoded []map[string]any
 }

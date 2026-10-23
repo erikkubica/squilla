@@ -18,6 +18,7 @@ import (
 	"squilla/internal/coreapi"
 	"squilla/internal/db"
 	"squilla/internal/events"
+	"squilla/internal/httpobs"
 	"squilla/internal/logging"
 	"squilla/internal/mcp"
 	"squilla/internal/models"
@@ -100,12 +101,24 @@ func main() {
 	sduiEngine := sdui.NewEngine(database, eventBus)
 	sduiBroadcaster := sdui.NewBroadcaster(eventBus)
 
+	// Trusted client IP. httpobs.ClientIP walks X-Forwarded-For
+	// right-to-left past TRUSTED_PROXIES; Fiber's own c.IP() is also
+	// configured so it no longer reports the reverse proxy's address.
+	if err := httpobs.ConfigureClientIP(cfg.TrustedProxies, cfg.ClientIPHeader); err != nil {
+		log.Fatalf("invalid TRUSTED_PROXIES: %v", err)
+	}
+	logging.SetRemoteIPFunc(httpobs.ClientIP)
+
 	// Fiber app.
 	app := fiber.New(fiber.Config{
-		AppName:               "Squilla",
-		DisableStartupMessage: false,
-		BodyLimit:             50 * 1024 * 1024, // 50 MB — theme/extension uploads
-		ReadBufferSize:        16 * 1024,        // 16 KB — handles large cookies without 431
+		AppName:                 "Squilla",
+		DisableStartupMessage:   false,
+		BodyLimit:               50 * 1024 * 1024, // 50 MB — theme/extension uploads
+		ReadBufferSize:          16 * 1024,        // 16 KB — handles large cookies without 431
+		ProxyHeader:             cfg.ClientIPHeader,
+		EnableTrustedProxyCheck: cfg.ClientIPHeader != "",
+		TrustedProxies:          cfg.TrustedProxies,
+		EnableIPValidation:      true,
 	})
 
 	// Request-ID middleware MUST come first so every downstream
@@ -114,6 +127,11 @@ func main() {
 	// stays as a backup; logging.RequestID emits its own structured
 	// access log too.
 	app.Use(logging.RequestID())
+	// Request observer — publishes batched http.requests records to
+	// explicit subscribers (extensions declaring http:observe). Mounted
+	// directly after RequestID so it wraps every other middleware.
+	httpObserver := httpobs.New(eventBus, httpobs.Options{SessionCookie: auth.CookieName})
+	app.Use(httpObserver.Middleware())
 	app.Use(fiberlogger.New())
 	app.Use(recover.New())
 	app.Use(compress.New(compress.Config{
@@ -491,12 +509,13 @@ func main() {
 	// Plugins receive the capability-guarded CoreAPI — every method call from
 	// the plugin is checked against the capabilities declared in its
 	// extension.json manifest.
-	hostRegistrar := cms.HostServerRegistrar(func(slug string, capabilities map[string]bool, ownedTables map[string]bool) func(s *grpc.Server) {
+	hostRegistrar := cms.HostServerRegistrar(func(slug string, capabilities map[string]bool, ownedTables map[string]bool, ownedFunctions map[string]bool) func(s *grpc.Server) {
 		caller := coreapi.CallerInfo{
-			Slug:         slug,
-			Type:         "grpc",
-			Capabilities: capabilities,
-			OwnedTables:  ownedTables,
+			Slug:           slug,
+			Type:           "grpc",
+			Capabilities:   capabilities,
+			OwnedTables:    ownedTables,
+			OwnedFunctions: ownedFunctions,
 		}
 		hostServer := coreapi.NewGRPCHostServer(guardedAPI, caller)
 		return func(s *grpc.Server) {
@@ -620,6 +639,19 @@ func main() {
 		// `defer pluginManager.StopAll()` above. Returning normally lets
 		// every defer run.
 		log.Printf("server shutdown error: %v", err)
+	}
+	// Flush queued request records while plugins are still running
+	// (pluginManager.StopAll is deferred and runs after this). Bounded so
+	// a stuck subscriber can't hold shutdown open indefinitely.
+	observerClosed := make(chan struct{})
+	go func() {
+		httpObserver.Close()
+		close(observerClosed)
+	}()
+	select {
+	case <-observerClosed:
+	case <-time.After(10 * time.Second):
+		log.Println("request observer flush timed out; remaining records dropped")
 	}
 	log.Println("Squilla stopped")
 }

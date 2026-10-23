@@ -55,7 +55,7 @@ Single Go interface providing all CMS capabilities to extensions:
 - **Users:** get, query (read-only)
 - **HTTP:** outbound fetch
 - **Log:** leveled logging with caller prefix
-- **Data Store:** DataGet, DataQuery, DataCreate, DataUpdate, DataDelete, DataExec (raw SQL)
+- **Data Store:** DataGet, DataQuery, DataCreate, DataUpdate, DataDelete, DataExec (raw SQL, internal only), DataCall (extension-owned SQL functions from `data_owned_functions`, capability `data:call`)
 - **File Storage:** StoreFile, DeleteFile
 
 Three adapters:
@@ -82,7 +82,8 @@ Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plu
     - `cms/`: Content service, plugin manager (with provider-tag lookup for `media-provider`/`email.provider`/etc.), extension loader/proxy/migrations
     - `scripting/`: Tengo VM runtime, script callbacks, handler mounting
     - `models/`: GORM models (content_node, menu, user, role, etc.)
-    - `events/`: Event bus (Subscribe / SubscribeResult / SubscribeErr; Publish / PublishSync / PublishCollect / PublishRequest)
+    - `events/`: Event bus (Subscribe / SubscribeResult / SubscribeErr; Publish / PublishSync / PublishCollect / PublishRequest / PublishExplicitSync — the last skips wildcard listeners)
+    - `httpobs/`: Request observer (batched explicit-only `http.requests` event, gated by `http:observe`) and trusted client IP helper `httpobs.ClientIP` (`TRUSTED_PROXIES`, `CLIENT_IP_HEADER`) — use it instead of `c.IP()` for rate limits/audit IPs
     - `auth/`: Session auth, RBAC middleware (password reset gracefully degrades when no email provider is active)
     - `db/`: Core migrations and connection pooling
     - `api/`: Response helpers

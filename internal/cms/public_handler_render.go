@@ -28,6 +28,7 @@ import (
 // fails to render; ok=false with no error means we couldn't even
 // resolve a layout (caller falls back to a barebones page).
 func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentNode, blocks []map[string]interface{}, renderedBlocks []string, user *models.User) (string, bool, error) {
+	markRenderedNode(c, node)
 	languages := h.loadActiveLanguages()
 	var languageID *int
 	var currentLang *models.Language

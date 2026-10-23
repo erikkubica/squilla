@@ -148,3 +148,26 @@ func TestValidate_NonProductionAlwaysPasses(t *testing.T) {
 		t.Fatalf("non-production must skip all checks, got %v", err)
 	}
 }
+
+func TestLoad_ClientIPDefaults(t *testing.T) {
+	t.Setenv("TRUSTED_PROXIES", "")
+	cfg := Load()
+	if cfg.ClientIPHeader != "X-Forwarded-For" {
+		t.Fatalf("ClientIPHeader = %q, want X-Forwarded-For", cfg.ClientIPHeader)
+	}
+	if len(cfg.TrustedProxies) != 6 || cfg.TrustedProxies[0] != "127.0.0.0/8" {
+		t.Fatalf("unexpected default TrustedProxies %v", cfg.TrustedProxies)
+	}
+}
+
+func TestLoad_ClientIPOverrides(t *testing.T) {
+	t.Setenv("TRUSTED_PROXIES", " 10.0.0.1 , 172.18.0.0/16,")
+	t.Setenv("CLIENT_IP_HEADER", "")
+	cfg := Load()
+	if cfg.ClientIPHeader != "" {
+		t.Fatalf("explicit empty CLIENT_IP_HEADER must disable proxy handling, got %q", cfg.ClientIPHeader)
+	}
+	if strings.Join(cfg.TrustedProxies, "|") != "10.0.0.1|172.18.0.0/16" {
+		t.Fatalf("unexpected TrustedProxies %v", cfg.TrustedProxies)
+	}
+}

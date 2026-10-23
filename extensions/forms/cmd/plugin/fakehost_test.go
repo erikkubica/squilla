@@ -130,6 +130,10 @@ func (h *FakeHost) DataExec(_ context.Context, _ string, _ ...any) (int64, error
 	return 0, nil
 }
 
+func (h *FakeHost) DataCall(_ context.Context, fn string, _ ...any) ([]map[string]any, error) {
+	return nil, fmt.Errorf("DataCall %q not supported in FakeHost", fn)
+}
+
 // ---- File Storage ----
 
 func (h *FakeHost) StoreFile(_ context.Context, path string, data []byte) (string, error) {

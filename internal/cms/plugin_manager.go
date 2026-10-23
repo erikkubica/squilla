@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	vibeplugin "squilla/pkg/plugin"
@@ -21,15 +22,25 @@ import (
 
 // HostServerRegistrar is a function that registers the SquillaHost
 // gRPC service on a grpc.Server for a given extension slug with its
-// capabilities and owned-tables list. owned-tables is consumed by the
-// coreapi capability guard's data:* gate; capabilities feeds the
-// generic checkCapability path. This signature is the trust boundary
+// capabilities, owned-tables and owned-functions lists. owned-tables
+// is consumed by the coreapi capability guard's data:* gate,
+// owned-functions by the DataCall gate; capabilities feeds the generic
+// checkCapability path. This signature is the trust boundary
 // — anything passed here ends up in CallerInfo for every CoreAPI
 // call from the plugin.
 //
 // The struct-shaped factory avoids the import cycle between cms and
 // coreapi while keeping the wiring readable.
-type HostServerRegistrar func(slug string, capabilities map[string]bool, ownedTables map[string]bool) func(s *grpc.Server)
+type HostServerRegistrar func(slug string, capabilities map[string]bool, ownedTables map[string]bool, ownedFunctions map[string]bool) func(s *grpc.Server)
+
+// observeCapability gates subscriptions to observeEvent. The event
+// carries raw client IPs, user agents and request headers for every
+// HTTP request, so only extensions that explicitly declare the
+// capability may receive it.
+const (
+	observeEvent      = "http.requests"
+	observeCapability = "http:observe"
+)
 
 // PluginManifestEntry represents a single plugin binary in an extension manifest.
 type PluginManifestEntry struct {
@@ -47,6 +58,10 @@ type runningPlugin struct {
 	provides   []string      // manifest's `provides` array — used by GetProvider lookups
 	priority   int           // manifest's `priority` (default 50, higher wins)
 	stopped    chan struct{} // closed when plugin is stopped; handlers check this before RPC
+	// unsubs removes every event-bus subscription registered for this
+	// plugin. Called on stop so a restarted/deactivated extension
+	// doesn't leave stale handlers multiplying on the bus.
+	unsubs []events.UnsubscribeFunc
 }
 
 // PluginManager manages the lifecycle of gRPC plugin processes.
@@ -86,9 +101,10 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 	// provider-lookup helpers (GetProvider) so coreapi callers can ask
 	// "who handles 'media-provider'?" without knowing slug names.
 	var m struct {
-		Plugins  []PluginManifestEntry `json:"plugins"`
-		Provides []string              `json:"provides"`
-		Priority int                   `json:"priority"`
+		Plugins            []PluginManifestEntry `json:"plugins"`
+		Provides           []string              `json:"provides"`
+		Priority           int                   `json:"priority"`
+		DataOwnedFunctions []string              `json:"data_owned_functions"`
 	}
 	if err := json.Unmarshal(manifest, &m); err != nil {
 		return fmt.Errorf("parsing manifest plugins: %w", err)
@@ -175,7 +191,7 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 		// Initialize: start gRPC host service so plugin can call back into Squilla.
 		if pm.hostRegistrar != nil {
 			if grpcClient, ok := impl.(*vibeplugin.GRPCClient); ok {
-				registerFn := pm.hostRegistrar(slug, capabilities, ownedTables)
+				registerFn := pm.hostRegistrar(slug, capabilities, ownedTables, ownedFunctionSet(slug, m.DataOwnedFunctions))
 				if initErr := grpcClient.InitializeHost(registerFn); initErr != nil {
 					log.Printf("[plugins] failed to initialize host service for %s/%s: %v", slug, pe.Binary, initErr)
 					client.Kill()
@@ -217,6 +233,10 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 		// receive every event without enumerating them in the manifest.
 		for _, sub := range subs {
 			eventName := sub.EventName
+			if !subscriptionAllowed(eventName, capabilities) {
+				log.Printf("[plugins] WARNING: %s/%s subscribes to %q without declaring capability %q — subscription skipped", slug, pe.Binary, observeEvent, observeCapability)
+				continue
+			}
 			rp.eventNames = append(rp.eventNames, eventName)
 
 			pluginImpl := impl // capture for closure
@@ -248,7 +268,7 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 				// dispatch on action-specific maps; subscribing the
 				// wildcard there would require a separate "all" surface
 				// the kernel doesn't currently need.
-				pm.eventBus.SubscribeAll(func(action string, payload events.Payload) {
+				rp.unsubs = append(rp.unsubs, pm.eventBus.SubscribeAll(func(action string, payload events.Payload) {
 					_, _, errStr, callErr := dispatchEvent(action, payload)
 					if callErr != nil {
 						log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, callErr)
@@ -257,11 +277,11 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 					if errStr != "" {
 						log.Printf("[plugins] %s/%s reported error for %s: %s", slug, pe.Binary, action, errStr)
 					}
-				})
+				}))
 				continue
 			}
 
-			pm.eventBus.Subscribe(eventName, func(action string, payload events.Payload) {
+			rp.unsubs = append(rp.unsubs, pm.eventBus.Subscribe(eventName, func(action string, payload events.Payload) {
 				_, _, errStr, callErr := dispatchEvent(action, payload)
 				if callErr != nil {
 					log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, callErr)
@@ -270,9 +290,19 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 				if errStr != "" {
 					log.Printf("[plugins] %s/%s reported error for %s: %s", slug, pe.Binary, action, errStr)
 				}
-			})
+			}))
 
-			pm.eventBus.SubscribeResult(eventName, func(action string, payload events.Payload) string {
+			// Explicit-only events are delivered solely through
+			// PublishExplicitSync → Subscribe handlers. Registering the
+			// Result/Err variants would let anyone who can reach
+			// PublishCollect/PublishRequest (a theme template's
+			// {{event "http.requests"}}, a Tengo events.run) feed forged
+			// payloads to the observer plugin.
+			if explicitOnlyEvent(eventName) {
+				continue
+			}
+
+			rp.unsubs = append(rp.unsubs, pm.eventBus.SubscribeResult(eventName, func(action string, payload events.Payload) string {
 				handled, result, errStr, callErr := dispatchEvent(action, payload)
 				if callErr != nil {
 					log.Printf("[plugins] error from %s/%s handling %s: %v", slug, pe.Binary, action, callErr)
@@ -286,13 +316,13 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 					return ""
 				}
 				return string(result)
-			})
+			}))
 
 			// SubscribeErr lets the kernel surface a plugin-reported
 			// error (resp.Error) back through PublishRequest. Used by
 			// CoreAPI.SendEmail so an SMTP refusal propagates to the
 			// HTTP caller instead of being swallowed in a log line.
-			pm.eventBus.SubscribeErr(eventName, func(action string, payload events.Payload) error {
+			rp.unsubs = append(rp.unsubs, pm.eventBus.SubscribeErr(eventName, func(action string, payload events.Payload) error {
 				_, _, errStr, callErr := dispatchEvent(action, payload)
 				if callErr != nil {
 					return callErr
@@ -301,7 +331,7 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 					return fmt.Errorf("%s: %s", slug, errStr)
 				}
 				return nil
-			})
+			}))
 		}
 
 		started = append(started, rp)
@@ -332,6 +362,10 @@ func (pm *PluginManager) stopPluginsLocked(slug string) {
 	for _, rp := range plugins {
 		log.Printf("[plugins] stopping %s/%s", slug, rp.binary)
 		close(rp.stopped) // signal event handlers to stop calling this plugin
+		for _, unsub := range rp.unsubs {
+			unsub()
+		}
+		rp.unsubs = nil
 		_ = rp.impl.Shutdown()
 		rp.client.Kill()
 	}
@@ -410,6 +444,48 @@ func (pm *PluginManager) GetProvider(tag string) *vibeplugin.GRPCClient {
 // "no provider configured" message (CoreAPI media methods do this).
 func (pm *PluginManager) HasProvider(tag string) bool {
 	return pm.GetProvider(tag) != nil
+}
+
+// subscriptionAllowed applies capability gates to event subscriptions.
+// Today only observeEvent is gated; everything else is open.
+func subscriptionAllowed(eventName string, capabilities map[string]bool) bool {
+	if eventName == observeEvent {
+		return capabilities[observeCapability]
+	}
+	return true
+}
+
+// explicitOnlyEvent reports events that must only ever be delivered via
+// EventBus.PublishExplicitSync (no Result/Err dispatch flavours).
+func explicitOnlyEvent(eventName string) bool {
+	return eventName == observeEvent
+}
+
+// stringSet converts a manifest string list into a lookup map. Always
+// returns a non-nil map so "declared nothing" means "allowed nothing".
+func stringSet(list []string) map[string]bool {
+	set := make(map[string]bool, len(list))
+	for _, v := range list {
+		set[v] = true
+	}
+	return set
+}
+
+// ownedFunctionSet returns the manifest's data_owned_functions that carry
+// the extension's own prefix (slug with '-' → '_', plus '_'). Declaring a
+// function is otherwise unverifiable, so the prefix is what stops one
+// extension from claiming another extension's (or a built-in) function.
+func ownedFunctionSet(slug string, fns []string) map[string]bool {
+	prefix := strings.ReplaceAll(slug, "-", "_") + "_"
+	set := make(map[string]bool, len(fns))
+	for _, fn := range fns {
+		if !strings.HasPrefix(fn, prefix) {
+			log.Printf("[plugins] %s: ignoring data_owned_functions entry %q (must start with %q)", slug, fn, prefix)
+			continue
+		}
+		set[fn] = true
+	}
+	return set
 }
 
 func pluginProvides(provides []string, tag string) bool {

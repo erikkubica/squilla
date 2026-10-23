@@ -192,6 +192,32 @@ func (b *EventBus) HasHandlers(action string) bool {
 		len(b.errHandlers[action]) > 0
 }
 
+// HasExplicitHandlers reports handlers registered for exactly this action
+// via Subscribe (ignores SubscribeAll / Result / Err handlers). Producers of
+// high-volume, explicit-only events use it to skip building payloads when
+// nobody has opted in.
+func (b *EventBus) HasExplicitHandlers(action string) bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return len(b.handlers[action]) > 0
+}
+
+// PublishExplicitSync calls only the handlers registered for exactly this
+// action (Subscribe), synchronously, in registration order. Wildcard
+// listeners never see the event — use this for high-volume or sensitive
+// streams (e.g. http.requests) that must not fan out to SubscribeAll
+// consumers such as the admin SSE broadcaster.
+func (b *EventBus) PublishExplicitSync(action string, payload Payload) {
+	b.mu.RLock()
+	specific := make([]handlerEntry, len(b.handlers[action]))
+	copy(specific, b.handlers[action])
+	b.mu.RUnlock()
+
+	for _, e := range specific {
+		safeCall(e.fn, action, payload)
+	}
+}
+
 // PublishSync fires an event and waits for all handlers to complete.
 // Use for cases where the caller needs to know delivery succeeded (e.g. SendEmail).
 func (b *EventBus) PublishSync(action string, payload Payload) {

@@ -189,9 +189,20 @@ func (g *capabilityGuard) GetSettingsLoc(ctx context.Context, prefix, locale str
 
 // --- Events ---
 
+// httpObserveEvent is the kernel-produced, explicit-only request stream
+// (internal/httpobs). It carries raw client IPs and headers, so
+// receiving it requires http:observe and only the kernel may produce it.
+const (
+	httpObserveEvent      = "http.requests"
+	httpObserveCapability = "http:observe"
+)
+
 func (g *capabilityGuard) Emit(ctx context.Context, action string, payload map[string]any) error {
 	if err := checkCapability(ctx, "events:emit"); err != nil {
 		return err
+	}
+	if action == httpObserveEvent && CallerFromContext(ctx).Type != "internal" {
+		return NewCapabilityDenied("events:emit " + action + " (kernel-reserved event)")
 	}
 	return g.inner.Emit(ctx, action, payload)
 }
@@ -199,6 +210,11 @@ func (g *capabilityGuard) Emit(ctx context.Context, action string, payload map[s
 func (g *capabilityGuard) Subscribe(ctx context.Context, action string, handler EventHandler) (UnsubscribeFunc, error) {
 	if err := checkCapability(ctx, "events:subscribe"); err != nil {
 		return nil, err
+	}
+	if action == httpObserveEvent {
+		if err := checkCapability(ctx, httpObserveCapability); err != nil {
+			return nil, err
+		}
 	}
 	return g.inner.Subscribe(ctx, action, handler)
 }
@@ -413,6 +429,20 @@ func (g *capabilityGuard) DataDelete(ctx context.Context, table string, id uint)
 		return err
 	}
 	return g.inner.DataDelete(ctx, table, id)
+}
+
+// DataCall is gated by data:call plus the per-function allowlist
+// (data_owned_functions). The function body was installed by the
+// extension's own migrations, so ownership of the name is the trust
+// boundary — the same model as data_owned_tables.
+func (g *capabilityGuard) DataCall(ctx context.Context, fn string, args ...any) ([]map[string]any, error) {
+	if err := checkCapability(ctx, "data:call"); err != nil {
+		return nil, err
+	}
+	if err := checkFunctionAccess(ctx, fn); err != nil {
+		return nil, err
+	}
+	return g.inner.DataCall(ctx, fn, args...)
 }
 
 func (g *capabilityGuard) DataExec(ctx context.Context, sql string, args ...any) (int64, error) {

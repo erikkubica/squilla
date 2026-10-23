@@ -155,7 +155,25 @@ func (h *PublicHandler) currentUser(c *fiber.Ctx) *models.User {
 	if err != nil {
 		return nil
 	}
+	// Expose the resolved user to outer middleware (httpobs reads
+	// c.Locals("user") after the handler returns to tag the request).
+	c.Locals("user", user)
 	return user
+}
+
+// Locals keys describing the node a public request rendered. Read by
+// generic outer middleware (httpobs) after the handler returns.
+const (
+	localsNodeID   = "squilla.node_id"
+	localsNodeType = "squilla.node_type"
+	localsLanguage = "squilla.language"
+)
+
+// markRenderedNode records which node this request rendered.
+func markRenderedNode(c *fiber.Ctx, node *models.ContentNode) {
+	c.Locals(localsNodeID, node.ID)
+	c.Locals(localsNodeType, node.NodeType)
+	c.Locals(localsLanguage, node.LanguageCode)
 }
 
 // buildUserData converts a User model (possibly nil) to template-friendly UserData.

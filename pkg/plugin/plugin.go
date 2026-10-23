@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"time"
 
 	"github.com/hashicorp/go-plugin"
 	pb "squilla/pkg/plugin/proto"
@@ -83,8 +84,16 @@ func (c *GRPCClient) GetSubscriptions() ([]*pb.Subscription, error) {
 	return resp.Subscriptions, nil
 }
 
+// eventCallTimeout bounds a single HandleEvent RPC so a hung plugin
+// can't pin kernel publish goroutines (or a PublishSync caller) forever.
+// Generous because synchronous handlers such as email.send may wait on a
+// slow SMTP relay.
+const eventCallTimeout = 60 * time.Second
+
 func (c *GRPCClient) HandleEvent(action string, payload []byte) (*pb.EventResponse, error) {
-	return c.client.HandleEvent(context.Background(), &pb.EventRequest{
+	ctx, cancel := context.WithTimeout(context.Background(), eventCallTimeout)
+	defer cancel()
+	return c.client.HandleEvent(ctx, &pb.EventRequest{
 		Action:  action,
 		Payload: payload,
 	})

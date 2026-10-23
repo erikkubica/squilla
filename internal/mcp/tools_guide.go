@@ -915,7 +915,7 @@ func extensionStandardsCore() map[string]any {
 		"philosophy": "Extensions own their full stack: manifest, gRPC plugin, admin-UI micro-frontend, SQL migrations, blocks, public routes. Core is a kernel — if disabling/removing the extension would leave dead code in core, that code belongs in the extension.",
 		"manifest": map[string]any{
 			"required": []string{"name", "slug", "version"},
-			"optional": []string{"author", "description", "priority", "provides", "capabilities", "plugins", "admin_ui", "settings_schema", "blocks", "templates", "layouts", "partials", "public_routes", "assets", "data_owned_tables"},
+			"optional": []string{"author", "description", "priority", "provides", "capabilities", "plugins", "admin_ui", "settings_schema", "blocks", "templates", "layouts", "partials", "public_routes", "assets", "data_owned_tables", "data_owned_functions"},
 			"notes": []string{
 				"slug MUST match the directory name (kebab-case).",
 				"capabilities are enforced on every CoreAPI call. Declare exactly what's needed.",

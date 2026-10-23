@@ -2,6 +2,8 @@ package coreapi
 
 import (
 	"context"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -72,4 +74,28 @@ func checkTableAccess(ctx context.Context, table string) error {
 		return nil
 	}
 	return NewCapabilityDenied("data:" + tab + " (not in extension's data_owned_tables)")
+}
+
+// dataFunctionName is the accepted shape for DataCall function names:
+// a bare, lower-case, unqualified identifier. No schema prefix, no
+// quoting tricks — the name is quoted verbatim into the SQL.
+var dataFunctionName = regexp.MustCompile(`^[a-z_][a-z0-9_]*$`)
+
+// checkFunctionAccess gates DataCall the same way checkTableAccess
+// gates the table methods: internal callers bypass, everyone else must
+// have declared the function in the manifest's data_owned_functions.
+// The name check runs for every caller so even kernel code can't build
+// a malformed statement.
+func checkFunctionAccess(ctx context.Context, fn string) error {
+	if !dataFunctionName.MatchString(fn) {
+		return NewValidation("invalid function name " + strconv.Quote(fn) + " (must match ^[a-z_][a-z0-9_]*$)")
+	}
+	caller := CallerFromContext(ctx)
+	if caller.Type == "internal" {
+		return nil
+	}
+	if caller.OwnedFunctions[fn] {
+		return nil
+	}
+	return NewCapabilityDenied("data:call " + fn + " (not in extension's data_owned_functions)")
 }

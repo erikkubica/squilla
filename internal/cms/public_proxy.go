@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	"squilla/internal/httpobs"
 	"squilla/internal/models"
 	pb "squilla/pkg/plugin/proto"
 )
@@ -128,7 +129,7 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 		// client-supplied X-Forwarded-For / X-Real-IP — those are
 		// trivially spoofable and plugins use them for per-IP rate
 		// limiting (forms extension does for spam control). The
-		// kernel writes the trusted value (c.IP()) below.
+		// kernel writes the trusted value (httpobs.ClientIP(c)) below.
 		headers := make(map[string]string)
 		c.Request().Header.VisitAll(func(key, value []byte) {
 			k := string(key)
@@ -139,7 +140,7 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 			}
 			headers[k] = string(value)
 		})
-		headers["X-Forwarded-For"] = c.IP()
+		headers["X-Forwarded-For"] = httpobs.ClientIP(c)
 
 		// Build query params.
 		queryParams := make(map[string]string)

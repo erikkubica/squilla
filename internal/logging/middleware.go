@@ -3,6 +3,7 @@ package logging
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"sync/atomic"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,6 +19,30 @@ const RequestIDHeader = "X-Request-ID"
 // rows; the recommended path is RequestIDFromCtx for the standard
 // context.Context.
 const requestIDLocalKey = "request_id"
+
+// remoteIPFunc resolves the client address for the access log. Fiber's
+// c.IP() returns the LEFTMOST (client-forgeable) X-Forwarded-For entry
+// once a ProxyHeader is configured, so main.go installs the
+// trusted-proxy-aware resolver (httpobs.ClientIP) here. httpobs imports
+// this package, hence the hook instead of a direct call.
+var remoteIPFunc atomic.Pointer[func(*fiber.Ctx) string]
+
+// SetRemoteIPFunc installs the client-address resolver used by the
+// access log. nil restores the default (c.IP()).
+func SetRemoteIPFunc(fn func(*fiber.Ctx) string) {
+	if fn == nil {
+		remoteIPFunc.Store(nil)
+		return
+	}
+	remoteIPFunc.Store(&fn)
+}
+
+func remoteIP(c *fiber.Ctx) string {
+	if fn := remoteIPFunc.Load(); fn != nil {
+		return (*fn)(c)
+	}
+	return c.IP()
+}
 
 // RequestID returns Fiber middleware that:
 //
@@ -53,7 +78,7 @@ func RequestID() fiber.Handler {
 			"path", c.Path(),
 			"status", c.Response().StatusCode(),
 			"duration_ms", dur.Milliseconds(),
-			"remote", c.IP(),
+			"remote", remoteIP(c),
 		}
 		if err != nil {
 			attrs = append(attrs, "error", err.Error())
@@ -61,6 +86,13 @@ func RequestID() fiber.Handler {
 		Default().Info("http_request", attrs...)
 		return err
 	}
+}
+
+// RequestIDFromFiber returns the request ID stored by the RequestID
+// middleware, or "" when it isn't mounted.
+func RequestIDFromFiber(c *fiber.Ctx) string {
+	rid, _ := c.Locals(requestIDLocalKey).(string)
+	return rid
 }
 
 // FromFiber returns a logger enriched with the request_id stored on c.Locals

@@ -4074,6 +4074,104 @@ func (x *DeleteNodeTypeRequest) GetSlug() string {
 	return ""
 }
 
+// DataCallRequest invokes an extension-owned set-returning SQL function
+// (listed in the manifest's data_owned_functions).
+type DataCallRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Function      string                 `protobuf:"bytes,1,opt,name=function,proto3" json:"function,omitempty"`
+	ArgsJson      []byte                 `protobuf:"bytes,2,opt,name=args_json,json=argsJson,proto3" json:"args_json,omitempty"` // JSON-encoded []any (positional $1..$n)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DataCallRequest) Reset() {
+	*x = DataCallRequest{}
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DataCallRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DataCallRequest) ProtoMessage() {}
+
+func (x *DataCallRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DataCallRequest.ProtoReflect.Descriptor instead.
+func (*DataCallRequest) Descriptor() ([]byte, []int) {
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *DataCallRequest) GetFunction() string {
+	if x != nil {
+		return x.Function
+	}
+	return ""
+}
+
+func (x *DataCallRequest) GetArgsJson() []byte {
+	if x != nil {
+		return x.ArgsJson
+	}
+	return nil
+}
+
+type DataCallResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RowsJson      []byte                 `protobuf:"bytes,1,opt,name=rows_json,json=rowsJson,proto3" json:"rows_json,omitempty"` // JSON-encoded []map[string]any
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DataCallResponse) Reset() {
+	*x = DataCallResponse{}
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DataCallResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DataCallResponse) ProtoMessage() {}
+
+func (x *DataCallResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DataCallResponse.ProtoReflect.Descriptor instead.
+func (*DataCallResponse) Descriptor() ([]byte, []int) {
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *DataCallResponse) GetRowsJson() []byte {
+	if x != nil {
+		return x.RowsJson
+	}
+	return nil
+}
+
 var File_coreapi_squilla_coreapi_proto protoreflect.FileDescriptor
 
 const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
@@ -4396,7 +4494,12 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12;\n" +
 	"\x05input\x18\x02 \x01(\v2%.squilla.coreapi.NodeTypeInputMessageR\x05input\"+\n" +
 	"\x15DeleteNodeTypeRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug2\xaf\x19\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"J\n" +
+	"\x0fDataCallRequest\x12\x1a\n" +
+	"\bfunction\x18\x01 \x01(\tR\bfunction\x12\x1b\n" +
+	"\targs_json\x18\x02 \x01(\fR\bargsJson\"/\n" +
+	"\x10DataCallResponse\x12\x1b\n" +
+	"\trows_json\x18\x01 \x01(\fR\browsJson2\x80\x1a\n" +
 	"\vSquillaHost\x12I\n" +
 	"\aGetNode\x12\x1f.squilla.coreapi.GetNodeRequest\x1a\x1d.squilla.coreapi.NodeResponse\x12U\n" +
 	"\n" +
@@ -4451,7 +4554,8 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\vGetNodeType\x12#.squilla.coreapi.GetNodeTypeRequest\x1a!.squilla.coreapi.NodeTypeResponse\x12N\n" +
 	"\rListNodeTypes\x12\x16.squilla.coreapi.Empty\x1a%.squilla.coreapi.NodeTypeListResponse\x12[\n" +
 	"\x0eUpdateNodeType\x12&.squilla.coreapi.UpdateNodeTypeRequest\x1a!.squilla.coreapi.NodeTypeResponse\x12P\n" +
-	"\x0eDeleteNodeType\x12&.squilla.coreapi.DeleteNodeTypeRequest\x1a\x16.squilla.coreapi.EmptyB\x1eZ\x1csquilla/pkg/plugin/coreapipbb\x06proto3"
+	"\x0eDeleteNodeType\x12&.squilla.coreapi.DeleteNodeTypeRequest\x1a\x16.squilla.coreapi.Empty\x12O\n" +
+	"\bDataCall\x12 .squilla.coreapi.DataCallRequest\x1a!.squilla.coreapi.DataCallResponseB\x1eZ\x1csquilla/pkg/plugin/coreapipbb\x06proto3"
 
 var (
 	file_coreapi_squilla_coreapi_proto_rawDescOnce sync.Once
@@ -4465,7 +4569,7 @@ func file_coreapi_squilla_coreapi_proto_rawDescGZIP() []byte {
 	return file_coreapi_squilla_coreapi_proto_rawDescData
 }
 
-var file_coreapi_squilla_coreapi_proto_msgTypes = make([]protoimpl.MessageInfo, 74)
+var file_coreapi_squilla_coreapi_proto_msgTypes = make([]protoimpl.MessageInfo, 76)
 var file_coreapi_squilla_coreapi_proto_goTypes = []any{
 	(*Empty)(nil),                     // 0: squilla.coreapi.Empty
 	(*GetNodeRequest)(nil),            // 1: squilla.coreapi.GetNodeRequest
@@ -4534,21 +4638,23 @@ var file_coreapi_squilla_coreapi_proto_goTypes = []any{
 	(*GetNodeTypeRequest)(nil),        // 64: squilla.coreapi.GetNodeTypeRequest
 	(*UpdateNodeTypeRequest)(nil),     // 65: squilla.coreapi.UpdateNodeTypeRequest
 	(*DeleteNodeTypeRequest)(nil),     // 66: squilla.coreapi.DeleteNodeTypeRequest
-	nil,                               // 67: squilla.coreapi.NodeInput.SeoSettingsEntry
-	nil,                               // 68: squilla.coreapi.NodeMessage.SeoSettingsEntry
-	nil,                               // 69: squilla.coreapi.SettingsResponse.SettingsEntry
-	nil,                               // 70: squilla.coreapi.FetchRequest.HeadersEntry
-	nil,                               // 71: squilla.coreapi.FetchResponse.HeadersEntry
-	nil,                               // 72: squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
-	nil,                               // 73: squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
+	(*DataCallRequest)(nil),           // 67: squilla.coreapi.DataCallRequest
+	(*DataCallResponse)(nil),          // 68: squilla.coreapi.DataCallResponse
+	nil,                               // 69: squilla.coreapi.NodeInput.SeoSettingsEntry
+	nil,                               // 70: squilla.coreapi.NodeMessage.SeoSettingsEntry
+	nil,                               // 71: squilla.coreapi.SettingsResponse.SettingsEntry
+	nil,                               // 72: squilla.coreapi.FetchRequest.HeadersEntry
+	nil,                               // 73: squilla.coreapi.FetchResponse.HeadersEntry
+	nil,                               // 74: squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
+	nil,                               // 75: squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
 }
 var file_coreapi_squilla_coreapi_proto_depIdxs = []int32{
 	8,  // 0: squilla.coreapi.CreateNodeRequest.input:type_name -> squilla.coreapi.NodeInput
 	8,  // 1: squilla.coreapi.UpdateNodeRequest.input:type_name -> squilla.coreapi.NodeInput
-	67, // 2: squilla.coreapi.NodeInput.seo_settings:type_name -> squilla.coreapi.NodeInput.SeoSettingsEntry
+	69, // 2: squilla.coreapi.NodeInput.seo_settings:type_name -> squilla.coreapi.NodeInput.SeoSettingsEntry
 	11, // 3: squilla.coreapi.NodeResponse.node:type_name -> squilla.coreapi.NodeMessage
 	11, // 4: squilla.coreapi.QueryNodesResponse.nodes:type_name -> squilla.coreapi.NodeMessage
-	68, // 5: squilla.coreapi.NodeMessage.seo_settings:type_name -> squilla.coreapi.NodeMessage.SeoSettingsEntry
+	70, // 5: squilla.coreapi.NodeMessage.seo_settings:type_name -> squilla.coreapi.NodeMessage.SeoSettingsEntry
 	19, // 6: squilla.coreapi.ListTermsResponse.terms:type_name -> squilla.coreapi.TermMessage
 	19, // 7: squilla.coreapi.CreateTermRequest.term:type_name -> squilla.coreapi.TermMessage
 	19, // 8: squilla.coreapi.TermResponse.term:type_name -> squilla.coreapi.TermMessage
@@ -4557,19 +4663,19 @@ var file_coreapi_squilla_coreapi_proto_depIdxs = []int32{
 	21, // 11: squilla.coreapi.TaxonomyResponse.taxonomy:type_name -> squilla.coreapi.TaxonomyMessage
 	21, // 12: squilla.coreapi.TaxonomyListResponse.taxonomies:type_name -> squilla.coreapi.TaxonomyMessage
 	20, // 13: squilla.coreapi.UpdateTaxonomyRequest.input:type_name -> squilla.coreapi.TaxonomyInputMessage
-	69, // 14: squilla.coreapi.SettingsResponse.settings:type_name -> squilla.coreapi.SettingsResponse.SettingsEntry
+	71, // 14: squilla.coreapi.SettingsResponse.settings:type_name -> squilla.coreapi.SettingsResponse.SettingsEntry
 	37, // 15: squilla.coreapi.MenuResponse.menu:type_name -> squilla.coreapi.MenuMessage
 	37, // 16: squilla.coreapi.MenuListResponse.menus:type_name -> squilla.coreapi.MenuMessage
 	38, // 17: squilla.coreapi.MenuMessage.items:type_name -> squilla.coreapi.MenuItemMessage
 	38, // 18: squilla.coreapi.MenuItemMessage.children:type_name -> squilla.coreapi.MenuItemMessage
 	43, // 19: squilla.coreapi.UserResponse.user:type_name -> squilla.coreapi.UserMessage
 	43, // 20: squilla.coreapi.UserListResponse.users:type_name -> squilla.coreapi.UserMessage
-	70, // 21: squilla.coreapi.FetchRequest.headers:type_name -> squilla.coreapi.FetchRequest.HeadersEntry
-	71, // 22: squilla.coreapi.FetchResponse.headers:type_name -> squilla.coreapi.FetchResponse.HeadersEntry
+	72, // 21: squilla.coreapi.FetchRequest.headers:type_name -> squilla.coreapi.FetchRequest.HeadersEntry
+	73, // 22: squilla.coreapi.FetchResponse.headers:type_name -> squilla.coreapi.FetchResponse.HeadersEntry
 	59, // 23: squilla.coreapi.NodeTypeInputMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
-	72, // 24: squilla.coreapi.NodeTypeInputMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
+	74, // 24: squilla.coreapi.NodeTypeInputMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
 	59, // 25: squilla.coreapi.NodeTypeMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
-	73, // 26: squilla.coreapi.NodeTypeMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
+	75, // 26: squilla.coreapi.NodeTypeMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
 	61, // 27: squilla.coreapi.NodeTypeResponse.node_type:type_name -> squilla.coreapi.NodeTypeMessage
 	61, // 28: squilla.coreapi.NodeTypeListResponse.node_types:type_name -> squilla.coreapi.NodeTypeMessage
 	60, // 29: squilla.coreapi.UpdateNodeTypeRequest.input:type_name -> squilla.coreapi.NodeTypeInputMessage
@@ -4613,48 +4719,50 @@ var file_coreapi_squilla_coreapi_proto_depIdxs = []int32{
 	0,  // 67: squilla.coreapi.SquillaHost.ListNodeTypes:input_type -> squilla.coreapi.Empty
 	65, // 68: squilla.coreapi.SquillaHost.UpdateNodeType:input_type -> squilla.coreapi.UpdateNodeTypeRequest
 	66, // 69: squilla.coreapi.SquillaHost.DeleteNodeType:input_type -> squilla.coreapi.DeleteNodeTypeRequest
-	9,  // 70: squilla.coreapi.SquillaHost.GetNode:output_type -> squilla.coreapi.NodeResponse
-	10, // 71: squilla.coreapi.SquillaHost.QueryNodes:output_type -> squilla.coreapi.QueryNodesResponse
-	7,  // 72: squilla.coreapi.SquillaHost.ListTaxonomyTerms:output_type -> squilla.coreapi.ListTaxonomyTermsResponse
-	9,  // 73: squilla.coreapi.SquillaHost.CreateNode:output_type -> squilla.coreapi.NodeResponse
-	9,  // 74: squilla.coreapi.SquillaHost.UpdateNode:output_type -> squilla.coreapi.NodeResponse
-	0,  // 75: squilla.coreapi.SquillaHost.DeleteNode:output_type -> squilla.coreapi.Empty
-	13, // 76: squilla.coreapi.SquillaHost.ListTerms:output_type -> squilla.coreapi.ListTermsResponse
-	18, // 77: squilla.coreapi.SquillaHost.GetTerm:output_type -> squilla.coreapi.TermResponse
-	18, // 78: squilla.coreapi.SquillaHost.CreateTerm:output_type -> squilla.coreapi.TermResponse
-	18, // 79: squilla.coreapi.SquillaHost.UpdateTerm:output_type -> squilla.coreapi.TermResponse
-	0,  // 80: squilla.coreapi.SquillaHost.DeleteTerm:output_type -> squilla.coreapi.Empty
-	22, // 81: squilla.coreapi.SquillaHost.RegisterTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
-	22, // 82: squilla.coreapi.SquillaHost.GetTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
-	23, // 83: squilla.coreapi.SquillaHost.ListTaxonomies:output_type -> squilla.coreapi.TaxonomyListResponse
-	22, // 84: squilla.coreapi.SquillaHost.UpdateTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
-	0,  // 85: squilla.coreapi.SquillaHost.DeleteTaxonomy:output_type -> squilla.coreapi.Empty
-	28, // 86: squilla.coreapi.SquillaHost.GetSetting:output_type -> squilla.coreapi.SettingResponse
-	0,  // 87: squilla.coreapi.SquillaHost.SetSetting:output_type -> squilla.coreapi.Empty
-	31, // 88: squilla.coreapi.SquillaHost.GetSettings:output_type -> squilla.coreapi.SettingsResponse
-	0,  // 89: squilla.coreapi.SquillaHost.EmitEvent:output_type -> squilla.coreapi.Empty
-	0,  // 90: squilla.coreapi.SquillaHost.SendEmail:output_type -> squilla.coreapi.Empty
-	35, // 91: squilla.coreapi.SquillaHost.GetMenu:output_type -> squilla.coreapi.MenuResponse
-	36, // 92: squilla.coreapi.SquillaHost.GetMenus:output_type -> squilla.coreapi.MenuListResponse
-	41, // 93: squilla.coreapi.SquillaHost.GetUser:output_type -> squilla.coreapi.UserResponse
-	42, // 94: squilla.coreapi.SquillaHost.QueryUsers:output_type -> squilla.coreapi.UserListResponse
-	45, // 95: squilla.coreapi.SquillaHost.Fetch:output_type -> squilla.coreapi.FetchResponse
-	0,  // 96: squilla.coreapi.SquillaHost.Log:output_type -> squilla.coreapi.Empty
-	48, // 97: squilla.coreapi.SquillaHost.DataGet:output_type -> squilla.coreapi.DataRowResponse
-	50, // 98: squilla.coreapi.SquillaHost.DataQuery:output_type -> squilla.coreapi.DataQueryResponse
-	48, // 99: squilla.coreapi.SquillaHost.DataCreate:output_type -> squilla.coreapi.DataRowResponse
-	0,  // 100: squilla.coreapi.SquillaHost.DataUpdate:output_type -> squilla.coreapi.Empty
-	0,  // 101: squilla.coreapi.SquillaHost.DataDelete:output_type -> squilla.coreapi.Empty
-	55, // 102: squilla.coreapi.SquillaHost.DataExec:output_type -> squilla.coreapi.DataExecResponse
-	57, // 103: squilla.coreapi.SquillaHost.StoreFile:output_type -> squilla.coreapi.StoreFileResponse
-	0,  // 104: squilla.coreapi.SquillaHost.DeleteFile:output_type -> squilla.coreapi.Empty
-	62, // 105: squilla.coreapi.SquillaHost.RegisterNodeType:output_type -> squilla.coreapi.NodeTypeResponse
-	62, // 106: squilla.coreapi.SquillaHost.GetNodeType:output_type -> squilla.coreapi.NodeTypeResponse
-	63, // 107: squilla.coreapi.SquillaHost.ListNodeTypes:output_type -> squilla.coreapi.NodeTypeListResponse
-	62, // 108: squilla.coreapi.SquillaHost.UpdateNodeType:output_type -> squilla.coreapi.NodeTypeResponse
-	0,  // 109: squilla.coreapi.SquillaHost.DeleteNodeType:output_type -> squilla.coreapi.Empty
-	70, // [70:110] is the sub-list for method output_type
-	30, // [30:70] is the sub-list for method input_type
+	67, // 70: squilla.coreapi.SquillaHost.DataCall:input_type -> squilla.coreapi.DataCallRequest
+	9,  // 71: squilla.coreapi.SquillaHost.GetNode:output_type -> squilla.coreapi.NodeResponse
+	10, // 72: squilla.coreapi.SquillaHost.QueryNodes:output_type -> squilla.coreapi.QueryNodesResponse
+	7,  // 73: squilla.coreapi.SquillaHost.ListTaxonomyTerms:output_type -> squilla.coreapi.ListTaxonomyTermsResponse
+	9,  // 74: squilla.coreapi.SquillaHost.CreateNode:output_type -> squilla.coreapi.NodeResponse
+	9,  // 75: squilla.coreapi.SquillaHost.UpdateNode:output_type -> squilla.coreapi.NodeResponse
+	0,  // 76: squilla.coreapi.SquillaHost.DeleteNode:output_type -> squilla.coreapi.Empty
+	13, // 77: squilla.coreapi.SquillaHost.ListTerms:output_type -> squilla.coreapi.ListTermsResponse
+	18, // 78: squilla.coreapi.SquillaHost.GetTerm:output_type -> squilla.coreapi.TermResponse
+	18, // 79: squilla.coreapi.SquillaHost.CreateTerm:output_type -> squilla.coreapi.TermResponse
+	18, // 80: squilla.coreapi.SquillaHost.UpdateTerm:output_type -> squilla.coreapi.TermResponse
+	0,  // 81: squilla.coreapi.SquillaHost.DeleteTerm:output_type -> squilla.coreapi.Empty
+	22, // 82: squilla.coreapi.SquillaHost.RegisterTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
+	22, // 83: squilla.coreapi.SquillaHost.GetTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
+	23, // 84: squilla.coreapi.SquillaHost.ListTaxonomies:output_type -> squilla.coreapi.TaxonomyListResponse
+	22, // 85: squilla.coreapi.SquillaHost.UpdateTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
+	0,  // 86: squilla.coreapi.SquillaHost.DeleteTaxonomy:output_type -> squilla.coreapi.Empty
+	28, // 87: squilla.coreapi.SquillaHost.GetSetting:output_type -> squilla.coreapi.SettingResponse
+	0,  // 88: squilla.coreapi.SquillaHost.SetSetting:output_type -> squilla.coreapi.Empty
+	31, // 89: squilla.coreapi.SquillaHost.GetSettings:output_type -> squilla.coreapi.SettingsResponse
+	0,  // 90: squilla.coreapi.SquillaHost.EmitEvent:output_type -> squilla.coreapi.Empty
+	0,  // 91: squilla.coreapi.SquillaHost.SendEmail:output_type -> squilla.coreapi.Empty
+	35, // 92: squilla.coreapi.SquillaHost.GetMenu:output_type -> squilla.coreapi.MenuResponse
+	36, // 93: squilla.coreapi.SquillaHost.GetMenus:output_type -> squilla.coreapi.MenuListResponse
+	41, // 94: squilla.coreapi.SquillaHost.GetUser:output_type -> squilla.coreapi.UserResponse
+	42, // 95: squilla.coreapi.SquillaHost.QueryUsers:output_type -> squilla.coreapi.UserListResponse
+	45, // 96: squilla.coreapi.SquillaHost.Fetch:output_type -> squilla.coreapi.FetchResponse
+	0,  // 97: squilla.coreapi.SquillaHost.Log:output_type -> squilla.coreapi.Empty
+	48, // 98: squilla.coreapi.SquillaHost.DataGet:output_type -> squilla.coreapi.DataRowResponse
+	50, // 99: squilla.coreapi.SquillaHost.DataQuery:output_type -> squilla.coreapi.DataQueryResponse
+	48, // 100: squilla.coreapi.SquillaHost.DataCreate:output_type -> squilla.coreapi.DataRowResponse
+	0,  // 101: squilla.coreapi.SquillaHost.DataUpdate:output_type -> squilla.coreapi.Empty
+	0,  // 102: squilla.coreapi.SquillaHost.DataDelete:output_type -> squilla.coreapi.Empty
+	55, // 103: squilla.coreapi.SquillaHost.DataExec:output_type -> squilla.coreapi.DataExecResponse
+	57, // 104: squilla.coreapi.SquillaHost.StoreFile:output_type -> squilla.coreapi.StoreFileResponse
+	0,  // 105: squilla.coreapi.SquillaHost.DeleteFile:output_type -> squilla.coreapi.Empty
+	62, // 106: squilla.coreapi.SquillaHost.RegisterNodeType:output_type -> squilla.coreapi.NodeTypeResponse
+	62, // 107: squilla.coreapi.SquillaHost.GetNodeType:output_type -> squilla.coreapi.NodeTypeResponse
+	63, // 108: squilla.coreapi.SquillaHost.ListNodeTypes:output_type -> squilla.coreapi.NodeTypeListResponse
+	62, // 109: squilla.coreapi.SquillaHost.UpdateNodeType:output_type -> squilla.coreapi.NodeTypeResponse
+	0,  // 110: squilla.coreapi.SquillaHost.DeleteNodeType:output_type -> squilla.coreapi.Empty
+	68, // 111: squilla.coreapi.SquillaHost.DataCall:output_type -> squilla.coreapi.DataCallResponse
+	71, // [71:112] is the sub-list for method output_type
+	30, // [30:71] is the sub-list for method input_type
 	30, // [30:30] is the sub-list for extension type_name
 	30, // [30:30] is the sub-list for extension extendee
 	0,  // [0:30] is the sub-list for field type_name
@@ -4671,7 +4779,7 @@ func file_coreapi_squilla_coreapi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_coreapi_squilla_coreapi_proto_rawDesc), len(file_coreapi_squilla_coreapi_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   74,
+			NumMessages:   76,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

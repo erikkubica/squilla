@@ -59,6 +59,7 @@ const (
 	SquillaHost_ListNodeTypes_FullMethodName     = "/squilla.coreapi.SquillaHost/ListNodeTypes"
 	SquillaHost_UpdateNodeType_FullMethodName    = "/squilla.coreapi.SquillaHost/UpdateNodeType"
 	SquillaHost_DeleteNodeType_FullMethodName    = "/squilla.coreapi.SquillaHost/DeleteNodeType"
+	SquillaHost_DataCall_FullMethodName          = "/squilla.coreapi.SquillaHost/DataCall"
 )
 
 // SquillaHostClient is the client API for SquillaHost service.
@@ -107,6 +108,7 @@ type SquillaHostClient interface {
 	ListNodeTypes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*NodeTypeListResponse, error)
 	UpdateNodeType(ctx context.Context, in *UpdateNodeTypeRequest, opts ...grpc.CallOption) (*NodeTypeResponse, error)
 	DeleteNodeType(ctx context.Context, in *DeleteNodeTypeRequest, opts ...grpc.CallOption) (*Empty, error)
+	DataCall(ctx context.Context, in *DataCallRequest, opts ...grpc.CallOption) (*DataCallResponse, error)
 }
 
 type squillaHostClient struct {
@@ -517,6 +519,16 @@ func (c *squillaHostClient) DeleteNodeType(ctx context.Context, in *DeleteNodeTy
 	return out, nil
 }
 
+func (c *squillaHostClient) DataCall(ctx context.Context, in *DataCallRequest, opts ...grpc.CallOption) (*DataCallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DataCallResponse)
+	err := c.cc.Invoke(ctx, SquillaHost_DataCall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SquillaHostServer is the server API for SquillaHost service.
 // All implementations must embed UnimplementedSquillaHostServer
 // for forward compatibility.
@@ -563,6 +575,7 @@ type SquillaHostServer interface {
 	ListNodeTypes(context.Context, *Empty) (*NodeTypeListResponse, error)
 	UpdateNodeType(context.Context, *UpdateNodeTypeRequest) (*NodeTypeResponse, error)
 	DeleteNodeType(context.Context, *DeleteNodeTypeRequest) (*Empty, error)
+	DataCall(context.Context, *DataCallRequest) (*DataCallResponse, error)
 	mustEmbedUnimplementedSquillaHostServer()
 }
 
@@ -692,6 +705,9 @@ func (UnimplementedSquillaHostServer) UpdateNodeType(context.Context, *UpdateNod
 }
 func (UnimplementedSquillaHostServer) DeleteNodeType(context.Context, *DeleteNodeTypeRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteNodeType not implemented")
+}
+func (UnimplementedSquillaHostServer) DataCall(context.Context, *DataCallRequest) (*DataCallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DataCall not implemented")
 }
 func (UnimplementedSquillaHostServer) mustEmbedUnimplementedSquillaHostServer() {}
 func (UnimplementedSquillaHostServer) testEmbeddedByValue()                     {}
@@ -1434,6 +1450,24 @@ func _SquillaHost_DeleteNodeType_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SquillaHost_DataCall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataCallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SquillaHostServer).DataCall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SquillaHost_DataCall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SquillaHostServer).DataCall(ctx, req.(*DataCallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SquillaHost_ServiceDesc is the grpc.ServiceDesc for SquillaHost service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1600,6 +1634,10 @@ var SquillaHost_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteNodeType",
 			Handler:    _SquillaHost_DeleteNodeType_Handler,
+		},
+		{
+			MethodName: "DataCall",
+			Handler:    _SquillaHost_DataCall_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -90,6 +90,12 @@ type CoreAPI interface {
 	DataUpdate(ctx context.Context, table string, id uint, data map[string]any) error
 	DataDelete(ctx context.Context, table string, id uint) error
 	DataExec(ctx context.Context, sql string, args ...any) (int64, error)
+	// DataCall runs an extension-owned set-returning SQL function:
+	//   SELECT * FROM "<fn>"($1, $2, …)
+	// fn must be listed in the caller's manifest data_owned_functions.
+	// Returns rows as maps (column → value); jsonb columns come back
+	// parsed. Statement timeout 30s.
+	DataCall(ctx context.Context, fn string, args ...any) ([]map[string]any, error)
 
 	// Node Types
 	RegisterNodeType(ctx context.Context, input NodeTypeInput) (*NodeType, error)

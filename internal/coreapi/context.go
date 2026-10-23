@@ -15,11 +15,15 @@ const callerKey ctxKey = iota
 // sessions (token_hash exposed), password_reset_tokens, etc. The map
 // is populated from the extension manifest's `data_owned_tables`
 // declaration; "internal" callers bypass the check entirely.
+//
+// OwnedFunctions gates DataCall the same way, populated from the
+// manifest's `data_owned_functions`.
 type CallerInfo struct {
-	Slug         string
-	Type         string // "tengo", "grpc", "internal"
-	Capabilities map[string]bool
-	OwnedTables  map[string]bool
+	Slug           string
+	Type           string // "tengo", "grpc", "internal"
+	Capabilities   map[string]bool
+	OwnedTables    map[string]bool
+	OwnedFunctions map[string]bool
 }
 
 func InternalCaller() CallerInfo {

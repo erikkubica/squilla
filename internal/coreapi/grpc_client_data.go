@@ -224,3 +224,30 @@ func (c *GRPCHostClient) DeleteFile(ctx context.Context, path string) error {
 
 // --- Helper functions ---
 
+
+// --- DataCall ---
+
+func (c *GRPCHostClient) DataCall(ctx context.Context, fn string, args ...any) ([]map[string]any, error) {
+	req := &pb.DataCallRequest{Function: fn}
+	if len(args) > 0 {
+		b, err := json.Marshal(args)
+		if err != nil {
+			return nil, NewInternal("failed to marshal args: " + err.Error())
+		}
+		req.ArgsJson = b
+	}
+	resp, err := c.client.DataCall(ctx, req)
+	if err != nil {
+		return nil, fromGRPCError(err)
+	}
+	rows := []map[string]any{}
+	if len(resp.RowsJson) > 0 {
+		if err := json.Unmarshal(resp.RowsJson, &rows); err != nil {
+			return nil, NewInternal("failed to unmarshal rows: " + err.Error())
+		}
+	}
+	if rows == nil { // JSON null
+		rows = []map[string]any{}
+	}
+	return rows, nil
+}

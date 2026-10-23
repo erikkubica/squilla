@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"squilla/internal/events"
+	"squilla/internal/httpobs"
 	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
@@ -132,7 +133,7 @@ func defaultRegistrationRoleSlug(db *gorm.DB) string {
 // --- POST handlers ---
 
 func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
-	if !h.loginLimiter.Allow(c.IP()) {
+	if !h.loginLimiter.Allow(httpobs.ClientIP(c)) {
 		setFlash(c, "Too many sign-in attempts. Please wait a minute and try again.", "error")
 		return c.Redirect("/login", fiber.StatusFound)
 	}
@@ -174,7 +175,7 @@ func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
 	// Successful login — clear any pending lockout state for this account.
 	h.lockout.RecordSuccess(email)
 
-	token, err := h.sessionSvc.CreateSession(user.ID, c.IP(), c.Get("User-Agent"))
+	token, err := h.sessionSvc.CreateSession(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
 	if err != nil {
 		log.Printf("failed to create session: %v", err)
 		setFlash(c, "An unexpected error occurred.", "error")
@@ -199,7 +200,7 @@ func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
 			"user_id":     user.ID,
 			"user_email":  user.Email,
 			"actor_email": user.Email,
-			"ip_address":  c.IP(),
+			"ip_address":  httpobs.ClientIP(c),
 		})
 	}
 
@@ -208,7 +209,7 @@ func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
 }
 
 func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
-	if !h.signupLimiter.Allow(c.IP()) {
+	if !h.signupLimiter.Allow(httpobs.ClientIP(c)) {
 		setFlash(c, "Too many registration attempts. Please try again later.", "error")
 		return c.Redirect("/register", fiber.StatusFound)
 	}
@@ -284,7 +285,7 @@ func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
 		return c.Redirect("/register", fiber.StatusFound)
 	}
 
-	token, err := h.sessionSvc.CreateSession(user.ID, c.IP(), c.Get("User-Agent"))
+	token, err := h.sessionSvc.CreateSession(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
 	if err != nil {
 		setFlash(c, "Account created! Please sign in.", "success")
 		return c.Redirect("/login", fiber.StatusFound)
@@ -340,7 +341,7 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 		return c.Redirect("/forgot-password", fiber.StatusFound)
 	}
 
-	if !h.forgotLimiter.Allow(c.IP()) {
+	if !h.forgotLimiter.Allow(httpobs.ClientIP(c)) {
 		// Same generic message — don't tell attackers they're rate-limited
 		// (still an oracle that the endpoint is reachable).
 		setFlash(c, "If an account exists with that email, a reset link has been sent.", "success")
@@ -363,7 +364,7 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 		return c.Redirect("/forgot-password", fiber.StatusFound)
 	}
 
-	rawToken, expires, err := h.resetSvc.IssueToken(user.ID, c.IP(), c.Get("User-Agent"))
+	rawToken, expires, err := h.resetSvc.IssueToken(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
 	if err != nil {
 		log.Printf("issuing password reset token for user %d: %v", user.ID, err)
 		setFlash(c, successMsg, "success")
@@ -383,7 +384,7 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 		"reset_url":   resetURL,
 		"reset_token": rawToken, // template variable; persisted in email log if logging is enabled
 		"expires_at":  expires.Format(time.RFC3339),
-		"ip_address":  c.IP(),
+		"ip_address":  httpobs.ClientIP(c),
 	})
 
 	setFlash(c, successMsg, "success")
@@ -394,7 +395,7 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 // password, invalidates remaining tokens, and clears all of that user's
 // sessions so an attacker who already had a session is kicked out.
 func (h *PageAuthHandler) ProcessResetPassword(c *fiber.Ctx) error {
-	if !h.resetLimiter.Allow(c.IP()) {
+	if !h.resetLimiter.Allow(httpobs.ClientIP(c)) {
 		setFlash(c, "Too many reset attempts. Please try again later.", "error")
 		return c.Redirect("/login", fiber.StatusFound)
 	}
@@ -452,7 +453,7 @@ func (h *PageAuthHandler) ProcessResetPassword(c *fiber.Ctx) error {
 	if h.eventBus != nil {
 		go h.eventBus.Publish("user.password_reset_completed", events.Payload{
 			"user_id":    userID,
-			"ip_address": c.IP(),
+			"ip_address": httpobs.ClientIP(c),
 		})
 	}
 

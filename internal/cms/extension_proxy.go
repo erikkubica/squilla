@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"squilla/internal/auth"
+	"squilla/internal/httpobs"
 	pb "squilla/pkg/plugin/proto"
 )
 
@@ -85,7 +86,7 @@ func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
 	// leakage to plugins. Also drop any client-supplied
 	// X-Forwarded-For / X-Real-IP — those are spoofable, and plugins
 	// rely on them for per-IP rate limiting; the kernel rewrites them
-	// below with c.IP() (Fiber's authoritative remote address).
+	// below with httpobs.ClientIP(c) (the trusted-proxy-aware client address).
 	headers := make(map[string]string)
 	c.Request().Header.VisitAll(func(key, value []byte) {
 		k := string(key)
@@ -99,7 +100,7 @@ func (ep *ExtensionProxy) handleRequest(c *fiber.Ctx) error {
 	// Insert the trusted remote IP. Plugins read X-Forwarded-For for
 	// historical reasons; this overwrite means downstream code keeps
 	// working without each plugin having to learn a new header name.
-	headers["X-Forwarded-For"] = c.IP()
+	headers["X-Forwarded-For"] = httpobs.ClientIP(c)
 
 	// Build query params map.
 	queryParams := make(map[string]string)

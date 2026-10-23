@@ -137,6 +137,10 @@ type ExtensionManifest struct {
 	// coreapi.checkTableAccess) so an extension granted "data:read"
 	// can't pivot from its own data into users / sessions / etc.
 	DataOwnedTables []string                 `json:"data_owned_tables"`
+	// DataOwnedFunctions enumerates the SQL functions (created by the
+	// extension's own migrations) this extension may invoke through
+	// CoreAPI.DataCall. Default deny, like DataOwnedTables.
+	DataOwnedFunctions []string `json:"data_owned_functions"`
 	Plugins        []PluginManifestEntry    `json:"plugins"`
 	AdminUI        *AdminUIManifest         `json:"admin_ui"`
 	SettingsSchema map[string]SettingsField `json:"settings_schema"`

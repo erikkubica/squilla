@@ -243,6 +243,10 @@ func (s *stubCoreAPI) DataExec(_ context.Context, _ string, _ ...any) (int64, er
 	s.record("DataExec")
 	return 0, nil
 }
+func (s *stubCoreAPI) DataCall(_ context.Context, _ string, _ ...any) ([]map[string]any, error) {
+	s.record("DataCall")
+	return nil, nil
+}
 
 // --- Node Types ---
 func (s *stubCoreAPI) RegisterNodeType(_ context.Context, _ NodeTypeInput) (*NodeType, error) {
@@ -376,6 +380,7 @@ func guardCases() []guardCase {
 		{"DataUpdate", "data:write", func(ctx context.Context, a CoreAPI) error { return a.DataUpdate(ctx, "test_table", 1, nil) }},
 		{"DataDelete", "data:delete", func(ctx context.Context, a CoreAPI) error { return a.DataDelete(ctx, "test_table", 1) }},
 		{"DataExec", "data:write", func(ctx context.Context, a CoreAPI) error { _, e := a.DataExec(ctx, ""); return e }},
+		{"DataCall", "data:call", func(ctx context.Context, a CoreAPI) error { _, e := a.DataCall(ctx, "test_fn", 1); return e }},
 
 		// Node Types.
 		{"RegisterNodeType", "nodetypes:write", func(ctx context.Context, a CoreAPI) error { _, e := a.RegisterNodeType(ctx, NodeTypeInput{}); return e }},
@@ -431,10 +436,11 @@ func TestCapabilityGuard_AllowedWithCapability(t *testing.T) {
 				owned[tab] = true
 			}
 			caller := CallerInfo{
-				Slug:         "test",
-				Type:         "tengo",
-				Capabilities: map[string]bool{tc.cap: true},
-				OwnedTables:  owned,
+				Slug:           "test",
+				Type:           "tengo",
+				Capabilities:   map[string]bool{tc.cap: true},
+				OwnedTables:    owned,
+				OwnedFunctions: map[string]bool{"test_fn": true},
 			}
 			ctx := WithCaller(context.Background(), caller)
 			if err := tc.call(ctx, guarded); err != nil {
@@ -502,3 +508,34 @@ func isCapabilityErr(err error) bool {
 // wouldn't compile when a test is added that needs them.
 var _ = io.Discard
 var _ = time.Second
+
+// http.requests is kernel-produced and carries raw IPs: extensions may
+// not forge it via Emit, and Subscribe needs http:observe on top of
+// events:subscribe.
+func TestCapabilityGuard_HTTPObserveEvent(t *testing.T) {
+	stub := &stubCoreAPI{}
+	g := NewCapabilityGuard(stub)
+	ctx := WithCaller(context.Background(), CallerInfo{
+		Slug: "x", Type: "grpc",
+		Capabilities: map[string]bool{"events:emit": true, "events:subscribe": true},
+	})
+	if err := g.Emit(ctx, "http.requests", nil); !isCapabilityErr(err) {
+		t.Fatalf("Emit http.requests: expected denial, got %v", err)
+	}
+	if _, err := g.Subscribe(ctx, "http.requests", func(string, map[string]any) {}); !isCapabilityErr(err) {
+		t.Fatalf("Subscribe http.requests without http:observe: expected denial, got %v", err)
+	}
+	if len(stub.calls) != 0 {
+		t.Fatalf("inner invoked: %v", stub.calls)
+	}
+	if err := g.Emit(ctx, "node.created", nil); err != nil {
+		t.Fatalf("ordinary Emit denied: %v", err)
+	}
+	obs := WithCaller(context.Background(), CallerInfo{
+		Slug: "x", Type: "grpc",
+		Capabilities: map[string]bool{"events:subscribe": true, "http:observe": true},
+	})
+	if _, err := g.Subscribe(obs, "http.requests", func(string, map[string]any) {}); err != nil {
+		t.Fatalf("Subscribe with http:observe denied: %v", err)
+	}
+}
