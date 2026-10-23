@@ -478,7 +478,7 @@ function AdminLayoutInner() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--app-bg)" }}>
+    <div className="relative flex h-screen overflow-hidden" style={{ background: "var(--app-bg)" }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -859,7 +859,9 @@ function AdminLayoutInner() {
         {/* Page content */}
         <main
           className="flex-1 overflow-y-auto"
-          style={{ padding: "18px 22px 40px", overflowAnchor: "none" }}
+          // relative: contain absolutely positioned descendants so they
+          // can't stretch the document (see sdui/admin-shell.tsx).
+          style={{ position: "relative", padding: "18px 22px 40px", overflowAnchor: "none" }}
         >
           <div style={{ maxWidth: 1200, margin: "0 auto" }}>
             <Outlet />

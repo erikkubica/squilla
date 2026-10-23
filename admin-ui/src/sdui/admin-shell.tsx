@@ -483,7 +483,7 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
   }, [logout]);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{background: "var(--app-bg)"}}>
+    <div className="relative flex h-screen overflow-hidden" style={{background: "var(--app-bg)"}}>
       {/* ----------------------------------------------------------------- */}
       {/* Mobile overlay                                                     */}
       {/* ----------------------------------------------------------------- */}
@@ -725,6 +725,13 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
         <main
           className={mainClassName ?? "flex-1 overflow-y-auto"}
           style={{
+            // position: relative makes <main> the containing block for
+            // absolutely positioned descendants (sr-only text, Radix hidden
+            // inputs, chart overlays). Without it they anchor to <body>,
+            // escape this scroll container and stretch the document, so the
+            // window itself scrolls and the shell slides away ("overscroll /
+            // cut off" bug). The shell root is relative for the same reason.
+            position: "relative",
             padding: "18px 22px 40px",
             // overflow-anchor: none avoids Chrome's scroll-anchoring kicking in
             // when content above the viewport changes height — that was firing
