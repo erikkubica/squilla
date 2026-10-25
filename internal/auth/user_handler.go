@@ -306,7 +306,9 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	if req.FullName != nil {
 		updates["full_name"] = *req.FullName
 	}
-	if req.RoleID != nil {
+	// The admin form always submits the current role; an unchanged role is a
+	// no-op, not a role change.
+	if req.RoleID != nil && *req.RoleID != user.RoleID {
 		if !HasCapability(currentUser, "manage_users") {
 			return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "Only admins can change user roles")
 		}
