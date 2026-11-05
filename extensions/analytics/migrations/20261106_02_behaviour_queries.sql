@@ -50,7 +50,7 @@ RETURNS TABLE(data jsonb) LANGUAGE sql STABLE AS $$
         WINDOW w AS (PARTITION BY e.session_id ORDER BY e.ts)
     ),
     here AS (SELECT * FROM pv WHERE path = p_path),
-    act AS (SELECT eid FROM here WHERE viewport <> ''),
+    act AS (SELECT eid FROM here WHERE confirmed),
     inter AS (
         SELECT i.* FROM analytics_interactions i, rng WHERE i.path = p_path AND i.ts >= rng.f AND i.ts < rng.t
     ),

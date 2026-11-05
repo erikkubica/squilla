@@ -109,7 +109,7 @@ Detection runs in this order:
 | Median visit length | Median of first-to-last pageview time, for multi-page visits only. For multi-day ranges, this is the daily medians weighted by multi-page visits. |
 | Engaged visit | Two or more pages, a conversion, or (with signals) 10 s on the exit page or the end of the page reached. |
 | Section impression | A section scrolled at least 60 % into view (scroll-driven animation entry range). Click-through = clicks ÷ impressions. |
-| Time on page | With signals: the last stay mark received (10 s, 30 s, 1 min, 3 min, 10 min) — a lower bound on the server's clock. Without: the gap to the next page in the visit. |
+| Time on page | With signals: the last stay mark received (10 s, 30 s, 1 min, 3 min) — a lower bound on the server's clock. Without: the gap to the next page in the visit. |
 | Conversions | Goal events. *Conversion rate* = visits with at least one conversion ÷ visits. |
 
 Acquisition (source, channel, UTM, click IDs) is taken from the first
@@ -150,7 +150,7 @@ excluded paths get the page unchanged.
 | Signal | Trigger | Request |
 | --- | --- | --- |
 | Activation | SVG SMIL timer, 1 s after load | `GET /_s/b?p=<page id>` |
-| Time on page | SMIL timers at 10 s, 30 s, 1, 3 and 10 min | `GET /_s/t?p=&s=` |
+| Time on page | SMIL timers at 10 s, 30 s, 1 and 3 min | `GET /_s/t?p=&s=` |
 | Section impression, end of page | scroll-driven animation → custom property → style query | `GET /_s/v?p=&k=<block>`, `/_s/e?p=` |
 | Link click | the `ping` attribute | `POST /_s/c?p=&k=<block>` (destination from `Ping-To`) |
 | Form focus, FAQ opened | `:has()` | `GET /_s/i?p=&k=&t=f\|d` |

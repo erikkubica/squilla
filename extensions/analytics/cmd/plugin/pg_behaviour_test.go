@@ -83,6 +83,7 @@ func TestPostgresBehaviour(t *testing.T) {
 		{"kind": "block", "block_key": "bv-hero.0", "label": "Hero"},
 		{"kind": "link", "block_key": "bv-hero.0", "label": "Book", "href": "/contact"},
 		{"kind": "link", "block_key": "bv-faq.0", "label": "Nobody", "href": "/never"},
+		{"kind": "link", "block_key": "bv-faq.0", "label": "Nobody again", "href": "/never"}, // same link twice in a block
 	}); err != nil {
 		t.Fatal(err)
 	}

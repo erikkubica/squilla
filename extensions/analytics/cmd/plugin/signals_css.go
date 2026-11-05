@@ -8,7 +8,7 @@ import (
 
 // dwellMarks are the seconds after activation at which a hidden element
 // asks for its background image — a heartbeat the server timestamps.
-var dwellMarks = []int{10, 30, 60, 180, 600}
+var dwellMarks = []int{10, 30, 60, 180}
 
 // How each beacon is triggered (measured in Chromium, Firefox and WebKit;
 // see docs/browser-matrix.md):
@@ -52,7 +52,7 @@ func signalsMarkup(cfg *Config, nodeID int64, secs []section) (style, container 
 
 	// Activation (and dwell marks): timers in SMIL.
 	timer := func(path, rest string, after int) {
-		svg.WriteString(`<image width="1" height="1"><set attributeName="href" to="` + attrURL(path, rest) + `" begin="` + strconv.Itoa(after) + `s" fill="freeze"/></image>`)
+		svg.WriteString(`<image width="1" height="1"><set attributeName="href" to="` + attrURL(path, rest) + `" begin="` + strconv.Itoa(after) + `s"/></image>`)
 	}
 	timer("/b", "", 1)
 	if cfg.SignalDwell {

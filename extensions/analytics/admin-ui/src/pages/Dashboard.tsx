@@ -1,5 +1,6 @@
 import { api } from "../api/client";
 import type { StatusResponse } from "../api/types";
+import { BehaviourTiles } from "../components/BehaviourTiles";
 import { BreakdownCard } from "../components/BreakdownCard";
 import { BREAKDOWN_CARDS } from "../components/breakdownConfig";
 import { EmptyData } from "../components/EmptyData";
@@ -51,6 +52,7 @@ export default function AnalyticsDashboard() {
             activeMetric={vm.state.metric}
             onSelectMetric={(m) => vm.update({ metric: m }, true)}
           />
+          <BehaviourTiles vm={vm} />
           <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <MainChartCard vm={vm} />
             <RealtimeCard />

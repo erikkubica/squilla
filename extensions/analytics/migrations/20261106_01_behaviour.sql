@@ -174,10 +174,12 @@ BEGIN
         RETURN;
     END IF;
     INSERT INTO analytics_page_elements (path, kind, block_key, label, href, outline)
-    SELECT p_path, x.kind, left(coalesce(x.block_key, ''), 80), left(coalesce(x.label, ''), 200),
+    SELECT DISTINCT ON (x.kind, left(coalesce(x.block_key, ''), 80), left(coalesce(x.href, ''), 300))
+           p_path, x.kind, left(coalesce(x.block_key, ''), 80), left(coalesce(x.label, ''), 200),
            left(coalesce(x.href, ''), 300), p_outline
     FROM jsonb_to_recordset(v_rows) AS x(kind text, block_key text, label text, href text)
     WHERE x.kind IN ('block', 'link')
+    ORDER BY x.kind, left(coalesce(x.block_key, ''), 80), left(coalesce(x.href, ''), 300)
     ON CONFLICT (path, kind, block_key, href)
     DO UPDATE SET label = EXCLUDED.label, outline = EXCLUDED.outline, last_seen = now();
     -- Drop elements of older outlines that are gone from the page.
@@ -223,7 +225,7 @@ RETURNS TABLE(facts jsonb) LANGUAGE sql STABLE AS $$
                max(e.ts) FILTER (WHERE e.kind = 'outbound')                          AS last_out_ts,
                (array_agg(e.target ORDER BY e.ts DESC) FILTER (WHERE e.kind = 'outbound'))[1] AS last_out_dest,
                max(e.ts) FILTER (WHERE e.is_prefetch AND NOT e.confirmed)            AS last_spec_ts,
-               bool_or(e.pv AND e.viewport <> '')                                    AS s1,
+               bool_or(e.pv AND e.confirmed)                                         AS s1,
                (array_agg(e.path ORDER BY e.ts) FILTER (WHERE e.pv))                 AS all_paths
         FROM ev e GROUP BY e.session_id
     )

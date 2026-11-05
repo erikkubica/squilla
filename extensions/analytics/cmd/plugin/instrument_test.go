@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-const fixturePage = `<!doctype html><html><head><title>x</title></head><body class="a">
+const fixturePage = `<!doctype html><html><head><title>x</title><!--sqx:p:site-head--><meta name="a" content="b"><!--sqx:/p--></head><body class="a">
 <header><nav><a href="/en/about">About</a></nav></header>
 <main>
 <!--sqx:b:0:bv-hero--><section data-block="bv-hero"><a href="/en/experiences" class="b">See <b>tours</b></a><a href="https://wa.me/84969655521">WhatsApp</a></section><!--sqx:/b-->
@@ -41,7 +41,7 @@ func TestInstrumentOnlyInsertsAttributes(t *testing.T) {
 	for _, s := range res.Sections {
 		keys = append(keys, s.Key)
 	}
-	want := "bv-hero.0,bv-faq.0,bv-hero.1,bv-hero.1,p:default-cta"
+	want := "bv-hero.0,bv-faq.0,bv-hero.1,bv-hero.1,p.default-cta"
 	if strings.Join(keys, ",") != want {
 		t.Errorf("sections = %v, want %s", keys, want)
 	}
@@ -59,7 +59,7 @@ func TestInstrumentOnlyInsertsAttributes(t *testing.T) {
 		"/en/about":             "n|i|About",
 		"/en/experiences":       "bv-hero.0|i|See tours",
 		"wa.me/84969655521":     "bv-hero.0|c|WhatsApp",
-		"mailto:hi@x.com":       "p:default-cta|c|Mail",
+		"mailto:hi@x.com":       "p.default-cta|c|Mail",
 		"partner.example.net/a": "f|x|Ext",
 		"/en/x":                 "f|i|own",
 	} {
@@ -116,8 +116,8 @@ func TestSignalsMarkupBudgetAndShape(t *testing.T) {
 		t.Error("no scripts or identifiers allowed")
 	}
 	for _, want := range []string{
-		`<set attributeName="href" to="/_s/b?p=12" begin="1s" fill="freeze"/>`,
-		`to="/_s/t?p=12&amp;s=600" begin="600s"`, `<i class="sq-m"></i>`, `<b class="sq-g"><b class="sw w0"><i class="v"></i></b>`, `<b class="sw we"><i class="v"></i></b>`,
+		`<set attributeName="href" to="/_s/b?p=12" begin="1s"/>`,
+		`to="/_s/t?p=12&amp;s=180" begin="180s"`, `<i class="sq-m"></i>`, `<b class="sq-g"><b class="sw w0"><i class="v"></i></b>`, `<b class="sw we"><i class="v"></i></b>`,
 	} {
 		if !strings.Contains(box, want) {
 			t.Errorf("container lacks %q: %s", want, box)
@@ -128,7 +128,7 @@ func TestSignalsMarkupBudgetAndShape(t *testing.T) {
 	}
 	cfg.SignalSections, cfg.SignalDwell, cfg.SignalForms = false, false, false
 	style2, box2 := signalsMarkup(&cfg, 12, res.Sections)
-	if strings.Contains(style2, "view-timeline") || strings.Contains(box2, `class="sw`) || strings.Contains(box2, "s=600") {
+	if strings.Contains(style2, "view-timeline") || strings.Contains(box2, `class="sw`) || strings.Contains(box2, "s=180") {
 		t.Errorf("sub-toggles ignored: %s %s", style2, box2)
 	}
 }

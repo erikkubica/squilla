@@ -8,7 +8,7 @@ Real Safari (macOS, iOS) and headed Chrome prerender are **not** covered by this
 | Signal | Mechanism | Chromium / Chrome | Firefox | WebKit |
 | --- | --- | --- | --- | --- |
 | Activation (~1 s after load) | SVG SMIL `<set href begin=1s>` | ✅ once | ✅ once | ✅ once |
-| Dwell 10 s / 30 s / 1 / 3 / 10 min | SMIL timers | ✅ | ✅ | ✅ |
+| Dwell 10 s / 30 s / 1 / 3 min | SMIL timers | ✅ | ✅ | ✅ |
 | Viewport + colour scheme | `@media` background image (never counts a view) | ✅ | ✅ | ✅ |
 | Section impressions, scroll-back safe | scroll timeline → registered custom property → style query | ✅ only what scrolls into view, once | none (no scroll timelines) | ✅ |
 | End of page | same, last section | ✅ | none | ✅ |

@@ -99,7 +99,7 @@ export function SettingsForm({ initial, onSaved }: { initial: AnalyticsSettings;
         <ToggleRow
           id="an-enhanced"
           label="Measure what visitors do on a page"
-          hint="Adds a small stylesheet and a hidden element to every public page. The browser then asks your own server for tiny images when a section scrolls into view, when a visitor has stayed 10 s / 30 s / 1 min / 3 min / 10 min, and (through the standard link ping attribute) when a link is clicked. No script is loaded, nothing blocks rendering, no cookies are set, and no request carries an identifier."
+          hint="Adds a small stylesheet and a hidden element to every public page. The browser then asks your own server for tiny images when a section scrolls into view, when a visitor has stayed 10 s / 30 s / 1 min / 3 min, and (through the standard link ping attribute) when a link is clicked. No script is loaded, nothing blocks rendering, no cookies are set, and no request carries an identifier."
           checked={s.enhanced_mode}
           onChange={(v) => set("enhanced_mode", v)}
         >
@@ -113,7 +113,7 @@ export function SettingsForm({ initial, onSaved }: { initial: AnalyticsSettings;
             </p>
           </div>
         </ToggleRow>
-        <Row id="an-sig-dwell" label="Time on page" hint="Stay marks at 10 s, 30 s, 1 min, 3 min and 10 min.">
+        <Row id="an-sig-dwell" label="Time on page" hint="Stay marks at 10 s, 30 s, 1 min and 3 min.">
           <Switch id="an-sig-dwell" checked={s.signal_dwell} onCheckedChange={(v: boolean) => set("signal_dwell", v)} disabled={!s.enhanced_mode} />
         </Row>
         <Row id="an-sig-sections" label="Section impressions & scroll reach" hint="Which sections of a page were scrolled into view (needs a browser with scroll-driven animations).">

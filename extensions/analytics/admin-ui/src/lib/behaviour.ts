@@ -14,13 +14,15 @@ export const EXIT_REASONS: Record<string, { label: string; help: string }> = {
 
 export const reasonLabel = (r: string) => EXIT_REASONS[r]?.label ?? r;
 
-/** "bv-wall-of-love.0" → "Wall of love"; "p:default-cta" → "Default cta (layout)". */
+/** "bv-wall-of-love.0" → "Wall of love"; "p.default-cta" → "Default cta (layout)". */
 export function blockName(key: string, label?: string): string {
   if (label) return label;
-  const layout = key.startsWith("p:");
+  const layout = key.startsWith("p.");
+  const occ = /\.(\d+)$/.exec(key);
   const base = (layout ? key.slice(2) : key).replace(/\.\d+$/, "").replace(/^bv-/, "").replace(/[-_]+/g, " ");
   const name = base.charAt(0).toUpperCase() + base.slice(1);
-  return layout ? `${name} (layout)` : name;
+  if (layout) return `${name} (layout)`;
+  return occ && Number(occ[1]) > 0 ? `${name} ${Number(occ[1]) + 1}` : name;
 }
 
 export const pct = (n: number, d: number) => (d > 0 ? `${((n / d) * 100).toFixed(1).replace(/\.0$/, "")}%` : "—");

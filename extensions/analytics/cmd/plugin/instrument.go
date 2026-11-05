@@ -164,7 +164,7 @@ func instrument(src string, o instrumentOpts) *instrumented {
 		case blockKey != "":
 			return blockKey
 		case partial != "":
-			return "p:" + partial
+			return "p." + partial
 		case layoutKey != "":
 			return layoutKey
 		}
@@ -209,6 +209,9 @@ func instrument(src string, o instrumentOpts) *instrumented {
 				blockKey, blockDepth, curSection = "", -1, -1
 			case strings.HasPrefix(data, "sqx:p:"):
 				partial = cleanKey(strings.TrimPrefix(data, "sqx:p:"))
+				if partial == "" {
+					partial = "partial"
+				}
 				blockDepth = len(stack)
 			case data == "sqx:/p":
 				partial, blockDepth, curSection = "", -1, -1
@@ -219,14 +222,25 @@ func instrument(src string, o instrumentOpts) *instrumented {
 			tag := string(name)
 			var extra []string
 			// Top-level element of a block or partial → section anchor.
-			topOfBlock := (blockKey != "" || partial != "") && len(stack) == blockDepth && !skipRoot[tag]
+			inHead := false
+			for _, fr := range stack {
+				if fr.name == "head" {
+					inHead = true
+					break
+				}
+			}
+			// Partials (header, footer, announcement bar, …) are only a
+			// measurable section when their root is a <section>; their links
+			// are still tracked under the partial's key.
+			topOfBlock := !inHead && (blockKey != "" || partial != "") && len(stack) == blockDepth && !skipRoot[tag] &&
+				(blockKey != "" || tag == "section")
 			mainChild := blockKey == "" && partial == "" && layoutKey == "" && len(stack) > 0 &&
 				stack[len(stack)-1].name == "main" && tag == "section"
 			switch {
 			case topOfBlock:
 				key := blockKey
 				if key == "" {
-					key = "p:" + partial
+					key = "p." + partial
 				}
 				if sections < maxSections {
 					curSection = newSection(key, blockKey == "")

@@ -47,7 +47,7 @@ export function KnownLimits() {
         <li><strong>CDN caching:</strong> HTML served from a CDN cache never reaches the server and is not counted. Keep HTML uncached at the CDN.</li>
         <li><strong>Back/forward cache:</strong> pages restored instantly by the browser’s back/forward cache make no request and are invisible.</li>
         <li><strong>Estimated visitors:</strong> shared networks (CGNAT, offices), private relays and reduced user-agent strings merge or split people. Multi-day visitor counts are sums of daily uniques.</li>
-        <li><strong>Time on page:</strong> single-page visits have a length only with in-page signals; stay marks are 10 s, 30 s, 1 min, 3 min and 10 min.</li>
+        <li><strong>Time on page:</strong> single-page visits have a length only with in-page signals; stay marks are 10 s, 30 s, 1 min and 3 min.</li>
         <li><strong>Link clicks:</strong> use the browser’s link ping, which Firefox, some privacy browsers and ad blockers do not send. Click-through rates for those visitors are understated.</li>
         <li><strong>Browsers:</strong> section signals need scroll-driven animations (Chrome/Edge, Safari 26+, recent Firefox). Others still send activation and stay marks.</li>
       </ul>
