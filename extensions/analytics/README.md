@@ -2,11 +2,13 @@
 
 First-party, cookieless web analytics for Squilla. Everything is measured on
 the server from the HTTP requests the site already handles. **No JavaScript
-is sent to the public site.** An optional CSS beacon (still no JavaScript)
-adds viewport and colour-scheme data.
+is sent to the public site.** Optional *in-page signals* (markup and CSS only,
+see below) add time on page, section impressions, link clicks, form and FAQ
+use, viewport and colour scheme.
 
-The dashboard lives at **Admin → Analytics**: Overview, Bots & AI, Goals &
-links, and Settings.
+The dashboard lives at **Admin → Analytics**: Overview, Why they leave,
+Clicks & CTAs, Page insights (`/page?path=`), Bots & AI, Goals & links, and
+Settings.
 
 ## Requirements
 
@@ -37,6 +39,11 @@ links, and Settings.
 Never counted: `/admin`, `/api`, `/mcp`, theme and extension assets,
 `/media/cache`, static files (css, js, images, fonts), your *exclude paths*,
 and signed-in users (unless that setting is turned off).
+
+Server-only measurement also gives, without any signal: page→page edges
+(from the next request's `Referer`), the form errors (`POST /forms/*` answered
+4xx/5xx), server time per page, and an **exit reason** for every finished visit
+(see *Exit reasons*).
 
 Each visit records its source, channel (direct, organic/paid search,
 organic/paid social, AI assistants, email, referral, campaign), referrer,
@@ -83,7 +90,9 @@ Detection runs in this order:
 - Query strings are never stored.
   - Only `utm_source`/`medium`/`campaign`/`content`/`term` (with `ref`, `source` and `via` as source fallbacks) are extracted.
   - Click IDs (`gclid`, `gbraid`, `wbraid`, `msclkid`, `fbclid`, `ttclid`) are stored only as *present yes/no*.
-- **Global Privacy Control** (`Sec-GPC: 1`, setting *respect GPC*): these requests get no visitor or session ID and are counted in aggregate only. Each visit that starts a session counts as one visitor.
+- **Global Privacy Control** (`Sec-GPC: 1`, setting *respect GPC*): these requests get no visitor or session ID and are counted in aggregate only. Each visit that starts a session counts as one visitor. They also receive no in-page signal markup at all.
+- **Opt-out**: `/_s/optout` sets one cookie, `analytics_optout` (declared in the manifest as `observe_cookies` / `public_route_cookies`; the kernel only passes cookies that start with the extension's slug and never the session cookie). Opted-out browsers are not measured and get no signal markup.
+- **Midnight carry-over**: the previous day's salt stays in memory for one session timeout, so a visit open at midnight is not cut in two. It is never written anywhere.
 - Sessions exist only in memory. They end after 30 idle minutes (configurable).
 - Raw events are deleted after the raw retention period (90 days by default). Daily rollups and bot counters are kept.
 - Exports never include visitor or session IDs.
@@ -97,7 +106,10 @@ Detection runs in this order:
 | Visits | Sessions: a pageview after more than the session timeout of inactivity starts a new visit. |
 | Pages / visit | Pageviews ÷ visits. |
 | Single-page visits | Share of visits with exactly one pageview. This replaces "bounce rate". |
-| Median visit length | Median of first-to-last pageview time, for multi-page visits only. Time on page is not measured. For multi-day ranges, this is the daily medians weighted by multi-page visits. |
+| Median visit length | Median of first-to-last pageview time, for multi-page visits only. For multi-day ranges, this is the daily medians weighted by multi-page visits. |
+| Engaged visit | Two or more pages, a conversion, or (with signals) 10 s on the exit page or the end of the page reached. |
+| Section impression | A section scrolled at least 60 % into view (scroll-driven animation entry range). Click-through = clicks ÷ impressions. |
+| Time on page | With signals: the last stay mark received (10 s, 30 s, 1 min, 3 min, 10 min) — a lower bound on the server's clock. Without: the gap to the next page in the visit. |
 | Conversions | Goal events. *Conversion rate* = visits with at least one conversion ÷ visits. |
 
 Acquisition (source, channel, UTM, click IDs) is taken from the first
@@ -117,31 +129,57 @@ events, so they only cover the raw retention window.
 | `respect_gpc` | `true` | See the Global Privacy Control item under Privacy model. |
 | `raw_retention_days` | `90` | 1–3650. |
 | `session_timeout_minutes` | `30` | 5–240. |
-| `enhanced_mode` | `false` | CSS beacon. See the next section. |
+| `enhanced_mode` | `false` | In-page signals master switch. See the next section. |
+| `signal_dwell`, `signal_sections`, `signal_clicks`, `signal_forms` | `true` | Which signals to send while `enhanced_mode` is on. |
 | `beacon_prefix` | `/_s` | The manifest routes only `/_s/*`. A different prefix needs a reverse-proxy rewrite to `/_s`. |
 | `download_extensions` | pdf, zip, docx, xlsx, pptx, gpx, kml, epub, mp3, mp4 | |
 | `own_hosts` | `[]` | Extra host names treated as internal referrers, such as a CDN or a second domain. |
 | `geoip_db_path` | `""` | Reserved. No GeoIP reader is bundled. |
 
-## Enhanced mode (CSS beacon)
+## In-page signals (no JavaScript)
 
-When enabled, every rendered page gets:
+When `enhanced_mode` is on, the extension rewrites the final HTML of every
+public page through the kernel's generic `render.transform` hook (capability
+`render:transform`, 50 ms deadline, fail-open; previews are never rewritten).
+It inserts attributes only — `data-sq-b` on each block's top-level elements,
+`ping` on links — plus one `<style>` and one fixed, invisible 1 px container
+before `</body>`. Nothing is render-blocking and nothing runs as a script.
+Signed-in editors, Global Privacy Control, opted-out visitors, 404s and
+excluded paths get the page unchanged.
 
-- a `<style>` in `<head>` with seven media rules: three width buckets × light/dark, plus `print`
-- a 1 px `<i class="sq-s">` before `</body>`
+| Signal | Trigger | Request |
+| --- | --- | --- |
+| Activation | SVG SMIL timer, 1 s after load | `GET /_s/b?p=<page id>` |
+| Time on page | SMIL timers at 10 s, 30 s, 1, 3 and 10 min | `GET /_s/t?p=&s=` |
+| Section impression, end of page | scroll-driven animation → custom property → style query | `GET /_s/v?p=&k=<block>`, `/_s/e?p=` |
+| Link click | the `ping` attribute | `POST /_s/c?p=&k=<block>` (destination from `Ping-To`) |
+| Form focus, FAQ opened | `:has()` | `GET /_s/i?p=&k=&t=f\|d` |
+| Viewport, colour scheme, print | `@media` | `GET /_s/m?p=&w=&c=` |
 
-The browser fetches only the background image of the rule that matches,
-`/_s/b?w=s|m|l&c=l|d` or `/_s/b?print=1`. The response is a 1×1 GIF with
-`Cache-Control: no-store`. The beacon is matched to its pageview by visitor
-ID and referrer path within 60 s. It marks the pageview `confirmed` and
-records the viewport and colour scheme, or `printed`.
+Every URL carries only a page number and a block key; the visit is recognised
+on the server from the same daily hash and the `Referer` / `Ping-From` page.
+Signals are deduplicated per page view, capped per visitor per minute, and a
+signal that carries `Sec-Purpose` (prerender) is ignored. A page shown from a
+cache (no document request) is counted once from its activation; no views are
+created for 10 minutes after a plugin start or salt rotation.
+How each browser behaves is in [docs/browser-matrix.md](docs/browser-matrix.md).
 
-**ePrivacy note:** the beacon makes the visitor's browser send an extra
-request whose only purpose is measurement. Under the ePrivacy Directive
-(Art. 5(3)), some EU regulators may treat this as accessing the terminal
-device. Check your legal basis before you enable it. Server-side
-measurement without the beacon reads only requests the visitor already
-made.
+**ePrivacy note:** the EDPB treats a request made only for measurement as
+access to the visitor's device (Guidelines 2/2023, §47-51). The CNIL exempts
+strictly anonymous audience measurement from consent when visitors are
+informed and can opt out. This mode is built for that: add the privacy-notice
+paragraph shown under Settings and link to `/_s/optout`. Other regulators may
+differ; check yours before enabling it.
+
+## Exit reasons
+
+Every finished visit (idle for the session timeout) gets one reason, first
+match wins: `converted`, `left_to_contact` (WhatsApp, Zalo, Messenger, tel,
+mailto), `left_to_partner` (other outbound), `hit_error` (404 or a rejected
+form last), `browsed_and_left` (two or more pages), `single_page` (one page,
+no signals), then with signals `read_and_left` (≥ 60 s or end reached),
+`skimmed` (≥ 10 s) and `quick_exit`. Flag `exit_ambiguous`: the last page may
+have been prerendered without any request revealing it. These are heuristics.
 
 ## Limits
 
@@ -150,7 +188,9 @@ made.
 - Visitor numbers are estimates (see the table above).
 - In-memory state (salt, sessions, rate counters) belongs to one process. Running several app replicas splits visitors and sessions.
 - Bot detection is heuristic. Determined scrapers that copy a full browser header set are counted as people.
-- The plugin subscribes to `render.head` and `render.body_end` even when enhanced mode is off, so each page render makes two quick, empty plugin calls.
+- Firefox never sends `ping`, and uBlock Origin / Brave block it: outbound click-through is understated for those visitors. Internal clicks are still visible as page→page edges.
+- Browsers without scroll-driven animations or style queries (Firefox today) send no section signals.
+- With signals off, the plugin answers the kernel's `render.transform` call once, then is skipped for 30 s.
 
 ## Storage
 
@@ -160,6 +200,9 @@ made.
 - `analytics_goals`
 - `analytics_links`
 - `analytics_config`
+- `analytics_interactions`: in-page signals and clicks, no visitor id, same retention as raw events
+- `analytics_visits`: one row per finished session (random session id), kept 13 months
+- `analytics_page_elements`: the last rendered blocks and links of each page
 
 All aggregation SQL lives in `migrations/` as functions. The plugin calls
 them through `DataCall`, and each one is listed in `data_owned_functions`.
@@ -168,6 +211,8 @@ them through `DataCall`, and each one is listed in `data_owned_functions`.
 
 ```sh
 go test ./extensions/analytics/...
+# Browser matrix (Chromium, Chrome, Firefox, WebKit):
+cd extensions/analytics/e2e && npm install && npm run fixture && npx playwright install chromium firefox webkit && npm test
 # Optional end-to-end test against a disposable Postgres (runs migrations twice):
 ANALYTICS_TEST_DATABASE_URL=postgres://user:pass@localhost:5432/db?sslmode=disable \
   go test -run TestPostgresEndToEnd ./extensions/analytics/...
