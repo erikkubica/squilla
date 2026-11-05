@@ -43,6 +43,7 @@ type Observer struct {
 	batchSize     int
 	interval      time.Duration
 	sessionCookie string
+	cookieNames   atomic.Pointer[[]string]
 
 	dropped   atomic.Uint64 // drops since the last published batch
 	closed    atomic.Bool
@@ -157,4 +158,11 @@ func (o *Observer) publish(batch []Record) []Record {
 		"dropped": dropped,
 	})
 	return make([]Record, 0, o.batchSize)
+}
+
+// SetCookieNames sets the cookies copied into Record.Cookies (the union of
+// the extensions' observe_cookies; the kernel guards the names).
+func (o *Observer) SetCookieNames(names []string) {
+	cp := append([]string(nil), names...)
+	o.cookieNames.Store(&cp)
 }

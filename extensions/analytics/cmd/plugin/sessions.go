@@ -42,6 +42,26 @@ func (s *sessionStore) pageview(visitor string, ts time.Time, timeout time.Durat
 	return *cur, false
 }
 
+// rekey moves a live session from the previous day's visitor id to the new
+// one (visit open across the salt rotation). No-op when the new id already
+// has a session or the old one idled past the timeout.
+func (s *sessionStore) rekey(oldID, newID string, now time.Time, timeout time.Duration) {
+	if oldID == newID {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cur, ok := s.m[oldID]
+	if !ok || now.Sub(cur.Last) > timeout {
+		return
+	}
+	if _, exists := s.m[newID]; exists {
+		return
+	}
+	s.m[newID] = cur
+	delete(s.m, oldID)
+}
+
 // lookup returns the visitor's live session without modifying it.
 func (s *sessionStore) lookup(visitor string, ts time.Time, timeout time.Duration) (session, bool) {
 	s.mu.Lock()

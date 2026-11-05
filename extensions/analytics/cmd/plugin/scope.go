@@ -110,6 +110,9 @@ func isSpeculativeHeaders(h func(string) string) bool {
 
 // detectKind classifies a human request into an event kind ("" = none).
 func detectKind(r *Record, ext string, cfg *Config) string {
+	if strings.EqualFold(r.Method, "POST") && r.Status >= 400 && strings.HasPrefix(normalizePath(r.Path), "/forms/") {
+		return kindFormError
+	}
 	if !strings.EqualFold(r.Method, "GET") {
 		return ""
 	}

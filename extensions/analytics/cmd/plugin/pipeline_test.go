@@ -219,7 +219,7 @@ func TestPipelineRateLimitGoalsAndDownloads(t *testing.T) {
 	for _, e := range ev {
 		kinds = append(kinds, e.Kind)
 	}
-	if strings.Join(kinds, ",") != "pageview,goal,goal,download" {
+	if strings.Join(kinds, ",") != "pageview,goal,goal,form_error,download" {
 		t.Fatalf("kinds = %v", kinds)
 	}
 	if ev[1].GoalID != 2 || ev[2].GoalID != 1 || ev[2].SessionID != ev[0].SessionID || ev[2].Path != "/forms/submit/contact" {

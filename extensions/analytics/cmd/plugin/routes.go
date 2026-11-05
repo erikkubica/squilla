@@ -23,6 +23,9 @@ func (p *AnalyticsPlugin) routeRequest(ctx context.Context, req *pb.PluginHTTPRe
 		}
 		return p.handleGo(ctx, strings.TrimPrefix(raw, "/go/"), req)
 	}
+	if raw == "/_s/optout" || raw == p.config().BeaconPrefix+"/optout" {
+		return p.handleOptOut(req)
+	}
 	if raw == "/_s/b" || raw == p.config().BeaconPrefix+"/b" {
 		return p.handleBeacon(ctx, req)
 	}
@@ -88,7 +91,8 @@ func (p *AnalyticsPlugin) routeRequest(ctx context.Context, req *pb.PluginHTTPRe
 func (p *AnalyticsPlugin) routeStats(ctx context.Context, path string, params map[string]string) (*pb.PluginHTTPResponse, bool) {
 	var dim string
 	switch {
-	case path == "summary", path == "timeseries", path == "heatmap", path == "bots", path == "goals/stats":
+	case path == "summary", path == "timeseries", path == "heatmap", path == "bots", path == "goals/stats",
+		path == "behaviour", path == "exits", path == "clicks", path == "page":
 	case strings.HasPrefix(path, "breakdown/"):
 		dim = strings.TrimPrefix(path, "breakdown/")
 	default:
@@ -99,6 +103,12 @@ func (p *AnalyticsPlugin) routeStats(ctx context.Context, path string, params ma
 		return errorResponse(err), true
 	}
 	var data map[string]any
+	if d, ok, derr := p.behaviourRoute(ctx, path, params, q); ok {
+		if derr != nil {
+			return errorResponse(derr), true
+		}
+		return jsonResponse(200, d), true
+	}
 	switch {
 	case path == "summary":
 		data, err = p.summaryData(ctx, q)

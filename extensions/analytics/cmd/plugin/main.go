@@ -6,6 +6,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -74,9 +76,10 @@ func (p *AnalyticsPlugin) setup(h hostAPI) {
 	p.sessions = newSessionStore()
 	p.rate = newRateTracker()
 	p.beacons = newBeaconTracker()
-	// A new salt means new visitor ids: in-memory state keyed by the old
-	// ids is useless and is dropped.
-	p.salt.onRotate = []func(){p.sessions.reset, p.rate.reset, p.beacons.reset}
+	// A new salt means new visitor ids: rate and beacon state keyed by the
+	// old ids is dropped. Sessions survive: adoptSession re-keys a live one
+	// on the visitor's first request under the new salt.
+	p.salt.onRotate = []func(){p.rate.reset, p.beacons.reset}
 	p.buf = newPipelineBuffer()
 	empty := []Goal{}
 	p.goals.Store(&empty)
@@ -87,6 +90,11 @@ func (p *AnalyticsPlugin) setup(h hostAPI) {
 func (p *AnalyticsPlugin) config() *Config { return p.cfg.Load() }
 
 func (p *AnalyticsPlugin) Initialize(hostConn *grpc.ClientConn) error {
+	// The container's memory limit covers the kernel and every plugin, so
+	// keep this process's heap small unless the operator set GOMEMLIMIT.
+	if os.Getenv("GOMEMLIMIT") == "" {
+		debug.SetMemoryLimit(64 << 20)
+	}
 	h := coreapi.NewGRPCHostClient(coreapipb.NewSquillaHostClient(hostConn))
 	p.setup(h)
 	ctx, cancel := context.WithCancel(context.Background())

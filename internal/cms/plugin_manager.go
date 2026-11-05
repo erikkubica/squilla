@@ -74,6 +74,12 @@ type PluginManager struct {
 	// SHA-256 digests. May be nil — pin checks are then skipped, which
 	// preserves test/bootstrap behaviour without changing semantics.
 	db *gorm.DB
+	// Cookies an extension declared in its manifest (guarded by
+	// ownedCookieSet): observeCookies reach http.requests records,
+	// routeCookies are forwarded to that extension's public routes.
+	observeCookies map[string][]string
+	routeCookies   map[string][]string
+	onCookies      func([]string)
 }
 
 // NewPluginManager creates a new PluginManager.
@@ -83,10 +89,12 @@ type PluginManager struct {
 // site_settings-pinned value.
 func NewPluginManager(eventBus *events.EventBus, hostRegistrar HostServerRegistrar, db *gorm.DB) *PluginManager {
 	return &PluginManager{
-		plugins:       make(map[string][]*runningPlugin),
-		eventBus:      eventBus,
-		hostRegistrar: hostRegistrar,
-		db:            db,
+		observeCookies: map[string][]string{},
+		routeCookies:   map[string][]string{},
+		plugins:        make(map[string][]*runningPlugin),
+		eventBus:       eventBus,
+		hostRegistrar:  hostRegistrar,
+		db:             db,
 	}
 }
 
@@ -105,6 +113,8 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 		Provides           []string              `json:"provides"`
 		Priority           int                   `json:"priority"`
 		DataOwnedFunctions []string              `json:"data_owned_functions"`
+		ObserveCookies     []string              `json:"observe_cookies"`
+		PublicRouteCookies []string              `json:"public_route_cookies"`
 	}
 	if err := json.Unmarshal(manifest, &m); err != nil {
 		return fmt.Errorf("parsing manifest plugins: %w", err)
@@ -122,6 +132,9 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 
 	// Stop any existing plugins for this extension first
 	pm.stopPluginsLocked(slug)
+	pm.observeCookies[slug] = ownedCookieSet(slug, "observe_cookies", m.ObserveCookies)
+	pm.routeCookies[slug] = ownedCookieSet(slug, "public_route_cookies", m.PublicRouteCookies)
+	pm.notifyCookiesLocked()
 
 	var started []*runningPlugin
 
@@ -507,4 +520,37 @@ func (pm *PluginManager) RunningCount() int {
 		count += len(plugins)
 	}
 	return count
+}
+
+// SetCookieObserver registers the callback that receives the union of
+// every extension's observe_cookies whenever it changes.
+func (pm *PluginManager) SetCookieObserver(fn func([]string)) {
+	pm.mu.Lock()
+	pm.onCookies = fn
+	pm.notifyCookiesLocked()
+	pm.mu.Unlock()
+}
+
+func (pm *PluginManager) notifyCookiesLocked() {
+	if pm.onCookies == nil {
+		return
+	}
+	seen := map[string]bool{}
+	var all []string
+	for _, names := range pm.observeCookies {
+		for _, n := range names {
+			if !seen[n] {
+				seen[n] = true
+				all = append(all, n)
+			}
+		}
+	}
+	pm.onCookies(all)
+}
+
+// PublicRouteCookies returns the cookie names forwarded to slug's public routes.
+func (pm *PluginManager) PublicRouteCookies(slug string) []string {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	return pm.routeCookies[slug]
 }

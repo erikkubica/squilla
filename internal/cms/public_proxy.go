@@ -141,6 +141,19 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 			headers[k] = string(value)
 		})
 		headers["X-Forwarded-For"] = httpobs.ClientIP(c)
+		// Cookies are stripped, except the ones this extension declared in
+		// public_route_cookies (guarded: own prefix, never the session).
+		if names := pp.pluginMgr.PublicRouteCookies(slug); len(names) > 0 {
+			var parts []string
+			for _, n := range names {
+				if v := c.Cookies(n); v != "" {
+					parts = append(parts, n+"="+v)
+				}
+			}
+			if len(parts) > 0 {
+				headers["Cookie"] = strings.Join(parts, "; ")
+			}
+		}
 
 		// Build query params.
 		queryParams := make(map[string]string)

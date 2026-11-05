@@ -21,7 +21,10 @@
     "analytics_bots_daily",
     "analytics_goals",
     "analytics_links",
-    "analytics_config"
+    "analytics_config",
+    "analytics_interactions",
+    "analytics_visits",
+    "analytics_page_elements"
   ],
   "data_owned_functions": [
     "analytics_ingest",
@@ -38,7 +41,17 @@
     "analytics_goal_stats",
     "analytics_link_clicks",
     "analytics_export_events",
-    "analytics_status"
+    "analytics_status",
+    "analytics_confirm_batch",
+    "analytics_ingest_interactions",
+    "analytics_upsert_outline",
+    "analytics_session_facts",
+    "analytics_upsert_visits",
+    "analytics_purge_behaviour",
+    "analytics_exit_stats",
+    "analytics_page_insights",
+    "analytics_clicks_stats",
+    "analytics_behaviour_summary"
   ],
   "plugins": [
     {
@@ -48,8 +61,11 @@
   ],
   "public_routes": [
     { "method": "GET", "path": "/go/*" },
-    { "method": "GET", "path": "/_s/*" }
+    { "method": "GET", "path": "/_s/*" },
+    { "method": "POST", "path": "/_s/*" }
   ],
+  "observe_cookies": ["analytics_optout"],
+  "public_route_cookies": ["analytics_optout"],
   "admin_routes": [
     { "method": "GET", "path": "/**", "required_capability": "view_analytics" },
     { "method": "*", "path": "/**", "required_capability": "manage_analytics" }

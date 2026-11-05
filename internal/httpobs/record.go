@@ -29,12 +29,14 @@ type Record struct {
 	UserAgent   string            `json:"user_agent"`
 	Referer     string            `json:"referer"`
 	Headers     map[string]string `json:"headers"`
-	HasSession  bool              `json:"has_session"`
-	UserID      int               `json:"user_id"`
-	NodeID      int               `json:"node_id"`
-	NodeType    string            `json:"node_type"`
-	Language    string            `json:"language"`
-	RequestID   string            `json:"request_id"`
+	// Cookies carries only the cookies extensions declared in observe_cookies.
+	Cookies    map[string]string `json:"cookies,omitempty"`
+	HasSession bool              `json:"has_session"`
+	UserID     int               `json:"user_id"`
+	NodeID     int               `json:"node_id"`
+	NodeType   string            `json:"node_type"`
+	Language   string            `json:"language"`
+	RequestID  string            `json:"request_id"`
 }
 
 // Field length caps (bytes). Values are cut on a rune boundary.
@@ -109,6 +111,16 @@ func (o *Observer) buildRecord(c *fiber.Ctx, start time.Time, err error) (Record
 	for _, name := range headerAllowlist {
 		if v := req.Header.Peek(name); len(v) > 0 {
 			r.Headers[name] = truncate(string(v), maxHeader)
+		}
+	}
+	if names := o.cookieNames.Load(); names != nil {
+		for _, n := range *names {
+			if v := req.Header.Cookie(n); len(v) > 0 {
+				if r.Cookies == nil {
+					r.Cookies = map[string]string{}
+				}
+				r.Cookies[n] = truncate(string(v), maxHeader)
+			}
 		}
 	}
 	// Only from a trusted proxy: a client reaching the origin directly

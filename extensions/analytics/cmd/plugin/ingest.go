@@ -53,6 +53,9 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 	if r.UserID > 0 && cfg.ExcludeLoggedIn {
 		return
 	}
+	if r.Cookies[optOutCookie] != "" {
+		return // the visitor opted out of measurement
+	}
 	if isHardExcluded(r.Path, cfg) {
 		return
 	}
@@ -95,6 +98,9 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 	c := p.newClient(r.Host, r.IP, r.UserAgent, r.header("accept-language"), r.header("sec-gpc"),
 		r.header("cf-ipcountry"), r.header("sec-ch-ua-mobile"), r.header("sec-ch-ua-platform"))
 	vid := p.visitorID(c, ts, cfg)
+	if vid != "" {
+		p.adoptSession(c, vid, ts, cfg)
+	}
 	prefetch := kind == kindPageview && spec
 	if vid != "" {
 		flagged := p.rate.isFlagged(vid)
@@ -114,6 +120,7 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 	}
 
 	base := Event{
+		PrevPath: p.refererPath(r, cfg), ServerMS: int(r.DurationMS), Spec: specKind(r),
 		TS: ts, Host: c.Host, Path: norm, PageType: r.NodeType, NodeID: r.NodeID, VisitorID: vid,
 		Country: c.Country, Language: c.Language, Device: c.Device, Browser: c.Browser, OS: c.OS,
 	}
@@ -141,7 +148,7 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 				p.buf.addEvent(goalEvent(ev, g.ID))
 			}
 		}
-	case kindDownload, kindNotFound:
+	case kindDownload, kindNotFound, kindFormError:
 		if kind == kindDownload && vid != "" && p.beacons.seenDownload(vid, norm, ts) {
 			break
 		}
@@ -214,6 +221,31 @@ func goalEvent(src Event, goalID int64) Event {
 	return ev
 }
 
+// specKind names the speculation type of a request ("" for a real load).
+func specKind(r *Record) string {
+	if !isPrefetch(r) {
+		return ""
+	}
+	if strings.Contains(strings.ToLower(r.header("sec-purpose")), "prerender") {
+		return "prerender"
+	}
+	return "prefetch"
+}
+
+// refererPath returns the same-site referrer's path ("" for external or
+// missing referrers), i.e. the page the visitor came from.
+func (p *AnalyticsPlugin) refererPath(r *Record, cfg *Config) string {
+	ref := strings.TrimSpace(r.Referer)
+	if ref == "" {
+		return ""
+	}
+	u, err := url.Parse(ref)
+	if err != nil || u.Host == "" || !isOwnHost(u.Hostname(), r.Host, cfg) {
+		return ""
+	}
+	return normalizePath(u.Path)
+}
+
 // activateReferrer implements server-only activation: a real (non-
 // speculative) request whose same-site Referer is a page the visitor
 // earlier loaded speculatively proves that page was actually shown, so
@@ -230,4 +262,16 @@ func (p *AnalyticsPlugin) activateReferrer(vid string, r *Record, ts time.Time) 
 	if pv, ok := p.beacons.activate(vid, normalizePath(u.Path), ts, activationWindow); ok {
 		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute)})
 	}
+}
+
+// adoptSession carries a visit across the daily salt rotation: the same
+// browser computed with yesterday's salt (still in memory for the grace
+// period) finds its live session and re-keys it to today's visitor id.
+func (p *AnalyticsPlugin) adoptSession(c *client, vid string, ts time.Time, cfg *Config) {
+	p.salt.setGrace(cfg.sessionTimeout())
+	prev := p.salt.previous(ts)
+	if prev == nil {
+		return
+	}
+	p.sessions.rekey(visitorHash(prev, c.Host, c.IP, c.UA, c.Language), vid, ts, cfg.sessionTimeout())
 }

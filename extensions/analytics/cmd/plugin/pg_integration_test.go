@@ -40,7 +40,7 @@ func TestPostgresEndToEnd(t *testing.T) {
 			}
 		}
 	}
-	db.Exec("TRUNCATE analytics_events, analytics_daily, analytics_bots_daily, analytics_goals, analytics_links, analytics_config RESTART IDENTITY")
+	db.Exec("TRUNCATE analytics_events, analytics_interactions, analytics_visits, analytics_page_elements, analytics_daily, analytics_bots_daily, analytics_goals, analytics_links, analytics_config RESTART IDENTITY")
 
 	api := coreapi.NewCoreImpl(db, nil, nil, nil, nil, nil, nil, nil)
 	host := ctxHost{api}

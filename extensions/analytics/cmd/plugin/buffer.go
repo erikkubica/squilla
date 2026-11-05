@@ -136,12 +136,22 @@ func (p *AnalyticsPlugin) flush(ctx context.Context) {
 			p.buf.requeue(nil, bots, nil)
 		}
 	}
-	for i, c := range confirms {
-		if _, err := p.host.DataCall(ctx, "analytics_confirm", c.EID, c.Since.UTC().Format(time.RFC3339Nano),
-			c.Viewport, c.ColorScheme, c.Printed); err != nil {
+	for start := 0; start < len(confirms); start += flushBatchSize {
+		end := start + flushBatchSize
+		if end > len(confirms) {
+			end = len(confirms)
+		}
+		rows := make([]map[string]any, 0, end-start)
+		for _, c := range confirms[start:end] {
+			rows = append(rows, map[string]any{
+				"eid": c.EID, "since": c.Since.UTC().Format(time.RFC3339Nano),
+				"viewport": c.Viewport, "color_scheme": c.ColorScheme, "printed": c.Printed,
+			})
+		}
+		if _, err := p.host.DataCall(ctx, "analytics_confirm_batch", rows); err != nil {
 			// Keep this and the remaining confirmations for the next flush.
-			p.logf(ctx, "warn", "analytics: beacon confirm failed (%d requeued): %v", len(confirms)-i, err)
-			p.buf.requeue(nil, nil, confirms[i:])
+			p.logf(ctx, "warn", "analytics: beacon confirm failed (%d requeued): %v", len(confirms)-start, err)
+			p.buf.requeue(nil, nil, confirms[start:])
 			return
 		}
 	}

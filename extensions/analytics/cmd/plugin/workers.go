@@ -53,7 +53,10 @@ type maintenance struct {
 	lastDay      string
 	lastPurgeDay string
 	lastReload   time.Time
+	lastFinalize time.Time
 }
+
+const finalizeInterval = 5 * time.Minute
 
 func (p *AnalyticsPlugin) runMaintenance(ctx context.Context, m *maintenance, startup bool) {
 	cfg := p.config()
@@ -85,12 +88,20 @@ func (p *AnalyticsPlugin) runMaintenance(ctx context.Context, m *maintenance, st
 	}
 	m.lastDay = today
 
+	if startup || now.Sub(m.lastFinalize) >= finalizeInterval {
+		p.finalizeVisits(ctx)
+		m.lastFinalize = now
+	}
 	if m.lastPurgeDay != today {
 		cutoff := now.AddDate(0, 0, -cfg.RawRetentionDays)
 		if rows, err := p.host.DataCall(ctx, "analytics_purge", cutoff.UTC().Format(time.RFC3339Nano)); err != nil {
 			p.logf(ctx, "error", "analytics: purge failed: %v", err)
 		} else {
 			m.lastPurgeDay = today
+			if _, err := p.host.DataCall(ctx, "analytics_purge_behaviour", cutoff.UTC().Format(time.RFC3339Nano),
+				now.AddDate(-1, -1, 0).UTC().Format(time.RFC3339Nano)); err != nil {
+				p.logf(ctx, "error", "analytics: behaviour purge failed: %v", err)
+			}
 			if len(rows) > 0 && num(rows[0], "deleted") > 0 {
 				p.logf(ctx, "info", "analytics: purged %d raw events older than %d days", num(rows[0], "deleted"), cfg.RawRetentionDays)
 			}

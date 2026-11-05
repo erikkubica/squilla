@@ -132,6 +132,7 @@ func main() {
 	// directly after RequestID so it wraps every other middleware.
 	httpObserver := httpobs.New(eventBus, httpobs.Options{SessionCookie: auth.CookieName})
 	app.Use(httpObserver.Middleware())
+	cms.ReserveCookieNames(auth.CookieName)
 	app.Use(fiberlogger.New())
 	app.Use(recover.New())
 	app.Use(compress.New(compress.Config{
@@ -523,6 +524,7 @@ func main() {
 		}
 	})
 	pluginManager = cms.NewPluginManager(eventBus, hostRegistrar, database)
+	pluginManager.SetCookieObserver(httpObserver.SetCookieNames)
 	defer pluginManager.StopAll()
 
 	// Start plugins for already-active extensions.

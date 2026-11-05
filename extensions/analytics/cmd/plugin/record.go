@@ -20,6 +20,7 @@ type Record struct {
 	UserAgent   string            `json:"user_agent"`
 	Referer     string            `json:"referer"`
 	Headers     map[string]string `json:"headers"`
+	Cookies     map[string]string `json:"cookies"`
 	HasSession  bool              `json:"has_session"`
 	UserID      int64             `json:"user_id"`
 	NodeID      int64             `json:"node_id"`
@@ -79,6 +80,10 @@ type Event struct {
 	Viewport     string    `json:"viewport"`
 	ColorScheme  string    `json:"color_scheme"`
 	Printed      bool      `json:"printed"`
+	PrevPath     string    `json:"prev_path"`
+	ServerMS     int       `json:"server_ms"`
+	Spec         string    `json:"spec"`
+	Cached       bool      `json:"cached"`
 }
 
 // Event kinds.
@@ -88,6 +93,8 @@ const (
 	kindDownload = "download"
 	kindOutbound = "outbound"
 	kindGoal     = "goal"
+	// kindFormError is a rejected form submission (4xx/5xx on POST /forms/*).
+	kindFormError = "form_error"
 )
 
 // attribution is the acquisition context of a visit. It is captured on

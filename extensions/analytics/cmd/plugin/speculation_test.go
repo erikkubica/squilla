@@ -112,7 +112,7 @@ func TestGoLinkSpeculativeRequestIsRefused(t *testing.T) {
 // A failed confirmation flush must keep the confirmations for the next try.
 func TestConfirmationsRequeuedOnFailure(t *testing.T) {
 	p, h := newTestPlugin(t)
-	h.CallStub["analytics_confirm"] = func([]any) ([]map[string]any, error) { return nil, errors.New("db down") }
+	h.CallStub["analytics_confirm_batch"] = func([]any) ([]map[string]any, error) { return nil, errors.New("db down") }
 	p.buf.addConfirm(confirmation{EID: "a", Since: testNow})
 	p.buf.addConfirm(confirmation{EID: "b", Since: testNow})
 	p.flush(ctx())
@@ -120,7 +120,7 @@ func TestConfirmationsRequeuedOnFailure(t *testing.T) {
 		t.Fatalf("confirmations lost: %+v", c)
 	}
 	// An ingest failure requeues them too (they must not precede their event).
-	delete(h.CallStub, "analytics_confirm")
+	delete(h.CallStub, "analytics_confirm_batch")
 	h.CallStub["analytics_ingest"] = func([]any) ([]map[string]any, error) { return nil, errors.New("db down") }
 	p.buf.addEvent(Event{EID: "e1", TS: testNow, Kind: kindPageview})
 	p.buf.addConfirm(confirmation{EID: "e1", Since: testNow})

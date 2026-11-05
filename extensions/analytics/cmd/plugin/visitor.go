@@ -19,6 +19,28 @@ type saltKeeper struct {
 	day       string
 	rotatesAt time.Time
 	onRotate  []func()
+	// prev is yesterday's salt, kept in memory only until prevUntil so that
+	// a visit open across midnight is not cut in two. It is never persisted.
+	prev      []byte
+	prevUntil time.Time
+	grace     time.Duration
+}
+
+// previous returns the salt that expired most recently while it is still
+// inside the carry-over grace period, else nil.
+func (s *saltKeeper) previous(now time.Time) []byte {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.prev != nil && !now.Before(s.prevUntil) {
+		s.prev = nil
+	}
+	return s.prev
+}
+
+func (s *saltKeeper) setGrace(d time.Duration) {
+	s.mu.Lock()
+	s.grace = d
+	s.mu.Unlock()
 }
 
 func newSaltKeeper() *saltKeeper { return &saltKeeper{} }
@@ -35,6 +57,9 @@ func (s *saltKeeper) current(now time.Time, loc *time.Location) []byte {
 		return salt
 	}
 	rotated := s.salt != nil
+	if rotated && s.grace > 0 {
+		s.prev, s.prevUntil = s.salt, now.Add(s.grace)
+	}
 	salt := make([]byte, 32)
 	_, _ = rand.Read(salt)
 	s.salt, s.day = salt, day
@@ -61,7 +86,7 @@ func (s *saltKeeper) nextRotation() time.Time {
 // generates a fresh one.
 func (s *saltKeeper) reset() {
 	s.mu.Lock()
-	s.salt, s.day = nil, ""
+	s.salt, s.day, s.prev = nil, "", nil
 	s.mu.Unlock()
 }
 
