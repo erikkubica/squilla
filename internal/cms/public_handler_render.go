@@ -66,6 +66,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	appData.MenuLocations = h.renderCtx.ResolveMenuLocations(menus)
 
 	nodeData := h.renderCtx.BuildNodeData(node, blocksHTML, languages)
+	nodeData.StructuredData = structuredDataFrom(c)
 	// Render-time hook surface for extensions: head, body_start,
 	// body_end, footer. Each fires a PublishCollect on a render.* event
 	// and joins what subscribers return. Kernel-only deploys get empty

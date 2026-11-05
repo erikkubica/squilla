@@ -8,8 +8,10 @@ import { getPageStore } from "../sdui/action-handler";
 // to be a single page with every section stacked into one form. Splitting
 // into named sub-pages keeps the sidebar predictable as new sections
 // land. Pass `section` from the route component so the same shell can
-// resolve the matching SDUI layout.
-export function SduiSiteSettingsPage({ section = "general" }: { section?: "general" | "seo" | "advanced" | "robots" }) {
+// resolve the matching SDUI layout. Extension-declared settings schemas
+// (site.<section>) reach this page through the generic
+// /admin/settings/site/:section route.
+export function SduiSiteSettingsPage({ section = "general" }: { section?: string }) {
   const slug = `site-settings-${section}`;
   const { data: layout, isLoading, isFetching, error } = useLayout(slug);
   const store = getPageStore(slug);

@@ -3,6 +3,7 @@ package cms
 import (
 	"html/template"
 	"strings"
+	"time"
 
 	"squilla/internal/events"
 	"squilla/internal/models"
@@ -125,16 +126,33 @@ func composeBodyEnd(app AppData, extensionBodyEnd template.HTML) template.HTML {
 }
 
 // buildHookNodePayload mirrors the node map themes already see via
-// TemplateData.ToMap(). The contract is "you get what the template
-// gets" — keeps things simple without the kernel curating per-feature
-// subsets of the data.
+// TemplateData.ToMap(), plus a few generic node facts subscribers commonly
+// need (timestamps, blocks, layout slug, author name). The contract is
+// "you get what the template gets" — keeps things simple without the
+// kernel curating per-feature subsets of the data.
+//
+// Keys (all existing keys are unchanged):
+//
+//	id, title, slug, full_url, excerpt, language_code, node_type,
+//	seo, fields, featured_image, taxonomies        — as before
+//	created_at, updated_at                        — RFC3339 strings; omitted when zero (synthetic 404/archive nodes)
+//	published_at                                  — RFC3339 string; omitted when unpublished
+//	blocks                                        — []map[string]any parsed from blocks_data (empty slice when none)
+//	layout                                        — layout slug string; omitted when the node has none
+//	author                                        — {"name": string}; omitted unless node.Author is already loaded with a name (no DB query, no email)
+//	structured_data                               — []any of objects from the theme's structured-data templates; omitted when empty
 //
 // The included JSONB blobs (seo, fields, featured_image, taxonomies)
 // are kernel data-schema concerns, not feature-specific code: the
 // kernel doesn't interpret any of them, it just passes them through
 // like any other column.
 func buildHookNodePayload(node *models.ContentNode, nodeData NodeData) map[string]any {
-	return map[string]any{
+	blocks := parseBlocks(node.BlocksData)
+	if blocks == nil {
+		blocks = []map[string]interface{}{}
+	}
+
+	payload := map[string]any{
 		"id":             node.ID,
 		"title":          node.Title,
 		"slug":           node.Slug,
@@ -146,7 +164,32 @@ func buildHookNodePayload(node *models.ContentNode, nodeData NodeData) map[strin
 		"fields":         nodeData.Fields,
 		"featured_image": nodeData.FeaturedImage,
 		"taxonomies":     nodeData.Taxonomies,
+		"blocks":         blocks,
 	}
+
+	// Synthetic nodes (404, archives) have zero timestamps; omit rather
+	// than emit 0001-01-01.
+	if !node.CreatedAt.IsZero() {
+		payload["created_at"] = node.CreatedAt.Format(time.RFC3339)
+	}
+	if !node.UpdatedAt.IsZero() {
+		payload["updated_at"] = node.UpdatedAt.Format(time.RFC3339)
+	}
+
+	if len(nodeData.StructuredData) > 0 {
+		payload["structured_data"] = nodeData.StructuredData
+	}
+	if node.PublishedAt != nil {
+		payload["published_at"] = node.PublishedAt.Format(time.RFC3339)
+	}
+	if node.LayoutSlug != nil && *node.LayoutSlug != "" {
+		payload["layout"] = *node.LayoutSlug
+	}
+	if node.Author != nil && node.Author.FullName != nil && strings.TrimSpace(*node.Author.FullName) != "" {
+		payload["author"] = map[string]any{"name": *node.Author.FullName}
+	}
+
+	return payload
 }
 
 // buildHookUserPayload returns the per-request user context for render

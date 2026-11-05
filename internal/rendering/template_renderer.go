@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -329,6 +330,22 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 		"sub": func(a, b int) int {
 			return a - b
 		},
+		// Float math for values that arrive as JSON numbers (ratings,
+		// prices): addf/div accept any number kind; div by zero is 0.
+		"addf": func(a, b interface{}) float64 {
+			return toFloat(a) + toFloat(b)
+		},
+		"div": func(a, b interface{}) float64 {
+			d := toFloat(b)
+			if d == 0 {
+				return 0
+			}
+			return toFloat(a) / d
+		},
+		"round": func(v interface{}, places int) float64 {
+			p := math.Pow(10, float64(places))
+			return math.Round(toFloat(v)*p) / p
+		},
 		"list": func(items ...interface{}) []interface{} {
 			return items
 		},
@@ -585,6 +602,30 @@ func textInitials(s string) string {
 		return string(letters[0])
 	}
 	return string([]rune{letters[0], letters[len(letters)-1]})
+}
+
+// toFloat converts template numbers (int kinds, float64 from JSON,
+// numeric strings) to float64; anything else is 0.
+func toFloat(v interface{}) float64 {
+	switch n := v.(type) {
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int:
+		return float64(n)
+	case int64:
+		return float64(n)
+	case int32:
+		return float64(n)
+	case json.Number:
+		f, _ := n.Float64()
+		return f
+	case string:
+		f, _ := strconv.ParseFloat(strings.TrimSpace(n), 64)
+		return f
+	}
+	return 0
 }
 
 // toInt converts template numbers (int kinds, float64 from JSON, numeric

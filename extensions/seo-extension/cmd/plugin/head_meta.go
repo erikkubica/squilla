@@ -47,7 +47,7 @@ func (p *SEOPlugin) handleRenderHead(payload []byte) (*pb.EventResponse, error) 
 	if v, ok := ctx.Node["seo"].(map[string]any); ok {
 		seo = v
 	}
-	html := buildHeadMeta(ctx.Node, seo, ctx.Settings, ctx.Translations)
+	html := buildHeadMeta(ctx.Node, seo, ctx.Settings, ctx.Translations) + schemaBuildGraph(ctx.Node, seo, ctx.Settings)
 	return &pb.EventResponse{Handled: true, Result: []byte(html)}, nil
 }
 

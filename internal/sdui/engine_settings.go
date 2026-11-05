@@ -1,5 +1,7 @@
 package sdui
 
+import "strings"
+
 // engine_settings.go — SDUI layout generators for settings pages.
 //
 // Pre-registry, every settings page declared its schema inline here as
@@ -57,4 +59,20 @@ func schemaSettingsNode(schemaID string, showClearCache bool) *LayoutNode {
 			"show_clear_cache": showClearCache,
 		},
 	}
+}
+
+// siteSettingsSection extracts <section> from a "site-settings-<section>"
+// page slug. Only short lowercase slugs are accepted so arbitrary page
+// slugs can't fill the layout cache.
+func siteSettingsSection(pageSlug string) (string, bool) {
+	section, ok := strings.CutPrefix(pageSlug, "site-settings-")
+	if !ok || section == "" || len(section) > 40 {
+		return "", false
+	}
+	for _, r := range section {
+		if !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '-' || r == '_') {
+			return "", false
+		}
+	}
+	return section, true
 }

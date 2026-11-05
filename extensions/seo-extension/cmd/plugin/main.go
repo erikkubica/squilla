@@ -26,6 +26,7 @@ import (
 // /robots.txt without leaving dead code in the kernel.
 type SEOPlugin struct {
 	host *coreapi.GRPCHostClient
+	llms llmsCache // generated llms.txt / llms-full.txt bodies
 }
 
 func (p *SEOPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
@@ -62,6 +63,12 @@ func (p *SEOPlugin) HandleHTTPRequest(req *pb.PluginHTTPRequest) (*pb.PluginHTTP
 
 	if method == "GET" && (path == "/robots.txt" || strings.HasSuffix(path, "/robots.txt")) {
 		return p.serveRobots(context.Background(), req)
+	}
+	if method == "GET" && (path == "/llms.txt" || strings.HasSuffix(path, "/llms.txt")) {
+		return p.serveLLMs(context.Background(), req, false)
+	}
+	if method == "GET" && (path == "/llms-full.txt" || strings.HasSuffix(path, "/llms-full.txt")) {
+		return p.serveLLMs(context.Background(), req, true)
 	}
 
 	return &pb.PluginHTTPResponse{
@@ -184,6 +191,13 @@ func (p *SEOPlugin) serveRobots(ctx context.Context, req *pb.PluginHTTPRequest) 
 			b.WriteString("\n")
 		}
 		b.WriteString("\n")
+	}
+
+	// LLM index pointer, next to the Sitemap line. Only when llms.txt is served.
+	if truthy(settings["llms_enabled"], true) {
+		if base := llmsSiteBase(settings, req); base != "" {
+			fmt.Fprintf(&b, "# LLMs: %s/llms.txt\n", base)
+		}
 	}
 
 	// Sitemap line. Order: explicit override > derived from site_url >

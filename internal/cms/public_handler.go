@@ -172,7 +172,7 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 	c.Locals(requestLocalsKey, buildRequestData(c, nil))
 	blocks := parseBlocks(node.BlocksData)
 	h.resolveAssetRefsInBlocks(blocks)
-	renderedBlocks := h.renderBlocksBatchFor(blocks, node.LanguageCode, requestDataFrom(c), h.pageNodeData(&node))
+	renderedBlocks := h.renderPageBlocks(c, blocks, node.LanguageCode, h.pageNodeData(&node))
 	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
 
 	html, _, renderErr := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user)
@@ -242,7 +242,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	c.Locals(requestLocalsKey, buildRequestData(c, archive))
 	blocks := parseBlocks(node.BlocksData)
 	h.resolveAssetRefsInBlocks(blocks)
-	renderedBlocks := h.renderBlocksBatchFor(blocks, node.LanguageCode, requestDataFrom(c), h.pageNodeData(node))
+	renderedBlocks := h.renderPageBlocks(c, blocks, node.LanguageCode, h.pageNodeData(node))
 	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
 
 	// Layout-based rendering

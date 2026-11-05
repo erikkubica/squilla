@@ -196,6 +196,8 @@ function AppRoutes() {
       <Route path="/admin/settings/site/robots" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiSiteSettingsPage section="robots" /></CapabilityGuard></ProtectedRoute>} />
       <Route path="/admin/settings/site/advanced" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiSiteSettingsPage section="advanced" /></CapabilityGuard></ProtectedRoute>} />
       <Route path="/admin/settings/site/languages" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SduiLanguagesPage /></CapabilityGuard></ProtectedRoute>} />
+      {/* Settings schemas registered by extensions (site.<section>), e.g. site.schema, site.llms. Static routes above win. */}
+      <Route path="/admin/settings/site/:section" element={<ProtectedRoute><CapabilityGuard requires="manage_settings"><SiteSettingsSectionRoute /></CapabilityGuard></ProtectedRoute>} />
       {/* Languages used to live at /admin/languages — keep the old path
           working as an alias so bookmarks and external links don't 404. */}
       <Route path="/admin/languages" element={<Navigate to="/admin/settings/site/languages" replace />} />
@@ -256,4 +258,11 @@ export default function App() {
       </ExtensionsProvider>
     </AuthProvider>
   );
+}
+
+// SiteSettingsSectionRoute keys the page by section so switching between
+// two extension settings pages remounts with the right SDUI layout.
+function SiteSettingsSectionRoute() {
+  const { section = "general" } = useParams();
+  return <SduiSiteSettingsPage key={section} section={section} />;
 }

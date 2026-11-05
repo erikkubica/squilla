@@ -147,6 +147,13 @@ func (h *PublicHandler) renderBlocksBatch(blocks []map[string]interface{}, local
 // block placed on an experience can show that experience's own data. Pass
 // nil for either when there is none.
 func (h *PublicHandler) renderBlocksBatchFor(blocks []map[string]interface{}, locale string, req map[string]interface{}, current map[string]interface{}) []string {
+	return h.renderBlocksCollect(blocks, locale, req, current, nil)
+}
+
+// renderBlocksCollect is renderBlocksBatchFor that also renders each
+// block's structured-data template (see structured_data.go) into *sd
+// when sd is non-nil.
+func (h *PublicHandler) renderBlocksCollect(blocks []map[string]interface{}, locale string, req map[string]interface{}, current map[string]interface{}, sd *[]any) []string {
 	if req == nil {
 		req = emptyRequestData()
 	}
@@ -181,39 +188,7 @@ func (h *PublicHandler) renderBlocksBatchFor(blocks []map[string]interface{}, lo
 	}
 
 	// Step 2: Batch fetch nodes if any IDs were found
-	nodeMap := make(map[int]map[string]interface{})
-	if len(allNodeIDs) > 0 {
-		var ids []int
-		for id := range allNodeIDs {
-			ids = append(ids, id)
-		}
-		var nodes []models.ContentNode
-		if err := h.db.Where("id IN ?", ids).Find(&nodes).Error; err == nil {
-			// Get node types for schema info
-			typeSlugs := make(map[string]bool)
-			for _, n := range nodes {
-				if n.NodeType != "" {
-					typeSlugs[n.NodeType] = true
-				}
-			}
-			var slugs []string
-			for s := range typeSlugs {
-				slugs = append(slugs, s)
-			}
-			var nodeTypes []models.NodeType
-			if len(slugs) > 0 {
-				h.db.Where("slug IN ?", slugs).Find(&nodeTypes)
-			}
-			typeSchemaMap := make(map[string]models.JSONB)
-			for _, nt := range nodeTypes {
-				typeSchemaMap[nt.Slug] = nt.Fields
-			}
-
-			for i := range nodes {
-				nodeMap[nodes[i].ID] = nodeTemplateData(&nodes[i], typeSchemaMap[nodes[i].NodeType])
-			}
-		}
-	}
+	nodeMap := h.fetchHydrationNodes(allNodeIDs)
 	if currentFields != nil {
 		applyHydratedNodes(currentFields, nodeMap)
 	}
@@ -256,6 +231,11 @@ func (h *PublicHandler) renderBlocksBatchFor(blocks []map[string]interface{}, lo
 			cached, hit := h.blockOutputCache[outputKey]
 			h.cacheMu.RUnlock()
 			if hit {
+				if sd != nil {
+					markRichTextFields(fields, bt.Fields)
+					h.hydrateTermFields(fields, bt.Fields)
+					*sd = append(*sd, h.renderBlockStructuredData(bt, fields, req, current, ts)...)
+				}
 				rendered = append(rendered, cached)
 				continue
 			}
@@ -324,6 +304,9 @@ func (h *PublicHandler) renderBlocksBatchFor(blocks []map[string]interface{}, lo
 		}
 
 		output := buf.String()
+		if sd != nil {
+			*sd = append(*sd, h.renderBlockStructuredData(bt, fields, req, current, ts)...)
+		}
 
 		// Store in block output cache if enabled
 		if bt.CacheOutput && shareable {
@@ -403,4 +386,44 @@ func (h *PublicHandler) nodeTypeIsPublic(slug string) bool {
 		return true
 	}
 	return nt.Public
+}
+
+// fetchHydrationNodes loads the given node ids in one query and returns
+// them in template shape, keyed by id.
+func (h *PublicHandler) fetchHydrationNodes(allNodeIDs map[int]bool) map[int]map[string]interface{} {
+	nodeMap := make(map[int]map[string]interface{})
+	if len(allNodeIDs) == 0 {
+		return nodeMap
+	}
+	var ids []int
+	for id := range allNodeIDs {
+		ids = append(ids, id)
+	}
+	var nodes []models.ContentNode
+	if err := h.db.Where("id IN ?", ids).Find(&nodes).Error; err != nil {
+		return nodeMap
+	}
+	// Get node types for schema info
+	typeSlugs := make(map[string]bool)
+	for _, n := range nodes {
+		if n.NodeType != "" {
+			typeSlugs[n.NodeType] = true
+		}
+	}
+	var slugs []string
+	for s := range typeSlugs {
+		slugs = append(slugs, s)
+	}
+	var nodeTypes []models.NodeType
+	if len(slugs) > 0 {
+		h.db.Where("slug IN ?", slugs).Find(&nodeTypes)
+	}
+	typeSchemaMap := make(map[string]models.JSONB)
+	for _, nt := range nodeTypes {
+		typeSchemaMap[nt.Slug] = nt.Fields
+	}
+	for i := range nodes {
+		nodeMap[nodes[i].ID] = nodeTemplateData(&nodes[i], typeSchemaMap[nodes[i].NodeType])
+	}
+	return nodeMap
 }

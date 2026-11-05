@@ -8,6 +8,8 @@
     "priority": 50,
     "auto_activate": true,
     "capabilities": [
+        "nodes:read",
+        "nodetypes:read",
         "settings:read",
         "settings:write",
         "events:subscribe",
@@ -21,12 +23,16 @@
         }
     ],
     "public_routes": [
-        {"method": "GET", "path": "/robots.txt"}
+        {"method": "GET", "path": "/robots.txt"},
+        {"method": "GET", "path": "/llms.txt"},
+        {"method": "GET", "path": "/llms-full.txt"}
     ],
     "admin_ui": {
         "site_settings_menu": [
             {"label": "SEO", "route": "/admin/settings/site/seo", "icon": "Globe"},
-            {"label": "Robots & AI", "route": "/admin/settings/site/robots", "icon": "Shield"}
+            {"label": "Robots & AI", "route": "/admin/settings/site/robots", "icon": "Shield"},
+            {"label": "AI & LLMs", "route": "/admin/settings/site/llms", "icon": "Bot"},
+            {"label": "Schema.org", "route": "/admin/settings/site/schema", "icon": "Network"}
         ]
     },
     "settings": [
@@ -99,6 +105,61 @@
                         {"key": "robots_sitemap_url", "label": "Sitemap URL override", "type": "text", "font_mono": true,
                             "placeholder": "https://example.com/sitemap.xml",
                             "help": "Defaults to <site_url>/sitemap.xml. Override if your sitemap lives elsewhere."}
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "site.llms",
+            "title": "AI & LLMs",
+            "description": "Serves /llms.txt and /llms-full.txt, a plain index of your public content for AI assistants. Off on staging automatically when indexing is disabled in SEO.",
+            "capability": "manage_settings",
+            "sections": [
+                {
+                    "title": "llms.txt",
+                    "icon": "Bot",
+                    "description": "Summary and About text sit at the top of the file. Each public node type becomes a section of links. Nodes flagged Exclude from llms.txt in their SEO panel are left out.",
+                    "full_width": true,
+                    "fields": [
+                        {"key": "llms_enabled", "label": "Publish /llms.txt", "type": "toggle", "translatable": true, "true_value": "true", "false_value": "false", "default": "true", "help": "When off, /llms.txt and /llms-full.txt return 404 and robots.txt drops the LLMs pointer."},
+                        {"key": "llms_summary", "label": "Summary", "type": "textarea", "translatable": true, "rows": 2, "placeholder": "Defaults to the default meta description", "help": "One or two sentences at the top of the file, shown as a blockquote. Falls back to Default Meta Description, then Site Description."},
+                        {"key": "llms_about", "label": "About", "type": "textarea", "translatable": true, "rows": 6, "placeholder": "Who you are, where you are, what makes you different, what you are not.", "help": "Free text, included verbatim. Put facts a model should get right here: who runs it, where, group sizes, prices model, what you do not offer."},
+                        {"key": "llms_node_types", "label": "Node types to include", "type": "text", "font_mono": true, "placeholder": "experience,post,page", "help": "Comma-separated type slugs, in the order they should appear. Leave empty to include every public type. Non-public types are always skipped."},
+                        {"key": "llms_limit_per_type", "label": "Items per section", "type": "text", "default": "50", "placeholder": "50", "help": "Maximum entries listed per node type (1 to 500). Newest first, pages by title."},
+                        {"key": "llms_optional_urls", "label": "Optional links", "type": "textarea", "rows": 4, "font_mono": true, "placeholder": "Press kit | https://example.com/press\n/faq", "help": "One per line, as a URL or 'Title | URL'. Listed under ## Optional, which agents may skip. The sitemap is always listed there too."}
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "site.schema",
+            "title": "Schema.org",
+            "description": "Organization and site-wide structured data emitted as a JSON-LD @graph on every public page. Per-page facts come from the page itself.",
+            "capability": "manage_settings",
+            "sections": [
+                {
+                    "title": "Organization",
+                    "icon": "Network",
+                    "description": "Who runs the site. Feeds the Organization (or subtype) node that WebSite, WebPage and BlogPosting point at.",
+                    "full_width": true,
+                    "fields": [
+                        {"key": "schema_enabled", "label": "Emit Schema.org structured data", "type": "toggle", "true_value": "true", "false_value": "false", "default": "true", "help": "When off, no JSON-LD is emitted on any public page."},
+                        {"key": "schema_org_type", "label": "Organization type", "type": "select", "default": "Organization", "options": [{"value": "Organization", "label": "Organization"}, {"value": "LocalBusiness", "label": "LocalBusiness"}, {"value": "TravelAgency", "label": "TravelAgency"}, {"value": "Restaurant", "label": "Restaurant"}, {"value": "Store", "label": "Store"}, {"value": "ProfessionalService", "label": "ProfessionalService"}, {"value": "Person", "label": "Person"}], "help": "Most specific schema.org type that fits the business. Person omits address and price range."},
+                        {"key": "schema_org_name", "label": "Legal or brand name", "type": "text", "translatable": true, "placeholder": "Defaults to OG Site Name, then Site Name", "help": "Name Google and AI engines should attribute the site to."},
+                        {"key": "schema_org_description", "label": "Organization description", "type": "textarea", "translatable": true, "rows": 2, "placeholder": "Defaults to the site description", "help": "One or two sentences describing what the business does."},
+                        {"key": "schema_org_logo", "label": "Logo URL", "type": "text", "font_mono": true, "placeholder": "https://example.com/logo.png", "help": "Square or wide logo, absolute or site-relative URL. Shown in Google Knowledge Panels."},
+                        {"key": "schema_org_same_as", "label": "Profile links (sameAs)", "type": "textarea", "rows": 3, "font_mono": true, "placeholder": "https://instagram.com/yourbrand\nhttps://www.facebook.com/yourbrand", "help": "One URL per line: social profiles, Google Business Profile, Wikipedia or Wikidata entries."},
+                        {"key": "schema_org_phone", "label": "Telephone", "type": "text", "font_mono": true, "placeholder": "+84 900 000 000", "help": "Public contact number, international format."},
+                        {"key": "schema_org_email", "label": "Email", "type": "text", "font_mono": true, "placeholder": "hello@example.com", "help": "Public contact email."},
+                        {"key": "schema_org_street", "label": "Street address", "type": "text", "help": "Leave all address fields blank for businesses without a physical address."},
+                        {"key": "schema_org_locality", "label": "City", "type": "text", "placeholder": "Hanoi"},
+                        {"key": "schema_org_region", "label": "Region or state", "type": "text", "placeholder": "Hoan Kiem"},
+                        {"key": "schema_org_postal_code", "label": "Postal code", "type": "text", "font_mono": true},
+                        {"key": "schema_org_country", "label": "Country code", "type": "text", "font_mono": true, "placeholder": "VN", "help": "ISO 3166-1 alpha-2, e.g. VN, US, GB."},
+                        {"key": "schema_org_lat", "label": "Latitude", "type": "text", "font_mono": true, "placeholder": "21.0285", "help": "Decimal degrees. Emitted only together with longitude."},
+                        {"key": "schema_org_lng", "label": "Longitude", "type": "text", "font_mono": true, "placeholder": "105.8542", "help": "Decimal degrees. Emitted only together with latitude."},
+                        {"key": "schema_org_price_range", "label": "Price range", "type": "text", "placeholder": "$$", "help": "Rough indication such as $ to $$$$. Not emitted for Person."},
+                        {"key": "schema_org_area_served", "label": "Area served", "type": "text", "placeholder": "Hanoi, Vietnam", "help": "City or region you serve."}
                     ]
                 }
             ]

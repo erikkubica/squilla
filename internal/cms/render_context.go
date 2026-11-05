@@ -64,6 +64,10 @@ type NodeData struct {
 	NodeType     string
 	LanguageCode string
 	Translations []map[string]interface{}
+	// StructuredData holds what the theme's structured-data templates
+	// produced for this page (see structured_data.go). Forwarded to
+	// render hooks only; templates don't see it.
+	StructuredData []any
 }
 
 // UserData holds the .user namespace for layout templates.

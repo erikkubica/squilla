@@ -211,7 +211,13 @@ func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userN
 	case "security-settings":
 		layout = e.securitySettingsLayout()
 	default:
-		layout = e.defaultLayout(pageSlug)
+		if section, ok := siteSettingsSection(pageSlug); ok {
+			// Settings schemas contributed by extensions (site.<section>)
+			// get a page without a kernel change per extension.
+			layout = schemaSettingsNode("site."+section, true)
+		} else {
+			layout = e.defaultLayout(pageSlug)
+		}
 	}
 
 	// TODO: Apply filter chain (admin:layout:render) so extensions can modify

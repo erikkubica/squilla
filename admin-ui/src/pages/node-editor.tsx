@@ -181,6 +181,9 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const seoEnabled = hasProvider("seo");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
+  // Full seo_settings blob as loaded, so keys owned by other extensions
+  // (schema_disabled, llms_exclude, summary, ...) survive a save.
+  const originalSeoRef = useRef<Record<string, unknown>>({});
 
   // Standard Fields
   const [featuredImage, setFeaturedImage] = useState<Record<string, unknown>>({});
@@ -292,6 +295,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
         setParentId(node.parent_id ? String(node.parent_id) : "");
         // SEO
         const seo = (node.seo_settings || {}) as Record<string, string>;
+        originalSeoRef.current = { ...seo };
         setSeoTitle(seo.meta_title || "");
         setSeoDescription(seo.meta_description || "");
         // Standard Fields
@@ -647,6 +651,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
       excerpt: excerpt,
       taxonomies: taxonomies,
       seo_settings: {
+        ...originalSeoRef.current,
         meta_title: seoTitle,
         meta_description: seoDescription,
       },
@@ -722,7 +727,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
           layout_id: layoutId ? Number(layoutId) : undefined,
           blocks_data: blocks,
           fields_data: fieldsData,
-          seo_settings: { meta_title: seoTitle, meta_description: seoDescription },
+          seo_settings: { ...originalSeoRef.current, meta_title: seoTitle, meta_description: seoDescription },
           featured_image: featuredImage,
           taxonomies: taxonomies,
         };
