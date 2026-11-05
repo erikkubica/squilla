@@ -23,17 +23,18 @@ type confirmation struct {
 	Viewport    string
 	ColorScheme string
 	Printed     bool
+	Meta        bool // device facts only: do not mark the view confirmed
 }
 
 // pipelineBuffer collects events, bot counters and beacon confirmations
 // between flushes.
 type pipelineBuffer struct {
-	mu       sync.Mutex
-	events   []Event
-	bots     map[botKey]int64
-	confirms []confirmation
-	wake     chan struct{}
-	lost     int64 // events dropped because the buffer was full
+	mu        sync.Mutex
+	events    []Event
+	bots      map[botKey]int64
+	confirms  []confirmation
+	wake      chan struct{}
+	lost      int64 // events dropped because the buffer was full
 	inter     []Interaction
 	interLost int64 // interactions dropped because their buffer was full
 }
@@ -160,7 +161,7 @@ func (p *AnalyticsPlugin) flush(ctx context.Context) {
 		for _, c := range confirms[start:end] {
 			rows = append(rows, map[string]any{
 				"eid": c.EID, "since": c.Since.UTC().Format(time.RFC3339Nano),
-				"viewport": c.Viewport, "color_scheme": c.ColorScheme, "printed": c.Printed,
+				"viewport": c.Viewport, "color_scheme": c.ColorScheme, "printed": c.Printed, "meta": c.Meta,
 			})
 		}
 		if _, err := p.host.DataCall(ctx, "analytics_confirm_batch", rows); err != nil {

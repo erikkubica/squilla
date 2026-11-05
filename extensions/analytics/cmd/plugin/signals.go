@@ -157,6 +157,8 @@ func (p *AnalyticsPlugin) handleSignal(_ context.Context, rest string, req *pb.P
 	switch rest {
 	case "b":
 		sr.kind = "activate"
+	case "m":
+		sr.kind = "viewport"
 		sr.viewport = map[string]string{"s": "s", "m": "m", "l": "l"}[q["w"]]
 		sr.scheme = map[string]string{"l": "light", "d": "dark"}[q["c"]]
 		sr.print = q["print"] == "1"
@@ -254,7 +256,7 @@ func itoa(n int) string { b, _ := json.Marshal(n); return string(b) }
 func (p *AnalyticsPlugin) applySignal(c *client, cfg *Config, vid, path string, sr signalRequest, now time.Time) {
 	pv, ok := p.beacons.lookupRecent(vid, path, now, 30*time.Minute)
 	if !ok {
-		if sr.kind == "activate" && !sr.print && p.mayCreateView(now) {
+		if sr.kind == "activate" && p.mayCreateView(now) {
 			// A shown page with no request on record: served from a cache
 			// (or prerendered) — a real view, counted once.
 			p.createCachedView(c, cfg, vid, path, sr, now)
@@ -270,23 +272,21 @@ func (p *AnalyticsPlugin) applySignal(c *client, cfg *Config, vid, path string, 
 
 // recordSignal stores one signal for a known pageview.
 func (p *AnalyticsPlugin) recordSignal(vid, path string, pv recentPV, sr signalRequest, now time.Time) {
-	dedupe := sr.kind + "|" + sr.key + "|" + sr.value
+	dedupe := sr.kind + "|" + sr.key + "|" + sr.value + "|" + sr.viewport + sr.scheme
 	if sr.kind != "click" && !p.beacons.markSeen(vid, path, dedupe) {
-		if sr.kind != "activate" {
-			return
-		}
+		return
 	}
 	switch sr.kind {
+	case "viewport":
+		// Device facts only: never confirms (counts) a view by itself.
+		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute), Viewport: sr.viewport, ColorScheme: sr.scheme, Printed: sr.print, Meta: true})
+		return
 	case "activate":
-		if sr.print {
-			p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute), Printed: true})
-			return
-		}
-		if pv.done && !pv.spec {
+		if pv.done {
 			return
 		}
 		p.beacons.markDone(vid, path)
-		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute), Viewport: sr.viewport, ColorScheme: sr.scheme})
+		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute)})
 		return
 	case "dwell", "section", "end", "form", "toggle":
 		// Any in-page signal proves the page was shown.

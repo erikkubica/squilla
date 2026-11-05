@@ -237,7 +237,7 @@ func TestBeaconCorrelation(t *testing.T) {
 		"User-Agent": browserRecord("/").UserAgent, "Accept-Language": "en-GB,en;q=0.9",
 	}
 	beacon := func(q map[string]string) {
-		resp := p.routeRequest(ctx(), pbReq("GET", "/_s/b", headers, q))
+		resp := p.routeRequest(ctx(), pbReq("GET", "/_s/m", headers, q))
 		if resp.StatusCode != 200 || resp.Headers["Content-Type"] != "image/gif" || resp.Headers["Cache-Control"] == "" {
 			t.Fatalf("beacon response %+v", resp)
 		}
@@ -250,7 +250,7 @@ func TestBeaconCorrelation(t *testing.T) {
 		t.Fatalf("events: %+v", ev)
 	}
 	_, _, confirms := p.buf.take()
-	if len(confirms) != 1 || confirms[0].EID != ev[0].EID || confirms[0].Viewport != "m" || confirms[0].ColorScheme != "dark" {
+	if len(confirms) != 1 || confirms[0].EID != ev[0].EID || confirms[0].Viewport != "m" || confirms[0].ColorScheme != "dark" || !confirms[0].Meta {
 		t.Fatalf("pending beacon not applied: %+v", confirms)
 	}
 	// A late (print) beacon becomes a stored-event confirmation.

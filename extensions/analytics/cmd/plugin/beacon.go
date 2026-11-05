@@ -28,8 +28,8 @@ type recentPV struct {
 	eid  string
 	ts   time.Time
 	sess string
-	spec bool // stored as a speculative (prefetch/prerender) load
-	done bool // already confirmed by a beacon or an activation
+	spec bool     // stored as a speculative (prefetch/prerender) load
+	done bool     // already confirmed by a beacon or an activation
 	seen []string // signal dedupe keys already recorded for this view
 }
 

@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -101,9 +104,9 @@ func TestSignalsMarkupBudgetAndShape(t *testing.T) {
 	}
 	for _, want := range []string{
 		"@supports (animation-timeline:view()) and (timeline-scope:--a)", "timeline-scope:--s0,--s1,--s2,--s3,--s4",
-		`[data-sq-b="1"]{view-timeline:--s1 block}`, "/_s/v?p=12&k=bv-faq.0", "/_s/t?p=12&s=10", "/_s/b?p=12&w=m&c=d",
+		`[data-sq-b="1"]{view-timeline:--s1 block}`, "/_s/v?p=12&k=bv-faq.0", "/_s/m?p=12&w=m&c=d", "@container style(--sg:1){@container style(--so:1){",
 		`html:has([data-sq-b="1"] details[open]:not([data-sq-o]))`, `html:has([data-sq-b="2"] form:focus-within)`,
-		"/_s/e?p=12", "content-visibility",
+		"/_s/e?p=12", "@property --sg",
 	} {
 		if !strings.Contains(style, want) {
 			t.Errorf("style lacks %q", want)
@@ -112,12 +115,20 @@ func TestSignalsMarkupBudgetAndShape(t *testing.T) {
 	if strings.Contains(style, "<script") || strings.Contains(box, "<script") || strings.Contains(style, "visitor") {
 		t.Error("no scripts or identifiers allowed")
 	}
-	if !strings.Contains(box, `class="sq-a"`) || !strings.Contains(box, `class="sq-g"`) || !strings.Contains(box, `class="sq-t t600"`) {
-		t.Errorf("container = %s", box)
+	for _, want := range []string{
+		`<set attributeName="href" to="/_s/b?p=12" begin="1s" fill="freeze"/>`,
+		`to="/_s/t?p=12&amp;s=600" begin="600s"`, `<i class="sq-m"></i>`, `<b class="sq-g"><b class="sw w0"><i class="v"></i></b>`, `<b class="sw we"><i class="v"></i></b>`,
+	} {
+		if !strings.Contains(box, want) {
+			t.Errorf("container lacks %q: %s", want, box)
+		}
+	}
+	if strings.Contains(style, "@keyframes") && strings.Contains(style, "background-image:var(") {
+		t.Error("images must never be animated (WebKit fetches keyframe images at load)")
 	}
 	cfg.SignalSections, cfg.SignalDwell, cfg.SignalForms = false, false, false
 	style2, box2 := signalsMarkup(&cfg, 12, res.Sections)
-	if strings.Contains(style2, "view-timeline") || strings.Contains(box2, "sq-g") || strings.Contains(box2, "sq-t") {
+	if strings.Contains(style2, "view-timeline") || strings.Contains(box2, `class="sw`) || strings.Contains(box2, "s=600") {
 		t.Errorf("sub-toggles ignored: %s %s", style2, box2)
 	}
 }
@@ -169,3 +180,46 @@ func TestHandleTransformGatesVisitors(t *testing.T) {
 }
 
 func jsonMarshal(v any) ([]byte, error) { return json.Marshal(v) }
+
+// TestGenerateE2EFixture writes the page the browser matrix runs against
+// (opt-in: ANALYTICS_E2E_FIXTURE_DIR=…). The page is a long BV-like document
+// with the theme's reduced-motion reset, a flex-column body and overflow-hidden
+// roots, passed through the real instrumenter and CSS generator.
+func TestGenerateE2EFixture(t *testing.T) {
+	dir := os.Getenv("ANALYTICS_E2E_FIXTURE_DIR")
+	if dir == "" {
+		t.Skip("ANALYTICS_E2E_FIXTURE_DIR not set")
+	}
+	var b strings.Builder
+	b.WriteString(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>fixture</title>
+<style>body{margin:0;display:flex;flex-direction:column;min-height:100vh;font:16px/1.4 sans-serif}main{flex:1}section,.blk{min-height:120vh;overflow:hidden;border-bottom:4px solid #ccc;padding:24px}
+@media (prefers-reduced-motion:reduce){*,:before,:after{transition:none!important;animation:none!important}}</style></head><body>
+<header><nav><a id="nav-about" href="/about">About</a></nav></header><main>`)
+	slugs := []string{"bv-hero", "bv-tours", "bv-faq", "bv-contact"}
+	for i, s := range slugs {
+		b.WriteString("<!--sqx:b:" + strconv.Itoa(i) + ":" + s + "-->")
+		switch s {
+		case "bv-hero":
+			b.WriteString(`<section data-block="bv-hero"><h1>Hero</h1><a id="to-tours" href="/tours">Tours</a> <a id="wa" href="https://wa.me/84969655521" target="_blank" rel="noopener noreferrer">WhatsApp</a> <a id="mail" href="mailto:hello@example.com">Mail</a> <a id="ext" href="https://partner.example.net/x" rel="noreferrer">Partner</a></section>`)
+		case "bv-faq":
+			b.WriteString(`<section data-block="bv-faq"><details id="q1" open><summary>Open at start</summary>a</details><details id="q2"><summary>Second</summary>b</details></section>`)
+		case "bv-contact":
+			b.WriteString(`<section data-block="bv-contact"><form id="f" onsubmit="return false"><input id="name" name="name"></form></section>`)
+		default:
+			b.WriteString(`<section data-block="` + s + `"><h2>` + s + `</h2></section>`)
+		}
+		b.WriteString("<!--sqx:/b-->")
+	}
+	b.WriteString(`</main><footer><a href="/privacy">Privacy</a></footer></body></html>`)
+	cfg := defaultConfig()
+	cfg.EnhancedMode = true
+	o := instrumentOpts{Prefix: "/_s", NodeID: 7, Host: "localhost", Clicks: true, Own: func(h string) bool { return h == "localhost" || h == "127.0.0.1" }}
+	res := instrument(b.String(), o)
+	style, box := signalsMarkup(&cfg, 7, res.Sections)
+	doc := injectBefore(res.HTML, "</head>", style, true)
+	doc = injectBefore(doc, "</body>", box, false)
+	doc = regexp.MustCompile(`<!--sqx:[^>]*-->`).ReplaceAllString(doc, "")
+	if err := os.WriteFile(filepath.Join(dir, "page.html"), []byte(doc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}

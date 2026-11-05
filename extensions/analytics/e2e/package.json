@@ -1,0 +1,13 @@
+{
+  "name": "@squilla/analytics-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "fixture": "cd ../../.. && ANALYTICS_E2E_FIXTURE_DIR=$PWD/extensions/analytics/e2e/fixtures go test -count=1 -run TestGenerateE2EFixture ./extensions/analytics/...",
+    "test": "playwright test",
+    "test:list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

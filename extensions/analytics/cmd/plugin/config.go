@@ -26,15 +26,15 @@ type Config struct {
 	SessionTimeoutMinutes int      `json:"session_timeout_minutes"`
 	// EnhancedMode switches on the in-page signals (CSS/HTML only, no
 	// JavaScript); the Signal* flags select which ones.
-	EnhancedMode          bool     `json:"enhanced_mode"`
-	SignalDwell           bool     `json:"signal_dwell"`
-	SignalSections        bool     `json:"signal_sections"`
-	SignalClicks          bool     `json:"signal_clicks"`
-	SignalForms           bool     `json:"signal_forms"`
-	BeaconPrefix          string   `json:"beacon_prefix"`
-	DownloadExtensions    []string `json:"download_extensions"`
-	OwnHosts              []string `json:"own_hosts"`
-	GeoIPDBPath           string   `json:"geoip_db_path"`
+	EnhancedMode       bool     `json:"enhanced_mode"`
+	SignalDwell        bool     `json:"signal_dwell"`
+	SignalSections     bool     `json:"signal_sections"`
+	SignalClicks       bool     `json:"signal_clicks"`
+	SignalForms        bool     `json:"signal_forms"`
+	BeaconPrefix       string   `json:"beacon_prefix"`
+	DownloadExtensions []string `json:"download_extensions"`
+	OwnHosts           []string `json:"own_hosts"`
+	GeoIPDBPath        string   `json:"geoip_db_path"`
 
 	loc *time.Location
 }

@@ -10,48 +10,66 @@ import (
 // asks for its background image — a heartbeat the server timestamps.
 var dwellMarks = []int{10, 30, 60, 180, 600}
 
+// How each beacon is triggered (measured in Chromium, Firefox and WebKit;
+// see docs/browser-matrix.md):
+//
+//   - activation and dwell marks: SVG SMIL <set attributeName="href" begin="Ns">
+//     on an <image>. The image is fetched only when the timer sets its href —
+//     the one time trigger that is lazy in every engine and untouched by the
+//     theme's prefers-reduced-motion animation reset. (WebKit fetches any CSS
+//     background image named in @keyframes or inside content-visibility:hidden
+//     at load, Firefox the latter, so those cannot delay a request.)
+//   - section / end beacons: a scroll-driven animation (named view-timeline)
+//     flips a registered custom property on the beacon's wrapper; a style
+//     query then gives the child its background-image. A second, time-based
+//     animation on the same wrapper keeps them silent for the first second.
+//     Needs scroll timelines and style queries (Chromium, Safari 26); other
+//     browsers simply send none.
+//   - form / FAQ beacons: a :has() rule gives the child its background-image
+//     once the state exists.
+//   - viewport and colour scheme: plain @media rules choosing the image.
 const signalsBaseCSS = `.sq-o{position:fixed;left:0;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}` +
-	`.sq-o i{display:block;width:1px;height:1px}` +
-	`.sq-o .sq-g{content-visibility:hidden;animation:sqg 1ms 1s forwards!important}` +
-	`@keyframes sqg{to{content-visibility:visible}}` +
-	`@keyframes sqt{to{background-image:var(--u)}}` +
-	`.sq-o .sq-t{animation-name:sqt!important;animation-duration:1ms!important;animation-fill-mode:forwards!important;animation-timeline:auto!important}`
+	`.sq-o i,.sq-o b,.sq-o svg{display:block;width:1px;height:1px}`
 
-const signalsSectionCSS = `@keyframes sqv{0%,49.9%{background-image:none}50%,100%{background-image:var(--u)}}` +
-	`.sq-o .sq-v{animation-name:sqv!important;animation-duration:auto!important;animation-timing-function:linear!important;` +
-	`animation-fill-mode:both!important;animation-delay:0s!important;animation-range:entry 0% entry 60%!important}`
+const signalsSectionCSS = `@property --sg{syntax:"<integer>";inherits:true;initial-value:0}` +
+	`@property --so{syntax:"<integer>";inherits:true;initial-value:0}` +
+	`@keyframes sqg{to{--sg:1}}@keyframes sqo{to{--so:1}}` +
+	`.sq-o .sq-g{animation-name:sqg!important;animation-duration:1ms!important;animation-delay:1s!important;animation-fill-mode:forwards!important}` +
+	`.sq-o .sw{animation-name:sqo!important;animation-duration:auto!important;animation-timing-function:linear!important;` +
+	`animation-fill-mode:both!important;animation-range:entry 0% entry 60%!important}`
 
 // signalsMarkup builds the <style> and the hidden container for one page.
-// Everything is CSS: the browser fetches a background image when an
-// animation or :has() state reaches it. No script, no identifiers in any
-// URL — only the page id and a block key.
+// Everything is markup and CSS: no script, no identifiers in any URL —
+// only the page id and a block key.
 func signalsMarkup(cfg *Config, nodeID int64, secs []section) (style, container string) {
 	pre := cfg.BeaconPrefix
 	pid := strconv.FormatInt(nodeID, 10)
-	u := func(path, rest string) string {
-		return "url(" + pre + path + "?p=" + pid + rest + ")"
-	}
-	var css, a, g strings.Builder
+	u := func(path, rest string) string { return pre + path + "?p=" + pid + rest }
+	cssURL := func(path, rest string) string { return "url(" + u(path, rest) + ")" }
+	attrURL := func(path, rest string) string { return strings.ReplaceAll(u(path, rest), "&", "&amp;") }
+	var css, svg, g, h strings.Builder
 	css.WriteString(signalsBaseCSS)
 
-	// Activation: viewport + colour scheme, 1 s after the page is shown.
-	act := func(w, c string) string { return u("/b", "&w="+w+"&c="+c) }
-	css.WriteString(`.sq-o .sq-a{animation-name:sqt!important;animation-duration:1ms!important;animation-delay:1s!important;animation-fill-mode:forwards!important;animation-timeline:auto!important;--u:` + act("l", "l") + `}`)
-	css.WriteString(`@media (min-width:768px) and (max-width:1199px){.sq-o .sq-a{--u:` + act("m", "l") + `}}`)
-	css.WriteString(`@media (max-width:767px){.sq-o .sq-a{--u:` + act("s", "l") + `}}`)
-	css.WriteString(`@media (prefers-color-scheme:dark){.sq-o .sq-a{--u:` + act("l", "d") + `}}`)
-	css.WriteString(`@media (prefers-color-scheme:dark) and (min-width:768px) and (max-width:1199px){.sq-o .sq-a{--u:` + act("m", "d") + `}}`)
-	css.WriteString(`@media (prefers-color-scheme:dark) and (max-width:767px){.sq-o .sq-a{--u:` + act("s", "d") + `}}`)
-	css.WriteString(`@media print{.sq-o .sq-a{animation:none!important;background-image:` + u("/b", "&print=1") + `}}`)
-	a.WriteString(`<i class="sq-a"></i>`)
-
+	// Activation (and dwell marks): timers in SMIL.
+	timer := func(path, rest string, after int) {
+		svg.WriteString(`<image width="1" height="1"><set attributeName="href" to="` + attrURL(path, rest) + `" begin="` + strconv.Itoa(after) + `s" fill="freeze"/></image>`)
+	}
+	timer("/b", "", 1)
 	if cfg.SignalDwell {
-		for _, s := range dwellMarks {
-			n := strconv.Itoa(s)
-			css.WriteString(`.sq-o .t` + n + `{--u:` + u("/t", "&s="+n) + `;animation-delay:` + n + `s!important}`)
-			a.WriteString(`<i class="sq-t t` + n + `"></i>`)
+		for _, d := range dwellMarks {
+			timer("/t", "&s="+strconv.Itoa(d), d)
 		}
 	}
+
+	// Viewport + colour scheme: media queries choose the image (no timing).
+	m := func(w, c string) string { return cssURL("/m", "&w="+w+"&c="+c) }
+	css.WriteString(`.sq-o .sq-m{background-image:` + m("l", "l") + `}`)
+	css.WriteString(`@media (min-width:768px) and (max-width:1199px){.sq-o .sq-m{background-image:` + m("m", "l") + `}}`)
+	css.WriteString(`@media (max-width:767px){.sq-o .sq-m{background-image:` + m("s", "l") + `}}`)
+	css.WriteString(`@media (prefers-color-scheme:dark){.sq-o .sq-m{background-image:` + m("l", "d") + `}}`)
+	css.WriteString(`@media (prefers-color-scheme:dark) and (min-width:768px) and (max-width:1199px){.sq-o .sq-m{background-image:` + m("m", "d") + `}}`)
+	css.WriteString(`@media (prefers-color-scheme:dark) and (max-width:767px){.sq-o .sq-m{background-image:` + m("s", "d") + `}}`)
+	css.WriteString(`@media print{.sq-o .sq-m{background-image:` + cssURL("/m", "&print=1") + `}}`)
 
 	if cfg.SignalSections && len(secs) > 0 {
 		var tl, anchors, rules strings.Builder
@@ -60,12 +78,14 @@ func signalsMarkup(cfg *Config, nodeID int64, secs []section) (style, container 
 			k := strconv.Itoa(s.K)
 			names = append(names, "--s"+k)
 			anchors.WriteString(`[data-sq-b="` + k + `"]{view-timeline:--s` + k + ` block}`)
-			rules.WriteString(`.sq-o .v` + k + `{--u:` + u("/v", "&k="+url.QueryEscape(s.Key)) + `;animation-timeline:--s` + k + `!important}`)
-			g.WriteString(`<i class="sq-v v` + k + `"></i>`)
+			rules.WriteString(`.sq-o .w` + k + `{animation-timeline:--s` + k + `!important}`)
+			rules.WriteString(`@container style(--sg:1){@container style(--so:1){.sq-o .w` + k + ` .v{background-image:` + cssURL("/v", "&k="+url.QueryEscape(s.Key)) + `}}}`)
+			g.WriteString(`<b class="sw w` + k + `"><i class="v"></i></b>`)
 		}
 		last := strconv.Itoa(secs[len(secs)-1].K)
-		rules.WriteString(`.sq-o .ve{--u:` + u("/e", "") + `;animation-timeline:--s` + last + `!important}`)
-		g.WriteString(`<i class="sq-v ve"></i>`)
+		rules.WriteString(`.sq-o .we{animation-timeline:--s` + last + `!important}`)
+		rules.WriteString(`@container style(--sg:1){@container style(--so:1){.sq-o .we .v{background-image:` + cssURL("/e", "") + `}}}`)
+		g.WriteString(`<b class="sw we"><i class="v"></i></b>`)
 		tl.WriteString("html{timeline-scope:" + strings.Join(names, ",") + "}")
 		css.WriteString(`@supports (animation-timeline:view()) and (timeline-scope:--a){` + tl.String() + anchors.String() + signalsSectionCSS + rules.String() + `}`)
 	}
@@ -76,12 +96,12 @@ func signalsMarkup(cfg *Config, nodeID int64, secs []section) (style, container 
 			k := strconv.Itoa(s.K)
 			sel := `[data-sq-b="` + k + `"]`
 			if s.Form {
-				st.WriteString(`html:has(` + sel + ` form:focus-within) .sq-o .f` + k + `{background-image:` + u("/i", "&k="+url.QueryEscape(s.Key)+"&t=f") + `}`)
-				g.WriteString(`<i class="f` + k + `"></i>`)
+				st.WriteString(`html:has(` + sel + ` form:focus-within) .sq-o .f` + k + `{background-image:` + cssURL("/i", "&k="+url.QueryEscape(s.Key)+"&t=f") + `}`)
+				h.WriteString(`<i class="f` + k + `"></i>`)
 			}
 			if s.Details {
-				st.WriteString(`html:has(` + sel + ` details[open]:not([data-sq-o])) .sq-o .d` + k + `{background-image:` + u("/i", "&k="+url.QueryEscape(s.Key)+"&t=d") + `}`)
-				g.WriteString(`<i class="d` + k + `"></i>`)
+				st.WriteString(`html:has(` + sel + ` details[open]:not([data-sq-o])) .sq-o .d` + k + `{background-image:` + cssURL("/i", "&k="+url.QueryEscape(s.Key)+"&t=d") + `}`)
+				h.WriteString(`<i class="d` + k + `"></i>`)
 			}
 		}
 		if st.Len() > 0 {
@@ -90,11 +110,11 @@ func signalsMarkup(cfg *Config, nodeID int64, secs []section) (style, container 
 	}
 
 	style = "<style>" + css.String() + "</style>"
-	container = `<div class="sq-o" aria-hidden="true">` + a.String()
+	container = `<div class="sq-o" aria-hidden="true"><svg width="1" height="1">` + svg.String() + `</svg><i class="sq-m"></i>`
 	if g.Len() > 0 {
-		container += `<div class="sq-g">` + g.String() + `</div>`
+		container += `<b class="sq-g">` + g.String() + `</b>`
 	}
-	container += `</div>`
+	container += h.String() + `</div>`
 	return style, container
 }
 

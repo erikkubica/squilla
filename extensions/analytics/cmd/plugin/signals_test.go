@@ -28,7 +28,8 @@ func TestSignalsRecordedAgainstThePageview(t *testing.T) {
 	ev := bufferedEvents(p)[0]
 	p.buf.take()
 
-	send(p, "GET", "/_s/b", h, map[string]string{"w": "s", "c": "l", "p": "12"})
+	send(p, "GET", "/_s/m", h, map[string]string{"w": "s", "c": "l", "p": "12"})
+	send(p, "GET", "/_s/b", h, map[string]string{"p": "12"})
 	send(p, "GET", "/_s/t", h, map[string]string{"s": "10", "p": "12"})
 	send(p, "GET", "/_s/t", h, map[string]string{"s": "10", "p": "12"}) // duplicate
 	send(p, "GET", "/_s/t", h, map[string]string{"s": "7", "p": "12"})  // not a mark
@@ -62,8 +63,8 @@ func TestSignalsRecordedAgainstThePageview(t *testing.T) {
 		}
 	}
 	_, _, confirms := p.buf.take()
-	if len(confirms) != 1 || confirms[0].Viewport != "s" {
-		t.Errorf("confirms = %+v", confirms)
+	if len(confirms) != 2 || !confirms[0].Meta || confirms[0].Viewport != "s" || confirms[1].Meta || confirms[1].EID != ev.EID {
+		t.Errorf("confirms = %+v (device facts must not confirm; activation must)", confirms)
 	}
 }
 
@@ -84,16 +85,16 @@ func TestSignalsBeforeTheRecordAreParkedThenApplied(t *testing.T) {
 
 func TestOrphanActivationCreatesOneCachedView(t *testing.T) {
 	p, h := sigPlugin(t)
-	send(p, "GET", "/_s/b", h, map[string]string{"w": "m", "c": "l", "p": "12"})
-	send(p, "GET", "/_s/b", h, map[string]string{"w": "l", "c": "l", "p": "12"}) // rotation: no second view
+	send(p, "GET", "/_s/b", h, map[string]string{"p": "12"})
+	send(p, "GET", "/_s/b", h, map[string]string{"p": "12"}) // repeat: no second view
 	ev := bufferedEvents(p)
-	if len(ev) != 1 || !ev[0].Cached || !ev[0].Confirmed || ev[0].Path != "/tours" || ev[0].Viewport != "m" || ev[0].SessionID == "" || !ev[0].Entry {
+	if len(ev) != 1 || !ev[0].Cached || !ev[0].Confirmed || ev[0].Path != "/tours" || ev[0].SessionID == "" || !ev[0].Entry {
 		t.Fatalf("events = %+v", ev)
 	}
 	// Right after a plugin start nothing is synthesised.
 	p2, h2 := sigPlugin(t)
 	p2.startedAt = testNow.Add(-time.Minute)
-	send(p2, "GET", "/_s/b", h2, map[string]string{"w": "m", "c": "l", "p": "12"})
+	send(p2, "GET", "/_s/b", h2, map[string]string{"p": "12"})
 	if len(bufferedEvents(p2)) != 0 {
 		t.Error("view synthesised during the quiet period")
 	}

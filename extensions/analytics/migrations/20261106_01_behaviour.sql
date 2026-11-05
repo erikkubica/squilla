@@ -121,11 +121,11 @@ BEGIN
         RETURN;
     END IF;
     UPDATE analytics_events e SET
-        confirmed    = e.confirmed OR NOT coalesce(x.printed, false),
+        confirmed    = e.confirmed OR NOT (coalesce(x.printed, false) OR coalesce(x.meta, false)),
         viewport     = CASE WHEN coalesce(x.viewport, '') <> '' THEN x.viewport ELSE e.viewport END,
         color_scheme = CASE WHEN coalesce(x.color_scheme, '') <> '' THEN x.color_scheme ELSE e.color_scheme END,
         printed      = e.printed OR coalesce(x.printed, false)
-    FROM jsonb_to_recordset(v_rows) AS x(eid text, since timestamptz, viewport text, color_scheme text, printed boolean)
+    FROM jsonb_to_recordset(v_rows) AS x(eid text, since timestamptz, viewport text, color_scheme text, printed boolean, meta boolean)
     WHERE e.eid = x.eid AND x.eid <> '' AND e.ts >= x.since;
     GET DIAGNOSTICS v_n = ROW_COUNT;
     RETURN QUERY SELECT v_n;
