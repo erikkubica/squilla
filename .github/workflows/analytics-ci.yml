@@ -1,0 +1,77 @@
+# Analytics extension CI: Go (race) with a real Postgres for the SQL
+# functions, admin UI, and the cross-browser signal matrix. Runs on pull
+# requests that touch the extension or the kernel pieces it depends on.
+name: Analytics CI
+
+on:
+  pull_request:
+    paths:
+      - "extensions/analytics/**"
+      - "internal/cms/**"
+      - "internal/httpobs/**"
+      - "internal/rendering/**"
+      - "pkg/plugin/**"
+  workflow_dispatch:
+
+jobs:
+  go:
+    name: Go tests (race) + Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: pw
+          POSTGRES_DB: an
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      ANALYTICS_TEST_DATABASE_URL: postgres://postgres:pw@localhost:5432/an?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go build -o /dev/null ./cmd/squilla
+      - run: go vet ./extensions/analytics/... ./internal/httpobs/... ./internal/rendering/...
+      - run: go test -race -count=1 ./internal/cms/... ./internal/httpobs/... ./internal/rendering/... ./extensions/analytics/...
+
+  admin-ui:
+    name: Admin UI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extensions/analytics/admin-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extensions/analytics/admin-ui/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  browser-matrix:
+    name: Signals in Chromium, Firefox, WebKit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extensions/analytics/e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm run fixture
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npx playwright test --project=chromium --project=firefox --project=webkit
