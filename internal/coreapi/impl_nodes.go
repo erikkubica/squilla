@@ -59,8 +59,25 @@ func nodeFromModel(m *models.ContentNode) *Node {
 		}
 	}
 	if len(m.SeoSettings) > 0 {
-		var ss map[string]string
-		if err := json.Unmarshal([]byte(m.SeoSettings), &ss); err == nil {
+		// seo_settings is free-form JSON owned by extensions; non-string
+		// values (bools such as llms_exclude, numbers) must not make the
+		// whole map disappear, so stringify scalars instead of failing.
+		var raw map[string]any
+		if err := json.Unmarshal([]byte(m.SeoSettings), &raw); err == nil {
+			ss := make(map[string]string, len(raw))
+			for k, v := range raw {
+				switch x := v.(type) {
+				case nil:
+				case string:
+					ss[k] = x
+				case bool, float64:
+					ss[k] = fmt.Sprint(x)
+				default:
+					if b, err := json.Marshal(x); err == nil {
+						ss[k] = string(b)
+					}
+				}
+			}
 			n.SeoSettings = ss
 		}
 	}

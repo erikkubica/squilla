@@ -20,8 +20,8 @@ func (h *PublicHandler) loadSiteSettings() map[string]string {
 }
 
 // loadSiteSettingsForLocale loads site settings scoped to a request locale,
-// falling back to the default-language row when the locale doesn't override
-// a key. Cached per-locale; invalidated by setting.updated and the
+// falling back to the default-language row and then the global
+// (language_code="") row when the locale doesn't override a key. Cached per-locale; invalidated by setting.updated and the
 // .ClearCache() entry point.
 //
 // settings rows carry a language_code (migration 0038); without locale
@@ -62,32 +62,41 @@ func (h *PublicHandler) loadSiteSettingsForLocale(locale string) map[string]stri
 		// last-write-wins read so a fresh install can still surface
 		// boot-time defaults.
 		_ = q.Find(&rows).Error
-	case locale == defLang:
-		_ = q.Where("language_code = ?", defLang).Find(&rows).Error
 	default:
-		// Pull both the requested locale AND the default-language row,
-		// then prefer the requested locale per-key with default-language
-		// fallback. One query, two values per key max.
-		_ = q.Where("language_code IN ?", []string{locale, defLang}).Find(&rows).Error
+		// Requested locale, default locale, and the language_code=''
+		// rows that hold non-translatable ("Global") settings. Without
+		// the '' rows every non-translatable site setting is invisible
+		// to the renderer and to render hooks.
+		langs := []string{"", locale}
+		if defLang != locale {
+			langs = append(langs, defLang)
+		}
+		_ = q.Where("language_code IN ?", langs).Find(&rows).Error
 	}
 
+	// Precedence per key: requested locale > default locale > global.
+	rank := func(lc string) int {
+		switch {
+		case lc != "" && lc == locale:
+			return 2
+		case lc != "" && lc == defLang:
+			return 1
+		default:
+			return 0
+		}
+	}
 	type pick struct {
-		val    string
-		locale string
+		val  string
+		rank int
 	}
 	chosen := map[string]pick{}
 	for _, s := range rows {
 		if s.Value == nil {
 			continue
 		}
-		existing, ok := chosen[s.Key]
-		if !ok {
-			chosen[s.Key] = pick{val: *s.Value, locale: s.LanguageCode}
-			continue
-		}
-		// Prefer the requested locale's value over the default's.
-		if existing.locale == defLang && s.LanguageCode == locale {
-			chosen[s.Key] = pick{val: *s.Value, locale: s.LanguageCode}
+		r := rank(s.LanguageCode)
+		if existing, ok := chosen[s.Key]; !ok || r > existing.rank {
+			chosen[s.Key] = pick{val: *s.Value, rank: r}
 		}
 	}
 	for k, p := range chosen {

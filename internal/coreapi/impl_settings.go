@@ -160,7 +160,7 @@ func (c *coreImpl) GetSettings(ctx context.Context, prefix string) (map[string]s
 	return c.GetSettingsLoc(ctx, prefix, "")
 }
 
-// GetSettingsGlobal returns the language_code='' rows under the given
+// GetSettingsGlobal returns the language_code="" rows under the given
 // prefix — the "applies to every language" sentinel used by
 // non-translatable theme/site settings. Distinct from GetSettingsLoc(_,
 // "") which rewrites empty locale to the default-language row and then
@@ -192,7 +192,8 @@ func (c *coreImpl) GetSettingsGlobal(ctx context.Context, prefix string) (map[st
 
 // GetSettingsLoc returns settings matching an optional prefix, with per-key
 // fallback semantics: each key returns its (key, locale) value if present,
-// otherwise the default-language row if present, otherwise nothing. The
+// otherwise the default-language row, otherwise the global
+// (language_code="") row used by non-translatable settings. The
 // result map is keyed by trimmed key, same shape as GetSettings.
 func (c *coreImpl) GetSettingsLoc(ctx context.Context, prefix, locale string) (map[string]string, error) {
 	def := c.defaultLocale(ctx)
@@ -206,28 +207,35 @@ func (c *coreImpl) GetSettingsLoc(ctx context.Context, prefix, locale string) (m
 	if prefix != "" {
 		query = query.Where("\"key\" LIKE ?", prefix+"%")
 	}
-	// Fetch both the requested locale and the default so we can resolve
-	// per-key in one pass without N round-trips. When no default exists yet
-	// we just look up the requested locale.
-	switch {
-	case locale == "" && def == "":
-		// Pre-language-seed installs — no default to fall back to. Reading
-		// is empty until at least one language exists.
-		return map[string]string{}, nil
-	case def == "" || locale == def:
-		query = query.Where("language_code = ?", locale)
-	default:
-		query = query.Where("language_code IN ?", []string{locale, def})
+	// Non-translatable settings live in language_code='' rows (the
+	// "every language" sentinel), so they are always part of the lookup.
+	// Precedence per key: requested locale > default locale > global.
+	langs := []string{""}
+	if locale != "" {
+		langs = append(langs, locale)
 	}
+	if def != "" && def != locale {
+		langs = append(langs, def)
+	}
+	query = query.Where("language_code IN ?", langs)
 
 	if err := query.Find(&settings).Error; err != nil {
 		return nil, fmt.Errorf("coreapi GetSettings: %w", err)
 	}
 
-	// Group by key: prefer the per-locale value when both rows exist.
+	rank := func(lc string) int {
+		switch {
+		case lc == locale && lc != "":
+			return 2
+		case lc == def && lc != "":
+			return 1
+		default:
+			return 0
+		}
+	}
 	type row struct {
-		val    string
-		locale string
+		val  string
+		rank int
 	}
 	chosen := make(map[string]row, len(settings))
 	for _, s := range settings {
@@ -235,11 +243,9 @@ func (c *coreImpl) GetSettingsLoc(ctx context.Context, prefix, locale string) (m
 		if s.Value != nil {
 			v = *s.Value
 		}
-		// Always prefer the requested locale; the default-locale row only
-		// wins when nothing for the requested locale has been seen.
-		existing, ok := chosen[s.Key]
-		if !ok || (existing.locale == def && s.LanguageCode == locale) {
-			chosen[s.Key] = row{val: v, locale: s.LanguageCode}
+		r := rank(s.LanguageCode)
+		if existing, ok := chosen[s.Key]; !ok || r > existing.rank {
+			chosen[s.Key] = row{val: v, rank: r}
 		}
 	}
 
