@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"squilla/internal/models"
+	"squilla/internal/rendering"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -105,6 +106,10 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	// Build per-partial data from layout_data with fallback chain
 	dataMap := templateData.ToMap()
 	dataMap["request"] = requestDataFrom(c)
+	if h.transformActive() {
+		// Ask RenderLayout to mark layout blocks / partials for the transformer.
+		dataMap[rendering.TransformMarkersKey] = true
+	}
 	partialData := h.buildPartialData(node, layout, languageID, dataMap)
 
 	// Render via the layout engine

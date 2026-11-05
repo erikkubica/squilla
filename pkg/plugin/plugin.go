@@ -99,6 +99,13 @@ func (c *GRPCClient) HandleEvent(action string, payload []byte) (*pb.EventRespon
 	})
 }
 
+// HandleEventCtx is HandleEvent with a caller-supplied context, for
+// latency-sensitive synchronous hooks (render.transform) that need a
+// deadline much shorter than eventCallTimeout.
+func (c *GRPCClient) HandleEventCtx(ctx context.Context, action string, payload []byte) (*pb.EventResponse, error) {
+	return c.client.HandleEvent(ctx, &pb.EventRequest{Action: action, Payload: payload})
+}
+
 func (c *GRPCClient) HandleHTTPRequest(req *pb.PluginHTTPRequest) (*pb.PluginHTTPResponse, error) {
 	return c.client.HandleHTTPRequest(context.Background(), req)
 }

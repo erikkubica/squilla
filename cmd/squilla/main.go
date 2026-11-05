@@ -525,6 +525,7 @@ func main() {
 	})
 	pluginManager = cms.NewPluginManager(eventBus, hostRegistrar, database)
 	pluginManager.SetCookieObserver(httpObserver.SetCookieNames)
+	publicHandler.SetTransformer(pluginManager)
 	defer pluginManager.StopAll()
 
 	// Start plugins for already-active extensions.

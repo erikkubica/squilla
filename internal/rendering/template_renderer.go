@@ -565,6 +565,9 @@ func (r *TemplateRenderer) RenderLayout(w io.Writer, templateCode string, data i
 			log.Printf("WARN: template render error in block '%s': %v", slug, err)
 			return ""
 		}
+		if marked, _ := data.(map[string]interface{}); marked != nil && marked[TransformMarkersKey] == true {
+			return template.HTML("<!--sqx:p:" + template.HTMLEscapeString(slug) + "-->" + buf.String() + "<!--sqx:/p-->")
+		}
 		return template.HTML(buf.String())
 	}
 
@@ -651,3 +654,9 @@ func toInt(v interface{}) int {
 	}
 	return 0
 }
+
+// TransformMarkersKey is set (true) in the layout data map while a
+// render.transform subscriber is active: RenderLayout then wraps every
+// layout block / partial in <!--sqx:p:slug--> … <!--sqx:/p--> comments,
+// which the kernel strips again before the page is sent.
+const TransformMarkersKey = "__sqx_markers"

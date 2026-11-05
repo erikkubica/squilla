@@ -29,6 +29,7 @@ type PageData struct {
 
 // PublicHandler serves the public-facing HTML pages.
 type PublicHandler struct {
+	transformer HTMLTransformer // render.transform chain (nil = none)
 	db             *gorm.DB
 	renderer       *rendering.TemplateRenderer
 	sessions       *auth.SessionService
@@ -174,6 +175,9 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 	h.resolveAssetRefsInBlocks(blocks)
 	renderedBlocks := h.renderPageBlocks(c, blocks, node.LanguageCode, h.pageNodeData(&node))
 	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
+	if h.transformActive() {
+		renderedBlocks = wrapBlocksWithTransformMarkers(renderedBlocks, blocks)
+	}
 
 	html, _, renderErr := h.renderNodeWithLayout(c, &node, blocks, renderedBlocks, user)
 	if renderErr != nil {
@@ -183,7 +187,7 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 	if html != "" {
 		c.Set("Content-Type", "text/html; charset=utf-8")
 		setPublicHTMLCacheHeaders(c, h.loadSiteSettings(), user)
-		return c.SendString(html)
+		return c.SendString(h.finishPublicHTML(c, html, &node, user, false))
 	}
 	c.Set("Content-Type", "text/html; charset=utf-8")
 	return c.SendString(h.layoutErrorPage(fmt.Errorf("no layout resolved for homepage"), "/"))
@@ -233,7 +237,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 			c.Set("Content-Type", "text/html; charset=utf-8")
 			c.Status(fiber.StatusNotFound)
 			setPublicHTMLCacheHeaders(c, nil, user)
-			return c.SendString(html)
+			return c.SendString(h.finishPublicHTML(c, html, nil, user, true))
 		}
 		// No 404 layout — show error page
 		c.Set("Content-Type", "text/html; charset=utf-8")
@@ -246,6 +250,9 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	h.resolveAssetRefsInBlocks(blocks)
 	renderedBlocks := h.renderPageBlocks(c, blocks, node.LanguageCode, h.pageNodeData(node))
 	renderedBlocks = wrapBlocksWithEditorMarkers(renderedBlocks, blocks, user, node.NodeType)
+	if h.transformActive() {
+		renderedBlocks = wrapBlocksWithTransformMarkers(renderedBlocks, blocks)
+	}
 
 	// Layout-based rendering
 	html, _, renderErr := h.renderNodeWithLayout(c, node, blocks, renderedBlocks, user)
@@ -256,7 +263,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	if html != "" {
 		c.Set("Content-Type", "text/html; charset=utf-8")
 		setPublicHTMLCacheHeaders(c, h.loadSiteSettings(), user)
-		return c.SendString(html)
+		return c.SendString(h.finishPublicHTML(c, html, node, user, false))
 	}
 
 	// No layout resolved and no error — show error page (should not happen in normal operation)

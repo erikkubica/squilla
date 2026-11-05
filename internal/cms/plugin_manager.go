@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"sync/atomic"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -58,6 +59,10 @@ type runningPlugin struct {
 	provides   []string      // manifest's `provides` array — used by GetProvider lookups
 	priority   int           // manifest's `priority` (default 50, higher wins)
 	stopped    chan struct{} // closed when plugin is stopped; handlers check this before RPC
+	// transformer marks a render.transform subscriber; skipUntil (unix
+	// nanos) pauses it after it answered "inactive".
+	transformer bool
+	skipUntil   atomic.Int64
 	// unsubs removes every event-bus subscription registered for this
 	// plugin. Called on stop so a restarted/deactivated extension
 	// doesn't leave stale handlers multiplying on the bus.
@@ -251,6 +256,12 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 				continue
 			}
 			rp.eventNames = append(rp.eventNames, eventName)
+			if eventName == transformEvent {
+				// Served only by TransformHTML (an ordered chain with its own
+				// deadline), never by the event bus.
+				rp.transformer = true
+				continue
+			}
 
 			pluginImpl := impl // capture for closure
 
@@ -465,13 +476,16 @@ func subscriptionAllowed(eventName string, capabilities map[string]bool) bool {
 	if eventName == observeEvent {
 		return capabilities[observeCapability]
 	}
+	if eventName == transformEvent {
+		return capabilities[transformCapability]
+	}
 	return true
 }
 
 // explicitOnlyEvent reports events that must only ever be delivered via
 // EventBus.PublishExplicitSync (no Result/Err dispatch flavours).
 func explicitOnlyEvent(eventName string) bool {
-	return eventName == observeEvent
+	return eventName == observeEvent || eventName == transformEvent
 }
 
 // stringSet converts a manifest string list into a lookup map. Always
