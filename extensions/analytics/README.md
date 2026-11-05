@@ -162,6 +162,8 @@ Signals are deduplicated per page view, capped per visitor per minute, and a
 signal that carries `Sec-Purpose` (prerender) is ignored. A page shown from a
 cache (no document request) is counted once from its activation; no views are
 created for 10 minutes after a plugin start or salt rotation.
+Page weight, measured on the Beyond Vietnam homepage (9 sections, 27 links): about
++5.4 KB raw and +1 KB gzip on the HTML document, no extra blocking request.
 How each browser behaves is in [docs/browser-matrix.md](docs/browser-matrix.md).
 
 **ePrivacy note:** the EDPB treats a request made only for measurement as
