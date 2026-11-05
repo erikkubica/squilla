@@ -171,3 +171,54 @@ export interface StatusResponse {
 
 export type ExportDataset = "summary" | "timeseries" | "breakdown" | "events";
 export type ExportFormat = "csv" | "json";
+
+// ---- Behaviour (visits, exits, page insights, clicks) ----
+
+export interface ExitReasonRow { reason: string; visits: number }
+export interface ExitSegmentRow { value: string; reason: string; visits: number }
+export interface ExitStats {
+  total: number;
+  ambiguous: number;
+  reasons: ExitReasonRow[];
+  by_day: { day: string; reason: string; visits: number }[];
+  by_channel: ExitSegmentRow[];
+  by_device: ExitSegmentRow[];
+  failing_pages: { path: string; visits: number; bad: number; bad_rate: number }[];
+  destinations: { dest: string; reason: string; visits: number }[];
+  median_exit_dwell_s: number | null;
+}
+
+export interface PageInsightsResponse {
+  path: string;
+  views: number;
+  entrances: number;
+  activated_views: number;
+  exits: number;
+  visits_including: number;
+  quick_exits: number;
+  conversions: number;
+  median_view_s: number | null;
+  blocks: { block_key: string; label: string; seen: number; clicks: number }[];
+  links: { block_key: string; label: string; href: string; clicks: number }[];
+  stay: { sec: number; views: number }[];
+  came_from: { path: string; n: number }[];
+  went_to: { path: string; n: number }[];
+  exit_reasons: { reason: string; n: number }[];
+}
+
+export interface ClicksResponse {
+  blocks: { path: string; block_key: string; label: string; seen: number; clicks: number; outbound: number; ctr: number | null }[];
+  destinations: { dest: string; class: string; clicks: number; top_page: string }[];
+  totals: { sections_seen: number; clicks: number; outbound_clicks: number };
+}
+
+export interface BehaviourSummary {
+  visits: number;
+  engaged: number;
+  single_page_known: number;
+  median_exit_dwell_s: number | null;
+  avg_reach: number | null;
+  sections_seen: number;
+  clicks: number;
+  signals: number;
+}

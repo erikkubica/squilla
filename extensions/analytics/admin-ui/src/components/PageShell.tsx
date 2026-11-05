@@ -2,10 +2,12 @@ import type { ReactNode } from "react";
 import { BASE_PATH, Link, useSearchParams } from "../shared";
 import { carryParams } from "../lib/params";
 
-export type NavKey = "overview" | "bots" | "goals" | "settings" | "breakdown";
+export type NavKey = "overview" | "exits" | "clicks" | "page" | "bots" | "goals" | "settings" | "breakdown";
 
 const NAV: { key: NavKey; label: string; path: string; carry: boolean }[] = [
   { key: "overview", label: "Overview", path: "", carry: true },
+  { key: "exits", label: "Why they leave", path: "/exits", carry: true },
+  { key: "clicks", label: "Clicks & CTAs", path: "/clicks", carry: true },
   { key: "bots", label: "Bots & AI", path: "/bots", carry: true },
   { key: "goals", label: "Goals & links", path: "/goals", carry: true },
   { key: "settings", label: "Settings", path: "/settings", carry: false },
@@ -29,7 +31,7 @@ export function PageShell({ active, title, actions, children }: Props) {
           <h1 className="text-[22px] leading-tight font-semibold tracking-tight text-an-ink">{title ?? "Analytics"}</h1>
           <nav aria-label="Analytics sections" className="-mx-1 mt-2 flex gap-1 overflow-x-auto">
             {NAV.map((n) => {
-              const current = n.key === active || (active === "breakdown" && n.key === "overview");
+              const current = n.key === active || (active === "breakdown" && n.key === "overview") || (active === "page" && n.key === "exits");
               return (
                 <Link
                   key={n.key}

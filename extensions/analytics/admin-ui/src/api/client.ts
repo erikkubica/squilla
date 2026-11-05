@@ -2,6 +2,7 @@
 import type {
   AnalyticsSettings, BotsResponse, BreakdownDim, BreakdownResponse, ExportDataset, ExportFormat,
   Goal, GoalInput, GoalStatsResponse, HeatmapResponse, Interval, LinkInput, RealtimeResponse,
+  BehaviourSummary, ClicksResponse, ExitStats, PageInsightsResponse,
   StatusResponse, SummaryResponse, TimeseriesResponse, TrackedLink,
 } from "./types";
 
@@ -73,6 +74,15 @@ export const api = {
   realtime: (signal?: AbortSignal) => get<RealtimeResponse>("realtime", undefined, signal),
   heatmap: (q: URLSearchParams, signal?: AbortSignal) => get<HeatmapResponse>("heatmap", q, signal),
   bots: (q: URLSearchParams, signal?: AbortSignal) => get<BotsResponse>("bots", q, signal),
+
+  behaviour: (q: URLSearchParams, signal?: AbortSignal) => get<BehaviourSummary>("behaviour", q, signal),
+  exits: (q: URLSearchParams, signal?: AbortSignal) => get<ExitStats>("exits", q, signal),
+  clicks: (q: URLSearchParams, signal?: AbortSignal) => get<ClicksResponse>("clicks", q, signal),
+  pageInsights: (path: string, q: URLSearchParams, signal?: AbortSignal) => {
+    const qq = new URLSearchParams(q);
+    qq.set("path", path);
+    return get<PageInsightsResponse>("page", qq, signal);
+  },
 
   goals: (signal?: AbortSignal) => get<Goal[] | { rows: Goal[] }>("goals", undefined, signal).then(unwrapRows),
   createGoal: (g: GoalInput) => request<Goal>("POST", "goals", { body: g }),

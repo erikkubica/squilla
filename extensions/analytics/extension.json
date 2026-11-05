@@ -87,6 +87,9 @@
     "routes": [
       { "path": "/", "component": "AnalyticsDashboard" },
       { "path": "/breakdown/:dim", "component": "AnalyticsBreakdown" },
+      { "path": "/exits", "component": "AnalyticsExits" },
+      { "path": "/clicks", "component": "AnalyticsClicks" },
+      { "path": "/page", "component": "AnalyticsPageInsights" },
       { "path": "/bots", "component": "AnalyticsBots" },
       { "path": "/goals", "component": "AnalyticsGoals" },
       { "path": "/settings", "component": "AnalyticsSettings" }
@@ -99,6 +102,8 @@
       "required_capability": "view_analytics",
       "children": [
         { "label": "Overview", "route": "/admin/ext/analytics" },
+        { "label": "Why they leave", "route": "/admin/ext/analytics/exits" },
+        { "label": "Clicks & CTAs", "route": "/admin/ext/analytics/clicks" },
         { "label": "Bots & AI", "route": "/admin/ext/analytics/bots" },
         { "label": "Goals & links", "route": "/admin/ext/analytics/goals" },
         { "label": "Settings", "route": "/admin/ext/analytics/settings" }
