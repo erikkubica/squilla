@@ -93,9 +93,19 @@ func acceptsHTML(r *Record) bool {
 }
 
 // isPrefetch reports speculative loads (Sec-Purpose / Purpose: prefetch).
-func isPrefetch(r *Record) bool {
-	return strings.Contains(strings.ToLower(r.header("sec-purpose")), "prefetch") ||
-		strings.Contains(strings.ToLower(r.header("purpose")), "prefetch")
+func isPrefetch(r *Record) bool { return isSpeculativeHeaders(r.header) }
+
+// isSpeculativeHeaders recognises Chromium (Sec-Purpose: prefetch[;prerender]),
+// the Purpose header our Safari fallback fetch sends, and Firefox
+// (X-moz: prefetch) speculative loads.
+func isSpeculativeHeaders(h func(string) string) bool {
+	for _, name := range []string{"sec-purpose", "purpose", "x-moz"} {
+		v := strings.ToLower(h(name))
+		if strings.Contains(v, "prefetch") || strings.Contains(v, "prerender") {
+			return true
+		}
+	}
+	return false
 }
 
 // detectKind classifies a human request into an event kind ("" = none).

@@ -28,8 +28,10 @@ type beaconTracker struct {
 }
 
 type recentPV struct {
-	eid string
-	ts  time.Time
+	eid  string
+	ts   time.Time
+	spec bool // stored as a speculative (prefetch/prerender) load
+	done bool // already confirmed by a beacon or an activation
 }
 
 type pendingBeacon struct {
@@ -51,10 +53,26 @@ func (t *beaconTracker) reset() {
 	t.mu.Unlock()
 }
 
-func (t *beaconTracker) rememberPageview(visitor, path, eid string, ts time.Time) {
+func (t *beaconTracker) rememberPageview(visitor, path, eid string, ts time.Time, spec bool) {
 	t.mu.Lock()
-	t.recent[beaconKey(visitor, path)] = recentPV{eid, ts}
+	t.recent[beaconKey(visitor, path)] = recentPV{eid: eid, ts: ts, spec: spec}
 	t.mu.Unlock()
+}
+
+// activate consumes a speculative, still-unconfirmed pageview of path: the
+// visitor demonstrably had that page open (a later same-site request named
+// it as Referer, or its own beacon arrived), so the load counts as a view.
+func (t *beaconTracker) activate(visitor, path string, now time.Time, window time.Duration) (recentPV, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	k := beaconKey(visitor, path)
+	pv, ok := t.recent[k]
+	if !ok || !pv.spec || pv.done || now.Sub(pv.ts) > window || pv.ts.Sub(now) > window {
+		return recentPV{}, false
+	}
+	pv.done = true
+	t.recent[k] = pv
+	return pv, true
 }
 
 func (t *beaconTracker) lookupRecent(visitor, path string, now time.Time, window time.Duration) (recentPV, bool) {
@@ -65,6 +83,15 @@ func (t *beaconTracker) lookupRecent(visitor, path string, now time.Time, window
 		return recentPV{}, false
 	}
 	return pv, true
+}
+
+func (t *beaconTracker) markDone(visitor, path string) {
+	t.mu.Lock()
+	if pv, ok := t.recent[beaconKey(visitor, path)]; ok {
+		pv.done = true
+		t.recent[beaconKey(visitor, path)] = pv
+	}
+	t.mu.Unlock()
 }
 
 func (t *beaconTracker) addPending(visitor, path string, b pendingBeacon) {
@@ -190,6 +217,10 @@ func (p *AnalyticsPlugin) handleBeacon(_ context.Context, req *pb.PluginHTTPRequ
 	if err != nil || ref.Host == "" || !isOwnHost(ref.Hostname(), host, cfg) {
 		return gifResponse()
 	}
+	if isSpeculativeHeaders(h) {
+		// A prerendered page the visitor has not opened yet must not count.
+		return gifResponse()
+	}
 	if v := matchSignature(strings.ToLower(h("user-agent"))); v.isBot() {
 		return gifResponse()
 	}
@@ -212,6 +243,7 @@ func (p *AnalyticsPlugin) handleBeacon(_ context.Context, req *pb.PluginHTTPRequ
 		return gifResponse()
 	}
 	if pv, ok := p.beacons.lookupRecent(vid, path, now, beaconWindow); ok {
+		p.beacons.markDone(vid, path)
 		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute), Viewport: viewport, ColorScheme: scheme})
 		return gifResponse()
 	}

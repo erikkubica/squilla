@@ -54,7 +54,7 @@ var headerAllowlist = []string{
 	"accept", "accept-language",
 	"sec-fetch-mode", "sec-fetch-dest", "sec-fetch-site", "sec-fetch-user",
 	"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform",
-	"sec-purpose", "purpose", "sec-gpc", "dnt", "upgrade-insecure-requests",
+	"sec-purpose", "purpose", "x-moz", "sec-gpc", "dnt", "upgrade-insecure-requests",
 }
 
 // Locals keys set by the public node handler.

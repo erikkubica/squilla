@@ -89,6 +89,10 @@ func (p *AnalyticsPlugin) findLink(ctx context.Context, slug string) (Link, bool
 // destinations never come from the request, so there is no open redirect.
 func (p *AnalyticsPlugin) handleGo(ctx context.Context, slug string, req *pb.PluginHTTPRequest) *pb.PluginHTTPResponse {
 	slug = strings.ToLower(strings.TrimSuffix(slug, "/"))
+	if isSpeculativeHeaders(headerGetter(req.GetHeaders())) {
+		// A prefetch must not trigger the click or follow the redirect.
+		return &pb.PluginHTTPResponse{StatusCode: 503, Headers: map[string]string{"Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8"}, Body: []byte("Not available for prefetch")}
+	}
 	notFound := &pb.PluginHTTPResponse{StatusCode: 404, Headers: map[string]string{"Content-Type": "text/plain; charset=utf-8"}, Body: []byte("Not found")}
 	if !reSlug.MatchString(slug) {
 		return notFound

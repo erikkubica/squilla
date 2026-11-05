@@ -1,9 +1,14 @@
 package main
 
 import (
+	"net/url"
 	"strings"
 	"time"
 )
+
+// activationWindow bounds how long after a speculative load a later
+// request may still prove it was shown.
+const activationWindow = 30 * time.Minute
 
 // ingestBatch processes one http.requests batch. It only touches memory;
 // the flush worker persists the results.
@@ -65,16 +70,21 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 		ts = p.now()
 	}
 	kind := detectKind(r, ext, cfg)
+	spec := isPrefetch(r)
 	verdict := classifyBot(botContext{
 		Method: r.Method, Path: norm, UA: r.UserAgent, Headers: r.header,
 		HTMLResult:  kind == kindPageview || kind == kindNotFound,
-		SawSecFetch: p.sawSecFetch.Load(),
+		SawSecFetch: p.sawSecFetch.Load(), Speculative: spec,
 	})
 	if verdict.isBot() {
 		p.buf.addBot(dayKey(ts, cfg), verdict)
 		return
 	}
 	if botOnlyExtensions[ext] && !download {
+		return
+	}
+	if spec && kind != kindPageview {
+		// Speculation never downloads files, records 404s or fires goals.
 		return
 	}
 	reqGoals := p.matchRequestGoals(r, norm)
@@ -85,11 +95,17 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 	c := p.newClient(r.Host, r.IP, r.UserAgent, r.header("accept-language"), r.header("sec-gpc"),
 		r.header("cf-ipcountry"), r.header("sec-ch-ua-mobile"), r.header("sec-ch-ua-platform"))
 	vid := p.visitorID(c, ts, cfg)
-	prefetch := kind == kindPageview && isPrefetch(r)
+	prefetch := kind == kindPageview && spec
 	if vid != "" {
 		flagged := p.rate.isFlagged(vid)
-		if !flagged && kind == kindPageview && !prefetch {
-			flagged = p.rate.hit(vid, ts)
+		if !flagged && kind == kindPageview {
+			// Speculative loads get their own budget so they cannot hide a
+			// crawl, nor use up the visitor's real one.
+			key := vid
+			if prefetch {
+				key += "~s"
+			}
+			flagged = p.rate.hit(key, ts)
 		}
 		if flagged {
 			p.buf.addBot(dayKey(ts, cfg), botVerdict{botOther, "High request rate"})
@@ -115,7 +131,10 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 		}
 		p.buf.addEvent(ev)
 		if vid != "" {
-			p.beacons.rememberPageview(vid, norm, ev.EID, ts)
+			p.beacons.rememberPageview(vid, norm, ev.EID, ts, prefetch)
+			if !prefetch {
+				p.activateReferrer(vid, r, ts)
+			}
 		}
 		if !prefetch {
 			for _, g := range p.matchPageviewGoals(norm) {
@@ -193,4 +212,22 @@ func goalEvent(src Event, goalID int64) Event {
 	ev.Entry, ev.IsPrefetch, ev.Confirmed, ev.Printed = false, false, false, false
 	ev.Viewport, ev.ColorScheme = "", ""
 	return ev
+}
+
+// activateReferrer implements server-only activation: a real (non-
+// speculative) request whose same-site Referer is a page the visitor
+// earlier loaded speculatively proves that page was actually shown, so
+// its stored prefetch row is confirmed and starts counting.
+func (p *AnalyticsPlugin) activateReferrer(vid string, r *Record, ts time.Time) {
+	ref := strings.TrimSpace(r.Referer)
+	if ref == "" {
+		return
+	}
+	u, err := url.Parse(ref)
+	if err != nil || u.Host == "" || !isOwnHost(u.Hostname(), r.Host, p.config()) {
+		return
+	}
+	if pv, ok := p.beacons.activate(vid, normalizePath(u.Path), ts, activationWindow); ok {
+		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute)})
+	}
 }

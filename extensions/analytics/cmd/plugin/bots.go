@@ -18,6 +18,11 @@ type botContext struct {
 	Headers     func(string) string // lower-case header lookup
 	HTMLResult  bool                // response was (or would be) an HTML document
 	SawSecFetch bool                // real browsers reach this site with Sec-Fetch-* headers
+	// Speculative marks prefetch/prerender loads. Fallback prefetchers
+	// (Safari fetch, Firefox) do not send document headers, so the
+	// header-shape checks are skipped; UA and probe checks still apply, so
+	// a spoofed Purpose header does not get a scraper past them.
+	Speculative bool
 }
 
 // classifyBot applies, in order: probe paths, UA signatures, generic bot
@@ -98,6 +103,9 @@ func headerHeuristics(c botContext, ua string) botVerdict {
 	}
 	if strings.TrimSpace(h("accept-language")) == "" {
 		return botVerdict{botOther, "No Accept-Language"}
+	}
+	if c.Speculative {
+		return botVerdict{}
 	}
 	if c.HTMLResult {
 		accept := strings.TrimSpace(h("accept"))

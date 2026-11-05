@@ -88,9 +88,15 @@ func (b *pipelineBuffer) take() ([]Event, map[botKey]int64, []confirmation) {
 }
 
 // requeue puts back events whose insert failed (bounded by maxBuffered).
-func (b *pipelineBuffer) requeue(ev []Event, bots map[botKey]int64) {
+func (b *pipelineBuffer) requeue(ev []Event, bots map[botKey]int64, confirms []confirmation) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if room := maxBuffered - len(b.confirms); room > 0 && len(confirms) > 0 {
+		if len(confirms) > room {
+			confirms = confirms[:room]
+		}
+		b.confirms = append(confirms, b.confirms...)
+	}
 	if room := maxBuffered - len(b.events); room > 0 {
 		if len(ev) > room {
 			b.lost += int64(len(ev) - room)
@@ -116,7 +122,7 @@ func (p *AnalyticsPlugin) flush(ctx context.Context) {
 		}
 		if _, err := p.host.DataCall(ctx, "analytics_ingest", events[start:end]); err != nil {
 			p.logf(ctx, "error", "analytics: ingest failed (%d events requeued): %v", len(events)-start, err)
-			p.buf.requeue(events[start:], bots)
+			p.buf.requeue(events[start:], bots, confirms)
 			return
 		}
 	}
@@ -127,13 +133,16 @@ func (p *AnalyticsPlugin) flush(ctx context.Context) {
 		}
 		if _, err := p.host.DataCall(ctx, "analytics_ingest_bots", rows); err != nil {
 			p.logf(ctx, "error", "analytics: bot ingest failed: %v", err)
-			p.buf.requeue(nil, bots)
+			p.buf.requeue(nil, bots, nil)
 		}
 	}
-	for _, c := range confirms {
+	for i, c := range confirms {
 		if _, err := p.host.DataCall(ctx, "analytics_confirm", c.EID, c.Since.UTC().Format(time.RFC3339Nano),
 			c.Viewport, c.ColorScheme, c.Printed); err != nil {
-			p.logf(ctx, "warn", "analytics: beacon confirm failed: %v", err)
+			// Keep this and the remaining confirmations for the next flush.
+			p.logf(ctx, "warn", "analytics: beacon confirm failed (%d requeued): %v", len(confirms)-i, err)
+			p.buf.requeue(nil, nil, confirms[i:])
+			return
 		}
 	}
 }

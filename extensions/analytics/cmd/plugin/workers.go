@@ -67,9 +67,15 @@ func (p *AnalyticsPlugin) runMaintenance(ctx context.Context, m *maintenance, st
 	p.sessions.sweep(now, cfg.sessionTimeout())
 	p.beacons.sweep(now, cfg.sessionTimeout())
 
-	if startup || (m.lastDay != "" && m.lastDay != today) {
-		// After local midnight (and on start) finalise yesterday.
-		yesterday := now.In(loc).AddDate(0, 0, -1).Format("2006-01-02")
+	local := now.In(loc)
+	sinceMidnight := local.Sub(time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, loc))
+	dayChanged := m.lastDay != "" && m.lastDay != today
+	if startup || dayChanged || (sinceMidnight < time.Hour && now.Sub(m.lastRollup) >= rollupInterval) {
+		// Persist everything buffered first, so yesterday's last events are
+		// in the table; keep re-rolling it through the first hour of the new
+		// day to pick up late-arriving records.
+		p.flush(ctx)
+		yesterday := local.AddDate(0, 0, -1).Format("2006-01-02")
 		p.rollup(ctx, yesterday, cfg)
 	}
 	if startup || now.Sub(m.lastRollup) >= rollupInterval || m.lastDay != today {
