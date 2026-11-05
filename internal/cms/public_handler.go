@@ -182,6 +182,7 @@ func (h *PublicHandler) HomePage(c *fiber.Ctx) error {
 	}
 	if html != "" {
 		c.Set("Content-Type", "text/html; charset=utf-8")
+		setPublicHTMLCacheHeaders(c, h.loadSiteSettings(), user)
 		return c.SendString(html)
 	}
 	c.Set("Content-Type", "text/html; charset=utf-8")
@@ -231,6 +232,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 		if html, ok := h.render404WithLayout(c); ok {
 			c.Set("Content-Type", "text/html; charset=utf-8")
 			c.Status(fiber.StatusNotFound)
+			setPublicHTMLCacheHeaders(c, nil, user)
 			return c.SendString(html)
 		}
 		// No 404 layout — show error page
@@ -253,6 +255,7 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	}
 	if html != "" {
 		c.Set("Content-Type", "text/html; charset=utf-8")
+		setPublicHTMLCacheHeaders(c, h.loadSiteSettings(), user)
 		return c.SendString(html)
 	}
 

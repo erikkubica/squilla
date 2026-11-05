@@ -78,6 +78,7 @@ func (h *PublicHandler) renderNodeWithLayout(c *fiber.Ctx, node *models.ContentN
 	appData.BodyStart = h.renderBodyStart(node, nodeData, settings, user)
 	extensionBodyEnd := h.renderBodyEnd(node, nodeData, settings, user)
 	appData.Footer = h.renderFooter(node, nodeData, settings, user)
+	extensionBodyEnd += navigationSpeculationHTML(settings, user)
 	// Composite slots fold kernel-rendered asset tags into the same
 	// HTML block extensions contribute to, so themes can drop
 	// {{.app.head}} / {{.app.body_end}} once instead of iterating
@@ -361,6 +362,7 @@ func (h *PublicHandler) render404WithLayout(c *fiber.Ctx) (string, bool) {
 	appData.BodyStart = h.renderBodyStart(syntheticNode, nodeData, notFoundSettings, user)
 	extensionBodyEnd := h.renderBodyEnd(syntheticNode, nodeData, notFoundSettings, user)
 	appData.Footer = h.renderFooter(syntheticNode, nodeData, notFoundSettings, user)
+	extensionBodyEnd += navigationSpeculationHTML(settings, user)
 	appData.Head = composeHead(appData)
 	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 	templateData := TemplateData{

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"squilla/internal/auth"
+	"squilla/internal/cms"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -44,7 +45,7 @@ func registerBlockAssets(app *fiber.App) {
 		if !strings.HasPrefix(full, base+string(filepath.Separator)) && full != base {
 			return c.SendStatus(fiber.StatusBadRequest)
 		}
-		return c.SendFile(full, true)
+		return sendCachedAsset(c, full)
 	})
 }
 
@@ -59,8 +60,23 @@ func registerThemeAssets(app *fiber.App, resolver *themeAssetsResolver) {
 			return c.SendStatus(fiber.StatusNotFound)
 		}
 		full := filepath.Join(resolver.Get(), clean)
-		return c.SendFile(full, true)
+		return sendCachedAsset(c, full)
 	})
+}
+
+// sendCachedAsset serves a public theme/block asset with a browser cache
+// policy: immutable when the URL is fingerprinted (?v=), otherwise a
+// short fresh window plus stale-while-revalidate. Without an explicit
+// policy browsers fall back to heuristic freshness and revalidate
+// render-blocking CSS on navigations — a full round trip each time.
+func sendCachedAsset(c *fiber.Ctx, full string) error {
+	if err := c.SendFile(full, true); err != nil {
+		return err
+	}
+	if code := c.Response().StatusCode(); code == fiber.StatusOK || code == fiber.StatusNotModified {
+		c.Set(fiber.HeaderCacheControl, cms.ThemeAssetCacheControl(c.Query("v") != ""))
+	}
+	return nil
 }
 
 // registerAdminSPA mounts the admin SPA static files. Hashed bundles

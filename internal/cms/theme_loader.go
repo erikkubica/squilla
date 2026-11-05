@@ -163,27 +163,21 @@ func (r *ThemeAssetRegistry) LoadBlockAssetsFromDB(db *gorm.DB) error {
 func (r *ThemeAssetRegistry) GetHeadStyles() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	out := make([]string, len(r.headStyles))
-	copy(out, r.headStyles)
-	return out
+	return versionThemeAssetURLs(r.themeDir, r.headStyles)
 }
 
 // GetHeadScripts returns the resolved head script URLs.
 func (r *ThemeAssetRegistry) GetHeadScripts() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	out := make([]string, len(r.headScripts))
-	copy(out, r.headScripts)
-	return out
+	return versionThemeAssetURLs(r.themeDir, r.headScripts)
 }
 
 // GetFootScripts returns the resolved footer script URLs.
 func (r *ThemeAssetRegistry) GetFootScripts() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	out := make([]string, len(r.footScripts))
-	copy(out, r.footScripts)
-	return out
+	return versionThemeAssetURLs(r.themeDir, r.footScripts)
 }
 
 // GetBlockAssets returns the scoped CSS/JS for a block slug.

@@ -123,6 +123,32 @@ func siteAdvanced() Schema {
 						Help: "Injected before </body> on every public page"},
 				},
 			},
+			{
+				Title:       "Performance",
+				Icon:        "Zap",
+				Description: "Make page-to-page navigation feel instant for anonymous visitors. Logged-in editors are never cached or prerendered.",
+				Fields: []Field{
+					{Key: "nav_speculation", Label: "Speculative loading", Type: "select", Default: "prerender",
+						Options: []Option{
+							{Value: "prerender", Label: "Prerender likely next page (fastest)"},
+							{Value: "prefetch", Label: "Prefetch HTML only"},
+							{Value: "off", Label: "Off"},
+						},
+						Help: "Loads a link's page while the visitor hovers or starts tapping it (Speculation Rules in Chromium, a hover-prefetch fallback in Safari/Firefox). Admin, API, auth, file and query-string links are always excluded."},
+					{Key: "nav_speculation_eagerness", Label: "Eagerness", Type: "select", Default: "moderate",
+						Options: []Option{
+							{Value: "conservative", Label: "Conservative — on pointer/touch down"},
+							{Value: "moderate", Label: "Moderate — on hover (recommended)"},
+							{Value: "eager", Label: "Eager — as soon as links are likely"},
+						},
+						Help: "When Chromium starts loading. Higher eagerness hides more latency but loads more pages that are never visited."},
+					{Key: "nav_speculation_exclude", Label: "Never preload these paths", Type: "textarea", Rows: 3, FontMono: true,
+						Placeholder: "/checkout/*\n/book/*",
+						Help:        "One path pattern per line (* is a wildcard). Add pages with side effects on load. Single links can opt out with data-no-prefetch."},
+					{Key: "html_cache_seconds", Label: "Browser HTML cache (seconds)", Type: "text", Default: "60", Placeholder: "60",
+						Help: "How long a visitor's browser may reuse a page it already loaded or preloaded (private cache only, anonymous visitors only). 0 disables it; maximum 86400."},
+				},
+			},
 		},
 	}
 }
