@@ -151,6 +151,10 @@ export interface AnalyticsSettings {
   raw_retention_days: number;
   session_timeout_minutes: number;
   enhanced_mode: boolean;
+  signal_dwell: boolean;
+  signal_sections: boolean;
+  signal_clicks: boolean;
+  signal_forms: boolean;
   beacon_prefix: string;
   download_extensions: string[];
   own_hosts: string[];
@@ -167,6 +171,8 @@ export interface StatusResponse {
   enhanced_mode: boolean;
   geoip: boolean;
   salt_rotates_at: string | null;
+  signals_lost?: number;
+  views_indexed?: number;
 }
 
 export type ExportDataset = "summary" | "timeseries" | "breakdown" | "events";

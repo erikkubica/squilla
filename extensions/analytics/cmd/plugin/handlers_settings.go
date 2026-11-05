@@ -58,6 +58,8 @@ func (p *AnalyticsPlugin) handleStatus(ctx context.Context) *pb.PluginHTTPRespon
 		"enhanced_mode":   cfg.EnhancedMode,
 		"geoip":           false, // no GeoIP reader is bundled; country comes from cf-ipcountry
 		"salt_rotates_at": nil,
+		"signals_lost":    p.buf.signalsLost(),
+		"views_indexed":   p.beacons.size(),
 	}
 	if rows, err := p.host.DataCall(ctx, "analytics_status", cfg.Timezone); err == nil && len(rows) > 0 {
 		out["records_today"] = num(rows[0], "records_today")

@@ -246,19 +246,17 @@ func TestBeaconCorrelation(t *testing.T) {
 	beacon(map[string]string{"w": "m", "c": "d"})
 	p.ingestBatch(batchPayload{Records: []Record{browserRecord("/tours")}})
 	ev := bufferedEvents(p)
-	if len(ev) != 1 || !ev[0].Confirmed || ev[0].Viewport != "m" || ev[0].ColorScheme != "dark" {
-		t.Fatalf("pending beacon not applied: %+v", ev)
+	if len(ev) != 1 {
+		t.Fatalf("events: %+v", ev)
+	}
+	_, _, confirms := p.buf.take()
+	if len(confirms) != 1 || confirms[0].EID != ev[0].EID || confirms[0].Viewport != "m" || confirms[0].ColorScheme != "dark" {
+		t.Fatalf("pending beacon not applied: %+v", confirms)
 	}
 	// A late (print) beacon becomes a stored-event confirmation.
 	beacon(map[string]string{"print": "1"})
-	_, _, confirms := p.buf.take()
+	_, _, confirms = p.buf.take()
 	if len(confirms) != 1 || !confirms[0].Printed || confirms[0].EID != ev[0].EID {
 		t.Errorf("confirms = %+v", confirms)
-	}
-	if html := p.renderHook("render.head", []byte(`{"user":null}`)); !strings.Contains(html, "/_s/b?w=s&c=l") || !strings.Contains(html, "print=1") {
-		t.Errorf("style = %s", html)
-	}
-	if html := p.renderHook("render.body_end", []byte(`{"user":{"id":1}}`)); html != "" {
-		t.Error("logged-in users must not get the beacon")
 	}
 }

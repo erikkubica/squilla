@@ -24,6 +24,13 @@ type saltKeeper struct {
 	prev      []byte
 	prevUntil time.Time
 	grace     time.Duration
+	rotatedAt time.Time
+}
+
+func (s *saltKeeper) rotatedAtTime() time.Time {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.rotatedAt
 }
 
 // previous returns the salt that expired most recently while it is still
@@ -57,6 +64,9 @@ func (s *saltKeeper) current(now time.Time, loc *time.Location) []byte {
 		return salt
 	}
 	rotated := s.salt != nil
+	if rotated {
+		s.rotatedAt = now
+	}
 	if rotated && s.grace > 0 {
 		s.prev, s.prevUntil = s.salt, now.Add(s.grace)
 	}

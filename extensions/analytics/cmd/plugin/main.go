@@ -38,8 +38,12 @@ type hostAPI interface {
 // AnalyticsPlugin holds all in-memory state. Nothing that could identify a
 // visitor (salt, IPs) is ever persisted.
 type AnalyticsPlugin struct {
-	host hostAPI
-	now  func() time.Time
+	nodes     nodePaths
+	outlines  outlineCache
+	sigRate   signalRate
+	startedAt time.Time
+	host      hostAPI
+	now       func() time.Time
 
 	cfg      atomic.Pointer[Config]
 	salt     *saltKeeper
@@ -81,6 +85,7 @@ func (p *AnalyticsPlugin) setup(h hostAPI) {
 	// on the visitor's first request under the new salt.
 	p.salt.onRotate = []func(){p.rate.reset, p.beacons.reset}
 	p.buf = newPipelineBuffer()
+	p.startedAt = p.now()
 	empty := []Goal{}
 	p.goals.Store(&empty)
 	noLinks := map[string]Link{}
@@ -126,12 +131,14 @@ func (p *AnalyticsPlugin) Shutdown() error {
 func (p *AnalyticsPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
 	return []*pb.Subscription{
 		{EventName: eventHTTPRequests, Priority: 0},
-		{EventName: "render.head", Priority: 0},
-		{EventName: "render.body_end", Priority: 0},
+		{EventName: eventRenderTransform, Priority: 0},
 	}, nil
 }
 
-const eventHTTPRequests = "http.requests"
+const (
+	eventHTTPRequests    = "http.requests"
+	eventRenderTransform = "render.transform"
+)
 
 func (p *AnalyticsPlugin) HandleEvent(action string, payload []byte) (*pb.EventResponse, error) {
 	switch action {
@@ -142,12 +149,8 @@ func (p *AnalyticsPlugin) HandleEvent(action string, payload []byte) (*pb.EventR
 		}
 		p.ingestBatch(batch)
 		return &pb.EventResponse{Handled: true}, nil
-	case "render.head", "render.body_end":
-		html := p.renderHook(action, payload)
-		if html == "" {
-			return &pb.EventResponse{Handled: false}, nil
-		}
-		return &pb.EventResponse{Handled: true, Result: []byte(html)}, nil
+	case eventRenderTransform:
+		return p.handleTransform(payload), nil
 	}
 	return &pb.EventResponse{Handled: false}, nil
 }

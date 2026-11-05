@@ -34,6 +34,8 @@ type pipelineBuffer struct {
 	confirms []confirmation
 	wake     chan struct{}
 	lost     int64 // events dropped because the buffer was full
+	inter     []Interaction
+	interLost int64 // interactions dropped because their buffer was full
 }
 
 func newPipelineBuffer() *pipelineBuffer {
@@ -134,6 +136,19 @@ func (p *AnalyticsPlugin) flush(ctx context.Context) {
 		if _, err := p.host.DataCall(ctx, "analytics_ingest_bots", rows); err != nil {
 			p.logf(ctx, "error", "analytics: bot ingest failed: %v", err)
 			p.buf.requeue(nil, bots, nil)
+		}
+	}
+	if inter := p.buf.takeInteractions(); len(inter) > 0 {
+		for start := 0; start < len(inter); start += flushBatchSize {
+			end := start + flushBatchSize
+			if end > len(inter) {
+				end = len(inter)
+			}
+			if _, err := p.host.DataCall(ctx, "analytics_ingest_interactions", inter[start:end]); err != nil {
+				p.logf(ctx, "error", "analytics: interaction ingest failed (%d requeued): %v", len(inter)-start, err)
+				p.buf.requeueInteractions(inter[start:])
+				break
+			}
 		}
 	}
 	for start := 0; start < len(confirms); start += flushBatchSize {

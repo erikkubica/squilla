@@ -151,7 +151,7 @@ func TestRealtimeHeatmapBotsGoalStatsStatus(t *testing.T) {
 	p.noteRecordTime(testNow.Add(-time.Minute))
 	p.droppedTotal.Add(4)
 	_, body = doRequest(p, "GET", "/status", nil, "")
-	want := "bots_today,dropped_total,enhanced_mode,geoip,last_record_at,pageviews_today,receiving,records_today,salt_rotates_at"
+	want := "bots_today,dropped_total,enhanced_mode,geoip,last_record_at,pageviews_today,receiving,records_today,salt_rotates_at,signals_lost,views_indexed"
 	if keys(body) != want || body["receiving"] != true || body["dropped_total"] != 4.0 || body["salt_rotates_at"] != "2026-10-24T00:00:00Z" {
 		t.Errorf("status %v", body)
 	}

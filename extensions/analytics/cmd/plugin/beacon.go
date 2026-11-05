@@ -1,9 +1,6 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -23,20 +20,25 @@ const (
 type beaconTracker struct {
 	mu        sync.Mutex
 	recent    map[string]recentPV
-	pending   map[string]pendingBeacon
+	pending   map[string][]pendingSig
 	downloads map[string]time.Time
 }
 
 type recentPV struct {
 	eid  string
 	ts   time.Time
+	sess string
 	spec bool // stored as a speculative (prefetch/prerender) load
 	done bool // already confirmed by a beacon or an activation
+	seen []string // signal dedupe keys already recorded for this view
 }
 
-type pendingBeacon struct {
-	viewport, scheme string
-	ts               time.Time
+// pendingSig is a signal that reached us before the kernel delivered its
+// pageview record (records are batched for up to 2 s).
+type pendingSig struct {
+	kind, key, value, dest string
+	viewport, scheme       string
+	ts                     time.Time
 }
 
 func newBeaconTracker() *beaconTracker {
@@ -49,14 +51,51 @@ func beaconKey(visitor, path string) string { return visitor + "|" + path }
 
 func (t *beaconTracker) reset() {
 	t.mu.Lock()
-	t.recent, t.pending, t.downloads = map[string]recentPV{}, map[string]pendingBeacon{}, map[string]time.Time{}
+	t.recent, t.pending, t.downloads = map[string]recentPV{}, map[string][]pendingSig{}, map[string]time.Time{}
 	t.mu.Unlock()
 }
 
-func (t *beaconTracker) rememberPageview(visitor, path, eid string, ts time.Time, spec bool) {
+const maxRecentViews = 20000
+
+func (t *beaconTracker) rememberPageview(visitor, path, eid, sess string, ts time.Time, spec bool) {
 	t.mu.Lock()
-	t.recent[beaconKey(visitor, path)] = recentPV{eid: eid, ts: ts, spec: spec}
+	if len(t.recent) >= maxRecentViews {
+		// LRU-ish cap: drop the oldest quarter instead of growing without bound.
+		cut := ts.Add(-5 * time.Minute)
+		for k, v := range t.recent {
+			if v.ts.Before(cut) {
+				delete(t.recent, k)
+			}
+		}
+		for k := range t.recent {
+			if len(t.recent) < maxRecentViews*3/4 {
+				break
+			}
+			delete(t.recent, k)
+		}
+	}
+	t.recent[beaconKey(visitor, path)] = recentPV{eid: eid, ts: ts, sess: sess, spec: spec}
 	t.mu.Unlock()
+}
+
+// markSeen records a dedupe key for the view; it reports false when the
+// key was already recorded (or the view is unknown / over its cap).
+func (t *beaconTracker) markSeen(visitor, path, key string) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	k := beaconKey(visitor, path)
+	pv, ok := t.recent[k]
+	if !ok || len(pv.seen) >= 80 {
+		return false
+	}
+	for _, s := range pv.seen {
+		if s == key {
+			return false
+		}
+	}
+	pv.seen = append(pv.seen, key)
+	t.recent[k] = pv
+	return true
 }
 
 // activate consumes a speculative, still-unconfirmed pageview of path: the
@@ -94,27 +133,42 @@ func (t *beaconTracker) markDone(visitor, path string) {
 	t.mu.Unlock()
 }
 
-func (t *beaconTracker) addPending(visitor, path string, b pendingBeacon) {
-	t.mu.Lock()
-	t.pending[beaconKey(visitor, path)] = b
-	t.mu.Unlock()
-}
+const (
+	maxPendingKeys   = 5000
+	maxPendingPerKey = 12
+	pendingWindow    = 10 * time.Second
+)
 
-// takePending consumes a beacon that arrived within beaconWindow of ts.
-func (t *beaconTracker) takePending(visitor, path string, ts time.Time) (pendingBeacon, bool) {
+func (t *beaconTracker) addPending(visitor, path string, sg pendingSig) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	k := beaconKey(visitor, path)
-	b, ok := t.pending[k]
-	if !ok {
-		return pendingBeacon{}, false
+	cur := t.pending[k]
+	if len(cur) == 0 && len(t.pending) >= maxPendingKeys {
+		return
 	}
-	d := b.ts.Sub(ts)
-	if d < -5*time.Second || d > beaconWindow {
-		return pendingBeacon{}, false
+	if len(cur) < maxPendingPerKey {
+		t.pending[k] = append(cur, sg)
+	}
+}
+
+// takePending consumes the signals that arrived shortly before ts.
+func (t *beaconTracker) takePending(visitor, path string, ts time.Time) []pendingSig {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	k := beaconKey(visitor, path)
+	all, ok := t.pending[k]
+	if !ok {
+		return nil
 	}
 	delete(t.pending, k)
-	return b, true
+	var out []pendingSig
+	for _, sg := range all {
+		if d := sg.ts.Sub(ts); d >= -5*time.Second && d <= pendingWindow {
+			out = append(out, sg)
+		}
+	}
+	return out
 }
 
 // seenDownload reports a repeat download (range requests, double clicks)
@@ -137,7 +191,7 @@ func (t *beaconTracker) sweep(now time.Time, keepRecent time.Duration) {
 		}
 	}
 	for k, v := range t.pending {
-		if now.Sub(v.ts) > 2*beaconWindow {
+		if len(v) == 0 || now.Sub(v[len(v)-1].ts) > 2*pendingWindow {
 			delete(t.pending, k)
 		}
 	}
@@ -146,44 +200,6 @@ func (t *beaconTracker) sweep(now time.Time, keepRecent time.Duration) {
 			delete(t.downloads, k)
 		}
 	}
-}
-
-// renderHook returns the enhanced-mode markup for render.head (a <style>
-// with media-query beacons) and render.body_end (the 1px target element).
-func (p *AnalyticsPlugin) renderHook(action string, payload []byte) string {
-	cfg := p.config()
-	if !cfg.EnhancedMode {
-		return ""
-	}
-	var data struct {
-		User map[string]any `json:"user"`
-	}
-	_ = json.Unmarshal(payload, &data)
-	if cfg.ExcludeLoggedIn && len(data.User) > 0 {
-		return ""
-	}
-	if action == "render.body_end" {
-		return `<i class="sq-s" aria-hidden="true"></i>`
-	}
-	return beaconStyle(cfg.BeaconPrefix)
-}
-
-// beaconStyle builds the 3 widths × 2 colour schemes + print rules. Only
-// the matching rule's background image is fetched by the browser.
-func beaconStyle(prefix string) string {
-	var b strings.Builder
-	b.WriteString(`<style>.sq-s{position:absolute;width:1px;height:1px;overflow:hidden;pointer-events:none;opacity:0}`)
-	widths := []struct{ code, query string }{
-		{"s", "(max-width:767px)"}, {"m", "(min-width:768px) and (max-width:1199px)"}, {"l", "(min-width:1200px)"},
-	}
-	for _, w := range widths {
-		for _, c := range []struct{ code, scheme string }{{"l", "light"}, {"d", "dark"}} {
-			b.WriteString(`@media screen and ` + w.query + ` and (prefers-color-scheme:` + c.scheme + `){.sq-s{background-image:url(`)
-			b.WriteString(prefix + "/b?w=" + w.code + "&c=" + c.code + `)}}`)
-		}
-	}
-	b.WriteString(`@media print{.sq-s{background-image:url(` + prefix + `/b?print=1)}}</style>`)
-	return b.String()
 }
 
 // transparentGIF is a 1×1 transparent GIF.
@@ -201,54 +217,6 @@ func gifResponse() *pb.PluginHTTPResponse {
 		},
 		Body: transparentGIF,
 	}
-}
-
-// handleBeacon serves GET <prefix>/b and records the confirmation. It
-// always answers with the GIF so the page never sees an error.
-func (p *AnalyticsPlugin) handleBeacon(_ context.Context, req *pb.PluginHTTPRequest) *pb.PluginHTTPResponse {
-	cfg := p.config()
-	if !cfg.EnhancedMode {
-		return gifResponse()
-	}
-	h := headerGetter(req.GetHeaders())
-	q := req.GetQueryParams()
-	ref, err := url.Parse(h("referer"))
-	host := h("host")
-	if err != nil || ref.Host == "" || !isOwnHost(ref.Hostname(), host, cfg) {
-		return gifResponse()
-	}
-	if isSpeculativeHeaders(h) {
-		// A prerendered page the visitor has not opened yet must not count.
-		return gifResponse()
-	}
-	if v := matchSignature(strings.ToLower(h("user-agent"))); v.isBot() {
-		return gifResponse()
-	}
-	c := p.newClient(host, h("x-forwarded-for"), h("user-agent"), h("accept-language"), h("sec-gpc"), "", "", "")
-	now := p.now()
-	vid := p.visitorID(c, now, cfg)
-	if vid == "" {
-		return gifResponse()
-	}
-	path := normalizePath(ref.Path)
-	if q["print"] == "1" {
-		if pv, ok := p.beacons.lookupRecent(vid, path, now, cfg.sessionTimeout()); ok {
-			p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute), Printed: true})
-		}
-		return gifResponse()
-	}
-	viewport := map[string]string{"s": "s", "m": "m", "l": "l"}[q["w"]]
-	scheme := map[string]string{"l": "light", "d": "dark"}[q["c"]]
-	if viewport == "" {
-		return gifResponse()
-	}
-	if pv, ok := p.beacons.lookupRecent(vid, path, now, beaconWindow); ok {
-		p.beacons.markDone(vid, path)
-		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute), Viewport: viewport, ColorScheme: scheme})
-		return gifResponse()
-	}
-	p.beacons.addPending(vid, path, pendingBeacon{viewport: viewport, scheme: scheme, ts: now})
-	return gifResponse()
 }
 
 // isOwnHost reports whether host is the request host or a configured own host.

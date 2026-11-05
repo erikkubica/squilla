@@ -49,6 +49,7 @@ const (
 type TransformRequest struct {
 	HTML     string
 	Path     string
+	Host     string
 	NodeID   int
 	NodeType string
 	Language string
@@ -69,6 +70,7 @@ type HTMLTransformer interface {
 type transformPayload struct {
 	HTML    string            `json:"html"`
 	Path    string            `json:"path"`
+	Host    string            `json:"host"`
 	Node    map[string]any    `json:"node"`
 	User    map[string]any    `json:"user"`
 	GPC     bool              `json:"gpc"`
@@ -133,7 +135,7 @@ func (pm *PluginManager) TransformHTML(req TransformRequest) string {
 		default:
 		}
 		body, err := marshalTransform(transformPayload{
-			HTML: html, Path: req.Path, GPC: req.GPC, Cookies: req.Cookies,
+			HTML: html, Path: req.Path, Host: req.Host, GPC: req.GPC, Cookies: req.Cookies,
 			Node: map[string]any{"id": req.NodeID, "type": req.NodeType, "language": req.Language, "is_404": req.Is404},
 			User: map[string]any{"id": req.UserID, "role": req.Role},
 		})
@@ -204,7 +206,7 @@ func (h *PublicHandler) finishPublicHTML(c *fiber.Ctx, html string, node *models
 	if !h.transformActive() {
 		return stripTransformMarkers(html)
 	}
-	req := TransformRequest{HTML: html, Path: c.Path(), Is404: is404, GPC: c.Get("Sec-GPC") == "1"}
+	req := TransformRequest{HTML: html, Path: c.Path(), Host: c.Hostname(), Is404: is404, GPC: c.Get("Sec-GPC") == "1"}
 	if node != nil {
 		req.NodeID, req.NodeType, req.Language = node.ID, node.NodeType, node.LanguageCode
 	}

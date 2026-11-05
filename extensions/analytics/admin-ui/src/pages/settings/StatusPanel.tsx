@@ -42,7 +42,9 @@ export function StatusPanel({ status, error, onRefresh, loading }: { status: Sta
             <dt className="text-an-muted">Bot hits today</dt><dd className="an-num text-an-ink">{formatInt(status.bots_today)}</dd>
             <dt className="text-an-muted">Dropped (overload)</dt><dd className="an-num text-an-ink">{formatInt(status.dropped_total)}{status.dropped_total > 0 ? " — buffer was full" : ""}</dd>
             <dt className="text-an-muted">Salt rotates</dt><dd className="text-an-ink">{when(status.salt_rotates_at)}</dd>
-            <dt className="text-an-muted">Enhanced mode</dt><dd className="text-an-ink">{status.enhanced_mode ? "On" : "Off"}</dd>
+            <dt className="text-an-muted">In-page signals</dt><dd className="text-an-ink">{status.enhanced_mode ? "On" : "Off"}</dd>
+            <dt className="text-an-muted">Views in memory</dt><dd className="text-an-ink">{status.views_indexed ?? 0}</dd>
+            <dt className="text-an-muted">Signals dropped</dt><dd className="text-an-ink">{status.signals_lost ?? 0}</dd>
             <dt className="text-an-muted">GeoIP database</dt><dd className="text-an-ink">{status.geoip ? "Loaded" : "Not configured"}</dd>
           </dl>
         </>

@@ -26,8 +26,10 @@ func (p *AnalyticsPlugin) routeRequest(ctx context.Context, req *pb.PluginHTTPRe
 	if raw == "/_s/optout" || raw == p.config().BeaconPrefix+"/optout" {
 		return p.handleOptOut(req)
 	}
-	if raw == "/_s/b" || raw == p.config().BeaconPrefix+"/b" {
-		return p.handleBeacon(ctx, req)
+	for _, pre := range []string{"/_s/", p.config().BeaconPrefix + "/"} {
+		if rest, ok := strings.CutPrefix(raw, pre); ok && len(rest) == 1 {
+			return p.handleSignal(ctx, rest, req)
+		}
 	}
 
 	path := strings.Trim(raw, "/")

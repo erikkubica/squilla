@@ -12,6 +12,7 @@
     "data:delete",
     "data:call",
     "http:observe",
+    "render:transform",
     "log:write",
     "settings:read"
   ],

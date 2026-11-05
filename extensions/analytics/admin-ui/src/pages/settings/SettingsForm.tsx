@@ -7,7 +7,7 @@ import { Panel } from "../../components/Panel";
 import { toast, ui } from "../../shared";
 import { ListInput, Row, ToggleRow, cleanList } from "./fields";
 
-const { Input, Button, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } = ui;
+const { Input, Switch, Button, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } = ui;
 
 function timezones(current: string): string[] {
   let list: string[] = [];
@@ -95,23 +95,36 @@ export function SettingsForm({ initial, onSaved }: { initial: AnalyticsSettings;
         </Row>
       </Panel>
 
-      <Panel title="Enhanced mode" bodyClassName="divide-y divide-an-line px-4">
+      <Panel title="In-page signals (no JavaScript)" bodyClassName="divide-y divide-an-line px-4">
         <ToggleRow
           id="an-enhanced"
-          label="Confirm views with a CSS beacon"
-          hint="Adds a tiny stylesheet rule that loads an image from your own domain when a page is actually rendered. Confirms real views (vs. prefetches), and records viewport size, light/dark preference and printing. Still no JavaScript and no cookies."
+          label="Measure what visitors do on a page"
+          hint="Adds a small stylesheet and a hidden element to every public page. The browser then asks your own server for tiny images when a section scrolls into view, when a visitor has stayed 10 s / 30 s / 1 min / 3 min / 10 min, and (through the standard link ping attribute) when a link is clicked. No script is loaded, nothing blocks rendering, no cookies are set, and no request carries an identifier."
           checked={s.enhanced_mode}
           onChange={(v) => set("enhanced_mode", v)}
         >
           <div className="mt-3 flex gap-2.5 rounded-md bg-an-warn-bg p-3 text-xs leading-relaxed text-an-warn" role="note">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <p>
-              <strong>Consent may be required.</strong> The beacon makes the visitor’s browser send an extra request that reads device characteristics. Under the
-              EU ePrivacy Directive (Art. 5(3)) and similar laws, accessing information on a user’s device for analytics generally needs prior consent unless strictly
-              necessary. Check with your legal adviser before enabling it for EU/UK visitors, and mention it in your privacy notice.
+              <strong>Tell your visitors.</strong> The EDPB treats any request a page makes only for measurement as access to the visitor’s device (ePrivacy Art. 5(3)).
+              The French CNIL exempts strictly anonymous audience measurement from consent when visitors are informed and can opt out. This mode is built for that:
+              it needs a privacy-notice paragraph and a link to <code>{s.beacon_prefix || "/_s"}/optout</code>. Visitors who send Global Privacy Control or opt out get none of this markup.
+              The copy-paste text is below.
             </p>
           </div>
         </ToggleRow>
+        <Row id="an-sig-dwell" label="Time on page" hint="Stay marks at 10 s, 30 s, 1 min, 3 min and 10 min.">
+          <Switch id="an-sig-dwell" checked={s.signal_dwell} onCheckedChange={(v: boolean) => set("signal_dwell", v)} disabled={!s.enhanced_mode} />
+        </Row>
+        <Row id="an-sig-sections" label="Section impressions & scroll reach" hint="Which sections of a page were scrolled into view (needs a browser with scroll-driven animations).">
+          <Switch id="an-sig-sections" checked={s.signal_sections} onCheckedChange={(v: boolean) => set("signal_sections", v)} disabled={!s.enhanced_mode} />
+        </Row>
+        <Row id="an-sig-clicks" label="Link clicks" hint="Which links are clicked, including outbound ones. Uses the link ping attribute; Firefox and some ad blockers ignore it.">
+          <Switch id="an-sig-clicks" checked={s.signal_clicks} onCheckedChange={(v: boolean) => set("signal_clicks", v)} disabled={!s.enhanced_mode} />
+        </Row>
+        <Row id="an-sig-forms" label="Forms started & FAQ items opened" hint="First focus in a form and the first time an FAQ item is opened.">
+          <Switch id="an-sig-forms" checked={s.signal_forms} onCheckedChange={(v: boolean) => set("signal_forms", v)} disabled={!s.enhanced_mode} />
+        </Row>
         <Row id="an-prefix" label="Beacon path prefix" hint="Neutral path used for beacon requests. Change it if an ad blocker list targets the default.">
           <Input id="an-prefix" value={s.beacon_prefix} onChange={(e: ChangeEvent<HTMLInputElement>) => set("beacon_prefix", e.target.value)} placeholder="/_s" className="w-40 font-mono text-[13px]" aria-describedby="an-prefix-hint" disabled={!s.enhanced_mode} />
         </Row>

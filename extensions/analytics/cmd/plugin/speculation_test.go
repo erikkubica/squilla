@@ -91,8 +91,10 @@ func TestBeaconFromPrerenderIsIgnored(t *testing.T) {
 	}
 	p.routeRequest(ctx(), pbReq("GET", "/_s/b", h, map[string]string{"w": "m", "c": "l"}))
 	p.ingestBatch(batchPayload{Records: []Record{browserRecord("/tours")}})
-	if ev := bufferedEvents(p); len(ev) != 1 || ev[0].Confirmed {
-		t.Fatalf("prerender beacon confirmed a view: %+v", ev)
+	ev := bufferedEvents(p)
+	_, _, confirms := p.buf.take()
+	if len(ev) != 1 || ev[0].Confirmed || len(confirms) != 0 {
+		t.Fatalf("prerender beacon confirmed a view: %+v %+v", ev, confirms)
 	}
 }
 

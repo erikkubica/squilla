@@ -131,17 +131,13 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 		ev := base
 		ev.Kind, ev.EID, ev.IsPrefetch = kindPageview, randomHex(8), prefetch
 		p.attachSession(&ev, req, cfg, !prefetch)
-		if vid != "" {
-			if b, ok := p.beacons.takePending(vid, norm, ts); ok {
-				ev.Confirmed, ev.Viewport, ev.ColorScheme = true, b.viewport, b.scheme
-			}
-		}
 		p.buf.addEvent(ev)
 		if vid != "" {
-			p.beacons.rememberPageview(vid, norm, ev.EID, ts, prefetch)
+			p.beacons.rememberPageview(vid, norm, ev.EID, ev.SessionID, ts, prefetch)
 			if !prefetch {
 				p.activateReferrer(vid, r, ts)
 			}
+			p.drainPending(vid, norm, recentPV{eid: ev.EID, ts: ts, sess: ev.SessionID, spec: prefetch}, ts)
 		}
 		if !prefetch {
 			for _, g := range p.matchPageviewGoals(norm) {
