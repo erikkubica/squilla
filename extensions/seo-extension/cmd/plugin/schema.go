@@ -115,13 +115,11 @@ func schemaBuildGraph(node map[string]any, seo map[string]any, settings map[stri
 }
 
 // schemaDisabled reports whether the whole graph should be suppressed.
-// The kernel's 404 render forces seo_robots_index=false on its settings
-// clone and passes a synthetic node without an id, so 404s are covered
-// by the same checks.
+// The indexing switch (seo_robots_index) deliberately does not: noindex
+// already keeps the page out of search, and emitting the graph lets
+// staging sites be checked with rich-result tools before launch. 404s
+// are skipped because the kernel's synthetic 404 node has no id.
 func schemaDisabled(seo map[string]any, settings map[string]string) bool {
-	if strings.TrimSpace(settings["seo_robots_index"]) == "false" {
-		return true
-	}
 	if strings.TrimSpace(settings["schema_enabled"]) == "false" {
 		return true
 	}

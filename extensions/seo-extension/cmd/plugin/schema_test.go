@@ -365,7 +365,6 @@ func TestSchemaDisabledReturnsEmpty(t *testing.T) {
 		{"nil node", nil, nil, schemaTestSettings()},
 		{"node without id", map[string]any{"title": "x", "full_url": "/x"}, nil, schemaTestSettings()},
 		{"node with blank id", map[string]any{"id": "  ", "full_url": "/x"}, nil, schemaTestSettings()},
-		{"robots index off", schemaTestPostNode(), nil, map[string]string{"site_url": schemaTestSite, "seo_robots_index": "false"}},
 		{"schema toggle off", schemaTestPostNode(), nil, map[string]string{"site_url": schemaTestSite, "schema_enabled": "false"}},
 		{"page seo disabled bool", schemaTestPostNode(), map[string]any{"schema_disabled": true}, schemaTestSettings()},
 		{"page seo disabled string", schemaTestPostNode(), map[string]any{"schema_disabled": "true"}, schemaTestSettings()},
@@ -379,6 +378,14 @@ func TestSchemaDisabledReturnsEmpty(t *testing.T) {
 				t.Errorf("expected empty output, got %s", out)
 			}
 		})
+	}
+}
+
+func TestSchemaEmittedWhenIndexingOff(t *testing.T) {
+	s := schemaTestSettings()
+	s["seo_robots_index"] = "false"
+	if schemaBuildGraph(schemaTestPostNode(), nil, s) == "" {
+		t.Fatal("staging (indexing off) must still get the graph so it can be tested")
 	}
 }
 
