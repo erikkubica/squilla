@@ -100,6 +100,10 @@ func (p *MediaManagerPlugin) handleOwnedAssetsActivated(payload []byte, kind own
 	}
 
 	seen := map[string]bool{}
+	// Storage paths whose bytes were written or deleted below. Asset paths
+	// are deterministic, so copies cached from an earlier version of the
+	// same key would otherwise keep being served.
+	var staleCache []string
 	for _, a := range evt.Assets {
 		key, _ := a["key"].(string)
 		if key == "" {
@@ -147,6 +151,10 @@ func (p *MediaManagerPlugin) handleOwnedAssetsActivated(payload []byte, kind own
 				_ = p.host.Log(ctx, "warn", fmt.Sprintf("%s.activated %q: store %s: %v", spec.label, ownerID, storagePath, err), nil)
 				continue
 			}
+			staleCache = append(staleCache, storagePath)
+			if prevPath, _ := prev["path"].(string); prevPath != "" && prevPath != storagePath {
+				staleCache = append(staleCache, prevPath)
+			}
 			idU, _ := toUint(prev["id"])
 			updates := map[string]any{
 				"path":         storagePath,
@@ -170,6 +178,8 @@ func (p *MediaManagerPlugin) handleOwnedAssetsActivated(payload []byte, kind own
 			_ = p.host.Log(ctx, "warn", fmt.Sprintf("%s.activated %q: store %s: %v", spec.label, ownerID, storagePath, err), nil)
 			continue
 		}
+		// A cache can outlive the row (e.g. after a database reset).
+		staleCache = append(staleCache, storagePath)
 		record := map[string]any{
 			"filename":       filepath.Base(storagePath),
 			"original_name":  filepath.Base(absPath),
@@ -223,12 +233,15 @@ func (p *MediaManagerPlugin) handleOwnedAssetsActivated(payload []byte, kind own
 		}
 		if path, _ := row["path"].(string); path != "" {
 			_ = p.host.DeleteFile(ctx, path)
+			staleCache = append(staleCache, path)
 		}
 		idU, _ := toUint(row["id"])
 		if err := p.host.DataDelete(ctx, tableName, idU); err != nil {
 			_ = p.host.Log(ctx, "warn", fmt.Sprintf("%s.activated %q: delete stale %s: %v", spec.label, ownerID, key, err), nil)
 		}
 	}
+
+	p.clearCacheForOriginals(ctx, staleCache)
 
 	_ = p.host.Log(ctx, "info", fmt.Sprintf("%s assets synced: %s (%d declared)", spec.label, ownerID, len(evt.Assets)), nil)
 
@@ -286,10 +299,18 @@ func (p *MediaManagerPlugin) upsertManifestImageSizes(ctx context.Context, defs 
 			if prevSource != "" && prevSource != source && !strings.HasPrefix(prevSource, "default") {
 				continue
 			}
-			idU, _ := toUint(existing.Rows[0]["id"])
+			prev := existing.Rows[0]
+			idU, _ := toUint(prev["id"])
 			if err := p.host.DataUpdate(ctx, sizesTable, idU, row); err != nil {
 				_ = p.host.Log(ctx, "warn", fmt.Sprintf("image_sizes %q: update: %v", name, err), nil)
 				continue
+			}
+			// Copies cached at the old dimensions would keep being served.
+			if intFromRow(prev, "width") != width || intFromRow(prev, "height") != height ||
+				stringFromRow(prev, "mode", "fit") != mode || intFromRow(prev, "quality") != quality {
+				if dir, ok := p.sizeCacheDir(name); ok {
+					_ = os.RemoveAll(dir)
+				}
 			}
 			emitChange = true
 			continue
@@ -337,9 +358,11 @@ func (p *MediaManagerPlugin) handleOwnedAssetsDeactivated(payload []byte, kind o
 	if result == nil {
 		return nil
 	}
+	var purged []string
 	for _, row := range result.Rows {
 		if path, _ := row["path"].(string); path != "" {
 			_ = p.host.DeleteFile(ctx, path)
+			purged = append(purged, path)
 		}
 		if origPath, _ := row["original_path"].(string); origPath != "" && origPath != row["path"] {
 			_ = p.host.DeleteFile(ctx, origPath)
@@ -349,6 +372,8 @@ func (p *MediaManagerPlugin) handleOwnedAssetsDeactivated(payload []byte, kind o
 			_ = p.host.Log(ctx, "warn", fmt.Sprintf("%s.deactivated %q: delete row: %v", spec.label, ownerID, err), nil)
 		}
 	}
+	// Their cached copies are public too; drop them with the originals.
+	p.clearCacheForOriginals(ctx, purged)
 	_ = p.host.Log(ctx, "info", fmt.Sprintf("%s media purged: %s (%d rows)", spec.label, ownerID, len(result.Rows)), nil)
 	return nil
 }

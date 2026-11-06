@@ -251,7 +251,7 @@ func (p *MediaManagerPlugin) handlePublicMediaRequest(ctx context.Context, req *
 	}
 
 	// WebP conversion path.
-	webpCachePath := filepath.Join(p.cacheBaseDir(), "_webp", relPath+".webp")
+	webpCachePath := p.cacheFullWebPPath(relPath)
 
 	// Check if we have a cached WebP version.
 	if data, err := os.ReadFile(webpCachePath); err == nil {

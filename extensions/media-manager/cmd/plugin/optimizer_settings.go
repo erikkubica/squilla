@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"squilla/internal/coreapi"
@@ -13,6 +14,9 @@ import (
 )
 
 // This file owns the optimizer settings + image-size CRUD endpoints.
+
+// sizeNamePattern matches the names the admin can give an image size.
+var sizeNamePattern = regexp.MustCompile(`^[a-z0-9_-]+$`)
 
 func (p *MediaManagerPlugin) handleGetOptimizerSettings(ctx context.Context) (*pb.PluginHTTPResponse, error) {
 	settings := make(map[string]string)
@@ -121,6 +125,10 @@ func (p *MediaManagerPlugin) handleCreateSize(ctx context.Context, body []byte) 
 	if input.Name == "" || input.Width <= 0 || input.Height <= 0 {
 		return jsonError(400, "VALIDATION_FAILED", "Name, width, and height are required"), nil
 	}
+	// The name becomes a cache directory and a URL segment.
+	if !sizeNamePattern.MatchString(input.Name) {
+		return jsonError(400, "INVALID_NAME", "Size names may only contain lowercase letters, numbers, hyphens and underscores"), nil
+	}
 	if input.Mode == "" {
 		input.Mode = "fit"
 	}
@@ -187,8 +195,9 @@ func (p *MediaManagerPlugin) handleDeleteSize(ctx context.Context, name string) 
 	}
 
 	// Clear cache for this size.
-	sizeDir := filepath.Join(p.cacheBaseDir(), name)
-	_ = os.RemoveAll(sizeDir)
+	if sizeDir, ok := p.sizeCacheDir(name); ok {
+		_ = os.RemoveAll(sizeDir)
+	}
 
 	return jsonResponse(200, map[string]any{"data": map[string]any{"message": fmt.Sprintf("Size %q deleted", name)}}), nil
 }
