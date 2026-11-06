@@ -1,6 +1,14 @@
 package cms
 
-import "testing"
+import (
+	"io"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gofiber/fiber/v2"
+
+	"squilla/internal/models"
+)
 
 // TestIsReservedPublicPath_Refuses pins the kernel-owned paths that an
 // extension manifest must NOT be allowed to claim through public_routes.
@@ -41,13 +49,34 @@ func TestIsReservedPublicPath_Allows(t *testing.T) {
 		"/sitemap.xml",
 		"/feed.rss",
 		"/.well-known/security.txt",
-		"/login-ext",      // not /login
-		"/admin-toolkit",  // not /admin
-		"/auth-callback",  // not /auth/
+		"/login-ext",     // not /login
+		"/admin-toolkit", // not /admin
+		"/auth-callback", // not /auth/
 	}
 	for _, p := range cases {
 		if isReservedPublicPath(p) {
 			t.Errorf("path %q should be allowed", p)
 		}
+	}
+}
+
+// An installed but inactive extension's public route must step aside so a
+// fallback (or the page router) answers, rather than 503 every request.
+func TestPublicRoute_InactiveExtensionFallsThrough(t *testing.T) {
+	app := fiber.New()
+	pp := NewPublicExtensionProxy(NewPluginManager(nil, nil, nil))
+	pp.RegisterPublicRoutes(app, []models.Extension{{
+		Slug:     "analytics",
+		Manifest: models.JSONB(`{"public_routes":[{"method":"GET","path":"/_s/*"}]}`),
+	}})
+	app.Get("/_s/*", func(c *fiber.Ctx) error { return c.SendString("fallback") })
+
+	resp, err := app.Test(httptest.NewRequest("GET", "/_s/x.gif", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 || string(body) != "fallback" {
+		t.Fatalf("got %d %q, want the fallback route", resp.StatusCode, body)
 	}
 }

@@ -69,7 +69,7 @@ func isReservedPublicPath(path string) bool {
 	return false
 }
 
-// RegisterPublicRoutes reads the manifest for each active extension, and for
+// RegisterPublicRoutes reads the manifest for each given extension, and for
 // every entry in public_routes registers the declared Fiber route that proxies
 // to the extension plugin — without any auth middleware. Reserved kernel
 // paths (login, admin, auth flows, …) are refused with a warning so a
@@ -122,7 +122,9 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 	return func(c *fiber.Ctx) error {
 		client := pp.pluginMgr.GetClient(slug)
 		if client == nil {
-			return c.SendStatus(fiber.StatusServiceUnavailable)
+			// Not active (routes are mounted for every installed extension):
+			// let the next route — a fallback or the page router — answer.
+			return c.Next()
 		}
 
 		// Build headers map. Strip sensitive auth headers AND any

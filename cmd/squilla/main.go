@@ -590,8 +590,17 @@ func main() {
 	}
 
 	// --- Public extension route proxy (before static routes) ---
+	// Mount the routes of every installed extension, not only the active
+	// ones: Fiber can't add routes once serving, so an extension activated
+	// later would otherwise get no public routes until a restart. The
+	// handler steps aside while the extension's plugin isn't running.
 	publicProxy := cms.NewPublicExtensionProxy(pluginManager)
-	publicProxy.RegisterPublicRoutes(app, activeExts)
+	installedExts, err := extLoader.List()
+	if err != nil {
+		log.Printf("[public-proxy] listing extensions failed, mounting active ones only: %v", err)
+		installedExts = activeExts
+	}
+	publicProxy.RegisterPublicRoutes(app, installedExts)
 
 	// Media files served by media-manager extension via public_routes proxy.
 	// Fallback static handler for when extension is not active.
