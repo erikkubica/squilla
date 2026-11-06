@@ -55,10 +55,37 @@ export const Div = Node.create({
 /**
  * Table without Tiptap's serialized `<colgroup>` and inline min-width
  * style, so saved HTML stays as clean as what the theme authored.
+ *
+ * In the editor it renders through a node view: a horizontally scrolling
+ * `.rte-table-scroll` wrapper (narrow panes scroll instead of squashing
+ * columns) around a `<table>` that mirrors the node's `class`.
  */
 const CleanTable = Table.extend({
   renderHTML({ HTMLAttributes }) {
     return ["table", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), ["tbody", 0]];
+  },
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement("div");
+      dom.className = "rte-table-scroll";
+      const table = dom.appendChild(document.createElement("table"));
+      const tbody = table.appendChild(document.createElement("tbody"));
+      const applyClass = (cls: unknown) => {
+        if (typeof cls === "string" && cls) table.className = cls;
+        else table.removeAttribute("class");
+      };
+      applyClass(node.attrs.class);
+      return {
+        dom,
+        contentDOM: tbody,
+        update: (next) => {
+          if (next.type !== node.type) return false;
+          applyClass(next.attrs.class);
+          return true;
+        },
+        ignoreMutation: (m) => m.type === "attributes" && (m.target === dom || m.target === table),
+      };
+    };
   },
 });
 

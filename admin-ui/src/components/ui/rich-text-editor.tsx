@@ -442,13 +442,16 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         .vibe-rte-content .has-text-align-center { text-align: center; }
         .vibe-rte-content .has-text-align-right { text-align: right; }
         .vibe-rte-content .has-text-align-left { text-align: left; }
-        /* Tables */
+        /* Tables — scroll horizontally in narrow panes instead of squashing columns */
+        .vibe-rte-content .rte-table-scroll {
+          overflow-x: auto;
+          margin: 0.75em 0;
+        }
         .vibe-rte-content table {
           width: 100%;
           border-collapse: collapse;
-          table-layout: fixed;
-          margin: 0.75em 0;
-          overflow: hidden;
+          table-layout: auto;
+          margin: 0;
         }
         .vibe-rte-content th,
         .vibe-rte-content td {
@@ -456,8 +459,13 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
           padding: 0.375rem 0.625rem;
           vertical-align: top;
           position: relative;
-          min-width: 1em;
+          min-width: 7rem;
+          word-break: normal;
+          overflow-wrap: normal;
+          white-space: normal;
         }
+        .vibe-rte-content th code,
+        .vibe-rte-content td code { white-space: nowrap; }
         .vibe-rte-content th {
           background: #f1f5f9;
           font-weight: 600;
@@ -476,15 +484,14 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
           pointer-events: none;
           z-index: 2;
         }
-        .vibe-rte-content .tableWrapper { overflow-x: auto; }
         /* Classed div boxes (e.g. notes) */
-        .vibe-rte-content div[class] {
+        .vibe-rte-content div[class]:not(.rte-table-scroll) {
           border: 1px dashed #cbd5e1;
           border-radius: 0.5rem;
           padding: 0.5rem 0.75rem;
           background: #f8fafc;
         }
-        .vibe-rte-content div[class] > * + * { margin-top: 0.5em; }
+        .vibe-rte-content div[class]:not(.rte-table-scroll) > * + * { margin-top: 0.5em; }
       `}</style>
       <Toolbar editor={editor} />
       <EditorContent editor={editor} />
