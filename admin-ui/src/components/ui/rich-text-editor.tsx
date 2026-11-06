@@ -1,9 +1,10 @@
-import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { useEditor, useEditorState, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
+import { tableExtensions, normalizeEditorHTML } from "./rich-text-tables";
 import {
   Bold,
   Italic,
@@ -26,6 +27,13 @@ import {
   Heading3,
   SeparatorHorizontal,
   RemoveFormatting,
+  Table as TableIcon,
+  BetweenHorizontalEnd,
+  BetweenVerticalEnd,
+  TableRowsSplit,
+  TableColumnsSplit,
+  PanelTop,
+  Grid2x2X,
 } from "lucide-react";
 import { useEffect, useCallback } from "react";
 
@@ -68,6 +76,50 @@ function ToolbarButton({
 
 function ToolbarDivider() {
   return <div className="mx-1 h-6 w-px" style={{ background: "var(--border)" }} />;
+}
+
+function TableControls({ editor }: { editor: Editor }) {
+  // Tiptap v3 doesn't re-render on selection changes by default, so track
+  // "cursor is in a table" explicitly to show/hide the row/column actions.
+  const inTable = useEditorState({
+    editor,
+    selector: ({ editor }) => editor.isActive("table"),
+  });
+
+  return (
+    <>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        active={inTable}
+        disabled={inTable}
+        title="Insert Table (3×3)"
+      >
+        <TableIcon className="h-4 w-4" />
+      </ToolbarButton>
+      {inTable && (
+        <>
+          <ToolbarButton onClick={() => editor.chain().focus().addRowAfter().run()} title="Add Row Below">
+            <BetweenHorizontalEnd className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().deleteRow().run()} title="Delete Row">
+            <TableRowsSplit className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().addColumnAfter().run()} title="Add Column Right">
+            <BetweenVerticalEnd className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().deleteColumn().run()} title="Delete Column">
+            <TableColumnsSplit className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().toggleHeaderRow().run()} title="Toggle Header Row">
+            <PanelTop className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.chain().focus().deleteTable().run()} title="Delete Table">
+            <Grid2x2X className="h-4 w-4" />
+          </ToolbarButton>
+        </>
+      )}
+    </>
+  );
 }
 
 function Toolbar({ editor }: { editor: Editor }) {
@@ -211,6 +263,11 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       <ToolbarDivider />
 
+      {/* Table */}
+      <TableControls editor={editor} />
+
+      <ToolbarDivider />
+
       {/* Link */}
       <ToolbarButton
         onClick={setLink}
@@ -258,15 +315,19 @@ function Toolbar({ editor }: { editor: Editor }) {
 export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
+      // v3 StarterKit bundles Link + Underline; disable them so the
+      // explicitly configured instances below are the only ones.
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        link: false,
+        underline: false,
       }),
       Underline,
       LinkExtension.configure({
         openOnClick: false,
-        HTMLAttributes: {
-          class: "text-indigo-600 underline cursor-pointer",
-        },
+        // Keep links as authored: no forced target/rel/class on save.
+        // Editor styling comes from `.vibe-rte-content a` below.
+        HTMLAttributes: { target: null, rel: null, class: null },
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],
@@ -274,10 +335,11 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
       Placeholder.configure({
         placeholder: placeholder || "Start writing...",
       }),
+      ...tableExtensions,
     ],
     content: value || "",
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onChange(normalizeEditorHTML(editor.getHTML()));
     },
     editorProps: {
       attributes: {
@@ -288,7 +350,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
 
   // Sync external value changes
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    if (editor && value !== normalizeEditorHTML(editor.getHTML())) {
       editor.commands.setContent(value || "", { emitUpdate: false });
     }
   }, [value, editor]);
@@ -380,6 +442,49 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         .vibe-rte-content .has-text-align-center { text-align: center; }
         .vibe-rte-content .has-text-align-right { text-align: right; }
         .vibe-rte-content .has-text-align-left { text-align: left; }
+        /* Tables */
+        .vibe-rte-content table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          margin: 0.75em 0;
+          overflow: hidden;
+        }
+        .vibe-rte-content th,
+        .vibe-rte-content td {
+          border: 1px solid #cbd5e1;
+          padding: 0.375rem 0.625rem;
+          vertical-align: top;
+          position: relative;
+          min-width: 1em;
+        }
+        .vibe-rte-content th {
+          background: #f1f5f9;
+          font-weight: 600;
+          text-align: left;
+          color: #0f172a;
+        }
+        .vibe-rte-content th p,
+        .vibe-rte-content td p { margin: 0; }
+        .vibe-rte-content th > * + *,
+        .vibe-rte-content td > * + * { margin-top: 0.5em; }
+        .vibe-rte-content .selectedCell::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: rgba(99, 102, 241, 0.15);
+          pointer-events: none;
+          z-index: 2;
+        }
+        .vibe-rte-content .tableWrapper { overflow-x: auto; }
+        /* Classed div boxes (e.g. notes) */
+        .vibe-rte-content div[class] {
+          border: 1px dashed #cbd5e1;
+          border-radius: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          background: #f8fafc;
+        }
+        .vibe-rte-content div[class] > * + * { margin-top: 0.5em; }
       `}</style>
       <Toolbar editor={editor} />
       <EditorContent editor={editor} />

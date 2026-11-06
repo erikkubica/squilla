@@ -10472,7 +10472,7 @@ function Or({ field: e, value: t, onChange: n, nodeId: r, nodeType: i, path: a }
 			}), /* @__PURE__ */ (0, M.jsx)("span", { children: e.title || e.name })]
 		}), s && /* @__PURE__ */ (0, M.jsx)("div", {
 			className: "vedit-object-body",
-			children: o.map((e) => /* @__PURE__ */ (0, M.jsx)(Ay, {
+			children: o.map((e) => /* @__PURE__ */ (0, M.jsx)(Fx, {
 				field: e,
 				value: l[e.name],
 				onChange: (t) => n({
@@ -10590,7 +10590,7 @@ function Ar({ id: e, index: t, itemSchema: n, value: r, onChange: i, onRemove: a
 			]
 		}), h && /* @__PURE__ */ (0, M.jsx)("div", {
 			className: "vedit-array-item-body",
-			children: n.map((e) => /* @__PURE__ */ (0, M.jsx)(Ay, {
+			children: n.map((e) => /* @__PURE__ */ (0, M.jsx)(Fx, {
 				field: e,
 				value: y[e.name],
 				onChange: (t) => i({
@@ -23393,33 +23393,1727 @@ var Ty = Zf.create({
 			type: this.type
 		})), e;
 	}
+}), Ey, Dy;
+if (typeof WeakMap < "u") {
+	let e = /* @__PURE__ */ new WeakMap();
+	Ey = (t) => e.get(t), Dy = (t, n) => (e.set(t, n), n);
+} else {
+	let e = [], t = 0;
+	Ey = (t) => {
+		for (let n = 0; n < e.length; n += 2) if (e[n] == t) return e[n + 1];
+	}, Dy = (n, r) => (t == 10 && (t = 0), e[t++] = n, e[t++] = r);
+}
+var Oy = class {
+	constructor(e, t, n, r) {
+		this.width = e, this.height = t, this.map = n, this.problems = r;
+	}
+	findCell(e) {
+		for (let t = 0; t < this.map.length; t++) {
+			let n = this.map[t];
+			if (n != e) continue;
+			let r = t % this.width, i = t / this.width | 0, a = r + 1, o = i + 1;
+			for (let e = 1; a < this.width && this.map[t + e] == n; e++) a++;
+			for (let e = 1; o < this.height && this.map[t + this.width * e] == n; e++) o++;
+			return {
+				left: r,
+				top: i,
+				right: a,
+				bottom: o
+			};
+		}
+		throw RangeError(`No cell with offset ${e} found`);
+	}
+	colCount(e) {
+		for (let t = 0; t < this.map.length; t++) if (this.map[t] == e) return t % this.width;
+		throw RangeError(`No cell with offset ${e} found`);
+	}
+	nextCell(e, t, n) {
+		let { left: r, right: i, top: a, bottom: o } = this.findCell(e);
+		return t == "horiz" ? (n < 0 ? r == 0 : i == this.width) ? null : this.map[a * this.width + (n < 0 ? r - 1 : i)] : (n < 0 ? a == 0 : o == this.height) ? null : this.map[r + this.width * (n < 0 ? a - 1 : o)];
+	}
+	rectBetween(e, t) {
+		let { left: n, right: r, top: i, bottom: a } = this.findCell(e), { left: o, right: s, top: c, bottom: l } = this.findCell(t);
+		return {
+			left: Math.min(n, o),
+			top: Math.min(i, c),
+			right: Math.max(r, s),
+			bottom: Math.max(a, l)
+		};
+	}
+	cellsInRect(e) {
+		let t = [], n = {};
+		for (let r = e.top; r < e.bottom; r++) for (let i = e.left; i < e.right; i++) {
+			let a = r * this.width + i, o = this.map[a];
+			n[o] || (n[o] = !0, !(i == e.left && i && this.map[a - 1] == o || r == e.top && r && this.map[a - this.width] == o) && t.push(o));
+		}
+		return t;
+	}
+	positionAt(e, t, n) {
+		for (let r = 0, i = 0;; r++) {
+			let a = i + n.child(r).nodeSize;
+			if (r == e) {
+				let n = t + e * this.width, r = (e + 1) * this.width;
+				for (; n < r && this.map[n] < i;) n++;
+				return n == r ? a - 1 : this.map[n];
+			}
+			i = a;
+		}
+	}
+	static get(e) {
+		return Ey(e) || Dy(e, ky(e));
+	}
+};
+function ky(e) {
+	if (e.type.spec.tableRole != "table") throw RangeError("Not a table node: " + e.type.name);
+	let t = Ay(e), n = e.childCount, r = [], i = 0, a = null, o = [];
+	for (let e = 0, i = t * n; e < i; e++) r[e] = 0;
+	for (let s = 0, c = 0; s < n; s++) {
+		let l = e.child(s);
+		c++;
+		for (let e = 0;; e++) {
+			for (; i < r.length && r[i] != 0;) i++;
+			if (e == l.childCount) break;
+			let u = l.child(e), { colspan: d, rowspan: f, colwidth: p } = u.attrs;
+			for (let e = 0; e < f; e++) {
+				if (e + s >= n) {
+					(a || (a = [])).push({
+						type: "overlong_rowspan",
+						pos: c,
+						n: f - e
+					});
+					break;
+				}
+				let l = i + e * t;
+				for (let e = 0; e < d; e++) {
+					r[l + e] == 0 ? r[l + e] = c : (a || (a = [])).push({
+						type: "collision",
+						row: s,
+						pos: c,
+						n: d - e
+					});
+					let n = p && p[e];
+					if (n) {
+						let r = (l + e) % t * 2, i = o[r];
+						i == null || i != n && o[r + 1] == 1 ? (o[r] = n, o[r + 1] = 1) : i == n && o[r + 1]++;
+					}
+				}
+			}
+			i += d, c += u.nodeSize;
+		}
+		let u = (s + 1) * t, d = 0;
+		for (; i < u;) r[i++] == 0 && d++;
+		d && (a || (a = [])).push({
+			type: "missing",
+			row: s,
+			n: d
+		}), c++;
+	}
+	(t === 0 || n === 0) && (a || (a = [])).push({ type: "zero_sized" });
+	let s = new Oy(t, n, r, a), c = !1;
+	for (let e = 0; !c && e < o.length; e += 2) o[e] != null && o[e + 1] < n && (c = !0);
+	return c && jy(s, o, e), s;
+}
+function Ay(e) {
+	let t = -1, n = !1;
+	for (let r = 0; r < e.childCount; r++) {
+		let i = e.child(r), a = 0;
+		if (n) for (let t = 0; t < r; t++) {
+			let n = e.child(t);
+			for (let e = 0; e < n.childCount; e++) {
+				let i = n.child(e);
+				t + i.attrs.rowspan > r && (a += i.attrs.colspan);
+			}
+		}
+		for (let e = 0; e < i.childCount; e++) {
+			let t = i.child(e);
+			a += t.attrs.colspan, t.attrs.rowspan > 1 && (n = !0);
+		}
+		t == -1 ? t = a : t != a && (t = Math.max(t, a));
+	}
+	return t;
+}
+function jy(e, t, n) {
+	e.problems || (e.problems = []);
+	let r = {};
+	for (let i = 0; i < e.map.length; i++) {
+		let a = e.map[i];
+		if (r[a]) continue;
+		r[a] = !0;
+		let o = n.nodeAt(a);
+		if (!o) throw RangeError(`No cell with offset ${a} found`);
+		let s = null, c = o.attrs;
+		for (let n = 0; n < c.colspan; n++) {
+			let r = t[(i + n) % e.width * 2];
+			r != null && (!c.colwidth || c.colwidth[n] != r) && ((s || (s = My(c)))[n] = r);
+		}
+		s && e.problems.unshift({
+			type: "colwidth mismatch",
+			pos: a,
+			colwidth: s
+		});
+	}
+}
+function My(e) {
+	if (e.colwidth) return e.colwidth.slice();
+	let t = [];
+	for (let n = 0; n < e.colspan; n++) t.push(0);
+	return t;
+}
+function Ny(e) {
+	let t = e.cached.tableNodeTypes;
+	if (!t) {
+		t = e.cached.tableNodeTypes = {};
+		for (let n in e.nodes) {
+			let r = e.nodes[n], i = r.spec.tableRole;
+			i && (t[i] = r);
+		}
+	}
+	return t;
+}
+var Py = new rs("selectingCells");
+function Fy(e) {
+	for (let t = e.depth - 1; t > 0; t--) if (e.node(t).type.spec.tableRole == "row") return e.node(0).resolve(e.before(t + 1));
+	return null;
+}
+function Iy(e) {
+	for (let t = e.depth; t > 0; t--) {
+		let n = e.node(t).type.spec.tableRole;
+		if (n === "cell" || n === "header_cell") return e.node(t);
+	}
+	return null;
+}
+function Ly(e) {
+	let t = e.selection.$head;
+	for (let e = t.depth; e > 0; e--) if (t.node(e).type.spec.tableRole == "row") return !0;
+	return !1;
+}
+function Ry(e) {
+	let t = e.selection;
+	if ("$anchorCell" in t && t.$anchorCell) return t.$anchorCell.pos > t.$headCell.pos ? t.$anchorCell : t.$headCell;
+	if ("node" in t && t.node && t.node.type.spec.tableRole == "cell") return t.$anchor;
+	let n = Fy(t.$head) || zy(t.$head);
+	if (n) return n;
+	throw RangeError(`No cell found around position ${t.head}`);
+}
+function zy(e) {
+	for (let t = e.nodeAfter, n = e.pos; t; t = t.firstChild, n++) {
+		let r = t.type.spec.tableRole;
+		if (r == "cell" || r == "header_cell") return e.doc.resolve(n);
+	}
+	for (let t = e.nodeBefore, n = e.pos; t; t = t.lastChild, n--) {
+		let r = t.type.spec.tableRole;
+		if (r == "cell" || r == "header_cell") return e.doc.resolve(n - t.nodeSize);
+	}
+}
+function By(e) {
+	return e.parent.type.spec.tableRole == "row" && !!e.nodeAfter;
+}
+function Vy(e) {
+	return e.node(0).resolve(e.pos + e.nodeAfter.nodeSize);
+}
+function Hy(e, t) {
+	return e.depth == t.depth && e.pos >= t.start(-1) && e.pos <= t.end(-1);
+}
+function Uy(e, t, n) {
+	let r = e.node(-1), i = Oy.get(r), a = e.start(-1), o = i.nextCell(e.pos - a, t, n);
+	return o == null ? null : e.node(0).resolve(a + o);
+}
+function Wy(e, t, n = 1) {
+	let r = {
+		...e,
+		colspan: e.colspan - n
+	};
+	return r.colwidth && (r.colwidth = r.colwidth.slice(), r.colwidth.splice(t, n), r.colwidth.some((e) => e > 0) || (r.colwidth = null)), r;
+}
+function Gy(e, t, n = 1) {
+	let r = {
+		...e,
+		colspan: e.colspan + n
+	};
+	if (r.colwidth) {
+		r.colwidth = r.colwidth.slice();
+		for (let e = 0; e < n; e++) r.colwidth.splice(t, 0, 0);
+	}
+	return r;
+}
+function Ky(e, t, n) {
+	let r = Ny(t.type.schema).header_cell;
+	for (let i = 0; i < e.height; i++) if (t.nodeAt(e.map[n + i * e.width]).type != r) return !1;
+	return !0;
+}
+var qy = class e extends z {
+	constructor(e, t = e) {
+		let n = e.node(-1), r = Oy.get(n), i = e.start(-1), a = r.rectBetween(e.pos - i, t.pos - i), o = e.node(0), s = r.cellsInRect(a).filter((e) => e != t.pos - i);
+		s.unshift(t.pos - i);
+		let c = s.map((e) => {
+			let t = n.nodeAt(e);
+			if (!t) throw RangeError(`No cell with offset ${e} found`);
+			let r = i + e + 1;
+			return new Fo(o.resolve(r), o.resolve(r + t.content.size));
+		});
+		super(c[0].$from, c[0].$to, c), this.$anchorCell = e, this.$headCell = t;
+	}
+	map(t, n) {
+		let r = t.resolve(n.map(this.$anchorCell.pos)), i = t.resolve(n.map(this.$headCell.pos));
+		if (By(r) && By(i) && Hy(r, i)) {
+			let t = this.$anchorCell.node(-1) != r.node(-1);
+			return t && this.isRowSelection() ? e.rowSelection(r, i) : t && this.isColSelection() ? e.colSelection(r, i) : new e(r, i);
+		}
+		return B.between(r, i);
+	}
+	content() {
+		let e = this.$anchorCell.node(-1), t = Oy.get(e), n = this.$anchorCell.start(-1), r = t.rectBetween(this.$anchorCell.pos - n, this.$headCell.pos - n), i = {}, a = [];
+		for (let n = r.top; n < r.bottom; n++) {
+			let o = [];
+			for (let a = n * t.width + r.left, s = r.left; s < r.right; s++, a++) {
+				let n = t.map[a];
+				if (i[n]) continue;
+				i[n] = !0;
+				let s = t.findCell(n), c = e.nodeAt(n);
+				if (!c) throw RangeError(`No cell with offset ${n} found`);
+				let l = r.left - s.left, u = s.right - r.right;
+				if (l > 0 || u > 0) {
+					let e = c.attrs;
+					if (l > 0 && (e = Wy(e, 0, l)), u > 0 && (e = Wy(e, e.colspan - u, u)), s.left < r.left) {
+						if (c = c.type.createAndFill(e), !c) throw RangeError(`Could not create cell with attrs ${JSON.stringify(e)}`);
+					} else c = c.type.create(e, c.content);
+				}
+				if (s.top < r.top || s.bottom > r.bottom) {
+					let e = {
+						...c.attrs,
+						rowspan: Math.min(s.bottom, r.bottom) - Math.max(s.top, r.top)
+					};
+					c = s.top < r.top ? c.type.createAndFill(e) : c.type.create(e, c.content);
+				}
+				o.push(c);
+			}
+			a.push(e.child(n).copy(N.from(o)));
+		}
+		let o = this.isColSelection() && this.isRowSelection() ? e : a;
+		return new F(N.from(o), 1, 1);
+	}
+	replace(e, t = F.empty) {
+		let n = e.steps.length, r = this.ranges;
+		for (let i = 0; i < r.length; i++) {
+			let { $from: a, $to: o } = r[i], s = e.mapping.slice(n);
+			e.replace(s.map(a.pos), s.map(o.pos), i ? F.empty : t);
+		}
+		let i = z.findFrom(e.doc.resolve(e.mapping.slice(n).map(this.to)), -1);
+		i && e.setSelection(i);
+	}
+	replaceWith(e, t) {
+		this.replace(e, new F(N.from(t), 0, 0));
+	}
+	forEachCell(e) {
+		let t = this.$anchorCell.node(-1), n = Oy.get(t), r = this.$anchorCell.start(-1), i = n.cellsInRect(n.rectBetween(this.$anchorCell.pos - r, this.$headCell.pos - r));
+		for (let n = 0; n < i.length; n++) e(t.nodeAt(i[n]), r + i[n]);
+	}
+	isColSelection() {
+		let e = this.$anchorCell.index(-1), t = this.$headCell.index(-1);
+		if (Math.min(e, t) > 0) return !1;
+		let n = e + this.$anchorCell.nodeAfter.attrs.rowspan, r = t + this.$headCell.nodeAfter.attrs.rowspan;
+		return Math.max(n, r) == this.$headCell.node(-1).childCount;
+	}
+	static colSelection(t, n = t) {
+		let r = t.node(-1), i = Oy.get(r), a = t.start(-1), o = i.findCell(t.pos - a), s = i.findCell(n.pos - a), c = t.node(0);
+		return o.top <= s.top ? (o.top > 0 && (t = c.resolve(a + i.map[o.left])), s.bottom < i.height && (n = c.resolve(a + i.map[i.width * (i.height - 1) + s.right - 1]))) : (s.top > 0 && (n = c.resolve(a + i.map[s.left])), o.bottom < i.height && (t = c.resolve(a + i.map[i.width * (i.height - 1) + o.right - 1]))), new e(t, n);
+	}
+	isRowSelection() {
+		let e = this.$anchorCell.node(-1), t = Oy.get(e), n = this.$anchorCell.start(-1), r = t.colCount(this.$anchorCell.pos - n), i = t.colCount(this.$headCell.pos - n);
+		if (Math.min(r, i) > 0) return !1;
+		let a = r + this.$anchorCell.nodeAfter.attrs.colspan, o = i + this.$headCell.nodeAfter.attrs.colspan;
+		return Math.max(a, o) == t.width;
+	}
+	eq(t) {
+		return t instanceof e && t.$anchorCell.pos == this.$anchorCell.pos && t.$headCell.pos == this.$headCell.pos;
+	}
+	static rowSelection(t, n = t) {
+		let r = t.node(-1), i = Oy.get(r), a = t.start(-1), o = i.findCell(t.pos - a), s = i.findCell(n.pos - a), c = t.node(0);
+		return o.left <= s.left ? (o.left > 0 && (t = c.resolve(a + i.map[o.top * i.width])), s.right < i.width && (n = c.resolve(a + i.map[i.width * (s.top + 1) - 1]))) : (s.left > 0 && (n = c.resolve(a + i.map[s.top * i.width])), o.right < i.width && (t = c.resolve(a + i.map[i.width * (o.top + 1) - 1]))), new e(t, n);
+	}
+	toJSON() {
+		return {
+			type: "cell",
+			anchor: this.$anchorCell.pos,
+			head: this.$headCell.pos
+		};
+	}
+	static fromJSON(t, n) {
+		return new e(t.resolve(n.anchor), t.resolve(n.head));
+	}
+	static create(t, n, r = n) {
+		return new e(t.resolve(n), t.resolve(r));
+	}
+	getBookmark() {
+		return new Jy(this.$anchorCell.pos, this.$headCell.pos);
+	}
+};
+qy.prototype.visible = !1, z.jsonID("cell", qy);
+var Jy = class e {
+	constructor(e, t) {
+		this.anchor = e, this.head = t;
+	}
+	map(t) {
+		return new e(t.map(this.anchor), t.map(this.head));
+	}
+	resolve(e) {
+		let t = e.resolve(this.anchor), n = e.resolve(this.head);
+		return t.parent.type.spec.tableRole == "row" && n.parent.type.spec.tableRole == "row" && t.index() < t.parent.childCount && n.index() < n.parent.childCount && Hy(t, n) ? new qy(t, n) : z.near(n, 1);
+	}
+};
+function Yy(e) {
+	if (!(e.selection instanceof qy)) return null;
+	let t = [];
+	return e.selection.forEachCell((e, n) => {
+		t.push(Mu.node(n, n + e.nodeSize, { class: "selectedCell" }));
+	}), Fu.create(e.doc, t);
+}
+function Xy({ $from: e, $to: t }) {
+	if (e.pos == t.pos || e.pos < t.pos - 6) return !1;
+	let n = e.pos, r = t.pos, i = e.depth;
+	for (; i >= 0 && !(e.after(i + 1) < e.end(i)); i--, n++);
+	for (let e = t.depth; e >= 0 && !(t.before(e + 1) > t.start(e)); e--, r--);
+	return n == r && /row|table/.test(e.node(i).type.spec.tableRole);
+}
+function Zy({ $from: e, $to: t }) {
+	let n, r;
+	for (let t = e.depth; t > 0; t--) {
+		let r = e.node(t);
+		if (r.type.spec.tableRole === "cell" || r.type.spec.tableRole === "header_cell") {
+			n = r;
+			break;
+		}
+	}
+	for (let e = t.depth; e > 0; e--) {
+		let n = t.node(e);
+		if (n.type.spec.tableRole === "cell" || n.type.spec.tableRole === "header_cell") {
+			r = n;
+			break;
+		}
+	}
+	return n !== r && t.parentOffset === 0;
+}
+function Qy(e, t, n) {
+	let r = (t || e).selection, i = (t || e).doc, a, o;
+	if (r instanceof V && (o = r.node.type.spec.tableRole)) {
+		if (o == "cell" || o == "header_cell") a = qy.create(i, r.from);
+		else if (o == "row") {
+			let e = i.resolve(r.from + 1);
+			a = qy.rowSelection(e, e);
+		} else if (!n) {
+			let e = Oy.get(r.node), t = r.from + 1, n = t + e.map[e.width * e.height - 1];
+			a = qy.create(i, t + 1, n);
+		}
+	} else r instanceof B && Xy(r) ? a = B.create(i, r.from) : r instanceof B && Zy(r) && (a = B.create(i, r.$from.start(), r.$from.end()));
+	return a && (t || (t = e.tr)).setSelection(a), t;
+}
+var $y = new rs("fix-tables");
+function eb(e, t, n, r) {
+	let i = e.childCount, a = t.childCount;
+	outer: for (let o = 0, s = 0; o < a; o++) {
+		let a = t.child(o);
+		for (let t = s, r = Math.min(i, o + 3); t < r; t++) if (e.child(t) == a) {
+			s = t + 1, n += a.nodeSize;
+			continue outer;
+		}
+		r(a, n), s < i && e.child(s).sameMarkup(a) ? eb(e.child(s), a, n + 1, r) : a.nodesBetween(0, a.content.size, r, n + 1), n += a.nodeSize;
+	}
+}
+function tb(e, t) {
+	let n, r = (t, r) => {
+		t.type.spec.tableRole == "table" && (n = nb(e, t, r, n));
+	};
+	return t ? t.doc != e.doc && eb(t.doc, e.doc, 0, r) : e.doc.descendants(r), n;
+}
+function nb(e, t, n, r) {
+	let i = Oy.get(t);
+	if (!i.problems) return r;
+	r || (r = e.tr);
+	let a = [];
+	for (let e = 0; e < i.height; e++) a.push(0);
+	for (let e = 0; e < i.problems.length; e++) {
+		let o = i.problems[e];
+		if (o.type == "collision") {
+			let e = t.nodeAt(o.pos);
+			if (!e) continue;
+			let i = e.attrs;
+			for (let e = 0; e < i.rowspan; e++) a[o.row + e] += o.n;
+			r.setNodeMarkup(r.mapping.map(n + 1 + o.pos), null, Wy(i, i.colspan - o.n, o.n));
+		} else if (o.type == "missing") a[o.row] += o.n;
+		else if (o.type == "overlong_rowspan") {
+			let e = t.nodeAt(o.pos);
+			if (!e) continue;
+			r.setNodeMarkup(r.mapping.map(n + 1 + o.pos), null, {
+				...e.attrs,
+				rowspan: e.attrs.rowspan - o.n
+			});
+		} else if (o.type == "colwidth mismatch") {
+			let e = t.nodeAt(o.pos);
+			if (!e) continue;
+			r.setNodeMarkup(r.mapping.map(n + 1 + o.pos), null, {
+				...e.attrs,
+				colwidth: o.colwidth
+			});
+		} else if (o.type == "zero_sized") {
+			let e = r.mapping.map(n);
+			r.delete(e, e + t.nodeSize);
+		}
+	}
+	let o, s;
+	for (let e = 0; e < a.length; e++) a[e] && (o ?? (o = e), s = e);
+	for (let c = 0, l = n + 1; c < i.height; c++) {
+		let n = t.child(c), i = l + n.nodeSize, u = a[c];
+		if (u > 0) {
+			let t = "cell";
+			n.firstChild && (t = n.firstChild.type.spec.tableRole);
+			let a = [];
+			for (let n = 0; n < u; n++) {
+				let n = Ny(e.schema)[t].createAndFill();
+				n && a.push(n);
+			}
+			let d = (c == 0 || o == c - 1) && s == c ? l + 1 : i - 1;
+			r.insert(r.mapping.map(d), a);
+		}
+		l = i;
+	}
+	return r.setMeta($y, { fixTables: !0 });
+}
+function rb(e) {
+	let t = e.selection, n = Ry(e), r = n.node(-1), i = n.start(-1), a = Oy.get(r);
+	return {
+		...t instanceof qy ? a.rectBetween(t.$anchorCell.pos - i, t.$headCell.pos - i) : a.findCell(n.pos - i),
+		tableStart: i,
+		map: a,
+		table: r
+	};
+}
+function ib(e, { map: t, tableStart: n, table: r }, i) {
+	let a = i > 0 ? -1 : 0;
+	Ky(t, r, i + a) && (a = i == 0 || i == t.width ? null : 0);
+	for (let o = 0; o < t.height; o++) {
+		let s = o * t.width + i;
+		if (i > 0 && i < t.width && t.map[s - 1] == t.map[s]) {
+			let a = t.map[s], c = r.nodeAt(a);
+			e.setNodeMarkup(e.mapping.map(n + a), null, Gy(c.attrs, i - t.colCount(a))), o += c.attrs.rowspan - 1;
+		} else {
+			let c = a == null ? Ny(r.type.schema).cell : r.nodeAt(t.map[s + a]).type, l = t.positionAt(o, i, r);
+			e.insert(e.mapping.map(n + l), c.createAndFill());
+		}
+	}
+	return e;
+}
+function ab(e, t) {
+	if (!Ly(e)) return !1;
+	if (t) {
+		let n = rb(e);
+		t(ib(e.tr, n, n.left));
+	}
+	return !0;
+}
+function ob(e, t) {
+	if (!Ly(e)) return !1;
+	if (t) {
+		let n = rb(e);
+		t(ib(e.tr, n, n.right));
+	}
+	return !0;
+}
+function sb(e, { map: t, table: n, tableStart: r }, i) {
+	let a = e.mapping.maps.length;
+	for (let o = 0; o < t.height;) {
+		let s = o * t.width + i, c = t.map[s], l = n.nodeAt(c), u = l.attrs;
+		if (i > 0 && t.map[s - 1] == c || i < t.width - 1 && t.map[s + 1] == c) e.setNodeMarkup(e.mapping.slice(a).map(r + c), null, Wy(u, i - t.colCount(c)));
+		else {
+			let t = e.mapping.slice(a).map(r + c);
+			e.delete(t, t + l.nodeSize);
+		}
+		o += u.rowspan;
+	}
+}
+function cb(e, t) {
+	if (!Ly(e)) return !1;
+	if (t) {
+		let n = rb(e), r = e.tr;
+		if (n.left == 0 && n.right == n.map.width) return !1;
+		for (let e = n.right - 1; sb(r, n, e), e != n.left; e--) {
+			let e = n.tableStart ? r.doc.nodeAt(n.tableStart - 1) : r.doc;
+			if (!e) throw RangeError("No table found");
+			n.table = e, n.map = Oy.get(e);
+		}
+		t(r);
+	}
+	return !0;
+}
+function lb(e, t, n) {
+	let r = Ny(t.type.schema).header_cell;
+	for (let i = 0; i < e.width; i++) if (t.nodeAt(e.map[i + n * e.width])?.type != r) return !1;
+	return !0;
+}
+function ub(e, { map: t, tableStart: n, table: r }, i) {
+	let a = n;
+	for (let e = 0; e < i; e++) a += r.child(e).nodeSize;
+	let o = [], s = i > 0 ? -1 : 0;
+	lb(t, r, i + s) && (s = i == 0 || i == t.height ? null : 0);
+	for (let a = 0, c = t.width * i; a < t.width; a++, c++) if (i > 0 && i < t.height && t.map[c] == t.map[c - t.width]) {
+		let i = t.map[c], o = r.nodeAt(i).attrs;
+		e.setNodeMarkup(n + i, null, {
+			...o,
+			rowspan: o.rowspan + 1
+		}), a += o.colspan - 1;
+	} else {
+		let e = (s == null ? Ny(r.type.schema).cell : r.nodeAt(t.map[c + s * t.width])?.type)?.createAndFill();
+		e && o.push(e);
+	}
+	return e.insert(a, Ny(r.type.schema).row.create(null, o)), e;
+}
+function db(e, t) {
+	if (!Ly(e)) return !1;
+	if (t) {
+		let n = rb(e);
+		t(ub(e.tr, n, n.top));
+	}
+	return !0;
+}
+function fb(e, t) {
+	if (!Ly(e)) return !1;
+	if (t) {
+		let n = rb(e);
+		t(ub(e.tr, n, n.bottom));
+	}
+	return !0;
+}
+function pb(e, { map: t, table: n, tableStart: r }, i) {
+	let a = 0;
+	for (let e = 0; e < i; e++) a += n.child(e).nodeSize;
+	let o = a + n.child(i).nodeSize, s = e.mapping.maps.length;
+	e.delete(a + r, o + r);
+	let c = /* @__PURE__ */ new Set();
+	for (let a = 0, o = i * t.width; a < t.width; a++, o++) {
+		let l = t.map[o];
+		if (!c.has(l)) {
+			if (c.add(l), i > 0 && l == t.map[o - t.width]) {
+				let t = n.nodeAt(l).attrs;
+				e.setNodeMarkup(e.mapping.slice(s).map(l + r), null, {
+					...t,
+					rowspan: t.rowspan - 1
+				}), a += t.colspan - 1;
+			} else if (i < t.height && l == t.map[o + t.width]) {
+				let o = n.nodeAt(l), c = o.attrs, u = o.type.create({
+					...c,
+					rowspan: o.attrs.rowspan - 1
+				}, o.content), d = t.positionAt(i + 1, a, n);
+				e.insert(e.mapping.slice(s).map(r + d), u), a += c.colspan - 1;
+			}
+		}
+	}
+}
+function mb(e, t) {
+	if (!Ly(e)) return !1;
+	if (t) {
+		let n = rb(e), r = e.tr;
+		if (n.top == 0 && n.bottom == n.map.height) return !1;
+		for (let e = n.bottom - 1; pb(r, n, e), e != n.top; e--) {
+			let e = n.tableStart ? r.doc.nodeAt(n.tableStart - 1) : r.doc;
+			if (!e) throw RangeError("No table found");
+			n.table = e, n.map = Oy.get(n.table);
+		}
+		t(r);
+	}
+	return !0;
+}
+function hb(e) {
+	let t = e.content;
+	return t.childCount == 1 && t.child(0).isTextblock && t.child(0).childCount == 0;
+}
+function gb({ width: e, height: t, map: n }, r) {
+	let i = r.top * e + r.left, a = i, o = (r.bottom - 1) * e + r.left, s = i + (r.right - r.left - 1);
+	for (let t = r.top; t < r.bottom; t++) {
+		if (r.left > 0 && n[a] == n[a - 1] || r.right < e && n[s] == n[s + 1]) return !0;
+		a += e, s += e;
+	}
+	for (let a = r.left; a < r.right; a++) {
+		if (r.top > 0 && n[i] == n[i - e] || r.bottom < t && n[o] == n[o + e]) return !0;
+		i++, o++;
+	}
+	return !1;
+}
+function _b(e, t) {
+	let n = e.selection;
+	if (!(n instanceof qy) || n.$anchorCell.pos == n.$headCell.pos) return !1;
+	let r = rb(e), { map: i } = r;
+	if (gb(i, r)) return !1;
+	if (t) {
+		let n = e.tr, a = {}, o = N.empty, s, c;
+		for (let e = r.top; e < r.bottom; e++) for (let t = r.left; t < r.right; t++) {
+			let l = i.map[e * i.width + t], u = r.table.nodeAt(l);
+			if (!(a[l] || !u)) if (a[l] = !0, s == null) s = l, c = u;
+			else {
+				hb(u) || (o = o.append(u.content));
+				let e = n.mapping.map(l + r.tableStart);
+				n.delete(e, e + u.nodeSize);
+			}
+		}
+		if (s == null || c == null) return !0;
+		if (n.setNodeMarkup(s + r.tableStart, null, {
+			...Gy(c.attrs, c.attrs.colspan, r.right - r.left - c.attrs.colspan),
+			rowspan: r.bottom - r.top
+		}), o.size > 0) {
+			let e = s + 1 + c.content.size, t = hb(c) ? s + 1 : e;
+			n.replaceWith(t + r.tableStart, e + r.tableStart, o);
+		}
+		n.setSelection(new qy(n.doc.resolve(s + r.tableStart))), t(n);
+	}
+	return !0;
+}
+function vb(e, t) {
+	let n = Ny(e.schema);
+	return yb(({ node: e }) => n[e.type.spec.tableRole])(e, t);
+}
+function yb(e) {
+	return (t, n) => {
+		let r = t.selection, i, a;
+		if (r instanceof qy) {
+			if (r.$anchorCell.pos != r.$headCell.pos) return !1;
+			i = r.$anchorCell.nodeAfter, a = r.$anchorCell.pos;
+		} else {
+			if (i = Iy(r.$from), !i) return !1;
+			a = Fy(r.$from)?.pos;
+		}
+		if (i == null || a == null || i.attrs.colspan == 1 && i.attrs.rowspan == 1) return !1;
+		if (n) {
+			let o = i.attrs, s = [], c = o.colwidth;
+			o.rowspan > 1 && (o = {
+				...o,
+				rowspan: 1
+			}), o.colspan > 1 && (o = {
+				...o,
+				colspan: 1
+			});
+			let l = rb(t), u = t.tr;
+			for (let e = 0; e < l.right - l.left; e++) s.push(c ? {
+				...o,
+				colwidth: c && c[e] ? [c[e]] : null
+			} : o);
+			let d;
+			for (let t = l.top; t < l.bottom; t++) {
+				let n = l.map.positionAt(t, l.left, l.table);
+				t == l.top && (n += i.nodeSize);
+				for (let r = l.left, a = 0; r < l.right; r++, a++) r == l.left && t == l.top || u.insert(d = u.mapping.map(n + l.tableStart, 1), e({
+					node: i,
+					row: t,
+					col: r
+				}).createAndFill(s[a]));
+			}
+			u.setNodeMarkup(a, e({
+				node: i,
+				row: l.top,
+				col: l.left
+			}), s[0]), r instanceof qy && u.setSelection(new qy(u.doc.resolve(r.$anchorCell.pos), d ? u.doc.resolve(d) : void 0)), n(u);
+		}
+		return !0;
+	};
+}
+function bb(e, t) {
+	return function(n, r) {
+		if (!Ly(n)) return !1;
+		let i = Ry(n);
+		if (i.nodeAfter.attrs[e] === t) return !1;
+		if (r) {
+			let a = n.tr;
+			n.selection instanceof qy ? n.selection.forEachCell((n, r) => {
+				n.attrs[e] !== t && a.setNodeMarkup(r, null, {
+					...n.attrs,
+					[e]: t
+				});
+			}) : a.setNodeMarkup(i.pos, null, {
+				...i.nodeAfter.attrs,
+				[e]: t
+			}), r(a);
+		}
+		return !0;
+	};
+}
+function xb(e) {
+	return function(t, n) {
+		if (!Ly(t)) return !1;
+		if (n) {
+			let r = Ny(t.schema), i = rb(t), a = t.tr, o = i.map.cellsInRect(e == "column" ? {
+				left: i.left,
+				top: 0,
+				right: i.right,
+				bottom: i.map.height
+			} : e == "row" ? {
+				left: 0,
+				top: i.top,
+				right: i.map.width,
+				bottom: i.bottom
+			} : i), s = o.map((e) => i.table.nodeAt(e));
+			for (let e = 0; e < o.length; e++) s[e].type == r.header_cell && a.setNodeMarkup(i.tableStart + o[e], r.cell, s[e].attrs);
+			if (a.steps.length === 0) for (let e = 0; e < o.length; e++) a.setNodeMarkup(i.tableStart + o[e], r.header_cell, s[e].attrs);
+			n(a);
+		}
+		return !0;
+	};
+}
+function Sb(e, t, n) {
+	let r = t.map.cellsInRect({
+		left: 0,
+		top: 0,
+		right: e == "row" ? t.map.width : 1,
+		bottom: e == "column" ? t.map.height : 1
+	});
+	for (let e = 0; e < r.length; e++) {
+		let i = t.table.nodeAt(r[e]);
+		if (i && i.type !== n.header_cell) return !1;
+	}
+	return !0;
+}
+function Cb(e, t) {
+	return t = t || { useDeprecatedLogic: !1 }, t.useDeprecatedLogic ? xb(e) : function(t, n) {
+		if (!Ly(t)) return !1;
+		if (n) {
+			let r = Ny(t.schema), i = rb(t), a = t.tr, o = Sb("row", i, r), s = Sb("column", i, r), c = (e === "column" ? o : e === "row" && s) ? 1 : 0, l = e == "column" ? {
+				left: 0,
+				top: c,
+				right: 1,
+				bottom: i.map.height
+			} : e == "row" ? {
+				left: c,
+				top: 0,
+				right: i.map.width,
+				bottom: 1
+			} : i, u = e == "column" ? s ? r.cell : r.header_cell : e == "row" ? o ? r.cell : r.header_cell : r.cell;
+			i.map.cellsInRect(l).forEach((e) => {
+				let t = e + i.tableStart, n = a.doc.nodeAt(t);
+				n && a.setNodeMarkup(t, u, n.attrs);
+			}), n(a);
+		}
+		return !0;
+	};
+}
+Cb("row", { useDeprecatedLogic: !0 }), Cb("column", { useDeprecatedLogic: !0 });
+var wb = Cb("cell", { useDeprecatedLogic: !0 });
+function Tb(e, t) {
+	if (t < 0) {
+		let t = e.nodeBefore;
+		if (t) return e.pos - t.nodeSize;
+		for (let t = e.index(-1) - 1, n = e.before(); t >= 0; t--) {
+			let r = e.node(-1).child(t), i = r.lastChild;
+			if (i) return n - 1 - i.nodeSize;
+			n -= r.nodeSize;
+		}
+	} else {
+		if (e.index() < e.parent.childCount - 1) return e.pos + e.nodeAfter.nodeSize;
+		let t = e.node(-1);
+		for (let n = e.indexAfter(-1), r = e.after(); n < t.childCount; n++) {
+			let e = t.child(n);
+			if (e.childCount) return r + 1;
+			r += e.nodeSize;
+		}
+	}
+	return null;
+}
+function Eb(e) {
+	return function(t, n) {
+		if (!Ly(t)) return !1;
+		let r = Tb(Ry(t), e);
+		if (r == null) return !1;
+		if (n) {
+			let e = t.doc.resolve(r);
+			n(t.tr.setSelection(B.between(e, Vy(e))).scrollIntoView());
+		}
+		return !0;
+	};
+}
+function Db(e, t) {
+	let n = e.selection.$anchor;
+	for (let r = n.depth; r > 0; r--) if (n.node(r).type.spec.tableRole == "table") return t && t(e.tr.delete(n.before(r), n.after(r)).scrollIntoView()), !0;
+	return !1;
+}
+function Ob(e, t) {
+	let n = e.selection;
+	if (!(n instanceof qy)) return !1;
+	if (t) {
+		let r = e.tr, i = Ny(e.schema).cell.createAndFill().content;
+		n.forEachCell((e, t) => {
+			e.content.eq(i) || r.replace(r.mapping.map(t + 1), r.mapping.map(t + e.nodeSize - 1), new F(i, 0, 0));
+		}), r.docChanged && t(r);
+	}
+	return !0;
+}
+function kb(e) {
+	if (e.size === 0) return null;
+	let { content: t, openStart: n, openEnd: r } = e;
+	for (; t.childCount == 1 && (n > 0 && r > 0 || t.child(0).type.spec.tableRole == "table");) n--, r--, t = t.child(0).content;
+	let i = t.child(0), a = i.type.spec.tableRole, o = i.type.schema, s = [];
+	if (a == "row") for (let e = 0; e < t.childCount; e++) {
+		let i = t.child(e).content, a = e ? 0 : Math.max(0, n - 1), c = e < t.childCount - 1 ? 0 : Math.max(0, r - 1);
+		(a || c) && (i = jb(Ny(o).row, new F(i, a, c)).content), s.push(i);
+	}
+	else if (a == "cell" || a == "header_cell") s.push(n || r ? jb(Ny(o).row, new F(t, n, r)).content : t);
+	else return null;
+	return Ab(o, s);
+}
+function Ab(e, t) {
+	let n = [];
+	for (let e = 0; e < t.length; e++) {
+		let r = t[e];
+		for (let t = r.childCount - 1; t >= 0; t--) {
+			let { rowspan: i, colspan: a } = r.child(t).attrs;
+			for (let t = e; t < e + i; t++) n[t] = (n[t] || 0) + a;
+		}
+	}
+	let r = 0;
+	for (let e = 0; e < n.length; e++) r = Math.max(r, n[e]);
+	for (let i = 0; i < n.length; i++) if (i >= t.length && t.push(N.empty), n[i] < r) {
+		let a = Ny(e).cell.createAndFill(), o = [];
+		for (let e = n[i]; e < r; e++) o.push(a);
+		t[i] = t[i].append(N.from(o));
+	}
+	return {
+		height: t.length,
+		width: r,
+		rows: t
+	};
+}
+function jb(e, t) {
+	let n = e.createAndFill();
+	return new No(n).replace(0, n.content.size, t).doc;
+}
+function Mb({ width: e, height: t, rows: n }, r, i) {
+	if (e != r) {
+		let t = [], i = [];
+		for (let e = 0; e < n.length; e++) {
+			let a = n[e], o = [];
+			for (let n = t[e] || 0, i = 0; n < r; i++) {
+				let s = a.child(i % a.childCount);
+				n + s.attrs.colspan > r && (s = s.type.createChecked(Wy(s.attrs, s.attrs.colspan, n + s.attrs.colspan - r), s.content)), o.push(s), n += s.attrs.colspan;
+				for (let n = 1; n < s.attrs.rowspan; n++) t[e + n] = (t[e + n] || 0) + s.attrs.colspan;
+			}
+			i.push(N.from(o));
+		}
+		n = i, e = r;
+	}
+	if (t != i) {
+		let e = [];
+		for (let r = 0, a = 0; r < i; r++, a++) {
+			let o = [], s = n[a % t];
+			for (let e = 0; e < s.childCount; e++) {
+				let t = s.child(e);
+				r + t.attrs.rowspan > i && (t = t.type.create({
+					...t.attrs,
+					rowspan: Math.max(1, i - t.attrs.rowspan)
+				}, t.content)), o.push(t);
+			}
+			e.push(N.from(o));
+		}
+		n = e, t = i;
+	}
+	return {
+		width: e,
+		height: t,
+		rows: n
+	};
+}
+function Nb(e, t, n, r, i, a, o) {
+	let s = e.doc.type.schema, c = Ny(s), l, u;
+	if (i > t.width) for (let a = 0, s = 0; a < t.height; a++) {
+		let d = n.child(a);
+		s += d.nodeSize;
+		let f = [], p;
+		p = d.lastChild == null || d.lastChild.type == c.cell ? l || (l = c.cell.createAndFill()) : u || (u = c.header_cell.createAndFill());
+		for (let e = t.width; e < i; e++) f.push(p);
+		e.insert(e.mapping.slice(o).map(s - 1 + r), f);
+	}
+	if (a > t.height) {
+		let s = [];
+		for (let e = 0, r = (t.height - 1) * t.width; e < Math.max(t.width, i); e++) {
+			let i = e >= t.width ? !1 : n.nodeAt(t.map[r + e]).type == c.header_cell;
+			s.push(i ? u || (u = c.header_cell.createAndFill()) : l || (l = c.cell.createAndFill()));
+		}
+		let d = c.row.create(null, N.from(s)), f = [];
+		for (let e = t.height; e < a; e++) f.push(d);
+		e.insert(e.mapping.slice(o).map(r + n.nodeSize - 2), f);
+	}
+	return !!(l || u);
+}
+function Pb(e, t, n, r, i, a, o, s) {
+	if (o == 0 || o == t.height) return !1;
+	let c = !1;
+	for (let l = i; l < a; l++) {
+		let i = o * t.width + l, a = t.map[i];
+		if (t.map[i - t.width] == a) {
+			c = !0;
+			let i = n.nodeAt(a), { top: u, left: d } = t.findCell(a);
+			e.setNodeMarkup(e.mapping.slice(s).map(a + r), null, {
+				...i.attrs,
+				rowspan: o - u
+			}), e.insert(e.mapping.slice(s).map(t.positionAt(o, d, n)), i.type.createAndFill({
+				...i.attrs,
+				rowspan: u + i.attrs.rowspan - o
+			})), l += i.attrs.colspan - 1;
+		}
+	}
+	return c;
+}
+function Fb(e, t, n, r, i, a, o, s) {
+	if (o == 0 || o == t.width) return !1;
+	let c = !1;
+	for (let l = i; l < a; l++) {
+		let i = l * t.width + o, a = t.map[i];
+		if (t.map[i - 1] == a) {
+			c = !0;
+			let i = n.nodeAt(a), u = t.colCount(a), d = e.mapping.slice(s).map(a + r);
+			e.setNodeMarkup(d, null, Wy(i.attrs, o - u, i.attrs.colspan - (o - u))), e.insert(d + i.nodeSize, i.type.createAndFill(Wy(i.attrs, 0, o - u))), l += i.attrs.rowspan - 1;
+		}
+	}
+	return c;
+}
+function Ib(e, t, n, r, i) {
+	let a = n ? e.doc.nodeAt(n - 1) : e.doc;
+	if (!a) throw Error("No table found");
+	let o = Oy.get(a), { top: s, left: c } = r, l = c + i.width, u = s + i.height, d = e.tr, f = 0;
+	function p() {
+		if (a = n ? d.doc.nodeAt(n - 1) : d.doc, !a) throw Error("No table found");
+		o = Oy.get(a), f = d.mapping.maps.length;
+	}
+	Nb(d, o, a, n, l, u, f) && p(), Pb(d, o, a, n, c, l, s, f) && p(), Pb(d, o, a, n, c, l, u, f) && p(), Fb(d, o, a, n, s, u, c, f) && p(), Fb(d, o, a, n, s, u, l, f) && p();
+	for (let e = s; e < u; e++) {
+		let t = o.positionAt(e, c, a), r = o.positionAt(e, l, a);
+		d.replace(d.mapping.slice(f).map(t + n), d.mapping.slice(f).map(r + n), new F(i.rows[e - s], 0, 0));
+	}
+	p(), d.setSelection(new qy(d.doc.resolve(n + o.positionAt(s, c, a)), d.doc.resolve(n + o.positionAt(u - 1, l - 1, a)))), t(d);
+}
+var Lb = Pd({
+	ArrowLeft: zb("horiz", -1),
+	ArrowRight: zb("horiz", 1),
+	ArrowUp: zb("vert", -1),
+	ArrowDown: zb("vert", 1),
+	"Shift-ArrowLeft": Bb("horiz", -1),
+	"Shift-ArrowRight": Bb("horiz", 1),
+	"Shift-ArrowUp": Bb("vert", -1),
+	"Shift-ArrowDown": Bb("vert", 1),
+	Backspace: Ob,
+	"Mod-Backspace": Ob,
+	Delete: Ob,
+	"Mod-Delete": Ob
 });
+function Rb(e, t, n) {
+	return n.eq(e.selection) ? !1 : (t && t(e.tr.setSelection(n).scrollIntoView()), !0);
+}
+function zb(e, t) {
+	return (n, r, i) => {
+		if (!i) return !1;
+		let a = n.selection;
+		if (a instanceof qy) return Rb(n, r, z.near(a.$headCell, t));
+		if (e != "horiz" && !a.empty) return !1;
+		let o = Wb(i, e, t);
+		if (o == null) return !1;
+		if (e == "horiz") return Rb(n, r, z.near(n.doc.resolve(a.head + t), t));
+		{
+			let i = n.doc.resolve(o), a = Uy(i, e, t), s;
+			return s = a ? z.near(a, 1) : t < 0 ? z.near(n.doc.resolve(i.before(-1)), -1) : z.near(n.doc.resolve(i.after(-1)), 1), Rb(n, r, s);
+		}
+	};
+}
+function Bb(e, t) {
+	return (n, r, i) => {
+		if (!i) return !1;
+		let a = n.selection, o;
+		if (a instanceof qy) o = a;
+		else {
+			let r = Wb(i, e, t);
+			if (r == null) return !1;
+			o = new qy(n.doc.resolve(r));
+		}
+		let s = Uy(o.$headCell, e, t);
+		return s ? Rb(n, r, new qy(o.$anchorCell, s)) : !1;
+	};
+}
+function Vb(e, t) {
+	let n = e.state.doc, r = Fy(n.resolve(t));
+	return r ? (e.dispatch(e.state.tr.setSelection(new qy(r))), !0) : !1;
+}
+function Hb(e, t, n) {
+	if (!Ly(e.state)) return !1;
+	let r = kb(n), i = e.state.selection;
+	if (i instanceof qy) {
+		r || (r = {
+			width: 1,
+			height: 1,
+			rows: [N.from(jb(Ny(e.state.schema).cell, n))]
+		});
+		let t = i.$anchorCell.node(-1), a = i.$anchorCell.start(-1), o = Oy.get(t).rectBetween(i.$anchorCell.pos - a, i.$headCell.pos - a);
+		return r = Mb(r, o.right - o.left, o.bottom - o.top), Ib(e.state, e.dispatch, a, o, r), !0;
+	} else if (r) {
+		let t = Ry(e.state), n = t.start(-1);
+		return Ib(e.state, e.dispatch, n, Oy.get(t.node(-1)).findCell(t.pos - n), r), !0;
+	} else return !1;
+}
+function Ub(e, t) {
+	if (t.button != 0 || t.ctrlKey || t.metaKey) return;
+	let n = Gb(e, t.target), r;
+	if (t.shiftKey && e.state.selection instanceof qy) i(e.state.selection.$anchorCell, t), t.preventDefault();
+	else if (t.shiftKey && n && (r = Fy(e.state.selection.$anchor)) != null && Kb(e, t)?.pos != r.pos) i(r, t), t.preventDefault();
+	else if (!n) return;
+	function i(t, n) {
+		let r = Kb(e, n), i = Py.getState(e.state) == null;
+		if (!r || !Hy(t, r)) if (i) r = t;
+		else return;
+		let a = new qy(t, r);
+		if (i || !e.state.selection.eq(a)) {
+			let n = e.state.tr.setSelection(a);
+			i && n.setMeta(Py, t.pos), e.dispatch(n);
+		}
+	}
+	function a() {
+		e.root.removeEventListener("mouseup", a), e.root.removeEventListener("dragstart", a), e.root.removeEventListener("mousemove", o), Py.getState(e.state) != null && e.dispatch(e.state.tr.setMeta(Py, -1));
+	}
+	function o(r) {
+		let o = r, s = Py.getState(e.state), c;
+		if (s != null) c = e.state.doc.resolve(s);
+		else if (Gb(e, o.target) != n && (c = Kb(e, t), !c)) return a();
+		c && i(c, o);
+	}
+	e.root.addEventListener("mouseup", a), e.root.addEventListener("dragstart", a), e.root.addEventListener("mousemove", o);
+}
+function Wb(e, t, n) {
+	if (!(e.state.selection instanceof B)) return null;
+	let { $head: r } = e.state.selection;
+	for (let i = r.depth - 1; i >= 0; i--) {
+		let a = r.node(i);
+		if ((n < 0 ? r.index(i) : r.indexAfter(i)) != (n < 0 ? 0 : a.childCount)) return null;
+		if (a.type.spec.tableRole == "cell" || a.type.spec.tableRole == "header_cell") {
+			let a = r.before(i), o = t == "vert" ? n > 0 ? "down" : "up" : n > 0 ? "right" : "left";
+			return e.endOfTextblock(o) ? a : null;
+		}
+	}
+	return null;
+}
+function Gb(e, t) {
+	for (; t && t != e.dom; t = t.parentNode) if (t.nodeName == "TD" || t.nodeName == "TH") return t;
+	return null;
+}
+function Kb(e, t) {
+	let n = e.posAtCoords({
+		left: t.clientX,
+		top: t.clientY
+	});
+	if (!n) return null;
+	let { inside: r, pos: i } = n;
+	return r >= 0 && Fy(e.state.doc.resolve(r)) || Fy(e.state.doc.resolve(i));
+}
+var qb = class {
+	constructor(e, t) {
+		this.node = e, this.defaultCellMinWidth = t, this.dom = document.createElement("div"), this.dom.className = "tableWrapper", this.table = this.dom.appendChild(document.createElement("table")), this.table.style.setProperty("--default-cell-min-width", `${t}px`), this.colgroup = this.table.appendChild(document.createElement("colgroup")), Jb(e, this.colgroup, this.table, t), this.contentDOM = this.table.appendChild(document.createElement("tbody"));
+	}
+	update(e) {
+		return e.type == this.node.type ? (this.node = e, Jb(e, this.colgroup, this.table, this.defaultCellMinWidth), !0) : !1;
+	}
+	ignoreMutation(e) {
+		return e.type == "attributes" && (e.target == this.table || this.colgroup.contains(e.target));
+	}
+};
+function Jb(e, t, n, r, i, a) {
+	let o = 0, s = !0, c = t.firstChild, l = e.firstChild;
+	if (l) {
+		for (let e = 0, n = 0; e < l.childCount; e++) {
+			let { colspan: u, colwidth: d } = l.child(e).attrs;
+			for (let e = 0; e < u; e++, n++) {
+				let l = i == n ? a : d && d[e], u = l ? l + "px" : "";
+				if (o += l || r, l || (s = !1), c) c.style.width != u && (c.style.width = u), c = c.nextSibling;
+				else {
+					let e = document.createElement("col");
+					e.style.width = u, t.appendChild(e);
+				}
+			}
+		}
+		for (; c;) {
+			var u;
+			let e = c.nextSibling;
+			(u = c.parentNode) == null || u.removeChild(c), c = e;
+		}
+		s ? (n.style.width = o + "px", n.style.minWidth = "") : (n.style.width = "", n.style.minWidth = o + "px");
+	}
+}
+var Yb = new rs("tableColumnResizing");
+function Xb({ handleWidth: e = 5, cellMinWidth: t = 25, defaultCellMinWidth: n = 100, View: r = qb, lastColumnResizable: i = !0 } = {}) {
+	let a = new es({
+		key: Yb,
+		state: {
+			init(e, t) {
+				var i;
+				let o = (i = a.spec) == null || (i = i.props) == null ? void 0 : i.nodeViews, s = Ny(t.schema).table.name;
+				return r && o && (o[s] = (e, t) => new r(e, n, t)), new Zb(-1, !1);
+			},
+			apply(e, t) {
+				return t.apply(e);
+			}
+		},
+		props: {
+			attributes: (e) => {
+				let t = Yb.getState(e);
+				return t && t.activeHandle > -1 ? { class: "resize-cursor" } : {};
+			},
+			handleDOMEvents: {
+				mousemove: (t, n) => {
+					Qb(t, n, e, i);
+				},
+				mouseleave: (e) => {
+					$b(e);
+				},
+				mousedown: (e, r) => {
+					ex(e, r, t, n);
+				}
+			},
+			decorations: (e) => {
+				let t = Yb.getState(e);
+				if (t && t.activeHandle > -1) return lx(e, t.activeHandle);
+			},
+			nodeViews: {}
+		}
+	});
+	return a;
+}
+var Zb = class e {
+	constructor(e, t) {
+		this.activeHandle = e, this.dragging = t;
+	}
+	apply(t) {
+		let n = this, r = t.getMeta(Yb);
+		if (r && r.setHandle != null) return new e(r.setHandle, !1);
+		if (r && r.setDragging !== void 0) return new e(n.activeHandle, r.setDragging);
+		if (n.activeHandle > -1 && t.docChanged) {
+			let r = t.mapping.map(n.activeHandle, -1);
+			return By(t.doc.resolve(r)) || (r = -1), new e(r, n.dragging);
+		}
+		return n;
+	}
+};
+function Qb(e, t, n, r) {
+	if (!e.editable) return;
+	let i = Yb.getState(e.state);
+	if (i && !i.dragging) {
+		let a = nx(t.target), o = -1;
+		if (a) {
+			let { left: r, right: i } = a.getBoundingClientRect();
+			t.clientX - r <= n ? o = rx(e, t, "left", n) : i - t.clientX <= n && (o = rx(e, t, "right", n));
+		}
+		if (o != i.activeHandle) {
+			if (!r && o !== -1) {
+				let t = e.state.doc.resolve(o), n = t.node(-1), r = Oy.get(n), i = t.start(-1);
+				if (r.colCount(t.pos - i) + t.nodeAfter.attrs.colspan - 1 == r.width - 1) return;
+			}
+			ax(e, o);
+		}
+	}
+}
+function $b(e) {
+	if (!e.editable) return;
+	let t = Yb.getState(e.state);
+	t && t.activeHandle > -1 && !t.dragging && ax(e, -1);
+}
+function ex(e, t, n, r) {
+	if (!e.editable) return !1;
+	let i = e.dom.ownerDocument.defaultView ?? window, a = Yb.getState(e.state);
+	if (!a || a.activeHandle == -1 || a.dragging) return !1;
+	let o = e.state.doc.nodeAt(a.activeHandle), s = tx(e, a.activeHandle, o.attrs);
+	e.dispatch(e.state.tr.setMeta(Yb, { setDragging: {
+		startX: t.clientX,
+		startWidth: s
+	} }));
+	function c(t) {
+		i.removeEventListener("mouseup", c), i.removeEventListener("mousemove", l);
+		let r = Yb.getState(e.state);
+		r?.dragging && (ox(e, r.activeHandle, ix(r.dragging, t, n)), e.dispatch(e.state.tr.setMeta(Yb, { setDragging: null })));
+	}
+	function l(t) {
+		if (!t.which) return c(t);
+		let i = Yb.getState(e.state);
+		if (i && i.dragging) {
+			let a = ix(i.dragging, t, n);
+			sx(e, i.activeHandle, a, r);
+		}
+	}
+	return sx(e, a.activeHandle, s, r), i.addEventListener("mouseup", c), i.addEventListener("mousemove", l), t.preventDefault(), !0;
+}
+function tx(e, t, { colspan: n, colwidth: r }) {
+	let i = r && r[r.length - 1];
+	if (i) return i;
+	let a = e.domAtPos(t), o = a.node.childNodes[a.offset].offsetWidth, s = n;
+	if (r) for (let e = 0; e < n; e++) r[e] && (o -= r[e], s--);
+	return o / s;
+}
+function nx(e) {
+	for (; e && e.nodeName != "TD" && e.nodeName != "TH";) e = e.classList && e.classList.contains("ProseMirror") ? null : e.parentNode;
+	return e;
+}
+function rx(e, t, n, r) {
+	let i = n == "right" ? -r : r, a = e.posAtCoords({
+		left: t.clientX + i,
+		top: t.clientY
+	});
+	if (!a) return -1;
+	let { pos: o } = a, s = Fy(e.state.doc.resolve(o));
+	if (!s) return -1;
+	if (n == "right") return s.pos;
+	let c = Oy.get(s.node(-1)), l = s.start(-1), u = c.map.indexOf(s.pos - l);
+	return u % c.width == 0 ? -1 : l + c.map[u - 1];
+}
+function ix(e, t, n) {
+	let r = t.clientX - e.startX;
+	return Math.max(n, e.startWidth + r);
+}
+function ax(e, t) {
+	e.dispatch(e.state.tr.setMeta(Yb, { setHandle: t }));
+}
+function ox(e, t, n) {
+	let r = e.state.doc.resolve(t), i = r.node(-1), a = Oy.get(i), o = r.start(-1), s = a.colCount(r.pos - o) + r.nodeAfter.attrs.colspan - 1, c = e.state.tr;
+	for (let e = 0; e < a.height; e++) {
+		let t = e * a.width + s;
+		if (e && a.map[t] == a.map[t - a.width]) continue;
+		let r = a.map[t], l = i.nodeAt(r).attrs, u = l.colspan == 1 ? 0 : s - a.colCount(r);
+		if (l.colwidth && l.colwidth[u] == n) continue;
+		let d = l.colwidth ? l.colwidth.slice() : cx(l.colspan);
+		d[u] = n, c.setNodeMarkup(o + r, null, {
+			...l,
+			colwidth: d
+		});
+	}
+	c.docChanged && e.dispatch(c);
+}
+function sx(e, t, n, r) {
+	let i = e.state.doc.resolve(t), a = i.node(-1), o = i.start(-1), s = Oy.get(a).colCount(i.pos - o) + i.nodeAfter.attrs.colspan - 1, c = e.domAtPos(i.start(-1)).node;
+	for (; c && c.nodeName != "TABLE";) c = c.parentNode;
+	c && Jb(a, c.firstChild, c, r, s, n);
+}
+function cx(e) {
+	return Array(e).fill(0);
+}
+function lx(e, t) {
+	let n = [], r = e.doc.resolve(t), i = r.node(-1);
+	if (!i) return Fu.empty;
+	let a = Oy.get(i), o = r.start(-1), s = a.colCount(r.pos - o) + r.nodeAfter.attrs.colspan - 1;
+	for (let t = 0; t < a.height; t++) {
+		let r = s + t * a.width;
+		if ((s == a.width - 1 || a.map[r] != a.map[r + 1]) && (t == 0 || a.map[r] != a.map[r - a.width])) {
+			let t = a.map[r], s = o + t + i.nodeAt(t).nodeSize - 1, c = document.createElement("div");
+			c.className = "column-resize-handle", Yb.getState(e)?.dragging && n.push(Mu.node(o + t, o + t + i.nodeAt(t).nodeSize, { class: "column-resize-dragging" })), n.push(Mu.widget(s, c));
+		}
+	}
+	return Fu.create(e.doc, n);
+}
+function ux({ allowTableNodeSelection: e = !1 } = {}) {
+	return new es({
+		key: Py,
+		state: {
+			init() {
+				return null;
+			},
+			apply(e, t) {
+				let n = e.getMeta(Py);
+				if (n != null) return n == -1 ? null : n;
+				if (t == null || !e.docChanged) return t;
+				let { deleted: r, pos: i } = e.mapping.mapResult(t);
+				return r ? null : i;
+			}
+		},
+		props: {
+			decorations: Yy,
+			handleDOMEvents: { mousedown: Ub },
+			createSelectionBetween(e) {
+				return Py.getState(e.state) == null ? null : e.state.selection;
+			},
+			handleTripleClick: Vb,
+			handleKeyDown: Lb,
+			handlePaste: Hb
+		},
+		appendTransaction(t, n, r) {
+			return Qy(r, tb(r, n), e);
+		}
+	});
+}
+//#endregion
+//#region node_modules/@tiptap/extension-table/dist/index.js
+function dx(e, t) {
+	return t ? ["width", `${Math.max(t, e)}px`] : ["min-width", `${e}px`];
+}
+function fx(e, t, n, r, i, a) {
+	var o;
+	let s = 0, c = !0, l = t.firstChild, u = e.firstChild;
+	if (u !== null) for (let e = 0, n = 0; e < u.childCount; e += 1) {
+		let { colspan: o, colwidth: d } = u.child(e).attrs;
+		for (let e = 0; e < o; e += 1, n += 1) {
+			let o = i === n ? a : d && d[e], u = o ? `${o}px` : "";
+			if (s += o || r, o || (c = !1), l) {
+				if (l.style.width !== u) {
+					let [e, t] = dx(r, o);
+					l.style.setProperty(e, t);
+				}
+				l = l.nextSibling;
+			} else {
+				let e = document.createElement("col"), [n, i] = dx(r, o);
+				e.style.setProperty(n, i), t.appendChild(e);
+			}
+		}
+	}
+	for (; l;) {
+		let e = l.nextSibling;
+		(o = l.parentNode) == null || o.removeChild(l), l = e;
+	}
+	c ? (n.style.width = `${s}px`, n.style.minWidth = "") : (n.style.width = "", n.style.minWidth = `${s}px`);
+}
+var px = class {
+	constructor(e, t) {
+		this.node = e, this.cellMinWidth = t, this.dom = document.createElement("div"), this.dom.className = "tableWrapper", this.table = this.dom.appendChild(document.createElement("table")), this.colgroup = this.table.appendChild(document.createElement("colgroup")), fx(e, this.colgroup, this.table, t), this.contentDOM = this.table.appendChild(document.createElement("tbody"));
+	}
+	update(e) {
+		return e.type === this.node.type ? (this.node = e, fx(e, this.colgroup, this.table, this.cellMinWidth), !0) : !1;
+	}
+	ignoreMutation(e) {
+		return e.type === "attributes" && (e.target === this.table || this.colgroup.contains(e.target));
+	}
+};
+function mx(e, t, n, r) {
+	let i = 0, a = !0, o = [], s = e.firstChild;
+	if (!s) return {};
+	for (let e = 0, c = 0; e < s.childCount; e += 1) {
+		let { colspan: l, colwidth: u } = s.child(e).attrs;
+		for (let e = 0; e < l; e += 1, c += 1) {
+			let s = n === c ? r : u && u[e];
+			i += s || t, s || (a = !1);
+			let [l, d] = dx(t, s);
+			o.push(["col", { style: `${l}: ${d}` }]);
+		}
+	}
+	let c = a ? `${i}px` : "", l = a ? "" : `${i}px`;
+	return {
+		colgroup: [
+			"colgroup",
+			{},
+			...o
+		],
+		tableWidth: c,
+		tableMinWidth: l
+	};
+}
+function hx(e, t) {
+	return t ? e.createChecked(null, t) : e.createAndFill();
+}
+function gx(e) {
+	if (e.cached.tableNodeTypes) return e.cached.tableNodeTypes;
+	let t = {};
+	return Object.keys(e.nodes).forEach((n) => {
+		let r = e.nodes[n];
+		r.spec.tableRole && (t[r.spec.tableRole] = r);
+	}), e.cached.tableNodeTypes = t, t;
+}
+function _x(e, t, n, r, i) {
+	let a = gx(e), o = [], s = [];
+	for (let e = 0; e < n; e += 1) {
+		let e = hx(a.cell, i);
+		if (e && s.push(e), r) {
+			let e = hx(a.header_cell, i);
+			e && o.push(e);
+		}
+	}
+	let c = [];
+	for (let e = 0; e < t; e += 1) c.push(a.row.createChecked(null, r && e === 0 ? o : s));
+	return a.table.createChecked(null, c);
+}
+function vx(e) {
+	return e instanceof qy;
+}
+var yx = ({ editor: e }) => {
+	let { selection: t } = e.state;
+	if (!vx(t)) return !1;
+	let n = 0;
+	return Cm(t.ranges[0].$from, (e) => e.type.name === "table")?.node.descendants((e) => {
+		if (e.type.name === "table") return !1;
+		["tableCell", "tableHeader"].includes(e.type.name) && (n += 1);
+	}), n === t.ranges.length ? (e.commands.deleteTable(), !0) : !1;
+}, bx = ph.create({
+	name: "table",
+	addOptions() {
+		return {
+			HTMLAttributes: {},
+			resizable: !1,
+			renderWrapper: !1,
+			handleWidth: 5,
+			cellMinWidth: 25,
+			View: px,
+			lastColumnResizable: !0,
+			allowTableNodeSelection: !1
+		};
+	},
+	content: "tableRow+",
+	tableRole: "table",
+	isolating: !0,
+	group: "block",
+	parseHTML() {
+		return [{ tag: "table" }];
+	},
+	renderHTML({ node: e, HTMLAttributes: t }) {
+		let { colgroup: n, tableWidth: r, tableMinWidth: i } = mx(e, this.options.cellMinWidth), a = [
+			"table",
+			jf(this.options.HTMLAttributes, t, { style: r ? `width: ${r}` : `min-width: ${i}` }),
+			n,
+			["tbody", 0]
+		];
+		return this.options.renderWrapper ? [
+			"div",
+			{ class: "tableWrapper" },
+			a
+		] : a;
+	},
+	addCommands() {
+		return {
+			insertTable: ({ rows: e = 3, cols: t = 3, withHeaderRow: n = !0 } = {}) => ({ tr: r, dispatch: i, editor: a }) => {
+				let o = _x(a.schema, e, t, n);
+				if (i) {
+					let e = r.selection.from + 1;
+					r.replaceSelectionWith(o).scrollIntoView().setSelection(B.near(r.doc.resolve(e)));
+				}
+				return !0;
+			},
+			addColumnBefore: () => ({ state: e, dispatch: t }) => ab(e, t),
+			addColumnAfter: () => ({ state: e, dispatch: t }) => ob(e, t),
+			deleteColumn: () => ({ state: e, dispatch: t }) => cb(e, t),
+			addRowBefore: () => ({ state: e, dispatch: t }) => db(e, t),
+			addRowAfter: () => ({ state: e, dispatch: t }) => fb(e, t),
+			deleteRow: () => ({ state: e, dispatch: t }) => mb(e, t),
+			deleteTable: () => ({ state: e, dispatch: t }) => Db(e, t),
+			mergeCells: () => ({ state: e, dispatch: t }) => _b(e, t),
+			splitCell: () => ({ state: e, dispatch: t }) => vb(e, t),
+			toggleHeaderColumn: () => ({ state: e, dispatch: t }) => Cb("column")(e, t),
+			toggleHeaderRow: () => ({ state: e, dispatch: t }) => Cb("row")(e, t),
+			toggleHeaderCell: () => ({ state: e, dispatch: t }) => wb(e, t),
+			mergeOrSplit: () => ({ state: e, dispatch: t }) => _b(e, t) ? !0 : vb(e, t),
+			setCellAttribute: (e, t) => ({ state: n, dispatch: r }) => bb(e, t)(n, r),
+			goToNextCell: () => ({ state: e, dispatch: t }) => Eb(1)(e, t),
+			goToPreviousCell: () => ({ state: e, dispatch: t }) => Eb(-1)(e, t),
+			fixTables: () => ({ state: e, dispatch: t }) => (t && tb(e), !0),
+			setCellSelection: (e) => ({ tr: t, dispatch: n }) => {
+				if (n) {
+					let n = qy.create(t.doc, e.anchorCell, e.headCell);
+					t.setSelection(n);
+				}
+				return !0;
+			}
+		};
+	},
+	addKeyboardShortcuts() {
+		return {
+			Tab: () => this.editor.commands.goToNextCell() ? !0 : this.editor.can().addRowAfter() ? this.editor.chain().addRowAfter().goToNextCell().run() : !1,
+			"Shift-Tab": () => this.editor.commands.goToPreviousCell(),
+			Backspace: yx,
+			"Mod-Backspace": yx,
+			Delete: yx,
+			"Mod-Delete": yx
+		};
+	},
+	addProseMirrorPlugins() {
+		return [...this.options.resizable && this.editor.isEditable ? [Xb({
+			handleWidth: this.options.handleWidth,
+			cellMinWidth: this.options.cellMinWidth,
+			defaultCellMinWidth: this.options.cellMinWidth,
+			View: this.options.View,
+			lastColumnResizable: this.options.lastColumnResizable
+		})] : [], ux({ allowTableNodeSelection: this.options.allowTableNodeSelection })];
+	},
+	extendNodeSchema(e) {
+		return { tableRole: Z(X(e, "tableRole", {
+			name: e.name,
+			options: e.options,
+			storage: e.storage
+		})) };
+	}
+}), xx = ph.create({
+	name: "tableRow",
+	addOptions() {
+		return { HTMLAttributes: {} };
+	},
+	content: "(tableCell | tableHeader)*",
+	tableRole: "row",
+	parseHTML() {
+		return [{ tag: "tr" }];
+	},
+	renderHTML({ HTMLAttributes: e }) {
+		return [
+			"tr",
+			jf(this.options.HTMLAttributes, e),
+			0
+		];
+	}
+}), Sx = ph.create({
+	name: "tableHeader",
+	addOptions() {
+		return { HTMLAttributes: {} };
+	},
+	content: "block+",
+	addAttributes() {
+		return {
+			colspan: { default: 1 },
+			rowspan: { default: 1 },
+			colwidth: {
+				default: null,
+				parseHTML: (e) => {
+					let t = e.getAttribute("colwidth");
+					return t ? t.split(",").map((e) => parseInt(e, 10)) : null;
+				}
+			}
+		};
+	},
+	tableRole: "header_cell",
+	isolating: !0,
+	parseHTML() {
+		return [{ tag: "th" }];
+	},
+	renderHTML({ HTMLAttributes: e }) {
+		return [
+			"th",
+			jf(this.options.HTMLAttributes, e),
+			0
+		];
+	}
+}), Cx = ph.create({
+	name: "tableCell",
+	addOptions() {
+		return { HTMLAttributes: {} };
+	},
+	content: "block+",
+	addAttributes() {
+		return {
+			colspan: { default: 1 },
+			rowspan: { default: 1 },
+			colwidth: {
+				default: null,
+				parseHTML: (e) => {
+					let t = e.getAttribute("colwidth");
+					return t ? t.split(",").map((e) => parseInt(e, 10)) : null;
+				}
+			}
+		};
+	},
+	tableRole: "cell",
+	isolating: !0,
+	parseHTML() {
+		return [{ tag: "td" }];
+	},
+	renderHTML({ HTMLAttributes: e }) {
+		return [
+			"td",
+			jf(this.options.HTMLAttributes, e),
+			0
+		];
+	}
+}), wx = [
+	"paragraph",
+	"heading",
+	"blockquote",
+	"table",
+	"tableRow",
+	"tableHeader",
+	"tableCell",
+	"div"
+], Tx = sp.create({
+	name: "classAttribute",
+	addGlobalAttributes() {
+		return [{
+			types: wx,
+			attributes: { class: {
+				default: null,
+				parseHTML: (e) => e.getAttribute("class") || null,
+				renderHTML: (e) => e.class ? { class: e.class } : {}
+			} }
+		}];
+	}
+}), Ex = ph.create({
+	name: "div",
+	group: "block",
+	content: "block+",
+	defining: !0,
+	parseHTML() {
+		return [{ tag: "div[class]" }];
+	},
+	renderHTML({ HTMLAttributes: e }) {
+		return [
+			"div",
+			jf(e),
+			0
+		];
+	}
+}), Dx = [
+	bx.extend({ renderHTML({ HTMLAttributes: e }) {
+		return [
+			"table",
+			jf(this.options.HTMLAttributes, e),
+			["tbody", 0]
+		];
+	} }).configure({ resizable: !1 }),
+	xx,
+	Sx,
+	Cx,
+	Ex,
+	Tx
+];
+function Ox(e) {
+	return e.tagName === "TR" && e.children.length > 0 && Array.from(e.children).every((e) => e.tagName === "TH");
+}
+function kx(e) {
+	if (!e.includes("<table") || typeof DOMParser > "u") return e;
+	let t = new DOMParser().parseFromString(e, "text/html");
+	return t.body.querySelectorAll("table").forEach((e) => {
+		let n = Array.from(e.children);
+		n.filter((e) => e.tagName === "COLGROUP").forEach((e) => e.remove());
+		let r = n.find((e) => e.tagName === "TBODY");
+		if (r && !n.some((e) => e.tagName === "THEAD")) {
+			let n = Array.from(r.children), i = n.findIndex((e) => !Ox(e));
+			if (i > 0) {
+				let a = t.createElement("thead");
+				n.slice(0, i).forEach((e) => a.appendChild(e)), e.insertBefore(a, r);
+			}
+		}
+		e.querySelectorAll("th, td").forEach((e) => {
+			e.getAttribute("colspan") === "1" && e.removeAttribute("colspan"), e.getAttribute("rowspan") === "1" && e.removeAttribute("rowspan");
+			let t = e.firstElementChild, n = Array.from(e.childNodes).some((e) => e.nodeType === 3 && (e.textContent || "").trim() !== "");
+			e.childElementCount === 1 && t?.tagName === "P" && t.attributes.length === 0 && !n && e.replaceChildren(...Array.from(t.childNodes));
+		});
+	}), t.body.innerHTML;
+}
 //#endregion
 //#region src/fields/RichText.tsx
-function Ey({ value: e, onChange: t }) {
+function Ax({ value: e, onChange: t }) {
 	let n = Bh({
-		extensions: [d_.configure({}), Ty.configure({
-			openOnClick: !1,
-			autolink: !0,
-			HTMLAttributes: { rel: "noopener noreferrer" }
-		})],
+		extensions: [
+			d_.configure({}),
+			Ty.configure({
+				openOnClick: !1,
+				autolink: !0,
+				HTMLAttributes: {
+					target: null,
+					rel: null
+				}
+			}),
+			...Dx
+		],
 		content: e || "",
-		onUpdate: ({ editor: e }) => t(e.getHTML()),
+		onUpdate: ({ editor: e }) => t(kx(e.getHTML())),
 		editorProps: { attributes: { class: "vedit-tiptap-content" } }
 	});
 	return (0, _.useEffect)(() => {
 		if (!n) return;
-		let t = n.getHTML();
+		let t = kx(n.getHTML());
 		(e || "") !== t && n.commands.setContent(e || "", !1);
 	}, [n, e]), n ? /* @__PURE__ */ (0, M.jsxs)("div", {
 		className: "vedit-tiptap",
-		children: [/* @__PURE__ */ (0, M.jsx)(Dy, { editor: n }), /* @__PURE__ */ (0, M.jsx)(Dh, { editor: n })]
+		children: [/* @__PURE__ */ (0, M.jsx)(jx, { editor: n }), /* @__PURE__ */ (0, M.jsx)(Dh, { editor: n })]
 	}) : /* @__PURE__ */ (0, M.jsx)("div", {
 		className: "vedit-tiptap-loading",
 		children: "Loading editor…"
 	});
 }
-function Dy({ editor: e }) {
+function jx({ editor: e }) {
 	let t = (e) => {
 		try {
 			return e();
@@ -23430,78 +25124,78 @@ function Dy({ editor: e }) {
 	return /* @__PURE__ */ (0, M.jsxs)("div", {
 		className: "vedit-tiptap-toolbar",
 		children: [
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("bold"),
 				onClick: () => e.chain().focus().toggleBold().run(),
 				label: "B",
 				title: "Bold",
 				bold: !0
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("italic"),
 				onClick: () => e.chain().focus().toggleItalic().run(),
 				label: "i",
 				title: "Italic",
 				italic: !0
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("strike"),
 				onClick: () => e.chain().focus().toggleStrike().run(),
 				label: "S",
 				title: "Strike"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("code"),
 				onClick: () => e.chain().focus().toggleCode().run(),
 				label: "</>",
 				title: "Inline code"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(ky, {}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Px, {}),
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("heading", { level: 2 }),
 				onClick: () => e.chain().focus().toggleHeading({ level: 2 }).run(),
 				label: "H2",
 				title: "Heading 2"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("heading", { level: 3 }),
 				onClick: () => e.chain().focus().toggleHeading({ level: 3 }).run(),
 				label: "H3",
 				title: "Heading 3"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("paragraph"),
 				onClick: () => e.chain().focus().setParagraph().run(),
 				label: "P",
 				title: "Paragraph"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(ky, {}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Px, {}),
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("bulletList"),
 				onClick: () => e.chain().focus().toggleBulletList().run(),
 				label: "•",
 				title: "Bullet list"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("orderedList"),
 				onClick: () => e.chain().focus().toggleOrderedList().run(),
 				label: "1.",
 				title: "Ordered list"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("blockquote"),
 				onClick: () => e.chain().focus().toggleBlockquote().run(),
 				label: "❝",
 				title: "Blockquote"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("codeBlock"),
 				onClick: () => e.chain().focus().toggleCodeBlock().run(),
 				label: "{}",
 				title: "Code block"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(ky, {}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Px, {}),
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				active: e.isActive("link"),
 				onClick: () => {
 					let t = e.getAttributes("link").href, n = window.prompt("Link URL", t || "https://");
@@ -23516,19 +25210,21 @@ function Dy({ editor: e }) {
 				label: "🔗",
 				title: "Link"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				onClick: () => e.chain().focus().setHorizontalRule().run(),
 				label: "―",
 				title: "Horizontal rule"
 			}),
-			/* @__PURE__ */ (0, M.jsx)(ky, {}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Px, {}),
+			/* @__PURE__ */ (0, M.jsx)(Mx, { editor: e }),
+			/* @__PURE__ */ (0, M.jsx)(Px, {}),
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				onClick: () => e.chain().focus().undo().run(),
 				label: "↶",
 				title: "Undo",
 				disabled: !t(() => e.can().undo())
 			}),
-			/* @__PURE__ */ (0, M.jsx)(Oy, {
+			/* @__PURE__ */ (0, M.jsx)(Nx, {
 				onClick: () => e.chain().focus().redo().run(),
 				label: "↷",
 				title: "Redo",
@@ -23537,7 +25233,53 @@ function Dy({ editor: e }) {
 		]
 	});
 }
-function Oy({ active: e, onClick: t, label: n, title: r, bold: i, italic: a, disabled: o }) {
+function Mx({ editor: e }) {
+	let t = e.isActive("table");
+	return /* @__PURE__ */ (0, M.jsxs)(M.Fragment, { children: [/* @__PURE__ */ (0, M.jsx)(Nx, {
+		active: t,
+		disabled: t,
+		onClick: () => e.chain().focus().insertTable({
+			rows: 3,
+			cols: 3,
+			withHeaderRow: !0
+		}).run(),
+		label: "▦",
+		title: "Insert table (3×3)"
+	}), t && /* @__PURE__ */ (0, M.jsxs)(M.Fragment, { children: [
+		/* @__PURE__ */ (0, M.jsx)(Nx, {
+			onClick: () => e.chain().focus().addRowAfter().run(),
+			label: "+R",
+			title: "Add row below"
+		}),
+		/* @__PURE__ */ (0, M.jsx)(Nx, {
+			onClick: () => e.chain().focus().deleteRow().run(),
+			label: "−R",
+			title: "Delete row"
+		}),
+		/* @__PURE__ */ (0, M.jsx)(Nx, {
+			onClick: () => e.chain().focus().addColumnAfter().run(),
+			label: "+C",
+			title: "Add column right"
+		}),
+		/* @__PURE__ */ (0, M.jsx)(Nx, {
+			onClick: () => e.chain().focus().deleteColumn().run(),
+			label: "−C",
+			title: "Delete column"
+		}),
+		/* @__PURE__ */ (0, M.jsx)(Nx, {
+			active: e.isActive("tableHeader"),
+			onClick: () => e.chain().focus().toggleHeaderRow().run(),
+			label: "TH",
+			title: "Toggle header row"
+		}),
+		/* @__PURE__ */ (0, M.jsx)(Nx, {
+			onClick: () => e.chain().focus().deleteTable().run(),
+			label: "✕▦",
+			title: "Delete table"
+		})
+	] })] });
+}
+function Nx({ active: e, onClick: t, label: n, title: r, bold: i, italic: a, disabled: o }) {
 	return /* @__PURE__ */ (0, M.jsx)("button", {
 		type: "button",
 		className: "vedit-tiptap-btn",
@@ -23553,7 +25295,7 @@ function Oy({ active: e, onClick: t, label: n, title: r, bold: i, italic: a, dis
 		children: n
 	});
 }
-function ky() {
+function Px() {
 	return /* @__PURE__ */ (0, M.jsx)("span", {
 		className: "vedit-tiptap-sep",
 		"aria-hidden": "true"
@@ -23561,7 +25303,7 @@ function ky() {
 }
 //#endregion
 //#region src/fields/FieldInput.tsx
-function Ay({ field: e, value: t, onChange: n, nodeId: r, nodeType: i, path: a }) {
+function Fx({ field: e, value: t, onChange: n, nodeId: r, nodeType: i, path: a }) {
 	let o = `vedit-${a}`, s = e.title || e.name, c = (e.type || "").toLowerCase();
 	return c === "object" || c === "group" ? /* @__PURE__ */ (0, M.jsx)(Or, {
 		field: e,
@@ -23608,7 +25350,7 @@ function Ay({ field: e, value: t, onChange: n, nodeId: r, nodeType: i, path: a }
 				className: "vedit-field-description",
 				children: e.description
 			}),
-			/* @__PURE__ */ (0, M.jsx)(jy, {
+			/* @__PURE__ */ (0, M.jsx)(Ix, {
 				id: o,
 				field: e,
 				value: t,
@@ -23619,7 +25361,7 @@ function Ay({ field: e, value: t, onChange: n, nodeId: r, nodeType: i, path: a }
 		]
 	});
 }
-function jy({ id: e, field: t, value: n, onChange: r, nodeId: i, nodeType: a }) {
+function Ix({ id: e, field: t, value: n, onChange: r, nodeId: i, nodeType: a }) {
 	let o = (t.type || "").toLowerCase();
 	switch (o) {
 		case "string":
@@ -23643,7 +25385,7 @@ function jy({ id: e, field: t, value: n, onChange: r, nodeId: i, nodeType: a }) 
 			onChange: (e) => r(e.target.value)
 		});
 		case "richtext":
-		case "wysiwyg": return /* @__PURE__ */ (0, M.jsx)(Ey, {
+		case "wysiwyg": return /* @__PURE__ */ (0, M.jsx)(Ax, {
 			value: typeof n == "string" ? n : "",
 			onChange: r
 		});
@@ -23685,7 +25427,7 @@ function jy({ id: e, field: t, value: n, onChange: r, nodeId: i, nodeType: a }) 
 			}), /* @__PURE__ */ (0, M.jsx)("span", { children: n === !0 ? "On" : "Off" })]
 		});
 		case "select": {
-			let i = My(t.options);
+			let i = Lx(t.options);
 			return /* @__PURE__ */ (0, M.jsxs)("select", {
 				id: e,
 				className: "vedit-input",
@@ -23703,7 +25445,7 @@ function jy({ id: e, field: t, value: n, onChange: r, nodeId: i, nodeType: a }) 
 		case "radio": return /* @__PURE__ */ (0, M.jsx)("div", {
 			className: "vedit-radio-group",
 			role: "radiogroup",
-			children: My(t.options).map((t) => /* @__PURE__ */ (0, M.jsxs)("label", {
+			children: Lx(t.options).map((t) => /* @__PURE__ */ (0, M.jsxs)("label", {
 				className: "vedit-radio-row",
 				children: [/* @__PURE__ */ (0, M.jsx)("input", {
 					type: "radio",
@@ -23715,7 +25457,7 @@ function jy({ id: e, field: t, value: n, onChange: r, nodeId: i, nodeType: a }) 
 			}, t.value))
 		});
 		case "checkbox": {
-			let e = My(t.options), i = Array.isArray(n) ? n : [], a = (e) => {
+			let e = Lx(t.options), i = Array.isArray(n) ? n : [], a = (e) => {
 				i.includes(e) ? r(i.filter((t) => t !== e)) : r([...i, e]);
 			};
 			return /* @__PURE__ */ (0, M.jsx)("div", {
@@ -23777,7 +25519,7 @@ function jy({ id: e, field: t, value: n, onChange: r, nodeId: i, nodeType: a }) 
 		});
 	}
 }
-function My(e) {
+function Lx(e) {
 	return e ? e.map((e) => typeof e == "string" ? {
 		value: e,
 		label: e
@@ -23788,15 +25530,15 @@ function My(e) {
 }
 //#endregion
 //#region src/SidePanel.tsx
-var Ny = 0;
-function Py() {
-	return Ny += 1, `vec-${Ny}-${Math.random().toString(36).slice(2, 8)}`;
+var Rx = 0;
+function zx() {
+	return Rx += 1, `vec-${Rx}-${Math.random().toString(36).slice(2, 8)}`;
 }
-var Fy = 540, Iy = 360;
-function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: i, onSaved: a, onReindex: o }) {
+var Bx = 540, Vx = 360;
+function Hx({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: i, onSaved: a, onReindex: o }) {
 	let [s, c] = (0, _.useState)(null), [l, u] = (0, _.useState)([]), [d, f] = (0, _.useState)([]), [p, m] = (0, _.useState)(""), [h, g] = (0, _.useState)({}), [v, y] = (0, _.useState)(null), [b, x] = (0, _.useState)({ kind: "idle" }), [S, re] = (0, _.useState)(null), [w, ie] = (0, _.useState)(() => {
 		let e = Number(window.localStorage.getItem("vedit-panel-width"));
-		return Number.isFinite(e) && e >= Iy ? e : Fy;
+		return Number.isFinite(e) && e >= Vx ? e : Bx;
 	}), se = (0, _.useRef)(o);
 	se.current = o;
 	let ce = (0, _.useRef)(t);
@@ -23807,10 +25549,10 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 			let r = (e.blocks_data ?? []).map((e, t) => ({
 				...e,
 				__loadedIndex: t,
-				__cid: Py(),
+				__cid: zx(),
 				__isNew: !1
 			}));
-			c(e), u(n), f(r), m(JSON.stringify(Ky(r)));
+			c(e), u(n), f(r), m(JSON.stringify(Zx(r)));
 		}).catch((e) => {
 			t || y(e.message);
 		}), () => {
@@ -23847,7 +25589,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 				e = e.nextSibling;
 			}
 		}
-	}, D = JSON.stringify(Ky(d)) !== p, de = (e, t, n) => {
+	}, D = JSON.stringify(Zx(d)) !== p, de = (e, t, n) => {
 		f((r) => r.map((r, i) => i === e ? {
 			...r,
 			fields: {
@@ -23922,7 +25664,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 	let me = async (e, t, n) => {
 		let i = ue.get(t);
 		if (!i) return;
-		let a = Py(), o = ee();
+		let a = zx(), o = ee();
 		f((r) => {
 			let i = [...r];
 			return i.splice(e, 0, {
@@ -23950,7 +25692,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 		te(ce.current, e, l, u, c), se.current?.();
 	}, O = (e, t) => {
 		let n = ue.get(t);
-		n && me(e, t, Wy(Fr(n)));
+		n && me(e, t, Yx(Fr(n)));
 	}, he = qe(Ke(Jt, { activationConstraint: { distance: 4 } }), Ke(Ut, { coordinateGetter: wr })), k = (0, _.useMemo)(() => d.map((e, t) => `block-${t}`), [d]), A = (e) => {
 		let { active: t, over: n } = e;
 		if (!n || t.id === n.id) return;
@@ -23960,7 +25702,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 		if (s) {
 			x({ kind: "saving" });
 			try {
-				await Br(s.id, Ky(d)), x({ kind: "idle" }), a();
+				await Br(s.id, Zx(d)), x({ kind: "idle" }), a();
 			} catch (e) {
 				x({
 					kind: "error",
@@ -23983,12 +25725,12 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 		e.preventDefault();
 		let t = e.clientX, n = w, r = (e) => {
 			let r = t - e.clientX;
-			ie(Math.max(Iy, Math.min(window.innerWidth * .7, n + r)));
+			ie(Math.max(Vx, Math.min(window.innerWidth * .7, n + r)));
 		}, i = () => {
 			document.removeEventListener("pointermove", r), document.removeEventListener("pointerup", i), window.localStorage.setItem("vedit-panel-width", String(Math.round(w)));
 		};
 		document.addEventListener("pointermove", r), document.addEventListener("pointerup", i);
-	}, be = T == null ? null : d[T] ?? null, xe = be ? ue.get(be.type) : void 0, Se = qy(d, p);
+	}, be = T == null ? null : d[T] ?? null, xe = be ? ue.get(be.type) : void 0, Se = Qx(d, p);
 	return /* @__PURE__ */ (0, M.jsxs)("aside", {
 		className: "vedit-panel",
 		"aria-label": "Visual editor",
@@ -24030,7 +25772,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 						className: "vedit-error",
 						children: ["Failed to load page: ", v]
 					}),
-					/* @__PURE__ */ (0, M.jsxs)(Ry, {
+					/* @__PURE__ */ (0, M.jsxs)(Ux, {
 						title: "Blocks",
 						children: [d.length === 0 ? /* @__PURE__ */ (0, M.jsx)("p", {
 							className: "vedit-empty",
@@ -24046,7 +25788,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 									className: "vedit-block-list",
 									children: d.map((e, t) => {
 										let n = ue.get(e.type), r = e.__isNew, i = n ? Pr(n) : e.type;
-										return /* @__PURE__ */ (0, M.jsx)(zy, {
+										return /* @__PURE__ */ (0, M.jsx)(Wx, {
 											id: k[t],
 											label: i,
 											index: t,
@@ -24069,7 +25811,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 							children: "+ Add block"
 						})]
 					}),
-					S !== null && /* @__PURE__ */ (0, M.jsx)(Uy, {
+					S !== null && /* @__PURE__ */ (0, M.jsx)(Jx, {
 						blockTypes: l,
 						atIndex: S,
 						onCancel: () => re(null),
@@ -24091,7 +25833,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 								className: "vedit-info",
 								children: "Unsaved block — Save to keep this on the page."
 							}),
-							/* @__PURE__ */ (0, M.jsx)(Gy, {
+							/* @__PURE__ */ (0, M.jsx)(Xx, {
 								block: be,
 								schema: xe ? Fr(xe) : [],
 								nodeId: e.nodeId,
@@ -24138,7 +25880,7 @@ function Ly({ config: e, domEntries: t, selectedIndex: n, onSelect: r, onClose: 
 		]
 	});
 }
-function Ry({ title: e, children: t }) {
+function Ux({ title: e, children: t }) {
 	return /* @__PURE__ */ (0, M.jsxs)("section", {
 		className: "vedit-section",
 		children: [/* @__PURE__ */ (0, M.jsx)("h3", {
@@ -24150,7 +25892,7 @@ function Ry({ title: e, children: t }) {
 		})]
 	});
 }
-function zy({ id: e, label: t, index: n, selected: r, stale: i, onSelect: a, onDuplicate: o, onDelete: s }) {
+function Wx({ id: e, label: t, index: n, selected: r, stale: i, onSelect: a, onDuplicate: o, onDelete: s }) {
 	let { attributes: c, listeners: l, setNodeRef: u, transform: d, transition: f, isDragging: p } = br({ id: e });
 	return /* @__PURE__ */ (0, M.jsx)("li", {
 		ref: u,
@@ -24169,7 +25911,7 @@ function zy({ id: e, label: t, index: n, selected: r, stale: i, onSelect: a, onD
 					"aria-label": "Drag to reorder",
 					...c,
 					...l,
-					children: /* @__PURE__ */ (0, M.jsx)(By, {})
+					children: /* @__PURE__ */ (0, M.jsx)(Gx, {})
 				}),
 				/* @__PURE__ */ (0, M.jsxs)("button", {
 					type: "button",
@@ -24198,7 +25940,7 @@ function zy({ id: e, label: t, index: n, selected: r, stale: i, onSelect: a, onD
 						onClick: (e) => {
 							e.stopPropagation(), o();
 						},
-						children: /* @__PURE__ */ (0, M.jsx)(Vy, {})
+						children: /* @__PURE__ */ (0, M.jsx)(Kx, {})
 					}), /* @__PURE__ */ (0, M.jsx)("button", {
 						type: "button",
 						className: "vedit-row-icon",
@@ -24208,14 +25950,14 @@ function zy({ id: e, label: t, index: n, selected: r, stale: i, onSelect: a, onD
 						onClick: (e) => {
 							e.stopPropagation(), s();
 						},
-						children: /* @__PURE__ */ (0, M.jsx)(Hy, {})
+						children: /* @__PURE__ */ (0, M.jsx)(qx, {})
 					})]
 				})
 			]
 		})
 	});
 }
-function By() {
+function Gx() {
 	return /* @__PURE__ */ (0, M.jsxs)("svg", {
 		width: "10",
 		height: "14",
@@ -24261,7 +26003,7 @@ function By() {
 		]
 	});
 }
-function Vy() {
+function Kx() {
 	return /* @__PURE__ */ (0, M.jsxs)("svg", {
 		width: "14",
 		height: "14",
@@ -24284,7 +26026,7 @@ function Vy() {
 		})]
 	});
 }
-function Hy() {
+function qx() {
 	return /* @__PURE__ */ (0, M.jsx)("svg", {
 		width: "14",
 		height: "14",
@@ -24300,7 +26042,7 @@ function Hy() {
 		})
 	});
 }
-function Uy({ blockTypes: e, atIndex: t, onCancel: n, onPick: r }) {
+function Jx({ blockTypes: e, atIndex: t, onCancel: n, onPick: r }) {
 	let [i, a] = (0, _.useState)(""), o = (0, _.useMemo)(() => [...e].sort((e, t) => Pr(e).localeCompare(Pr(t))), [e]), s = (0, _.useMemo)(() => {
 		let e = i.trim().toLowerCase();
 		return e ? o.filter((t) => Pr(t).toLowerCase().includes(e) || t.slug.toLowerCase().includes(e)) : o;
@@ -24356,7 +26098,7 @@ function Uy({ blockTypes: e, atIndex: t, onCancel: n, onPick: r }) {
 		})
 	});
 }
-function Wy(e) {
+function Yx(e) {
 	let t = {};
 	for (let n of e) {
 		if (n.initialValue !== void 0) {
@@ -24368,7 +26110,7 @@ function Wy(e) {
 	}
 	return t;
 }
-function Gy({ block: e, schema: t, nodeId: n, nodeType: r, onFieldChange: i }) {
+function Xx({ block: e, schema: t, nodeId: n, nodeType: r, onFieldChange: i }) {
 	if (t.length === 0) return /* @__PURE__ */ (0, M.jsxs)("p", {
 		className: "vedit-empty",
 		children: [
@@ -24380,7 +26122,7 @@ function Gy({ block: e, schema: t, nodeId: n, nodeType: r, onFieldChange: i }) {
 	let a = e.fields ?? {};
 	return /* @__PURE__ */ (0, M.jsx)("div", {
 		className: "vedit-form",
-		children: t.map((e) => /* @__PURE__ */ (0, M.jsx)(Ay, {
+		children: t.map((e) => /* @__PURE__ */ (0, M.jsx)(Fx, {
 			field: e,
 			value: a[e.name],
 			onChange: (t) => i(e.name, t),
@@ -24390,10 +26132,10 @@ function Gy({ block: e, schema: t, nodeId: n, nodeType: r, onFieldChange: i }) {
 		}, e.name))
 	});
 }
-function Ky(e) {
+function Zx(e) {
 	return e.map(({ __loadedIndex: e, __cid: t, __isNew: n, ...r }) => r);
 }
-function qy(e, t) {
+function Qx(e, t) {
 	if (!t) return 0;
 	let n = [];
 	try {
@@ -24401,13 +26143,13 @@ function qy(e, t) {
 	} catch {
 		return 0;
 	}
-	let r = Ky(e), i = Math.max(r.length, n.length), a = 0;
+	let r = Zx(e), i = Math.max(r.length, n.length), a = 0;
 	for (let e = 0; e < i; e++) JSON.stringify(r[e]) !== JSON.stringify(n[e]) && a++;
 	return a;
 }
 //#endregion
 //#region src/EditorRoot.tsx
-function Jy({ config: e }) {
+function $x({ config: e }) {
 	let [t, n] = (0, _.useState)(!1), [r, i] = (0, _.useState)(!1), a = t && !r, [o, s] = (0, _.useState)([]), [c, l] = (0, _.useState)(null), [u, d] = (0, _.useState)(null), f = (0, _.useRef)(null), p = (0, _.useRef)(null), m = (0, _.useRef)(null);
 	(0, _.useEffect)(() => {
 		if (!a) {
@@ -24419,9 +26161,9 @@ function Jy({ config: e }) {
 		if (!a) return;
 		let e = 0, t = "", n = () => {
 			let r = c == null ? null : o.find((e) => e.index === c) ?? null, i = u == null ? null : o.find((e) => e.index === u) ?? null, a = r ? re(r) : null, s = i ? re(i) : null;
-			Yy(f.current, a, r && c !== u ? r.slug : null), Yy(p.current, s, i ? i.slug : null);
+			eS(f.current, a, r && c !== u ? r.slug : null), eS(p.current, s, i ? i.slug : null);
 			let l = `${o.length}`;
-			l !== t && m.current && (Xy(m.current, o.length), t = l), Zy(m.current, o), e = requestAnimationFrame(n);
+			l !== t && m.current && (tS(m.current, o.length), t = l), nS(m.current, o), e = requestAnimationFrame(n);
 		};
 		return e = requestAnimationFrame(n), () => cancelAnimationFrame(e);
 	}, [
@@ -24481,7 +26223,7 @@ function Jy({ config: e }) {
 					className: "vedit-gutters"
 				})
 			]
-		}), /* @__PURE__ */ (0, M.jsx)(Ly, {
+		}), /* @__PURE__ */ (0, M.jsx)(Hx, {
 			config: e,
 			domEntries: o,
 			selectedIndex: u,
@@ -24492,7 +26234,7 @@ function Jy({ config: e }) {
 		})]
 	})] });
 }
-function Yy(e, t, n) {
+function eS(e, t, n) {
 	if (!e) return;
 	if (!t || !n) {
 		e.style.display = "none";
@@ -24502,7 +26244,7 @@ function Yy(e, t, n) {
 	let r = e.firstElementChild;
 	r && r.textContent !== n && (r.textContent = n);
 }
-function Xy(e, t) {
+function tS(e, t) {
 	e.replaceChildren();
 	let n = t === 0 ? 1 : t + 1;
 	for (let t = 0; t < n; t++) {
@@ -24512,7 +26254,7 @@ function Xy(e, t) {
 		}), e.appendChild(n);
 	}
 }
-function Zy(e, t) {
+function nS(e, t) {
 	if (!e) return;
 	let n = e.children;
 	if (t.length === 0) {
@@ -24541,10 +26283,10 @@ function Zy(e, t) {
 }
 //#endregion
 //#region src/styles.css?inline
-var Qy = ":host{--vedit-bg:#fff;--vedit-surface:#f8fafc;--vedit-border:#e2e8f0;--vedit-text:#0f172a;--vedit-muted:#64748b;--vedit-accent:#2563eb;--vedit-accent-soft:#2563eb1f;--vedit-danger:#dc2626;color:var(--vedit-text);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif;font-size:14px;line-height:1.5}*{box-sizing:border-box}button{font:inherit;color:inherit;cursor:pointer;background:0 0;border:none;padding:0}.vedit-toggle{z-index:2147483600;background:var(--vedit-accent);color:#fff;border-radius:999px;align-items:center;gap:8px;padding:12px 18px;font-weight:600;transition:transform .12s,box-shadow .12s;display:inline-flex;position:fixed;bottom:24px;right:24px;box-shadow:0 10px 30px #2563eb59}.vedit-toggle:hover{transform:translateY(-1px);box-shadow:0 14px 36px #2563eb73}.vedit-toggle[data-active=true]{background:var(--vedit-text)}.vedit-overlay{pointer-events:none;z-index:2147483500;position:fixed;top:0;bottom:0;left:0;right:0}.vedit-outline{border:2px solid var(--vedit-accent);background:var(--vedit-accent-soft);will-change:transform, width, height;border-radius:4px;position:absolute}.vedit-outline[data-kind=hover]{background:0 0;border-style:dashed}.vedit-outline[data-kind=selected]{border-style:solid}.vedit-label{background:var(--vedit-accent);color:#fff;white-space:nowrap;border-radius:4px 4px 0 0;padding:2px 8px;font-size:11px;font-weight:600;position:absolute;top:-22px;left:-2px}.vedit-panel{background:var(--vedit-bg);border-left:1px solid var(--vedit-border);z-index:2147483550;flex-direction:column;display:flex;position:fixed;top:0;bottom:0;right:0;box-shadow:-10px 0 30px #0f172a1f}.vedit-resize-handle{cursor:ew-resize;z-index:1;width:6px;height:100%;position:absolute;top:0;left:-3px}.vedit-resize-handle:hover{background:var(--vedit-accent-soft)}.vedit-panel-header{border-bottom:1px solid var(--vedit-border);background:var(--vedit-surface);justify-content:space-between;align-items:center;padding:14px 16px;display:flex}.vedit-panel-title{font-size:14px;font-weight:600}.vedit-panel-body{flex:1;padding:16px;overflow-y:auto}.vedit-panel-footer{border-top:1px solid var(--vedit-border);background:var(--vedit-surface);justify-content:flex-end;gap:8px;padding:12px 16px;display:flex}.vedit-block-list{flex-direction:column;gap:4px;margin:0;padding:0;list-style:none;display:flex}.vedit-block-item{color:var(--vedit-text);background:var(--vedit-bg);border:1px solid #0000;border-radius:6px;justify-content:space-between;align-items:center;padding:8px 10px;font-size:13px;display:flex}.vedit-block-item:hover{background:var(--vedit-surface);border-color:var(--vedit-border)}.vedit-block-item[aria-current=true]{background:var(--vedit-accent-soft);border-color:var(--vedit-accent)}.vedit-btn{border-radius:6px;padding:8px 14px;font-size:13px;font-weight:600}.vedit-btn[data-variant=primary]{background:var(--vedit-accent);color:#fff}.vedit-btn[data-variant=primary]:disabled{opacity:.6;cursor:not-allowed}.vedit-btn[data-variant=secondary]{background:var(--vedit-surface);border:1px solid var(--vedit-border)}.vedit-btn[data-variant=danger]{color:var(--vedit-danger);border:1px solid var(--vedit-danger);background:#fff}.vedit-empty{color:var(--vedit-muted);text-align:center;padding:24px 12px;font-size:13px}.vedit-section{margin-bottom:18px}.vedit-section+.vedit-section{border-top:1px solid var(--vedit-border);padding-top:16px}.vedit-section-title{text-transform:uppercase;letter-spacing:.06em;color:var(--vedit-muted);margin:0 0 8px;font-size:11px;font-weight:700}.vedit-section-body{flex-direction:column;gap:6px;display:flex}.vedit-block-meta{color:var(--vedit-muted);margin-left:6px;font-size:11px}.vedit-stale-badge{background:var(--vedit-accent-soft);color:var(--vedit-accent);text-transform:uppercase;letter-spacing:.04em;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700}.vedit-form{flex-direction:column;gap:14px;display:flex}.vedit-field{flex-direction:column;gap:4px;display:flex}.vedit-field-label{color:var(--vedit-text);font-size:12px;font-weight:600}.vedit-field-description{color:var(--vedit-muted);margin:0;font-size:11px}.vedit-input{width:100%;font:inherit;border:1px solid var(--vedit-border);background:var(--vedit-bg);color:var(--vedit-text);border-radius:6px;padding:7px 10px}.vedit-input:focus{border-color:var(--vedit-accent);box-shadow:0 0 0 3px var(--vedit-accent-soft);outline:none}.vedit-textarea{resize:vertical;min-height:80px}.vedit-toggle-row{cursor:pointer;align-items:center;gap:8px;font-size:13px;display:inline-flex}.vedit-field-unsupported{background:var(--vedit-surface);border:1px dashed var(--vedit-border);border-radius:6px;flex-direction:column;gap:4px;padding:8px 10px;display:flex}.vedit-field-unsupported-summary{color:var(--vedit-text);font-size:12px}.vedit-link{color:var(--vedit-accent);font-size:12px;text-decoration:none}.vedit-link:hover{text-decoration:underline}.vedit-error{color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;margin-bottom:12px;padding:8px 10px;font-size:12px}.vedit-error-text{color:var(--vedit-danger)}.vedit-footer-status{color:var(--vedit-muted);margin-right:auto;font-size:12px}.vedit-actions-row{gap:6px;margin-bottom:12px;display:flex}.vedit-add-block{border:1px dashed var(--vedit-border);width:100%;color:var(--vedit-accent);background:var(--vedit-bg);border-radius:6px;margin-top:8px;padding:8px 10px;font-size:13px;font-weight:600}.vedit-add-block:hover{background:var(--vedit-accent-soft);border-color:var(--vedit-accent)}.vedit-add-block:disabled{opacity:.5;cursor:not-allowed}.vedit-block-picker{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:6px;margin-top:8px;overflow:hidden}.vedit-block-picker-header{background:var(--vedit-surface);border-bottom:1px solid var(--vedit-border);justify-content:space-between;align-items:center;padding:8px 10px;font-size:12px;font-weight:600;display:flex}.vedit-block-picker-list{max-height:240px;margin:0;padding:0;list-style:none;overflow-y:auto}.vedit-block-picker-item{text-align:left;justify-content:space-between;align-items:center;width:100%;padding:8px 10px;font-size:13px;display:flex}.vedit-block-picker-item:hover{background:var(--vedit-surface)}.vedit-block-row{align-items:stretch;gap:4px;display:flex}.vedit-block-row .vedit-block-item{flex:1}.vedit-drag-handle{width:24px;color:var(--vedit-muted);cursor:grab;-webkit-user-select:none;user-select:none;border-radius:6px;justify-content:center;align-items:center;font-weight:700;display:inline-flex}.vedit-drag-handle:hover{background:var(--vedit-surface);color:var(--vedit-text)}.vedit-drag-handle:active{cursor:grabbing}.vedit-gutters{pointer-events:none;position:absolute;top:0;bottom:0;left:0;right:0}.vedit-insert-gutter{background:var(--vedit-bg);border:2px dashed var(--vedit-accent);width:28px;height:28px;color:var(--vedit-accent);pointer-events:auto;border-radius:999px;justify-content:center;align-items:center;font-size:18px;font-weight:700;line-height:1;display:none;position:absolute;top:0;left:0;box-shadow:0 4px 12px #0f172a14}.vedit-insert-gutter:hover{background:var(--vedit-accent);color:#fff;border-style:solid}.vedit-modal-backdrop{z-index:2147483560;background:#0f172a59;justify-content:center;align-items:center;padding:24px;display:flex;position:fixed;top:0;bottom:0;left:0;right:0}.vedit-modal{background:var(--vedit-bg);border-radius:12px;flex-direction:column;gap:12px;width:100%;max-width:420px;padding:16px;display:flex;box-shadow:0 30px 80px #0f172a40}.vedit-modal-header{justify-content:space-between;align-items:center;display:flex}.vedit-modal-title{font-size:14px;font-weight:600}.vedit-panel-title-block{flex-direction:column;gap:2px;display:flex}.vedit-panel-subtitle{color:var(--vedit-muted);text-transform:uppercase;letter-spacing:.04em;font-size:11px}.vedit-icon-btn{width:28px;height:28px;color:var(--vedit-muted);border-radius:6px;justify-content:center;align-items:center;font-size:18px;display:inline-flex}.vedit-icon-btn:hover{background:var(--vedit-surface);color:var(--vedit-text)}.vedit-required{color:var(--vedit-danger);margin-left:4px}.vedit-tiptap{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:6px;overflow:hidden}.vedit-tiptap-toolbar{border-bottom:1px solid var(--vedit-border);background:var(--vedit-surface);flex-wrap:wrap;gap:2px;padding:6px;display:flex}.vedit-tiptap-btn{min-width:28px;height:26px;color:var(--vedit-text);border-radius:4px;padding:0 6px;font-size:12px}.vedit-tiptap-btn:hover{background:var(--vedit-bg)}.vedit-tiptap-btn[data-active=true]{background:var(--vedit-accent);color:#fff}.vedit-tiptap-btn:disabled{opacity:.4;cursor:not-allowed}.vedit-tiptap-sep{background:var(--vedit-border);width:1px;margin:2px 4px}.vedit-tiptap .ProseMirror{outline:none;min-height:140px;padding:10px 12px;font-size:14px;line-height:1.6}.vedit-tiptap .ProseMirror p{margin:0 0 .6em}.vedit-tiptap .ProseMirror h2{margin:.6em 0 .3em;font-size:1.25em;font-weight:700}.vedit-tiptap .ProseMirror h3{margin:.6em 0 .3em;font-size:1.1em;font-weight:700}.vedit-tiptap .ProseMirror ul,.vedit-tiptap .ProseMirror ol{margin:0 0 .6em;padding-left:1.4em}.vedit-tiptap .ProseMirror blockquote{border-left:3px solid var(--vedit-border);color:var(--vedit-muted);margin:0 0 .6em;padding-left:10px}.vedit-tiptap .ProseMirror code{background:var(--vedit-surface);border-radius:3px;padding:1px 4px;font-size:.9em}.vedit-tiptap .ProseMirror pre{background:var(--vedit-text);color:#fff;border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto}.vedit-tiptap .ProseMirror a{color:var(--vedit-accent);text-decoration:underline}.vedit-tiptap-loading{color:var(--vedit-muted);padding:10px;font-size:12px}.vedit-range{align-items:center;gap:10px;display:flex}.vedit-range input[type=range]{flex:1}.vedit-range-value{text-align:right;font-variant-numeric:tabular-nums;min-width:40px;color:var(--vedit-muted);font-size:12px}.vedit-radio-group,.vedit-checkbox-group{flex-direction:column;gap:6px;display:flex}.vedit-radio-row{cursor:pointer;align-items:center;gap:8px;font-size:13px;display:inline-flex}.vedit-object{border:1px solid var(--vedit-border);background:var(--vedit-surface);border-radius:6px;overflow:hidden}.vedit-collapsible-head{text-transform:uppercase;letter-spacing:.04em;width:100%;color:var(--vedit-muted);background:var(--vedit-surface);border-bottom:1px solid var(--vedit-border);align-items:center;gap:6px;padding:8px 10px;font-size:12px;font-weight:600;display:flex}.vedit-collapsible-head:hover{color:var(--vedit-text)}.vedit-collapsible-caret{font-size:10px;transition:transform .1s;display:inline-block}.vedit-collapsible-caret[data-open=true]{transform:rotate(90deg)}.vedit-object-body{background:var(--vedit-bg);flex-direction:column;gap:12px;padding:12px;display:flex}.vedit-array{flex-direction:column;gap:8px;display:flex}.vedit-array-list{flex-direction:column;gap:6px;margin:0;padding:0;list-style:none;display:flex}.vedit-array-item{background:var(--vedit-bg);border:1px solid #cbd5e1;border-radius:6px;overflow:hidden}.vedit-array-item-head{background:#f1f5f9;border-bottom:1px solid #cbd5e1;align-items:center;gap:4px;padding:8px 10px;transition:background .15s;display:flex}.vedit-array-item-head:hover{background:#e2e8f0}.vedit-array-item-head[data-open=false]{border-bottom:none}.vedit-array-item-head[data-open=true]{background:#fff;border-bottom:1px solid #e2e8f0}.vedit-array-item-toggle{text-align:left;flex:1;align-items:center;gap:6px;font-size:13px;font-weight:500;display:flex}.vedit-array-item-summary{color:var(--vedit-text)}.vedit-array-item-body{flex-direction:column;gap:12px;padding:12px;display:flex}.vedit-link-field{flex-direction:column;gap:6px;display:flex}.vedit-grid-2{grid-template-columns:1fr 1fr;gap:6px;display:grid}.vedit-tabs{gap:2px;margin-bottom:6px;display:flex}.vedit-tab{color:var(--vedit-muted);border-radius:4px;padding:4px 10px;font-size:12px}.vedit-tab[data-active=true]{background:var(--vedit-accent-soft);color:var(--vedit-accent);font-weight:600}.vedit-media-modal{max-width:720px;max-height:80vh}.vedit-modal-footer{border-top:1px solid var(--vedit-border);justify-content:flex-end;gap:6px;padding-top:8px;display:flex}.vedit-media-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:50vh;display:grid;overflow-y:auto}.vedit-media-tile{background:var(--vedit-surface);text-align:left;border:2px solid #0000;border-radius:6px;flex-direction:column;gap:4px;padding:6px;display:flex;overflow:hidden}.vedit-media-tile:hover{background:var(--vedit-accent-soft)}.vedit-media-tile[data-selected=true]{border-color:var(--vedit-accent);background:var(--vedit-accent-soft)}.vedit-media-tile img{object-fit:cover;background:var(--vedit-border);border-radius:4px;width:100%;height:90px}.vedit-media-fileicon{background:var(--vedit-bg);border-radius:4px;justify-content:center;align-items:center;height:90px;font-size:32px;display:flex}.vedit-media-name{color:var(--vedit-muted);white-space:nowrap;text-overflow:ellipsis;font-size:11px;overflow:hidden}.vedit-image-field{flex-direction:column;gap:6px;display:flex}.vedit-image-preview{border:1px solid var(--vedit-border);background:var(--vedit-surface);border-radius:6px;gap:10px;padding:8px;display:flex}.vedit-image-preview img{object-fit:cover;background:var(--vedit-border);border-radius:4px;flex-shrink:0;width:96px;height:96px}.vedit-image-meta{flex-direction:column;flex:1;gap:6px;display:flex}.vedit-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-bottom:8px;display:grid}.vedit-gallery-tile{aspect-ratio:1;background:var(--vedit-surface);border-radius:4px;position:relative;overflow:hidden}.vedit-gallery-tile img{object-fit:cover;width:100%;height:100%}.vedit-gallery-remove{color:#fff;background:#0f172ab3;border-radius:999px;width:20px;height:20px;font-size:14px;line-height:1;position:absolute;top:2px;right:2px}.vedit-gallery-remove:hover{background:var(--vedit-danger)}.vedit-info{background:var(--vedit-accent-soft);color:var(--vedit-accent);border-radius:6px;margin-bottom:10px;padding:8px 10px;font-size:12px}.vedit-block-row{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:8px;align-items:stretch;gap:0;transition:border-color 80ms,box-shadow 80ms,background 80ms;display:flex;overflow:hidden}.vedit-block-row:hover{border-color:#cbd5e1}.vedit-block-row[data-selected=true]{border-color:var(--vedit-accent);box-shadow:0 0 0 1px var(--vedit-accent);background:var(--vedit-accent-soft)}.vedit-block-row .vedit-drag-handle{width:28px;color:var(--vedit-muted);cursor:grab;background:0 0;border:none;border-radius:0;flex:0 0 28px;justify-content:center;align-items:center;display:inline-flex}.vedit-block-row .vedit-drag-handle:hover{color:var(--vedit-text);background:var(--vedit-surface)}.vedit-block-row .vedit-drag-handle:active{cursor:grabbing}.vedit-block-row .vedit-block-item{color:var(--vedit-text);text-align:left;background:0 0;border:none;border-radius:0;flex:1;justify-content:space-between;align-items:center;min-width:0;padding:8px 4px;font-size:13px;display:flex}.vedit-block-row .vedit-block-item:hover,.vedit-block-row[data-selected=true] .vedit-block-item{background:0 0}.vedit-block-item-label{white-space:nowrap;text-overflow:ellipsis;align-items:center;gap:4px;min-width:0;display:flex;overflow:hidden}.vedit-block-item-label strong{text-overflow:ellipsis;overflow:hidden}.vedit-row-actions{opacity:0;flex:none;align-items:center;gap:0;padding-right:4px;transition:opacity 80ms;display:flex}.vedit-block-row:hover .vedit-row-actions,.vedit-block-row[data-selected=true] .vedit-row-actions,.vedit-block-row:focus-within .vedit-row-actions{opacity:1}.vedit-row-icon{width:26px;height:26px;color:var(--vedit-muted);background:0 0;border:none;border-radius:5px;justify-content:center;align-items:center;display:inline-flex}.vedit-row-icon:hover{background:var(--vedit-surface);color:var(--vedit-text)}.vedit-row-icon[data-variant=danger]:hover{color:var(--vedit-danger);background:#fee2e2}.vedit-fields-section{background:var(--vedit-surface);border-top:1px solid var(--vedit-border);margin:16px -16px 0;padding:16px 16px 4px}.vedit-fields-title{color:var(--vedit-text);align-items:baseline;gap:8px;margin:0 0 12px;font-size:14px;font-weight:600;display:flex}.vedit-fields-subtitle{color:var(--vedit-muted);text-transform:uppercase;letter-spacing:.06em;font-size:11px;font-weight:500}.vedit-section+.vedit-fields-section{margin-top:0}.vedit-ref{flex-direction:column;gap:8px;display:flex}.vedit-ref-list{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:10px;margin:0;padding:0;list-style:none;overflow:hidden}.vedit-ref-row{align-items:center;gap:10px;padding:8px 8px 8px 10px;display:flex}.vedit-ref-row+.vedit-ref-row{border-top:1px solid var(--vedit-border)}.vedit-ref-row[data-missing] .vedit-ref-title{color:var(--vedit-danger)}.vedit-ref-thumb{background:var(--vedit-accent-soft);width:40px;height:40px;color:var(--vedit-accent);border-radius:8px;flex:none;justify-content:center;align-items:center;font-size:15px;font-weight:700;display:inline-flex;overflow:hidden}.vedit-ref-thumb img{object-fit:cover;width:100%;height:100%;display:block}.vedit-ref-text{flex-direction:column;flex:1;gap:2px;min-width:0;display:flex}.vedit-ref-title{color:var(--vedit-text);white-space:nowrap;text-overflow:ellipsis;font-size:13px;font-weight:600;overflow:hidden}.vedit-ref-meta{color:var(--vedit-muted);white-space:nowrap;text-overflow:ellipsis;align-items:center;gap:6px;font-size:11px;display:flex;overflow:hidden}.vedit-ref-actions{opacity:.55;gap:2px;transition:opacity .15s;display:flex}.vedit-ref-row:hover .vedit-ref-actions,.vedit-ref-row:focus-within .vedit-ref-actions{opacity:1}.vedit-ref-icon{width:26px;height:26px;color:var(--vedit-muted);border-radius:6px;justify-content:center;align-items:center;font-size:13px;display:inline-flex}.vedit-ref-icon:hover:not(:disabled){background:var(--vedit-surface);color:var(--vedit-text)}.vedit-ref-icon[data-variant=danger]:hover{color:var(--vedit-danger);background:#dc262614}.vedit-ref-icon:disabled{opacity:.3;cursor:default}.vedit-ref-footer{justify-content:space-between;align-items:center;gap:8px;display:flex}.vedit-ref-add{border:1px dashed var(--vedit-border);color:var(--vedit-accent);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600}.vedit-ref-add:hover{border-style:solid;border-color:var(--vedit-accent);background:var(--vedit-accent-soft)}.vedit-ref-modal{max-width:520px;max-height:min(640px,85vh)}.vedit-ref-results{flex:1;min-height:120px;margin:0 -6px;padding:0;list-style:none;overflow-y:auto}.vedit-ref-result{text-align:left;border-radius:8px;align-items:center;gap:12px;width:100%;padding:8px 10px;display:flex}.vedit-ref-result:hover{background:var(--vedit-surface)}.vedit-ref-result[data-selected]{background:var(--vedit-accent-soft)}.vedit-ref-result .vedit-ref-thumb{width:48px;height:48px}.vedit-ref-check{border:1.5px solid var(--vedit-border);color:#fff;border-radius:999px;flex:none;justify-content:center;align-items:center;width:22px;height:22px;font-size:12px;font-weight:700;display:inline-flex}.vedit-ref-result[data-selected] .vedit-ref-check{background:var(--vedit-accent);border-color:var(--vedit-accent)}.vedit-ref-status{color:#92400e;text-transform:capitalize;background:#fef3c7;border-radius:999px;padding:1px 6px;font-size:10px;font-weight:600}.vedit-ref-modal-footer{align-items:center}.vedit-ref-count{color:var(--vedit-muted);margin-right:auto;font-size:12px}";
+var rS = ":host{--vedit-bg:#fff;--vedit-surface:#f8fafc;--vedit-border:#e2e8f0;--vedit-text:#0f172a;--vedit-muted:#64748b;--vedit-accent:#2563eb;--vedit-accent-soft:#2563eb1f;--vedit-danger:#dc2626;color:var(--vedit-text);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif;font-size:14px;line-height:1.5}*{box-sizing:border-box}button{font:inherit;color:inherit;cursor:pointer;background:0 0;border:none;padding:0}.vedit-toggle{z-index:2147483600;background:var(--vedit-accent);color:#fff;border-radius:999px;align-items:center;gap:8px;padding:12px 18px;font-weight:600;transition:transform .12s,box-shadow .12s;display:inline-flex;position:fixed;bottom:24px;right:24px;box-shadow:0 10px 30px #2563eb59}.vedit-toggle:hover{transform:translateY(-1px);box-shadow:0 14px 36px #2563eb73}.vedit-toggle[data-active=true]{background:var(--vedit-text)}.vedit-overlay{pointer-events:none;z-index:2147483500;position:fixed;top:0;bottom:0;left:0;right:0}.vedit-outline{border:2px solid var(--vedit-accent);background:var(--vedit-accent-soft);will-change:transform, width, height;border-radius:4px;position:absolute}.vedit-outline[data-kind=hover]{background:0 0;border-style:dashed}.vedit-outline[data-kind=selected]{border-style:solid}.vedit-label{background:var(--vedit-accent);color:#fff;white-space:nowrap;border-radius:4px 4px 0 0;padding:2px 8px;font-size:11px;font-weight:600;position:absolute;top:-22px;left:-2px}.vedit-panel{background:var(--vedit-bg);border-left:1px solid var(--vedit-border);z-index:2147483550;flex-direction:column;display:flex;position:fixed;top:0;bottom:0;right:0;box-shadow:-10px 0 30px #0f172a1f}.vedit-resize-handle{cursor:ew-resize;z-index:1;width:6px;height:100%;position:absolute;top:0;left:-3px}.vedit-resize-handle:hover{background:var(--vedit-accent-soft)}.vedit-panel-header{border-bottom:1px solid var(--vedit-border);background:var(--vedit-surface);justify-content:space-between;align-items:center;padding:14px 16px;display:flex}.vedit-panel-title{font-size:14px;font-weight:600}.vedit-panel-body{flex:1;padding:16px;overflow-y:auto}.vedit-panel-footer{border-top:1px solid var(--vedit-border);background:var(--vedit-surface);justify-content:flex-end;gap:8px;padding:12px 16px;display:flex}.vedit-block-list{flex-direction:column;gap:4px;margin:0;padding:0;list-style:none;display:flex}.vedit-block-item{color:var(--vedit-text);background:var(--vedit-bg);border:1px solid #0000;border-radius:6px;justify-content:space-between;align-items:center;padding:8px 10px;font-size:13px;display:flex}.vedit-block-item:hover{background:var(--vedit-surface);border-color:var(--vedit-border)}.vedit-block-item[aria-current=true]{background:var(--vedit-accent-soft);border-color:var(--vedit-accent)}.vedit-btn{border-radius:6px;padding:8px 14px;font-size:13px;font-weight:600}.vedit-btn[data-variant=primary]{background:var(--vedit-accent);color:#fff}.vedit-btn[data-variant=primary]:disabled{opacity:.6;cursor:not-allowed}.vedit-btn[data-variant=secondary]{background:var(--vedit-surface);border:1px solid var(--vedit-border)}.vedit-btn[data-variant=danger]{color:var(--vedit-danger);border:1px solid var(--vedit-danger);background:#fff}.vedit-empty{color:var(--vedit-muted);text-align:center;padding:24px 12px;font-size:13px}.vedit-section{margin-bottom:18px}.vedit-section+.vedit-section{border-top:1px solid var(--vedit-border);padding-top:16px}.vedit-section-title{text-transform:uppercase;letter-spacing:.06em;color:var(--vedit-muted);margin:0 0 8px;font-size:11px;font-weight:700}.vedit-section-body{flex-direction:column;gap:6px;display:flex}.vedit-block-meta{color:var(--vedit-muted);margin-left:6px;font-size:11px}.vedit-stale-badge{background:var(--vedit-accent-soft);color:var(--vedit-accent);text-transform:uppercase;letter-spacing:.04em;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700}.vedit-form{flex-direction:column;gap:14px;display:flex}.vedit-field{flex-direction:column;gap:4px;display:flex}.vedit-field-label{color:var(--vedit-text);font-size:12px;font-weight:600}.vedit-field-description{color:var(--vedit-muted);margin:0;font-size:11px}.vedit-input{width:100%;font:inherit;border:1px solid var(--vedit-border);background:var(--vedit-bg);color:var(--vedit-text);border-radius:6px;padding:7px 10px}.vedit-input:focus{border-color:var(--vedit-accent);box-shadow:0 0 0 3px var(--vedit-accent-soft);outline:none}.vedit-textarea{resize:vertical;min-height:80px}.vedit-toggle-row{cursor:pointer;align-items:center;gap:8px;font-size:13px;display:inline-flex}.vedit-field-unsupported{background:var(--vedit-surface);border:1px dashed var(--vedit-border);border-radius:6px;flex-direction:column;gap:4px;padding:8px 10px;display:flex}.vedit-field-unsupported-summary{color:var(--vedit-text);font-size:12px}.vedit-link{color:var(--vedit-accent);font-size:12px;text-decoration:none}.vedit-link:hover{text-decoration:underline}.vedit-error{color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;margin-bottom:12px;padding:8px 10px;font-size:12px}.vedit-error-text{color:var(--vedit-danger)}.vedit-footer-status{color:var(--vedit-muted);margin-right:auto;font-size:12px}.vedit-actions-row{gap:6px;margin-bottom:12px;display:flex}.vedit-add-block{border:1px dashed var(--vedit-border);width:100%;color:var(--vedit-accent);background:var(--vedit-bg);border-radius:6px;margin-top:8px;padding:8px 10px;font-size:13px;font-weight:600}.vedit-add-block:hover{background:var(--vedit-accent-soft);border-color:var(--vedit-accent)}.vedit-add-block:disabled{opacity:.5;cursor:not-allowed}.vedit-block-picker{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:6px;margin-top:8px;overflow:hidden}.vedit-block-picker-header{background:var(--vedit-surface);border-bottom:1px solid var(--vedit-border);justify-content:space-between;align-items:center;padding:8px 10px;font-size:12px;font-weight:600;display:flex}.vedit-block-picker-list{max-height:240px;margin:0;padding:0;list-style:none;overflow-y:auto}.vedit-block-picker-item{text-align:left;justify-content:space-between;align-items:center;width:100%;padding:8px 10px;font-size:13px;display:flex}.vedit-block-picker-item:hover{background:var(--vedit-surface)}.vedit-block-row{align-items:stretch;gap:4px;display:flex}.vedit-block-row .vedit-block-item{flex:1}.vedit-drag-handle{width:24px;color:var(--vedit-muted);cursor:grab;-webkit-user-select:none;user-select:none;border-radius:6px;justify-content:center;align-items:center;font-weight:700;display:inline-flex}.vedit-drag-handle:hover{background:var(--vedit-surface);color:var(--vedit-text)}.vedit-drag-handle:active{cursor:grabbing}.vedit-gutters{pointer-events:none;position:absolute;top:0;bottom:0;left:0;right:0}.vedit-insert-gutter{background:var(--vedit-bg);border:2px dashed var(--vedit-accent);width:28px;height:28px;color:var(--vedit-accent);pointer-events:auto;border-radius:999px;justify-content:center;align-items:center;font-size:18px;font-weight:700;line-height:1;display:none;position:absolute;top:0;left:0;box-shadow:0 4px 12px #0f172a14}.vedit-insert-gutter:hover{background:var(--vedit-accent);color:#fff;border-style:solid}.vedit-modal-backdrop{z-index:2147483560;background:#0f172a59;justify-content:center;align-items:center;padding:24px;display:flex;position:fixed;top:0;bottom:0;left:0;right:0}.vedit-modal{background:var(--vedit-bg);border-radius:12px;flex-direction:column;gap:12px;width:100%;max-width:420px;padding:16px;display:flex;box-shadow:0 30px 80px #0f172a40}.vedit-modal-header{justify-content:space-between;align-items:center;display:flex}.vedit-modal-title{font-size:14px;font-weight:600}.vedit-panel-title-block{flex-direction:column;gap:2px;display:flex}.vedit-panel-subtitle{color:var(--vedit-muted);text-transform:uppercase;letter-spacing:.04em;font-size:11px}.vedit-icon-btn{width:28px;height:28px;color:var(--vedit-muted);border-radius:6px;justify-content:center;align-items:center;font-size:18px;display:inline-flex}.vedit-icon-btn:hover{background:var(--vedit-surface);color:var(--vedit-text)}.vedit-required{color:var(--vedit-danger);margin-left:4px}.vedit-tiptap{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:6px;overflow:hidden}.vedit-tiptap-toolbar{border-bottom:1px solid var(--vedit-border);background:var(--vedit-surface);flex-wrap:wrap;gap:2px;padding:6px;display:flex}.vedit-tiptap-btn{min-width:28px;height:26px;color:var(--vedit-text);border-radius:4px;padding:0 6px;font-size:12px}.vedit-tiptap-btn:hover{background:var(--vedit-bg)}.vedit-tiptap-btn[data-active=true]{background:var(--vedit-accent);color:#fff}.vedit-tiptap-btn:disabled{opacity:.4;cursor:not-allowed}.vedit-tiptap-sep{background:var(--vedit-border);width:1px;margin:2px 4px}.vedit-tiptap .ProseMirror{outline:none;min-height:140px;padding:10px 12px;font-size:14px;line-height:1.6}.vedit-tiptap .ProseMirror p{margin:0 0 .6em}.vedit-tiptap .ProseMirror h2{margin:.6em 0 .3em;font-size:1.25em;font-weight:700}.vedit-tiptap .ProseMirror h3{margin:.6em 0 .3em;font-size:1.1em;font-weight:700}.vedit-tiptap .ProseMirror ul,.vedit-tiptap .ProseMirror ol{margin:0 0 .6em;padding-left:1.4em}.vedit-tiptap .ProseMirror blockquote{border-left:3px solid var(--vedit-border);color:var(--vedit-muted);margin:0 0 .6em;padding-left:10px}.vedit-tiptap .ProseMirror code{background:var(--vedit-surface);border-radius:3px;padding:1px 4px;font-size:.9em}.vedit-tiptap .ProseMirror pre{background:var(--vedit-text);color:#fff;border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto}.vedit-tiptap .ProseMirror a{color:var(--vedit-accent);text-decoration:underline}.vedit-tiptap .ProseMirror table{border-collapse:collapse;table-layout:fixed;width:100%;margin:0 0 .6em;font-size:13px}.vedit-tiptap .ProseMirror th,.vedit-tiptap .ProseMirror td{border:1px solid var(--vedit-border);vertical-align:top;min-width:1em;padding:4px 6px;position:relative}.vedit-tiptap .ProseMirror th{background:var(--vedit-surface);text-align:left;font-weight:600}.vedit-tiptap .ProseMirror th p,.vedit-tiptap .ProseMirror td p{margin:0}.vedit-tiptap .ProseMirror .selectedCell:after{content:\"\";background:var(--vedit-accent);opacity:.15;pointer-events:none;position:absolute;top:0;bottom:0;left:0;right:0}.vedit-tiptap .ProseMirror div[class]{border:1px dashed var(--vedit-border);background:var(--vedit-surface);border-radius:6px;margin:0 0 .6em;padding:6px 10px}.vedit-tiptap .ProseMirror div[class]>:last-child{margin-bottom:0}.vedit-tiptap-loading{color:var(--vedit-muted);padding:10px;font-size:12px}.vedit-range{align-items:center;gap:10px;display:flex}.vedit-range input[type=range]{flex:1}.vedit-range-value{text-align:right;font-variant-numeric:tabular-nums;min-width:40px;color:var(--vedit-muted);font-size:12px}.vedit-radio-group,.vedit-checkbox-group{flex-direction:column;gap:6px;display:flex}.vedit-radio-row{cursor:pointer;align-items:center;gap:8px;font-size:13px;display:inline-flex}.vedit-object{border:1px solid var(--vedit-border);background:var(--vedit-surface);border-radius:6px;overflow:hidden}.vedit-collapsible-head{text-transform:uppercase;letter-spacing:.04em;width:100%;color:var(--vedit-muted);background:var(--vedit-surface);border-bottom:1px solid var(--vedit-border);align-items:center;gap:6px;padding:8px 10px;font-size:12px;font-weight:600;display:flex}.vedit-collapsible-head:hover{color:var(--vedit-text)}.vedit-collapsible-caret{font-size:10px;transition:transform .1s;display:inline-block}.vedit-collapsible-caret[data-open=true]{transform:rotate(90deg)}.vedit-object-body{background:var(--vedit-bg);flex-direction:column;gap:12px;padding:12px;display:flex}.vedit-array{flex-direction:column;gap:8px;display:flex}.vedit-array-list{flex-direction:column;gap:6px;margin:0;padding:0;list-style:none;display:flex}.vedit-array-item{background:var(--vedit-bg);border:1px solid #cbd5e1;border-radius:6px;overflow:hidden}.vedit-array-item-head{background:#f1f5f9;border-bottom:1px solid #cbd5e1;align-items:center;gap:4px;padding:8px 10px;transition:background .15s;display:flex}.vedit-array-item-head:hover{background:#e2e8f0}.vedit-array-item-head[data-open=false]{border-bottom:none}.vedit-array-item-head[data-open=true]{background:#fff;border-bottom:1px solid #e2e8f0}.vedit-array-item-toggle{text-align:left;flex:1;align-items:center;gap:6px;font-size:13px;font-weight:500;display:flex}.vedit-array-item-summary{color:var(--vedit-text)}.vedit-array-item-body{flex-direction:column;gap:12px;padding:12px;display:flex}.vedit-link-field{flex-direction:column;gap:6px;display:flex}.vedit-grid-2{grid-template-columns:1fr 1fr;gap:6px;display:grid}.vedit-tabs{gap:2px;margin-bottom:6px;display:flex}.vedit-tab{color:var(--vedit-muted);border-radius:4px;padding:4px 10px;font-size:12px}.vedit-tab[data-active=true]{background:var(--vedit-accent-soft);color:var(--vedit-accent);font-weight:600}.vedit-media-modal{max-width:720px;max-height:80vh}.vedit-modal-footer{border-top:1px solid var(--vedit-border);justify-content:flex-end;gap:6px;padding-top:8px;display:flex}.vedit-media-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:50vh;display:grid;overflow-y:auto}.vedit-media-tile{background:var(--vedit-surface);text-align:left;border:2px solid #0000;border-radius:6px;flex-direction:column;gap:4px;padding:6px;display:flex;overflow:hidden}.vedit-media-tile:hover{background:var(--vedit-accent-soft)}.vedit-media-tile[data-selected=true]{border-color:var(--vedit-accent);background:var(--vedit-accent-soft)}.vedit-media-tile img{object-fit:cover;background:var(--vedit-border);border-radius:4px;width:100%;height:90px}.vedit-media-fileicon{background:var(--vedit-bg);border-radius:4px;justify-content:center;align-items:center;height:90px;font-size:32px;display:flex}.vedit-media-name{color:var(--vedit-muted);white-space:nowrap;text-overflow:ellipsis;font-size:11px;overflow:hidden}.vedit-image-field{flex-direction:column;gap:6px;display:flex}.vedit-image-preview{border:1px solid var(--vedit-border);background:var(--vedit-surface);border-radius:6px;gap:10px;padding:8px;display:flex}.vedit-image-preview img{object-fit:cover;background:var(--vedit-border);border-radius:4px;flex-shrink:0;width:96px;height:96px}.vedit-image-meta{flex-direction:column;flex:1;gap:6px;display:flex}.vedit-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-bottom:8px;display:grid}.vedit-gallery-tile{aspect-ratio:1;background:var(--vedit-surface);border-radius:4px;position:relative;overflow:hidden}.vedit-gallery-tile img{object-fit:cover;width:100%;height:100%}.vedit-gallery-remove{color:#fff;background:#0f172ab3;border-radius:999px;width:20px;height:20px;font-size:14px;line-height:1;position:absolute;top:2px;right:2px}.vedit-gallery-remove:hover{background:var(--vedit-danger)}.vedit-info{background:var(--vedit-accent-soft);color:var(--vedit-accent);border-radius:6px;margin-bottom:10px;padding:8px 10px;font-size:12px}.vedit-block-row{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:8px;align-items:stretch;gap:0;transition:border-color 80ms,box-shadow 80ms,background 80ms;display:flex;overflow:hidden}.vedit-block-row:hover{border-color:#cbd5e1}.vedit-block-row[data-selected=true]{border-color:var(--vedit-accent);box-shadow:0 0 0 1px var(--vedit-accent);background:var(--vedit-accent-soft)}.vedit-block-row .vedit-drag-handle{width:28px;color:var(--vedit-muted);cursor:grab;background:0 0;border:none;border-radius:0;flex:0 0 28px;justify-content:center;align-items:center;display:inline-flex}.vedit-block-row .vedit-drag-handle:hover{color:var(--vedit-text);background:var(--vedit-surface)}.vedit-block-row .vedit-drag-handle:active{cursor:grabbing}.vedit-block-row .vedit-block-item{color:var(--vedit-text);text-align:left;background:0 0;border:none;border-radius:0;flex:1;justify-content:space-between;align-items:center;min-width:0;padding:8px 4px;font-size:13px;display:flex}.vedit-block-row .vedit-block-item:hover,.vedit-block-row[data-selected=true] .vedit-block-item{background:0 0}.vedit-block-item-label{white-space:nowrap;text-overflow:ellipsis;align-items:center;gap:4px;min-width:0;display:flex;overflow:hidden}.vedit-block-item-label strong{text-overflow:ellipsis;overflow:hidden}.vedit-row-actions{opacity:0;flex:none;align-items:center;gap:0;padding-right:4px;transition:opacity 80ms;display:flex}.vedit-block-row:hover .vedit-row-actions,.vedit-block-row[data-selected=true] .vedit-row-actions,.vedit-block-row:focus-within .vedit-row-actions{opacity:1}.vedit-row-icon{width:26px;height:26px;color:var(--vedit-muted);background:0 0;border:none;border-radius:5px;justify-content:center;align-items:center;display:inline-flex}.vedit-row-icon:hover{background:var(--vedit-surface);color:var(--vedit-text)}.vedit-row-icon[data-variant=danger]:hover{color:var(--vedit-danger);background:#fee2e2}.vedit-fields-section{background:var(--vedit-surface);border-top:1px solid var(--vedit-border);margin:16px -16px 0;padding:16px 16px 4px}.vedit-fields-title{color:var(--vedit-text);align-items:baseline;gap:8px;margin:0 0 12px;font-size:14px;font-weight:600;display:flex}.vedit-fields-subtitle{color:var(--vedit-muted);text-transform:uppercase;letter-spacing:.06em;font-size:11px;font-weight:500}.vedit-section+.vedit-fields-section{margin-top:0}.vedit-ref{flex-direction:column;gap:8px;display:flex}.vedit-ref-list{border:1px solid var(--vedit-border);background:var(--vedit-bg);border-radius:10px;margin:0;padding:0;list-style:none;overflow:hidden}.vedit-ref-row{align-items:center;gap:10px;padding:8px 8px 8px 10px;display:flex}.vedit-ref-row+.vedit-ref-row{border-top:1px solid var(--vedit-border)}.vedit-ref-row[data-missing] .vedit-ref-title{color:var(--vedit-danger)}.vedit-ref-thumb{background:var(--vedit-accent-soft);width:40px;height:40px;color:var(--vedit-accent);border-radius:8px;flex:none;justify-content:center;align-items:center;font-size:15px;font-weight:700;display:inline-flex;overflow:hidden}.vedit-ref-thumb img{object-fit:cover;width:100%;height:100%;display:block}.vedit-ref-text{flex-direction:column;flex:1;gap:2px;min-width:0;display:flex}.vedit-ref-title{color:var(--vedit-text);white-space:nowrap;text-overflow:ellipsis;font-size:13px;font-weight:600;overflow:hidden}.vedit-ref-meta{color:var(--vedit-muted);white-space:nowrap;text-overflow:ellipsis;align-items:center;gap:6px;font-size:11px;display:flex;overflow:hidden}.vedit-ref-actions{opacity:.55;gap:2px;transition:opacity .15s;display:flex}.vedit-ref-row:hover .vedit-ref-actions,.vedit-ref-row:focus-within .vedit-ref-actions{opacity:1}.vedit-ref-icon{width:26px;height:26px;color:var(--vedit-muted);border-radius:6px;justify-content:center;align-items:center;font-size:13px;display:inline-flex}.vedit-ref-icon:hover:not(:disabled){background:var(--vedit-surface);color:var(--vedit-text)}.vedit-ref-icon[data-variant=danger]:hover{color:var(--vedit-danger);background:#dc262614}.vedit-ref-icon:disabled{opacity:.3;cursor:default}.vedit-ref-footer{justify-content:space-between;align-items:center;gap:8px;display:flex}.vedit-ref-add{border:1px dashed var(--vedit-border);color:var(--vedit-accent);border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600}.vedit-ref-add:hover{border-style:solid;border-color:var(--vedit-accent);background:var(--vedit-accent-soft)}.vedit-ref-modal{max-width:520px;max-height:min(640px,85vh)}.vedit-ref-results{flex:1;min-height:120px;margin:0 -6px;padding:0;list-style:none;overflow-y:auto}.vedit-ref-result{text-align:left;border-radius:8px;align-items:center;gap:12px;width:100%;padding:8px 10px;display:flex}.vedit-ref-result:hover{background:var(--vedit-surface)}.vedit-ref-result[data-selected]{background:var(--vedit-accent-soft)}.vedit-ref-result .vedit-ref-thumb{width:48px;height:48px}.vedit-ref-check{border:1.5px solid var(--vedit-border);color:#fff;border-radius:999px;flex:none;justify-content:center;align-items:center;width:22px;height:22px;font-size:12px;font-weight:700;display:inline-flex}.vedit-ref-result[data-selected] .vedit-ref-check{background:var(--vedit-accent);border-color:var(--vedit-accent)}.vedit-ref-status{color:#92400e;text-transform:capitalize;background:#fef3c7;border-radius:999px;padding:1px 6px;font-size:10px;font-weight:600}.vedit-ref-modal-footer{align-items:center}.vedit-ref-count{color:var(--vedit-muted);margin-right:auto;font-size:12px}";
 //#endregion
 //#region src/main.tsx
-function $y() {
+function iS() {
 	let e = document.getElementById("__squilla_vedit_config");
 	if (!e) return null;
 	try {
@@ -24554,8 +26296,8 @@ function $y() {
 		return null;
 	}
 }
-function eb() {
-	let e = $y();
+function aS() {
+	let e = iS();
 	if (!e) {
 		console.warn("[squilla:visual-editor] missing or invalid config; skipping");
 		return;
@@ -24563,11 +26305,11 @@ function eb() {
 	let t = document.createElement("div");
 	t.setAttribute("data-vedit-host", ""), t.style.position = "fixed", t.style.zIndex = "2147483600", t.style.top = "0", t.style.left = "0", t.style.pointerEvents = "none", document.body.appendChild(t);
 	let n = t.attachShadow({ mode: "open" }), r = document.createElement("style");
-	r.textContent = Qy, n.appendChild(r);
+	r.textContent = rS, n.appendChild(r);
 	let i = document.createElement("div");
-	i.style.pointerEvents = "auto", n.appendChild(i), (0, v.createRoot)(i).render(/* @__PURE__ */ (0, M.jsx)(_.StrictMode, { children: /* @__PURE__ */ (0, M.jsx)(Jy, { config: e }) }));
+	i.style.pointerEvents = "auto", n.appendChild(i), (0, v.createRoot)(i).render(/* @__PURE__ */ (0, M.jsx)(_.StrictMode, { children: /* @__PURE__ */ (0, M.jsx)($x, { config: e }) }));
 }
-document.readyState === "complete" || document.readyState === "interactive" ? eb() : document.addEventListener("DOMContentLoaded", eb);
+document.readyState === "complete" || document.readyState === "interactive" ? aS() : document.addEventListener("DOMContentLoaded", aS);
 //#endregion
 
 //# sourceMappingURL=editor.js.map

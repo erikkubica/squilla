@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
+import { tableExtensions, normalizeEditorHTML } from "./richTextTables";
 
 interface Props {
   value: string;
@@ -19,10 +20,11 @@ export function RichText({ value, onChange }: Props): React.JSX.Element {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({}),
-      Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer" } }),
+      Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { target: null, rel: null } }),
+      ...tableExtensions,
     ],
     content: value || "",
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => onChange(normalizeEditorHTML(editor.getHTML())),
     editorProps: { attributes: { class: "vedit-tiptap-content" } },
   });
 
@@ -30,7 +32,7 @@ export function RichText({ value, onChange }: Props): React.JSX.Element {
   // doesn't already match, otherwise we wipe the user's caret position.
   useEffect(() => {
     if (!editor) return;
-    const current = editor.getHTML();
+    const current = normalizeEditorHTML(editor.getHTML());
     if ((value || "") !== current) editor.commands.setContent(value || "", false);
   }, [editor, value]);
 
@@ -86,9 +88,41 @@ function Toolbar({ editor }: { editor: NonNullable<ReturnType<typeof useEditor>>
       />
       <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} label="―" title="Horizontal rule" />
       <Sep />
+      <TableControls editor={editor} />
+      <Sep />
       <ToolbarButton onClick={() => editor.chain().focus().undo().run()} label="↶" title="Undo" disabled={!can(() => editor.can().undo())} />
       <ToolbarButton onClick={() => editor.chain().focus().redo().run()} label="↷" title="Redo" disabled={!can(() => editor.can().redo())} />
     </div>
+  );
+}
+
+function TableControls({ editor }: { editor: NonNullable<ReturnType<typeof useEditor>> }): React.JSX.Element {
+  const inTable = editor.isActive("table");
+  return (
+    <>
+      <ToolbarButton
+        active={inTable}
+        disabled={inTable}
+        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        label="▦"
+        title="Insert table (3×3)"
+      />
+      {inTable && (
+        <>
+          <ToolbarButton onClick={() => editor.chain().focus().addRowAfter().run()} label="+R" title="Add row below" />
+          <ToolbarButton onClick={() => editor.chain().focus().deleteRow().run()} label="−R" title="Delete row" />
+          <ToolbarButton onClick={() => editor.chain().focus().addColumnAfter().run()} label="+C" title="Add column right" />
+          <ToolbarButton onClick={() => editor.chain().focus().deleteColumn().run()} label="−C" title="Delete column" />
+          <ToolbarButton
+            active={editor.isActive("tableHeader")}
+            onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+            label="TH"
+            title="Toggle header row"
+          />
+          <ToolbarButton onClick={() => editor.chain().focus().deleteTable().run()} label="✕▦" title="Delete table" />
+        </>
+      )}
+    </>
   );
 }
 

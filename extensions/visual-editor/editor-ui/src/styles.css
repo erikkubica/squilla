@@ -602,6 +602,44 @@ button {
   font-size: 12px;
 }
 .vedit-tiptap .ProseMirror a { color: var(--vedit-accent); text-decoration: underline; }
+.vedit-tiptap .ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 0 0 0.6em;
+  font-size: 13px;
+}
+.vedit-tiptap .ProseMirror th,
+.vedit-tiptap .ProseMirror td {
+  border: 1px solid var(--vedit-border);
+  padding: 4px 6px;
+  vertical-align: top;
+  position: relative;
+  min-width: 1em;
+}
+.vedit-tiptap .ProseMirror th {
+  background: var(--vedit-surface);
+  font-weight: 600;
+  text-align: left;
+}
+.vedit-tiptap .ProseMirror th p,
+.vedit-tiptap .ProseMirror td p { margin: 0; }
+.vedit-tiptap .ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--vedit-accent);
+  opacity: 0.15;
+  pointer-events: none;
+}
+.vedit-tiptap .ProseMirror div[class] {
+  border: 1px dashed var(--vedit-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 0 0 0.6em;
+  background: var(--vedit-surface);
+}
+.vedit-tiptap .ProseMirror div[class] > :last-child { margin-bottom: 0; }
 .vedit-tiptap-loading {
   padding: 10px;
   color: var(--vedit-muted);
