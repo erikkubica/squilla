@@ -57,20 +57,38 @@ function Field({
   children,
   hint,
   required,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
-  hint?: string;
+  hint?: React.ReactNode;
   required?: boolean;
+  htmlFor?: string;
 }) {
   return (
     <div>
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      <label data-mm="label" htmlFor={htmlFor}>
         {label}
-        {required && <span className="text-rose-500">*</span>}
+        {required && (
+          <span aria-hidden style={{ color: "var(--danger)" }}>
+            *
+          </span>
+        )}
       </label>
-      <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+      {children}
+      {hint && <div style={{ marginTop: 6, fontSize: 12.5, color: "var(--fg-muted)", lineHeight: 1.45 }}>{hint}</div>}
+    </div>
+  );
+}
+
+/** Read-only fact in the file info grid. */
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt style={{ fontSize: 12.5, color: "var(--fg-muted)" }}>{label}</dt>
+      <dd className="tabular-nums" style={{ margin: "2px 0 0", fontSize: 13.5, color: "var(--fg)" }}>
+        {children}
+      </dd>
     </div>
   );
 }
@@ -113,51 +131,53 @@ export default function MediaDrawer({
   const fullUrl = typeof window !== "undefined" ? window.location.origin + file.url : file.url;
   const showOptControls = isImage(file.mime_type) && file.mime_type !== "image/svg+xml";
 
+  const altTooLong = alt.length > 160;
+  const created = new Date(file.created_at);
+
   return (
     <div className="fixed inset-0 z-40 flex" onMouseDown={onClose}>
-      <div className="flex-1 bg-slate-900/30 backdrop-blur-[2px]" />
+      <div className="flex-1" style={{ background: "rgba(15, 23, 42, 0.32)" }} />
       <div
-        className="w-[480px] max-w-full bg-card h-full shadow-2xl flex flex-col overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Edit ${file.original_name}`}
+        className="w-[480px] max-w-full h-full flex flex-col overflow-hidden"
+        style={{ background: "var(--card-bg)", boxShadow: "-12px 0 40px -12px rgba(15, 23, 42, 0.35)" }}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* header */}
-        <div className="h-14 px-4 flex items-center gap-2 border-b border-border shrink-0">
-          <div className="text-[13px] font-semibold text-foreground flex-1 truncate">Edit media</div>
-          <button
-            type="button"
-            onClick={() => onCopy(file)}
-            className="h-8 px-2.5 rounded-md hover:bg-muted text-muted-foreground text-[12px] flex items-center gap-1.5 cursor-pointer"
-          >
+        <div
+          className="flex items-center shrink-0"
+          style={{ height: 56, gap: 4, padding: "0 10px 0 18px", borderBottom: "1px solid var(--border)" }}
+        >
+          <div className="flex-1 min-w-0">
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.01em" }}>Edit media</div>
+          </div>
+          <button type="button" data-mm="ghost-btn" onClick={() => onCopy(file)}>
             {copyState === file.id ? (
               <>
-                <Check className="h-3 w-3 text-emerald-700" /> Copied
+                <Check className="h-3.5 w-3.5 text-[var(--success)]" /> Copied
               </>
             ) : (
               <>
-                <LinkIcon className="h-3 w-3" /> Copy URL
+                <LinkIcon className="h-3.5 w-3.5" /> Copy URL
               </>
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => onDownload(file)}
-            className="w-8 h-8 rounded-md hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
-            title="Download"
-          >
-            <Download className="h-3.5 w-3.5" />
+          <button type="button" data-mm="ghost-btn" onClick={() => onDownload(file)} title="Download" aria-label="Download">
+            <Download className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-md hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
-          >
+          <button type="button" data-mm="ghost-btn" onClick={onClose} title="Close" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* preview */}
-        <div className="p-4 pb-2">
-          <div className="relative rounded-lg overflow-hidden bg-muted aspect-[4/3] border border-border">
+        <div style={{ padding: "16px 18px 4px" }}>
+          <div
+            className="relative overflow-hidden aspect-[4/3]"
+            style={{ borderRadius: "var(--radius-lg)", background: "var(--sub-bg)", border: "1px solid var(--border)" }}
+          >
             {isImage(file.mime_type) ? (
               <MediaImage
                 src={imageSize(file.url, "large", file.updated_at)}
@@ -173,49 +193,58 @@ export default function MediaDrawer({
             ) : (
               <div className="absolute inset-0 grid place-items-center">
                 <div className="flex flex-col items-center gap-2">
-                  <FileTypeIcon mime={file.mime_type} className="h-10 w-10 text-muted-foreground" />
-                  <span className="rounded bg-border px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                  <FileTypeIcon mime={file.mime_type} className="h-10 w-10 text-[var(--fg-subtle)]" />
+                  <span
+                    style={{
+                      padding: "1px 8px",
+                      borderRadius: 999,
+                      background: "var(--card-bg)",
+                      boxShadow: "inset 0 0 0 1px var(--border)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--fg-muted)",
+                    }}
+                  >
                     {ext}
                   </span>
                 </div>
               </div>
             )}
-            <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-              {file.is_optimized && file.optimization_savings > 0 ? (
-                <div className="rounded-full bg-emerald-500/95 text-white px-2 py-0.5 text-[10.5px] font-semibold flex items-center gap-1">
-                  <Zap className="h-3 w-3" /> Saved {humanFileSize(file.optimization_savings)}
-                </div>
-              ) : showOptControls ? (
-                <div className="rounded-full bg-slate-900/70 text-white px-2 py-0.5 text-[10.5px] font-medium">
-                  Original
-                </div>
-              ) : null}
-              {file.width && file.height && (
-                <div className="rounded-full bg-slate-900/70 text-white/90 px-2 py-0.5 text-[10.5px] font-mono tabular-nums">
-                  {file.width}×{file.height}
-                </div>
-              )}
-            </div>
+            {(file.width && file.height) || showOptControls ? (
+              <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                {file.width && file.height && (
+                  <span data-mm="chip">
+                    {file.width}×{file.height}
+                  </span>
+                )}
+                {showOptControls &&
+                  (file.is_optimized && file.optimization_savings > 0 ? (
+                    <span data-mm="chip">
+                      <Zap className="h-3 w-3" /> Saved {humanFileSize(file.optimization_savings)}
+                    </span>
+                  ) : !file.is_optimized ? (
+                    <span data-mm="chip">Original</span>
+                  ) : null)}
+              </div>
+            ) : null}
           </div>
         </div>
 
         {/* tabs */}
-        <div className="px-4 border-b border-border flex items-center gap-1">
+        <div role="tablist" className="flex items-center" style={{ padding: "0 12px", gap: 2, borderBottom: "1px solid var(--border)" }}>
           {(
             [
               { id: "details", label: "Details" },
-              { id: "variants", label: "Variants" },
+              { id: "variants", label: "Sizes" },
             ] as const
           ).map((t) => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              data-mm="tab"
+              aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={`px-3 py-2 text-[12.5px] font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
-                tab === t.id
-                  ? "border-border text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
             >
               {t.label}
             </button>
@@ -223,178 +252,201 @@ export default function MediaDrawer({
         </div>
 
         {/* content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 text-[13px]">
+        <div className="flex-1 overflow-y-auto" style={{ padding: "18px 18px 22px" }}>
           {tab === "details" && (
-            <>
-              <Field label="Filename" required>
-                <div className="flex rounded-lg border border-border focus-within:border-border  transition-colors overflow-hidden bg-card">
+            <div className="flex flex-col" style={{ gap: 20 }}>
+              <Field label="Filename" required htmlFor="mm-filename">
+                <div data-mm="control">
                   <input
+                    id="mm-filename"
                     value={base}
                     onChange={(e) => setName(e.target.value + (ext ? "." + ext.toLowerCase() : ""))}
-                    className="flex-1 min-w-0 px-3 py-2 text-[13px] outline-none bg-transparent"
                   />
                   {ext && (
-                    <div className="px-2.5 py-2 text-[12px] text-muted-foreground border-l border-border bg-muted font-mono">
+                    <span data-mm="control-addon" style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}>
                       .{ext.toLowerCase()}
-                    </div>
+                    </span>
                   )}
                 </div>
               </Field>
 
-              <Field label="Alt text" hint="Describe the image for screen readers and SEO.">
-                <textarea
-                  value={alt}
-                  onChange={(e) => setAlt(e.target.value)}
-                  rows={2}
-                  placeholder="A brief description of what's in this image…"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-[13px] outline-none  transition-colors resize-none"
-                />
-                <div className="mt-1 flex items-center justify-end">
-                  <span className="text-[10.5px] font-mono text-muted-foreground tabular-nums">{alt.length}/160</span>
+              <Field
+                label="Alt text"
+                htmlFor="mm-alt"
+                hint={
+                  <div className="flex items-start justify-between" style={{ gap: 12 }}>
+                    <span>Describe the image for screen readers and search engines.</span>
+                    <span
+                      className="tabular-nums shrink-0"
+                      style={{ color: altTooLong ? "var(--warning)" : "var(--fg-subtle)", fontWeight: altTooLong ? 600 : 400 }}
+                    >
+                      {alt.length}/160
+                    </span>
+                  </div>
+                }
+              >
+                <div data-mm="control">
+                  <textarea
+                    id="mm-alt"
+                    value={alt}
+                    onChange={(e) => setAlt(e.target.value)}
+                    rows={3}
+                    placeholder="A brief description of what's in this image…"
+                  />
                 </div>
               </Field>
 
               <Field label="Public URL">
-                <div className="flex rounded-lg border border-border bg-muted overflow-hidden">
-                  <code className="flex-1 min-w-0 px-3 py-2 text-[11.5px] text-muted-foreground truncate font-mono">
+                <div data-mm="control" style={{ background: "var(--sub-bg)" }}>
+                  <code
+                    className="flex-1 min-w-0 truncate"
+                    style={{ padding: "8px 11px", fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--fg-muted)" }}
+                    title={fullUrl}
+                  >
                     {fullUrl}
                   </code>
-                  <button
-                    type="button"
-                    onClick={() => onCopy(file)}
-                    title="Copy URL"
-                    className="px-2.5 border-l border-border hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
-                  >
+                  <button type="button" data-mm="control-addon" onClick={() => onCopy(file)} title="Copy URL" aria-label="Copy URL">
                     {copyState === file.id ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-700" />
+                      <Check className="h-3.5 w-3.5 text-[var(--success)]" />
                     ) : (
                       <Copy className="h-3.5 w-3.5" />
                     )}
                   </button>
                   <a
+                    data-mm="control-addon"
                     href={file.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Open in new tab"
-                    className="px-2.5 border-l border-border hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
+                    aria-label="Open in new tab"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </div>
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Type">
-                  <div className="text-[12.5px] text-foreground">{mimeLabel(file.mime_type)}</div>
-                </Field>
-                <Field label="Size">
-                  <div className="font-mono text-[12.5px] text-foreground tabular-nums">{humanFileSize(file.size)}</div>
-                </Field>
+              <dl
+                className="grid grid-cols-2"
+                style={{ gap: "14px 16px", margin: 0, padding: "14px 16px", borderRadius: "var(--radius-lg)", background: "var(--sub-bg)" }}
+              >
+                <Fact label="Type">{mimeLabel(file.mime_type)}</Fact>
+                <Fact label="Size">{humanFileSize(file.size)}</Fact>
                 {file.width && file.height && (
-                  <Field label="Dimensions">
-                    <div className="font-mono text-[12.5px] text-foreground tabular-nums">
-                      {file.width} × {file.height} px
-                    </div>
-                  </Field>
+                  <Fact label="Dimensions">
+                    {file.width} × {file.height} px
+                  </Fact>
                 )}
-                <Field label="Uploaded">
-                  <div className="text-[12.5px] text-foreground">{new Date(file.created_at).toLocaleDateString()}</div>
-                  <div className="text-[10.5px] text-muted-foreground font-mono">
-                    {new Date(file.created_at).toLocaleTimeString()}
-                  </div>
-                </Field>
-              </div>
+                <Fact label="Uploaded">
+                  {created.toLocaleDateString()}
+                  <span style={{ color: "var(--fg-muted)" }}>
+                    {" · "}
+                    {created.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </Fact>
+              </dl>
 
               {showOptControls && (
                 <div
-                  className={`rounded-lg p-3 border ${
-                    file.is_optimized ? "bg-emerald-50/60 border-emerald-200" : "bg-amber-50/60 border-amber-200"
-                  }`}
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: "var(--radius-lg)",
+                    border: "1px solid var(--border)",
+                  }}
                 >
-                  <div className="flex items-start gap-2">
-                    {file.is_optimized ? (
-                      <Zap className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
-                    )}
+                  <div className="flex items-start" style={{ gap: 10 }}>
+                    <span
+                      className="grid place-items-center shrink-0"
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        background: file.is_optimized ? "var(--success-bg)" : "var(--warning-bg)",
+                        color: file.is_optimized ? "var(--success)" : "var(--warning)",
+                      }}
+                    >
+                      {file.is_optimized ? <Zap className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-[12px] font-semibold ${
-                          file.is_optimized ? "text-emerald-800" : "text-amber-800"
-                        }`}
-                      >
+                      <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "var(--fg)" }}>
                         {file.is_optimized ? "Optimized" : "Not optimized"}
                       </p>
-                      {file.is_optimized && file.original_size > 0 && (
-                        <p className="text-[11px] text-emerald-700 mt-0.5 tabular-nums font-mono">
-                          {humanFileSize(file.original_size)} → {humanFileSize(file.size)} (−{savedPercent(file)}%)
-                        </p>
-                      )}
+                      <p className="tabular-nums" style={{ margin: "2px 0 0", fontSize: 12.5, color: "var(--fg-muted)" }}>
+                        {file.is_optimized && file.original_size > 0
+                          ? `${humanFileSize(file.original_size)} → ${humanFileSize(file.size)} (−${savedPercent(file)}%)`
+                          : "Compress this image to make pages load faster."}
+                      </p>
                     </div>
                   </div>
-                  <div className="mt-2 flex gap-1.5">
+                  <div className="flex" style={{ gap: 8, marginTop: 12 }}>
                     {file.is_optimized && file.original_path && (
                       <button
                         type="button"
+                        data-mm="btn"
+                        className="flex-1"
                         onClick={onRestore}
                         disabled={restoring || reoptimizing}
-                        className="flex-1 h-8 rounded-md text-[11.5px] text-amber-700 border border-amber-200 hover:bg-muted font-medium flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                        {restoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
                         Restore original
                       </button>
                     )}
                     <button
                       type="button"
+                      data-mm="btn"
+                      className="flex-1"
                       onClick={onReoptimize}
                       disabled={restoring || reoptimizing}
-                      className="flex-1 h-8 rounded-md text-[11.5px] text-emerald-700 border border-emerald-200 hover:bg-muted font-medium flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {reoptimizing ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3 w-3" />
-                      )}
+                      {reoptimizing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                       {file.is_optimized ? "Re-optimize" : "Optimize now"}
                     </button>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {tab === "variants" && (
-            <div className="space-y-3">
-              <div className="text-[11.5px] text-muted-foreground">
-                Auto-generated responsive sizes served from the image cache.
-              </div>
+            <div className="flex flex-col" style={{ gap: 8 }}>
+              <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--fg-muted)" }}>
+                Sizes generated from this file and served from the image cache.
+              </p>
               {VARIANT_SIZES.map((v) => {
                 const url = v.size ? imageSize(file.url, v.size, file.updated_at) : file.url;
                 const isOriginal = !v.size;
                 return (
                   <div
                     key={v.label}
-                    className="flex items-center gap-3 p-2.5 rounded-lg border border-border hover:border-border bg-card"
+                    className="flex items-center"
+                    style={{ gap: 12, padding: 10, borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}
                   >
-                    <div className="w-10 h-10 rounded-md overflow-hidden border border-border bg-muted grid place-items-center shrink-0">
+                    <div
+                      className="overflow-hidden grid place-items-center shrink-0"
+                      style={{ width: 44, height: 44, borderRadius: 8, background: "var(--sub-bg)", border: "1px solid var(--border)" }}
+                    >
                       {isImage(file.mime_type) ? (
                         <MediaImage src={url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <FileTypeIcon mime={file.mime_type} className="h-4 w-4 text-muted-foreground" />
+                        <FileTypeIcon mime={file.mime_type} className="h-4 w-4 text-[var(--fg-subtle)]" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12.5px] font-medium text-foreground capitalize">{v.label}</div>
-                      <div className="text-[10.5px] font-mono text-muted-foreground truncate">{url}</div>
+                      <div className="capitalize" style={{ fontSize: 13.5, fontWeight: 500, color: "var(--fg)" }}>
+                        {v.label}
+                      </div>
+                      <div className="truncate" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--fg-subtle)" }}>
+                        {url}
+                      </div>
                     </div>
                     <a
+                      data-mm="btn"
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="px-2 h-7 rounded-md border border-border hover:border-border text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer"
+                      style={{ height: 30, padding: "0 10px", fontSize: 12.5 }}
                     >
-                      <ExternalLink className="h-3 w-3" /> {isOriginal ? "Open" : "View"}
+                      <ExternalLink className="h-3.5 w-3.5" /> {isOriginal ? "Open" : "View"}
                     </a>
                   </div>
                 );
@@ -404,24 +456,21 @@ export default function MediaDrawer({
         </div>
 
         {/* footer */}
-        <div className="border-t border-border p-3 flex items-center gap-2 shrink-0 bg-card">
-          <button
-            type="button"
-            onClick={() => onDelete(file)}
-            className="px-3 h-9 rounded-lg text-red-600 hover:bg-muted text-[12.5px] font-medium flex items-center gap-1.5 cursor-pointer"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
+        <div
+          className="flex items-center shrink-0"
+          style={{ gap: 8, padding: "12px 18px", borderTop: "1px solid var(--border)", background: "var(--card-bg)" }}
+        >
+          <button type="button" data-mm="ghost-btn" data-tone="danger" onClick={() => onDelete(file)} style={{ marginLeft: -8 }}>
+            <Trash2 className="h-4 w-4" /> Delete
           </button>
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 h-9 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-[12.5px] font-medium cursor-pointer"
-          >
-            Cancel
+          <button type="button" data-mm="btn" onClick={onClose}>
+            {dirty ? "Cancel" : "Close"}
           </button>
           <button
             type="button"
+            data-mm="btn"
+            data-variant="primary"
             onClick={() => {
               const patch: { alt?: string; original_name?: string } = {};
               if (alt !== (file.alt || "")) patch.alt = alt;
@@ -429,7 +478,6 @@ export default function MediaDrawer({
               onSave(patch);
             }}
             disabled={!dirty || saving}
-            className="px-3.5 h-9 rounded-lg bg-primary hover:bg-primary/90 disabled:bg-border disabled:text-muted-foreground disabled:cursor-not-allowed text-white text-[12.5px] font-medium shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             Save changes

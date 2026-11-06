@@ -203,7 +203,7 @@ export default function MediaListView({
                     <div
                       className="truncate"
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 11.5,
                         fontFamily: "var(--font-mono)",
                         color: "var(--fg-subtle)",
                       }}
@@ -216,19 +216,19 @@ export default function MediaListView({
               <Td className="text-muted-foreground">
                 <span className="truncate inline-block max-w-[220px] align-middle">
                   {f.alt || (
-                    <span className="text-amber-700 italic inline-flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> missing
+                    <span className="inline-flex items-center gap-1" style={{ color: "var(--warning)", fontWeight: 500 }}>
+                      <AlertTriangle className="h-3 w-3" /> No alt text
                     </span>
                   )}
                 </span>
               </Td>
-              <Td className="font-mono tabular-nums" style={{ fontSize: 12, color: "var(--fg-muted)" }}>
+              <Td className="tabular-nums" style={{ fontSize: 13, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>
                 {humanFileSize(f.size)}
               </Td>
-              <Td className="font-mono tabular-nums" style={{ fontSize: 12, color: "var(--fg-muted)" }}>
+              <Td className="tabular-nums" style={{ fontSize: 13, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>
                 {f.width && f.height ? `${f.width}×${f.height}` : "—"}
               </Td>
-              <Td className="font-mono tabular-nums" style={{ fontSize: 12, color: "var(--fg-muted)" }}>
+              <Td className="tabular-nums" style={{ fontSize: 13, color: "var(--fg-muted)", whiteSpace: "nowrap" }}>
                 {fmtDate(f.created_at)}
               </Td>
               <Td align="right" onClick={(e) => e.stopPropagation()}>

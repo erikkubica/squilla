@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   RotateCw,
-  Check,
 } from "@squilla/icons";
 import { humanFileSize } from "./helpers";
 
@@ -22,6 +21,8 @@ interface QueueItem {
   status: Status;
   error: string | null;
   file?: globalThis.File;
+  /** Object URL for an image thumbnail; revoked when the row goes away. */
+  preview?: string;
 }
 
 interface UploadModalProps {
@@ -36,6 +37,13 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
   const [dragHot, setDragHot] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const activeRef = useRef<Set<string>>(new Set());
+  const previewsRef = useRef<Map<string, string>>(new Map());
+
+  // Free thumbnail object URLs when the modal closes.
+  useEffect(() => {
+    const previews = previewsRef.current;
+    return () => previews.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const updateItem = useCallback((id: string, patch: Partial<QueueItem>) => {
     setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -61,15 +69,15 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
   const addFiles = useCallback(
     (fs: FileList | globalThis.File[]) => {
       const arr = Array.from(fs);
-      const items: QueueItem[] = arr.map((f) => ({
-        id: Math.random().toString(36).slice(2),
-        name: f.name,
-        size: f.size,
-        progress: 0,
-        status: "uploading",
-        error: null,
-        file: f,
-      }));
+      const items: QueueItem[] = arr.map((f) => {
+        const id = Math.random().toString(36).slice(2);
+        let preview: string | undefined;
+        if (f.type.startsWith("image/")) {
+          preview = URL.createObjectURL(f);
+          previewsRef.current.set(id, preview);
+        }
+        return { id, name: f.name, size: f.size, progress: 0, status: "uploading" as Status, error: null, file: f, preview };
+      });
       setQueue((q) => [...items, ...q]);
       items.forEach(startUpload);
     },
@@ -92,6 +100,11 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
     queue.filter((q) => q.status === "error").forEach((q) => retry(q.id));
   }
   function remove(id: string) {
+    const preview = previewsRef.current.get(id);
+    if (preview) {
+      URL.revokeObjectURL(preview);
+      previewsRef.current.delete(id);
+    }
     setQueue((q) => q.filter((it) => it.id !== id));
   }
 
@@ -120,42 +133,54 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
 
+  const compact = total > 0;
+  const finished = total > 0 && uploading === 0;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onMouseDown={close}>
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" onMouseDown={close}>
+      <div className="absolute inset-0" style={{ background: "rgba(15, 23, 42, 0.42)" }} />
       <div
-        className="relative w-[720px] max-w-full max-h-[86vh] rounded-2xl bg-card shadow-2xl overflow-hidden flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Upload media"
+        className="relative w-[640px] max-w-full max-h-[86vh] overflow-hidden flex flex-col"
+        style={{ borderRadius: 14, background: "var(--card-bg)", boxShadow: "0 24px 64px -16px rgba(15, 23, 42, 0.45)" }}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* header */}
-        <div className="h-14 px-5 flex items-center gap-2 border-b border-border shrink-0">
-          <UploadCloud className="h-5 w-5 text-foreground" />
-          <div className="text-[14px] font-semibold text-foreground">Upload media</div>
+        <div
+          className="flex items-center shrink-0"
+          style={{ height: 56, gap: 10, padding: "0 10px 0 20px", borderBottom: "1px solid var(--border)" }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.01em" }}>Upload media</div>
           {total > 0 && (
-            <div className="ml-3 flex items-center gap-1.5 text-[11.5px]">
-              <span className="px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground tabular-nums font-mono">
-                {done}/{total} done
-              </span>
-              {errors > 0 && (
-                <span className="px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-600 tabular-nums font-mono">
-                  {errors} error{errors > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
+            <span
+              className="tabular-nums"
+              style={{ padding: "2px 9px", borderRadius: 999, fontSize: 12, fontWeight: 500, background: "var(--hover-bg)", color: "var(--fg-muted)" }}
+            >
+              {done} of {total} uploaded
+            </span>
+          )}
+          {errors > 0 && (
+            <span
+              className="tabular-nums"
+              style={{ padding: "2px 9px", borderRadius: 999, fontSize: 12, fontWeight: 500, background: "var(--danger-bg)", color: "var(--danger)" }}
+            >
+              {errors} failed
+            </span>
           )}
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={close}
-            className="w-8 h-8 rounded-md hover:bg-muted text-muted-foreground grid place-items-center cursor-pointer"
-          >
+          <button type="button" data-mm="ghost-btn" onClick={close} title="Close" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* body */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto" style={{ padding: 20 }}>
           <label
+            data-mm="dropzone"
+            className="block"
+            data-hot={dragHot || undefined}
             onDragOver={(e) => {
               e.preventDefault();
               setDragHot(true);
@@ -166,11 +191,6 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
               setDragHot(false);
               if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
             }}
-            className={`block rounded-xl border-2 border-dashed transition-all cursor-pointer ${
-              dragHot
-                ? "border-border bg-accent/60"
-                : "border-border hover:border-border hover:bg-muted/60 bg-muted/30"
-            }`}
           >
             <input
               ref={inputRef}
@@ -182,115 +202,160 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
                 e.target.value = "";
               }}
             />
-            <div className="px-6 py-10 text-center">
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-accent grid place-items-center mb-3">
-                <UploadCloud className="h-7 w-7 text-foreground" />
-              </div>
-              <div className="text-[14px] font-semibold text-foreground">Drop files here, or click to browse</div>
-              <div className="mt-1 text-[12px] text-muted-foreground">
-                JPG, PNG, WebP, AVIF, SVG, MP4 — multiple files supported
-              </div>
-              <div className="mt-3 flex items-center justify-center gap-2">
+            {compact ? (
+              <div className="flex items-center" style={{ gap: 14, padding: "14px 16px" }}>
+                <span
+                  className="grid place-items-center shrink-0"
+                  style={{ width: 40, height: 40, borderRadius: 10, background: "var(--card-bg)", border: "1px solid var(--border)", color: "var(--accent-strong)" }}
+                >
+                  <UploadCloud className="h-5 w-5" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--fg)" }}>Add more files</div>
+                  <div style={{ fontSize: 12.5, color: "var(--fg-muted)" }}>Drop them here or browse</div>
+                </div>
                 <button
                   type="button"
+                  data-mm="btn"
                   onClick={(e) => {
                     e.preventDefault();
+                    e.currentTarget.blur();
                     inputRef.current?.click();
                   }}
-                  className="px-3 h-8 rounded-md bg-primary hover:bg-primary/90 text-white text-[12px] font-medium flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Folder className="h-3 w-3" /> Browse files
+                  <Folder className="h-3.5 w-3.5" /> Browse
                 </button>
               </div>
-            </div>
+            ) : (
+              <div className="text-center" style={{ padding: "36px 24px" }}>
+                <span
+                  className="mx-auto grid place-items-center"
+                  style={{ width: 52, height: 52, borderRadius: 14, background: "var(--card-bg)", border: "1px solid var(--border)", color: "var(--accent-strong)", boxShadow: "var(--shadow-sm)" }}
+                >
+                  <UploadCloud className="h-6 w-6" />
+                </span>
+                <div style={{ marginTop: 14, fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>Drop files here</div>
+                <div style={{ marginTop: 4, fontSize: 13, color: "var(--fg-muted)" }}>
+                  JPG, PNG, WebP, AVIF, SVG or MP4. Several at once is fine.
+                </div>
+                <button
+                  type="button"
+                  data-mm="btn"
+                  data-variant="primary"
+                  style={{ marginTop: 16 }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                    inputRef.current?.click();
+                  }}
+                >
+                  <Folder className="h-3.5 w-3.5" /> Browse files
+                </button>
+              </div>
+            )}
           </label>
 
           {queue.length > 0 && (
-            <div className="mt-5">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Queue · {total}
+            <div style={{ marginTop: 18 }}>
+              <div className="flex items-center" style={{ gap: 10, marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)" }}>
+                  {total} {total === 1 ? "file" : "files"}
                 </div>
-                <div className="flex-1 h-px bg-border" />
+                <div className="flex-1 overflow-hidden" style={{ height: 4, borderRadius: 999, background: "var(--hover-bg)" }}>
+                  <div
+                    style={{
+                      width: overall + "%",
+                      height: "100%",
+                      borderRadius: 999,
+                      background: errors > 0 && finished ? "var(--warning)" : finished ? "var(--success)" : "var(--accent)",
+                      transition: "width 0.2s ease",
+                    }}
+                  />
+                </div>
+                <div className="tabular-nums" style={{ fontSize: 12.5, color: "var(--fg-muted)", minWidth: 34, textAlign: "right" }}>
+                  {overall}%
+                </div>
                 {errors > 0 && (
-                  <button
-                    type="button"
-                    onClick={retryAll}
-                    className="text-[11px] text-foreground hover:text-foreground font-medium flex items-center gap-1 cursor-pointer"
-                  >
-                    <RotateCw className="h-3 w-3" /> Retry failed
+                  <button type="button" data-mm="ghost-btn" onClick={retryAll} style={{ height: 28 }}>
+                    <RotateCw className="h-3.5 w-3.5" /> Retry failed
                   </button>
                 )}
-                <div className="text-[11px] font-mono tabular-nums text-muted-foreground">{overall}%</div>
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col" style={{ gap: 8 }}>
                 {queue.map((item) => (
                   <div
                     key={item.id}
-                    className={`rounded-lg border bg-card flex items-center gap-3 p-2.5 ${
-                      item.status === "error" ? "border-rose-200 bg-rose-50/40" : "border-border"
-                    }`}
+                    className="flex items-center"
+                    style={{
+                      gap: 12,
+                      padding: 10,
+                      borderRadius: "var(--radius-lg)",
+                      border: `1px solid ${item.status === "error" ? "color-mix(in srgb, var(--danger) 30%, transparent)" : "var(--border)"}`,
+                      background: item.status === "error" ? "var(--danger-bg)" : "var(--card-bg)",
+                    }}
                   >
-                    <div className="w-10 h-10 rounded-md overflow-hidden border border-border shrink-0 relative bg-muted grid place-items-center">
-                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    <div
+                      className="relative overflow-hidden grid place-items-center shrink-0"
+                      style={{ width: 44, height: 44, borderRadius: 8, background: "var(--sub-bg)", border: "1px solid var(--border)" }}
+                    >
+                      {item.preview ? (
+                        <img src={item.preview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-4 w-4 text-[var(--fg-subtle)]" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="text-[12.5px] font-medium text-foreground truncate flex-1">{item.name}</div>
-                        <div className="text-[10.5px] font-mono tabular-nums text-muted-foreground">
+                      <div className="flex items-baseline" style={{ gap: 8 }}>
+                        <div className="truncate flex-1" style={{ fontSize: 13.5, fontWeight: 500, color: "var(--fg)" }} title={item.name}>
+                          {item.name}
+                        </div>
+                        <div className="tabular-nums shrink-0" style={{ fontSize: 12, color: "var(--fg-subtle)" }}>
                           {humanFileSize(item.size)}
                         </div>
                       </div>
                       {item.status === "uploading" && (
-                        <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full bg-accent0 transition-[width] duration-200"
-                            style={{ width: item.progress + "%" }}
-                          />
+                        <div className="flex items-center" style={{ gap: 8, marginTop: 7 }}>
+                          <div className="flex-1 overflow-hidden" style={{ height: 4, borderRadius: 999, background: "var(--hover-bg)" }}>
+                            <div
+                              style={{ width: item.progress + "%", height: "100%", borderRadius: 999, background: "var(--accent)", transition: "width 0.2s ease" }}
+                            />
+                          </div>
+                          <span className="tabular-nums" style={{ fontSize: 12, color: "var(--fg-muted)", minWidth: 32, textAlign: "right" }}>
+                            {Math.round(item.progress)}%
+                          </span>
                         </div>
                       )}
                       {item.status === "processing" && (
-                        <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin" /> Optimizing…
+                        <div className="flex items-center" style={{ gap: 6, marginTop: 4, fontSize: 12.5, color: "var(--fg-muted)" }}>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Optimizing…
                         </div>
                       )}
                       {item.status === "done" && (
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700">
-                          <CheckCircle2 className="h-3 w-3" /> Uploaded &amp; optimized
+                        <div className="flex items-center" style={{ gap: 6, marginTop: 4, fontSize: 12.5, color: "var(--success)", fontWeight: 500 }}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Uploaded
                         </div>
                       )}
                       {item.status === "error" && (
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-rose-600">
-                          <AlertTriangle className="h-3 w-3" /> {item.error}
+                        <div className="flex items-center" style={{ gap: 6, marginTop: 4, fontSize: 12.5, color: "var(--danger)" }}>
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{item.error}</span>
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      {item.status === "uploading" && (
-                        <div className="text-[11px] font-mono tabular-nums text-muted-foreground w-10 text-right">
-                          {Math.round(item.progress)}%
-                        </div>
-                      )}
+                    <div className="flex items-center shrink-0" style={{ gap: 2 }}>
                       {item.status === "error" && (
-                        <button
-                          type="button"
-                          onClick={() => retry(item.id)}
-                          className="h-7 px-2 rounded-md hover:bg-rose-100 text-rose-600 text-[11px] font-medium flex items-center gap-1 cursor-pointer"
-                        >
-                          <RotateCw className="h-3 w-3" /> Retry
+                        <button type="button" data-mm="ghost-btn" data-tone="danger" onClick={() => retry(item.id)} style={{ height: 30 }}>
+                          <RotateCw className="h-3.5 w-3.5" /> Retry
                         </button>
-                      )}
-                      {item.status === "done" && (
-                        <div className="w-6 h-6 rounded-full bg-emerald-500 text-white grid place-items-center">
-                          <Check className="h-3 w-3" strokeWidth={3} />
-                        </div>
                       )}
                       <button
                         type="button"
+                        data-mm="ghost-btn"
                         onClick={() => remove(item.id)}
-                        className="w-7 h-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground grid place-items-center cursor-pointer"
+                        title="Remove from list"
+                        aria-label={`Remove ${item.name} from list`}
+                        style={{ height: 30, minWidth: 30, padding: 0 }}
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -300,21 +365,22 @@ export default function UploadModal({ initialFiles, onClose, onUploadFile, onCom
           )}
         </div>
 
-        <div className="border-t border-border p-3 flex items-center gap-2 shrink-0">
-          <div className="text-[11.5px] text-muted-foreground">
+        <div
+          className="flex items-center shrink-0"
+          style={{ gap: 8, padding: "12px 20px", borderTop: "1px solid var(--border)" }}
+        >
+          <div className="tabular-nums" style={{ fontSize: 13, color: "var(--fg-muted)" }}>
             {uploading > 0
-              ? `Uploading ${uploading}…`
+              ? `Uploading ${uploading} ${uploading === 1 ? "file" : "files"}…`
               : total === 0
               ? "No files yet"
-              : `${done} uploaded · ${errors} failed`}
+              : errors > 0
+              ? `${done} uploaded, ${errors} failed`
+              : `${done} uploaded`}
           </div>
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={close}
-            className="px-3 h-9 rounded-lg border border-border hover:bg-muted text-foreground text-[12.5px] font-medium cursor-pointer"
-          >
-            {done > 0 ? "Done" : "Close"}
+          <button type="button" data-mm="btn" data-variant={finished && done > 0 ? "primary" : undefined} onClick={close}>
+            {finished && done > 0 ? "Done" : "Close"}
           </button>
         </div>
       </div>

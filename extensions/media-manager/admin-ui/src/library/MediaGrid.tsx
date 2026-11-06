@@ -25,30 +25,32 @@ interface GridCardProps {
 }
 
 function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownload, onDelete }: GridCardProps) {
-  const showOptimized = file.is_optimized && isImage(file.mime_type);
+  const img = isImage(file.mime_type);
+  const optimizable = img && file.mime_type !== "image/svg+xml";
   const pct = savedPercent(file);
-  const badgeHide = selected ? "opacity-0" : "opacity-100 group-hover:opacity-0";
 
-  // Card chrome: solid bg, single ring border, transition only the box-shadow.
-  // Previous implementation stacked `ring-1 + ring-2 + ring-offset + shadow-md
-  // + transition-all` on every card AND `backdrop-blur-sm` on six per-card
-  // overlays (orig/opt/dimensions/copy/download/delete). At ~30 cards that
-  // hit ~180 GPU compositor layers on first paint, which Chrome handled by
-  // dropping frames — the "entire UI desaturates and tiles vanish" flash.
-  // Solid backgrounds (no /95 + backdrop-blur), one ring, and a targeted
-  // box-shadow transition keep the look identical without the GPU storm.
+  // One flat card: solid backgrounds and no backdrop-blur on the overlays.
+  // Blurred per-card overlays at ~30 cards made Chrome drop frames (tiles
+  // vanished on first paint), so the overlays stay solid. Hover/selection
+  // states live in index.css ([data-mm="card"]).
   return (
     <div
+      data-mm="card"
+      data-selected={selected || undefined}
+      role="button"
+      tabIndex={0}
+      aria-label={`Edit ${file.original_name}`}
       onClick={() => onOpen(file)}
-      className={`group relative flex flex-col overflow-hidden rounded-xl cursor-pointer bg-card ${
-        selected
-          ? "ring-2 ring-indigo-500 shadow-md"
-          : "ring-1 ring-slate-200 hover:ring-slate-300 hover:shadow-md"
-      }`}
-      style={{ transition: "box-shadow 120ms ease" }}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(file);
+        }
+      }}
     >
-      <div className="relative w-full overflow-hidden bg-muted" style={{ aspectRatio: "4 / 3" }}>
-        {isImage(file.mime_type) ? (
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4 / 3", background: "var(--sub-bg)" }}>
+        {img ? (
           <MediaImage
             src={imageSize(file.url, "medium", file.updated_at)}
             alt={file.alt || file.original_name}
@@ -57,109 +59,129 @@ function GridCard({ file, selected, copyState, onOpen, onToggle, onCopy, onDownl
         ) : (
           <div className="absolute inset-0 grid place-items-center">
             <div className="flex flex-col items-center gap-2">
-              <FileTypeIcon mime={file.mime_type} className="h-8 w-8 text-muted-foreground" />
-              <span className="rounded-md bg-border/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <FileTypeIcon mime={file.mime_type} className="h-8 w-8 text-[var(--fg-subtle)]" />
+              <span
+                style={{
+                  padding: "1px 8px",
+                  borderRadius: 999,
+                  background: "var(--card-bg)",
+                  boxShadow: "inset 0 0 0 1px var(--border)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "var(--fg-muted)",
+                }}
+              >
                 {getFileExtension(file.original_name)}
               </span>
             </div>
           </div>
         )}
 
-        {/* Top-left: optimization badge (hides when checkbox slot needed) */}
-        {showOptimized ? (
-          <div
-            className={`absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full pl-1 pr-1.5 py-0.5 text-white shadow-sm transition-opacity ${badgeHide}`}
-            style={{ background: "rgb(16, 185, 129)" }}
-            title={`Optimized — saved ${humanFileSize(file.optimization_savings)}`}
-          >
-            <Zap className="h-2.5 w-2.5" strokeWidth={2.5} />
-            <span className="text-[9px] font-bold leading-none tabular-nums">−{pct || 1}%</span>
-          </div>
-        ) : isImage(file.mime_type) && file.mime_type !== "image/svg+xml" ? (
-          <div
-            className={`absolute top-1.5 left-1.5 rounded-full px-1.5 py-0.5 text-white text-[9px] font-medium transition-opacity ${badgeHide}`}
-            style={{ background: "rgba(15, 23, 42, 0.75)" }}
-            title="Original — not optimized"
-          >
-            orig
-          </div>
-        ) : null}
-
-        {/* Top-right: dimensions chip on hover */}
-        {file.width && file.height && (
-          <div
-            className="absolute top-1.5 right-1.5 rounded-md px-1.5 py-0.5 text-white text-[9px] font-mono opacity-0 group-hover:opacity-100 transition-opacity tabular-nums"
-            style={{ background: "rgba(15, 23, 42, 0.8)" }}
-          >
-            {file.width}×{file.height}
-          </div>
-        )}
-
-        {/* Top-left checkbox — visible on hover or when selected */}
+        {/* Checkbox: on hover, while selected, and always on touch screens */}
         <div
-          className={`absolute top-1.5 left-1.5 z-10 transition-opacity ${
-            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
+          data-mm="reveal-check"
+          className="absolute top-2 left-2 z-10"
           onClick={(e) => {
             e.stopPropagation();
             onToggle(file.id, e);
           }}
         >
-          <SelectCheck checked={selected} size={20} />
+          <SelectCheck checked={selected} size={22} label={`Select ${file.original_name}`} />
         </div>
 
-        {/* Hover quick-actions — solid backgrounds, no backdrop-blur */}
+        {/* Facts on hover: dimensions and what optimization saved */}
+        {(file.width && file.height) || optimizable ? (
+          <div data-mm="reveal" className="absolute top-2 right-2 flex items-center gap-1">
+            {optimizable &&
+              (file.is_optimized ? (
+                pct > 0 && (
+                  <span data-mm="chip" title={`Optimized, saved ${humanFileSize(file.optimization_savings)}`}>
+                    <Zap className="h-3 w-3" /> −{pct}%
+                  </span>
+                )
+              ) : (
+                <span data-mm="chip" title="Not optimized yet">
+                  Original
+                </span>
+              ))}
+            {file.width && file.height && (
+              <span data-mm="chip">
+                {file.width}×{file.height}
+              </span>
+            )}
+          </div>
+        ) : null}
+
+        {/* Quick actions on hover */}
         <div
-          className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1.5 pb-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          data-mm="actions"
+          className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 p-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            onClick={() => onCopy(file)}
-            className="flex-1 h-7 rounded-md bg-card hover:bg-muted text-foreground text-[10.5px] font-medium shadow-sm border border-border flex items-center justify-center gap-1 cursor-pointer"
-            title="Copy URL"
-          >
+          <button type="button" data-mm="overlay-btn" className="flex-1" onClick={() => onCopy(file)}>
             {copyState === file.id ? (
               <>
-                <Check className="h-3 w-3 text-emerald-700" /> Copied
+                <Check className="h-3.5 w-3.5 text-[var(--success)]" /> Copied
               </>
             ) : (
               <>
-                <Copy className="h-3 w-3" /> Copy URL
+                <Copy className="h-3.5 w-3.5" /> Copy URL
               </>
             )}
           </button>
           <button
             type="button"
+            data-mm="overlay-btn"
             onClick={() => onDownload(file)}
-            className="h-7 w-7 grid place-items-center rounded-md bg-card hover:bg-muted text-foreground shadow-sm border border-border cursor-pointer"
             title="Download"
+            aria-label={`Download ${file.original_name}`}
           >
-            <Download className="h-3 w-3" />
+            <Download className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
+            data-mm="overlay-btn"
+            data-tone="danger"
             onClick={() => onDelete(file)}
-            className="h-7 w-7 grid place-items-center rounded-md bg-card hover:bg-muted text-red-600 shadow-sm border border-border cursor-pointer"
             title="Delete"
+            aria-label={`Delete ${file.original_name}`}
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="px-2.5 py-2 border-t border-border">
-        <p className="truncate text-[12px] font-medium text-foreground leading-tight">{file.original_name}</p>
-        <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="text-[10px] text-muted-foreground tabular-nums font-mono shrink-0">{humanFileSize(file.size)}</p>
+      <div style={{ padding: "9px 12px 11px", borderTop: "1px solid var(--divider)" }}>
+        <p
+          className="truncate"
+          title={file.original_name}
+          style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)", lineHeight: 1.35, margin: 0 }}
+        >
+          {file.original_name}
+        </p>
+        <div
+          className="flex items-center min-w-0"
+          style={{ gap: 6, marginTop: 3, fontSize: 12, color: "var(--fg-muted)", lineHeight: 1.35 }}
+        >
+          <span className="shrink-0 tabular-nums">{humanFileSize(file.size)}</span>
           {file.alt ? (
-            <span className="text-[9.5px] text-muted-foreground truncate italic" title={file.alt}>
-              “{file.alt}”
-            </span>
-          ) : isImage(file.mime_type) ? (
-            <span className="text-[9.5px] text-amber-700 font-medium flex items-center gap-0.5 shrink-0">
-              <AlertTriangle className="h-2.5 w-2.5" /> no alt
-            </span>
+            <>
+              <span aria-hidden style={{ color: "var(--fg-hint)" }}>·</span>
+              <span className="truncate" title={file.alt}>
+                {file.alt}
+              </span>
+            </>
+          ) : img ? (
+            <>
+              <span aria-hidden style={{ color: "var(--fg-hint)" }}>·</span>
+              <span
+                className="flex items-center shrink-0"
+                style={{ gap: 4, color: "var(--warning)", fontWeight: 500 }}
+                title="Add alt text for screen readers and search engines"
+              >
+                <AlertTriangle className="h-3 w-3" /> No alt text
+              </span>
+            </>
           ) : null}
         </div>
       </div>
@@ -200,7 +222,7 @@ export default function MediaGrid({
   onDelete,
 }: MediaGridProps) {
   return (
-    <div className={`grid ${COL_CLASSES[density]} gap-3`}>
+    <div className={`grid ${COL_CLASSES[density]} ${density === "compact" ? "gap-3" : "gap-4"}`}>
       {files.map((f) => (
         <GridCard
           key={f.id}

@@ -288,12 +288,11 @@ export default function MediaPickerModal({
                   <button
                     key={file.id}
                     type="button"
+                    data-mm="pick"
+                    data-selected={isSelected || undefined}
+                    aria-pressed={isSelected}
                     onClick={() => toggleSelect(file)}
-                    className={`group relative aspect-square rounded-lg border-2 overflow-hidden transition-all ${
-                      isSelected
-                        ? "border-border ring-2 ring-ring/20"
-                        : "border-border hover:border-border"
-                    }`}
+                    className="group"
                   >
                     {isImage(file.mime_type) ? (
                       <img
@@ -312,8 +311,18 @@ export default function MediaPickerModal({
                     )}
                     {/* Selection indicator */}
                     {isSelected && (
-                      <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-accent0 flex items-center justify-center">
-                        <Check className="h-3 w-3 text-white" />
+                      <div
+                        className="absolute top-2 right-2 grid place-items-center"
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 999,
+                          background: "var(--accent)",
+                          color: "var(--accent-fg)",
+                          boxShadow: "0 0 0 2px var(--card-bg), 0 1px 3px rgba(15, 23, 42, 0.3)",
+                        }}
+                      >
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
                       </div>
                     )}
                     {/* File info overlay on hover */}

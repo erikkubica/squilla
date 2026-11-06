@@ -492,11 +492,11 @@ export default function MediaFieldInput({ field, value, onChange }: MediaFieldIn
         <Button
           type="button"
           variant="outline"
-          className="w-full rounded-lg border-dashed border-border text-muted-foreground hover:border-border hover:text-foreground"
+          className="w-full rounded-lg border-dashed text-[var(--fg-muted)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]"
           onClick={() => setPickerOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Add Media
+          Add media
         </Button>
         <MediaPickerModal
           open={pickerOpen}
@@ -536,11 +536,12 @@ export default function MediaFieldInput({ field, value, onChange }: MediaFieldIn
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="w-full rounded-lg border-2 border-dashed border-border hover:border-border bg-muted hover:bg-accent/50 transition-colors p-6 flex flex-col items-center gap-2"
+          data-mm="dropzone"
+          className="w-full p-6 flex flex-col items-center gap-2 text-[var(--fg-muted)] hover:text-[var(--accent-strong)]"
         >
-          <ImagePlus className="h-8 w-8 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            Click to select {field.type === "file" ? "a file" : "an image"}
+          <ImagePlus className="h-7 w-7" />
+          <span style={{ fontSize: 13.5, fontWeight: 500 }}>
+            Choose {field.type === "file" ? "a file" : "an image"}
           </span>
         </button>
       )}
