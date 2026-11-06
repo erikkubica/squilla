@@ -39,222 +39,156 @@ export function Titlebar({
 	actions,
 }: TitlebarProps) {
 	return (
-		<div
-			className="flex items-center"
-			style={{
-				background: "var(--card-bg)",
-				borderRadius: "var(--radius-lg)",
-				boxShadow: "var(--shadow-card)",
-				height: 50,
-				overflow: "hidden",
-			}}
-		>
-			{onBack && (
-				<button
-					type="button"
-					onClick={onBack}
-					className="grid place-items-center"
-					style={{
-						width: 50,
-						height: "100%",
-						color: "var(--fg-muted)",
-						flexShrink: 0,
-						borderRight: "1px solid var(--divider)",
-						background: "transparent",
-						border: "none",
-						cursor: "pointer",
-						transition: "background 0.12s, color 0.12s",
-					}}
-					onMouseEnter={(e) => {
-						e.currentTarget.style.background = "var(--hover-bg)";
-						e.currentTarget.style.color = "var(--fg)";
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.background = "transparent";
-						e.currentTarget.style.color = "var(--fg-muted)";
-					}}
-					aria-label="Back"
-				>
-					<ArrowLeft size={15} />
-				</button>
-			)}
+		<div data-slot="titlebar">
+			<div data-slot="titlebar-bar">
+				{onBack && (
+					<button
+						type="button"
+						data-slot="titlebar-back"
+						onClick={onBack}
+						aria-label="Back"
+					>
+						<ArrowLeft size={17} />
+					</button>
+				)}
 
-			<div
-				className="flex flex-col justify-center"
-				style={{
-					flex: slug !== undefined ? "1 1 60%" : "1 1 100%",
-					gap: 2,
-					padding: "0 14px",
-					minWidth: 0,
-					height: "100%",
-				}}
-			>
-				<span
-					style={{
-						fontSize: 9.5,
-						fontWeight: 500,
-						fontFamily: "var(--font-mono)",
-						textTransform: "uppercase",
-						letterSpacing: "0.07em",
-						color: "var(--fg-subtle)",
-					}}
-				>
-					{titleLabel}
-				</span>
-				<input
-					value={title}
-					onChange={(e) => onTitleChange(e.target.value)}
-					placeholder={titlePlaceholder}
-					style={{
-						background: "transparent",
-						border: "none",
-						outline: "none",
-						fontFamily: "var(--font-body)",
-						fontSize: 14.5,
-						fontWeight: 600,
-						color: "var(--fg)",
-						padding: 0,
-						minWidth: 0,
-						letterSpacing: "-0.015em",
-						width: "100%",
-					}}
-				/>
-			</div>
-
-			{slug !== undefined && onSlugChange && (
-				<>
-					<div
+				<div data-slot="titlebar-title">
+					<span
 						style={{
-							width: 1,
-							height: 30,
-							background: "var(--divider)",
-							flexShrink: 0,
-						}}
-					/>
-					<div
-						className="flex flex-col justify-center"
-						style={{
-							flex: "1 1 38%",
-							gap: 2,
-							padding: "0 14px",
-							minWidth: 0,
-							height: "100%",
+							fontSize: 12,
+							fontWeight: 500,
+							color: "var(--fg-subtle)",
 						}}
 					>
-						<div
-							className="flex items-center justify-between"
-							style={{ minWidth: 0 }}
-						>
-							<span
-								style={{
-									fontSize: 9.5,
-									fontWeight: 500,
-									fontFamily: "var(--font-mono)",
-									textTransform: "uppercase",
-									letterSpacing: "0.07em",
-									color: "var(--fg-subtle)",
-								}}
+						{titleLabel}
+					</span>
+					<input
+						value={title}
+						onChange={(e) => onTitleChange(e.target.value)}
+						placeholder={titlePlaceholder}
+						style={{
+							background: "transparent",
+							border: "none",
+							outline: "none",
+							fontFamily: "var(--font-body)",
+							fontSize: 15,
+							fontWeight: 600,
+							color: "var(--fg)",
+							padding: 0,
+							minWidth: 0,
+							letterSpacing: "-0.015em",
+							width: "100%",
+						}}
+					/>
+				</div>
+
+				{slug !== undefined && onSlugChange && (
+					<>
+						<div data-slot="titlebar-sep" aria-hidden />
+						<div data-slot="titlebar-slug">
+							<div
+								className="flex items-center justify-between"
+								style={{ minWidth: 0 }}
 							>
-								{slugLabel}
-							</span>
-							{onAutoSlugToggle && (
-								<button
-									type="button"
-									onClick={onAutoSlugToggle}
+								<span
 									style={{
-										fontSize: 9,
+										fontSize: 12,
 										fontWeight: 500,
-										fontFamily: "var(--font-mono)",
-										textTransform: "uppercase",
-										letterSpacing: "0.05em",
-										padding: "1px 5px",
-										borderRadius: 3,
-										border: "none",
-										cursor: "pointer",
-										lineHeight: 1.2,
-										transition: "background 0.12s, color 0.12s",
-										background: autoSlug
-											? "var(--accent-mid)"
-											: "var(--sub-bg)",
-										color: autoSlug
-											? "var(--accent-strong)"
-											: "var(--fg-muted)",
+										color: "var(--fg-subtle)",
 									}}
 								>
-									{autoSlug ? "Auto" : "Edit"}
-								</button>
-							)}
+									{slugLabel}
+								</span>
+								{onAutoSlugToggle && (
+									<button
+										type="button"
+										onClick={onAutoSlugToggle}
+										style={{
+											fontSize: 11.5,
+											fontWeight: 600,
+											padding: "1px 7px",
+											borderRadius: 999,
+											border: "none",
+											cursor: "pointer",
+											lineHeight: 1.2,
+											transition: "background 0.12s, color 0.12s",
+											background: autoSlug
+												? "var(--accent-weak)"
+												: "var(--hover-bg)",
+											color: autoSlug
+												? "var(--accent-strong)"
+												: "var(--fg-muted)",
+										}}
+									>
+										{autoSlug ? "Auto" : "Edit"}
+									</button>
+								)}
+							</div>
+							<div
+								className="flex items-center"
+								style={{ gap: 5, minWidth: 0 }}
+							>
+								<span
+									style={{
+										fontFamily: "var(--font-mono)",
+										fontSize: 13,
+										color: "var(--fg-subtle)",
+										flexShrink: 0,
+									}}
+								>
+									{slugPrefix}
+								</span>
+								<input
+									value={slug}
+									onChange={(e) => onSlugChange(e.target.value)}
+									disabled={autoSlug}
+									style={{
+										flex: 1,
+										background: "transparent",
+										border: "none",
+										outline: "none",
+										fontFamily: "var(--font-mono)",
+										fontSize: 13,
+										color: "var(--fg)",
+										padding: 0,
+										minWidth: 0,
+										opacity: autoSlug ? 0.6 : 1,
+									}}
+								/>
+							</div>
 						</div>
-						<div className="flex items-center" style={{ gap: 5, minWidth: 0 }}>
-							<span
+					</>
+				)}
+
+				{(viewHref || actions) && (
+					<div data-slot="titlebar-actions">
+						{viewHref && (
+							<a
+								href={viewHref}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center"
 								style={{
-									fontFamily: "var(--font-mono)",
-									fontSize: 11.5,
-									color: "var(--fg-subtle)",
-									flexShrink: 0,
+									height: 32,
+									padding: "0 12px",
+									fontSize: 13,
+									fontWeight: 500,
+									color: "var(--fg)",
+									background: "var(--card-bg)",
+									borderRadius: "var(--radius-md)",
+									gap: 6,
+									boxShadow:
+										"0 0 0 1px var(--border-input), 0 1px 2px rgba(15,23,42,0.05)",
+									letterSpacing: "-0.005em",
 								}}
 							>
-								{slugPrefix}
-							</span>
-							<input
-								value={slug}
-								onChange={(e) => onSlugChange(e.target.value)}
-								disabled={autoSlug}
-								style={{
-									flex: 1,
-									background: "transparent",
-									border: "none",
-									outline: "none",
-									fontFamily: "var(--font-mono)",
-									fontSize: 12,
-									color: "var(--fg)",
-									padding: 0,
-									minWidth: 0,
-									opacity: autoSlug ? 0.6 : 1,
-								}}
-							/>
-						</div>
+								<ExternalLink size={14} /> View
+							</a>
+						)}
+						{actions}
 					</div>
-				</>
-			)}
-
-			{(viewHref || actions) && (
-				<div
-					className="flex items-center"
-					style={{
-						gap: 6,
-						padding: "0 12px",
-						flexShrink: 0,
-						height: "100%",
-						borderLeft: "1px solid var(--divider)",
-					}}
-				>
-					{viewHref && (
-						<a
-							href={viewHref}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex items-center"
-							style={{
-								height: 28,
-								padding: "0 10px",
-								fontSize: 11.5,
-								fontWeight: 500,
-								color: "var(--fg)",
-								background: "var(--card-bg)",
-								borderRadius: "var(--radius-md)",
-								gap: 5,
-								boxShadow:
-									"0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04)",
-								letterSpacing: "-0.005em",
-							}}
-						>
-							<ExternalLink size={11} /> View
-						</a>
-					)}
-					{actions}
-				</div>
-			)}
+				)}
+			</div>
 		</div>
 	);
 }

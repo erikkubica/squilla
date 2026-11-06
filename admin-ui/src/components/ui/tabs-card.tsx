@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -9,6 +9,8 @@ export interface TabsCardItem {
   badge?: ReactNode;
   content: ReactNode;
   disabled?: boolean;
+  /** Per-tab panel style, e.g. a recessed background for a block list. */
+  panelStyle?: CSSProperties;
 }
 
 interface TabsCardProps {
@@ -33,7 +35,7 @@ export function TabsCard({
   value,
   onValueChange,
   defaultValue,
-  panelPadding = "14px 16px 18px",
+  panelPadding = "18px 18px 20px",
 }: TabsCardProps) {
   if (tabs.length === 0) return null;
   const fallback = defaultValue ?? tabs[0].value;
@@ -45,37 +47,18 @@ export function TabsCard({
         onValueChange={onValueChange}
         defaultValue={value === undefined ? fallback : undefined}
       >
-        <TabsList style={{ outline: "none", paddingLeft: 16, paddingRight: 16 }}>
+        <TabsList style={{ outline: "none", paddingLeft: 12, paddingRight: 12 }}>
           {tabs.map((t) => (
             <TabsTrigger key={t.value} value={t.value} disabled={t.disabled}>
               {t.label}
               {t.badge !== undefined && t.badge !== null && (
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                    fontWeight: 500,
-                    padding: "1px 5px",
-                    borderRadius: 8,
-                    marginLeft: 6,
-                    background:
-                      value === t.value || (value === undefined && fallback === t.value)
-                        ? "var(--accent-mid)"
-                        : "var(--sub-bg)",
-                    color:
-                      value === t.value || (value === undefined && fallback === t.value)
-                        ? "var(--accent-strong)"
-                        : "var(--fg-muted)",
-                  }}
-                >
-                  {t.badge}
-                </span>
+                <span data-slot="count">{t.badge}</span>
               )}
             </TabsTrigger>
           ))}
         </TabsList>
         {tabs.map((t) => (
-          <TabsContent key={t.value} value={t.value} style={{ padding: panelPadding }}>
+          <TabsContent key={t.value} value={t.value} style={{ padding: panelPadding, ...t.panelStyle }}>
             {t.content}
           </TabsContent>
         ))}

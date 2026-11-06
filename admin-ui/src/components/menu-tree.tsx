@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AccordionRow } from "@/components/ui/accordion-row";
 import { Input } from "@/components/ui/input";
+import { SearchDropdown } from "@/components/ui/search-dropdown";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getNodes, type MenuItem, type ContentNode } from "@/api/client";
@@ -29,7 +30,6 @@ function NodeSearchInput({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState<string>("");
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Load initial label for existing node_id
@@ -44,17 +44,6 @@ function NodeSearchInput({
         .catch(() => setSelectedLabel(`Node #${value}`));
     }
   }, [value]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
 
   const doSearch = useCallback((q: string) => {
     setLoading(true);
@@ -97,40 +86,34 @@ function NodeSearchInput({
   }
 
   return (
-    <div ref={wrapperRef} className="relative">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2 h-4 w-4" style={{ color: "var(--fg-subtle)" }} />
-        <Input
-          value={query}
-          onChange={(e) => handleInput(e.target.value)}
-          onFocus={() => { if (!open) { setOpen(true); doSearch(query); } }}
-          placeholder="Search pages..."
-          className="h-9 pl-8"
-        />
-        {loading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin" style={{ color: "var(--fg-subtle)" }} />}
-      </div>
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
+    <SearchDropdown
+      open={open && (results.length > 0 || !loading)}
+      onOpenChange={setOpen}
+      content={
+        <>
           {results.length === 0 && !loading && (
-            <p className="px-3 py-2 text-xs" style={{ color: "var(--fg-subtle)" }}>
-              {query ? "No results found" : "Type to search pages"}
-            </p>
+            <div data-slot="search-empty">{query ? "No results found" : "Type to search pages"}</div>
           )}
           {results.map((node) => (
-            <button
-              key={node.id}
-              type="button"
-              onClick={() => handleSelect(node)}
-              className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
-            >
-              <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--fg-subtle)" }} />
-              <span className="font-medium text-foreground truncate">{node.title}</span>
-              <span className="text-xs truncate" style={{ color: "var(--fg-subtle)" }}>/{node.slug}</span>
+            <button key={node.id} type="button" data-slot="search-option" onClick={() => handleSelect(node)}>
+              <FileText size={14} style={{ color: "var(--fg-subtle)", flexShrink: 0 }} />
+              <span className="truncate" style={{ fontWeight: 500 }}>{node.title}</span>
+              <span className="truncate" style={{ fontSize: 12.5, color: "var(--fg-subtle)" }}>/{node.slug}</span>
             </button>
           ))}
-        </div>
-      )}
-    </div>
+        </>
+      }
+    >
+      <Search className="absolute left-2.5 top-2 h-4 w-4" style={{ color: "var(--fg-subtle)" }} />
+      <Input
+        value={query}
+        onChange={(e) => handleInput(e.target.value)}
+        onFocus={() => { if (!open) { setOpen(true); doSearch(query); } }}
+        placeholder="Search pages..."
+        className="h-9 pl-8"
+      />
+      {loading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin" style={{ color: "var(--fg-subtle)" }} />}
+    </SearchDropdown>
   );
 }
 

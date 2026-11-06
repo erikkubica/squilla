@@ -27,6 +27,7 @@ import {
   Star,
   Heart,
   Zap,
+  Plus,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -103,22 +104,45 @@ export function WelcomeBanner({
   const navigate = useNavigate();
 
   return (
-    <div className="rounded-2xl p-6 text-white" style={{background: "var(--accent-strong)"}}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{title}</h1>
-          <p className="mt-1 text-sm text-white/80">{subtitle}</p>
-        </div>
-        {actionLabel && actionPath && (
-          <button
-            onClick={() => navigate(actionPath)}
-            className="rounded-lg border px-4 py-2 text-sm font-medium text-white transition-colors"
-            style={{borderColor: "rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)"}}
-          >
-            + {actionLabel}
-          </button>
-        )}
+    <div
+      className="flex flex-wrap items-center justify-between"
+      style={{
+        gap: 16,
+        padding: "22px 24px",
+        borderRadius: "var(--radius-xl)",
+        background: "var(--card-bg)",
+        border: "1px solid var(--border)",
+        boxShadow: "var(--shadow-card)",
+      }}
+    >
+      <div className="min-w-0">
+        <h1 style={{ fontSize: 24, fontWeight: 650, letterSpacing: "-0.025em", color: "var(--fg)", margin: 0, lineHeight: 1.2 }}>
+          {title}
+        </h1>
+        <p style={{ marginTop: 4, fontSize: 13.5, color: "var(--fg-muted)" }}>{subtitle}</p>
       </div>
+      {actionLabel && actionPath && (
+        <button
+          type="button"
+          onClick={() => navigate(actionPath)}
+          className="inline-flex items-center"
+          style={{
+            height: 36,
+            padding: "0 16px",
+            gap: 7,
+            borderRadius: "var(--radius-md)",
+            border: "none",
+            background: "var(--accent)",
+            color: "var(--accent-fg)",
+            fontSize: 13.5,
+            fontWeight: 500,
+            boxShadow: "0 1px 0 rgba(255,255,255,0.16) inset, 0 1px 2px rgba(15,23,42,0.22)",
+          }}
+        >
+          <Plus size={16} />
+          {actionLabel.replace(/^\+\s*/, "")}
+        </button>
+      )}
     </div>
   );
 }
@@ -219,16 +243,16 @@ export function RecentContentTable({ items }: { items: RecentContentItem[] }) {
       <table className="w-full">
         <thead>
           <tr className="border-t border-border bg-muted">
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground">
               Title
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground">
               Type
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground">
               Status
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground">
               Updated
             </th>
           </tr>

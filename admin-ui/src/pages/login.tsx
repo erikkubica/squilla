@@ -42,7 +42,7 @@ function AuthShell({
       className="flex min-h-screen items-center justify-center px-4"
       style={{ background: "var(--app-bg)" }}
     >
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md" data-variant="auth">
         <CardHeader className="text-center pb-2">
           <div
             className="mx-auto flex h-12 w-12 items-center justify-center overflow-hidden"

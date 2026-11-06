@@ -54,8 +54,8 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
               <h1
                 className="flex items-center"
                 style={{
-                  fontSize: 22,
-                  fontWeight: 600,
+                  fontSize: 24,
+                  fontWeight: 650,
                   letterSpacing: "-0.025em",
                   color: "var(--fg)",
                   gap: 10,
@@ -67,14 +67,15 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
                 {totalCount !== undefined && (
                   <span
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 12,
-                      fontWeight: 500,
-                      padding: "2px 8px",
-                      borderRadius: 11,
-                      background: "var(--sub-bg)",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      padding: "2px 9px",
+                      borderRadius: 999,
+                      background: "var(--card-bg)",
+                      boxShadow: "inset 0 0 0 1px var(--border)",
                       color: "var(--fg-muted)",
                       letterSpacing: 0,
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {totalCount}
@@ -91,16 +92,16 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
                   to={backHref}
                   className="inline-flex items-center cursor-pointer"
                   style={{
-                    height: 32,
-                    padding: "0 12px",
+                    height: 34,
+                    padding: "0 14px",
                     borderRadius: "var(--radius-md)",
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: 500,
                     color: "var(--fg)",
                     background: "var(--card-bg)",
                     gap: 6,
                     letterSpacing: "-0.005em",
-                    boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04)",
+                    boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(15,23,42,0.05)",
                   }}
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -112,17 +113,17 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
                   onClick={onBack}
                   className="inline-flex items-center cursor-pointer"
                   style={{
-                    height: 32,
-                    padding: "0 12px",
+                    height: 34,
+                    padding: "0 14px",
                     borderRadius: "var(--radius-md)",
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: 500,
                     color: "var(--fg)",
                     background: "var(--card-bg)",
                     border: "none",
                     gap: 6,
                     letterSpacing: "-0.005em",
-                    boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(20,18,15,0.04)",
+                    boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(15,23,42,0.05)",
                   }}
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -136,19 +137,19 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
                   to={newHref}
                   className="inline-flex items-center cursor-pointer"
                   style={{
-                    height: 32,
-                    padding: "0 12px",
+                    height: 34,
+                    padding: "0 14px",
                     borderRadius: "var(--radius-md)",
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: 500,
                     color: "var(--accent-fg)",
                     background: "var(--accent)",
                     gap: 6,
                     letterSpacing: "-0.005em",
-                    boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
+                    boxShadow: "0 1px 0 rgba(255,255,255,0.16) inset, 0 1px 2px rgba(15,23,42,0.22)",
                   }}
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                   {newLabel ?? "New"}
                 </Link>
               ) : (
@@ -157,20 +158,20 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
                   onClick={onNew}
                   className="inline-flex items-center cursor-pointer"
                   style={{
-                    height: 32,
-                    padding: "0 12px",
+                    height: 34,
+                    padding: "0 14px",
                     borderRadius: "var(--radius-md)",
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: 500,
                     color: "var(--accent-fg)",
                     background: "var(--accent)",
                     border: "none",
                     gap: 6,
                     letterSpacing: "-0.005em",
-                    boxShadow: "0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(20,18,15,0.18)",
+                    boxShadow: "0 1px 0 rgba(255,255,255,0.16) inset, 0 1px 2px rgba(15,23,42,0.22)",
                   }}
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                   {newLabel ?? "New"}
                 </button>
               )
@@ -185,7 +186,7 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
         <p
           className="max-w-3xl"
           style={{
-            fontSize: 12,
+            fontSize: 13,
             color: "var(--fg-muted)",
             lineHeight: 1.5,
             margin: "0 0 14px 0",
@@ -219,29 +220,14 @@ export function ListHeader({ title, description, count, tabs, activeTab, onTabCh
             className="flex-1 min-w-0"
           >
             <TabsList>
-              {tabs.map((t) => {
-                const active = t.value === activeTab;
-                return (
-                  <TabsTrigger key={t.value} value={t.value}>
-                    {t.label}
-                    {t.count !== undefined && (
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 10,
-                          fontWeight: 500,
-                          padding: "1px 5px",
-                          borderRadius: 8,
-                          background: active ? "var(--accent-mid)" : "var(--sub-bg)",
-                          color: active ? "var(--accent-strong)" : "var(--fg-muted)",
-                        }}
-                      >
-                        {t.count}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                );
-              })}
+              {tabs.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                  {t.count !== undefined && (
+                    <span data-slot="count">{t.count}</span>
+                  )}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
           {tabsRight && (
@@ -282,7 +268,9 @@ export function ListSearch({
   placeholder?: string;
 }) {
   return (
-    <div className="flex-1 relative" style={{ maxWidth: 440 }}>
+    // Basis 220px: on narrow toolbars the search takes its own row instead of
+    // shrinking to a few characters next to the filters.
+    <div className="relative" style={{ flex: "1 1 220px", maxWidth: 440 }}>
       <svg
         className="absolute"
         viewBox="0 0 24 24"
@@ -292,11 +280,11 @@ export function ListSearch({
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{
-          left: 10,
+          left: 11,
           top: "50%",
           transform: "translateY(-50%)",
-          width: 14,
-          height: 14,
+          width: 15,
+          height: 15,
           color: "var(--fg-subtle)",
           pointerEvents: "none",
         }}
@@ -311,16 +299,16 @@ export function ListSearch({
         placeholder={placeholder}
         className="w-full"
         style={{
-          height: 30,
-          padding: "0 11px 0 30px",
+          height: 34,
+          padding: "0 11px 0 32px",
           background: "var(--card-bg)",
           border: "1px solid var(--border-input)",
           borderRadius: "var(--radius-md)",
-          fontSize: 13,
+          fontSize: 14,
           color: "var(--fg)",
           outline: "none",
-          letterSpacing: "-0.005em",
-          boxShadow: "0 1px 1px rgba(20,18,15,0.02) inset",
+          letterSpacing: "-0.006em",
+          boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
         }}
       />
     </div>
@@ -371,15 +359,13 @@ export function Th({
 }) {
   const style: React.CSSProperties = {
     textAlign: align,
-    padding: "9px 14px",
+    padding: "10px 14px",
     background: "var(--sub-bg)",
-    borderBottom: "1px solid var(--divider)",
-    fontFamily: "var(--font-mono)",
-    fontSize: 10.5,
-    fontWeight: 500,
-    textTransform: "uppercase",
-    letterSpacing: "0.07em",
-    color: "var(--fg-subtle)",
+    borderBottom: "1px solid var(--border)",
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: 0,
+    color: "var(--fg-muted)",
     whiteSpace: "nowrap",
     userSelect: "none",
     ...extraStyle,
@@ -435,19 +421,17 @@ export function SortableTh({
         onClick={handleClick}
         className="inline-flex items-center cursor-pointer bg-transparent border-0 p-0 font-[inherit] text-[inherit]"
         style={{
-          gap: 4,
-          color: active ? "var(--fg)" : "var(--fg-subtle)",
-          textTransform: "uppercase",
-          letterSpacing: "0.07em",
+          gap: 5,
+          color: active ? "var(--fg)" : "var(--fg-muted)",
         }}
       >
         {children}
         {active ? (
           sortOrder === "asc"
-            ? <ArrowUp className="w-2.5 h-2.5" style={{ color: "var(--accent-strong)" }} />
-            : <ArrowDown className="w-2.5 h-2.5" style={{ color: "var(--accent-strong)" }} />
+            ? <ArrowUp className="w-3 h-3" style={{ color: "var(--accent)" }} />
+            : <ArrowDown className="w-3 h-3" style={{ color: "var(--accent)" }} />
         ) : (
-          <ArrowUpDown className="w-2.5 h-2.5" style={{ color: "var(--fg-subtle)" }} />
+          <ArrowUpDown className="w-3 h-3" style={{ color: "var(--fg-subtle)" }} />
         )}
       </button>
     </Th>
@@ -499,9 +483,9 @@ export function Td({
       colSpan={colSpan}
       className={`group-last:border-0 ${className}`}
       style={{
-        padding: "11px 14px",
+        padding: "12px 14px",
         borderBottom: "1px solid var(--divider)",
-        fontSize: 13,
+        fontSize: 13.5,
         color: "var(--fg-2)",
         textAlign: align,
         verticalAlign: "middle",
@@ -670,14 +654,14 @@ export function RowActions({
   extra?: ReactNode;
 }) {
   const iconBtnStyle: React.CSSProperties = {
-    width: 26,
-    height: 26,
+    width: 28,
+    height: 28,
     display: "grid",
     placeItems: "center",
-    color: "var(--fg-subtle)",
+    color: "var(--fg-muted)",
     background: "transparent",
     border: "none",
-    borderRadius: 5,
+    borderRadius: 6,
     cursor: "pointer",
     transition: "background 0.1s, color 0.1s",
   };
@@ -698,21 +682,21 @@ export function RowActions({
     e.currentTarget.style.color = "var(--fg-subtle)";
   };
   return (
-    <div className="inline-flex group-hover:opacity-100 transition-opacity" style={{ gap: 1, opacity: 0.55 }}>
+    <div className="inline-flex group-hover:opacity-100 transition-opacity" style={{ gap: 2, opacity: 0.8 }}>
       {previewHref && (
         <a title="Preview" href={previewHref} target="_blank" rel="noreferrer" style={iconBtnStyle} onMouseEnter={onHover} onMouseLeave={onLeave}>
-          <Eye style={{ width: 12, height: 12 }} />
+          <Eye style={{ width: 14, height: 14 }} />
         </a>
       )}
       {extra}
       {editTo && (
         <Link title="Edit" to={editTo} style={iconBtnStyle} onMouseEnter={onHover} onMouseLeave={onLeave}>
-          <Pencil style={{ width: 12, height: 12 }} />
+          <Pencil style={{ width: 14, height: 14 }} />
         </Link>
       )}
       {onEdit && !editTo && (
         <button title="Edit" type="button" onClick={onEdit} style={iconBtnStyle} onMouseEnter={onHover} onMouseLeave={onLeave}>
-          <Pencil style={{ width: 12, height: 12 }} />
+          <Pencil style={{ width: 14, height: 14 }} />
         </button>
       )}
       {onDelete && (
@@ -725,7 +709,7 @@ export function RowActions({
           onMouseEnter={(e) => !disableDelete && onHoverDel(e)}
           onMouseLeave={(e) => !disableDelete && onLeaveDel(e)}
         >
-          <Trash2 style={{ width: 12, height: 12 }} />
+          <Trash2 style={{ width: 14, height: 14 }} />
         </button>
       )}
     </div>

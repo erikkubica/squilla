@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchDropdown } from "@/components/ui/search-dropdown";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -15,8 +15,12 @@ import RichTextEditor from "@/components/ui/rich-text-editor";
 import {
   X,
   Plus,
-  ChevronUp,
   ChevronDown,
+  ChevronsUpDown,
+  ChevronsDownUp,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
 } from "lucide-react";
 import {
   searchNodes,
@@ -236,103 +240,106 @@ function RepeaterFieldInput({
   }
 
   return (
-    <div className="space-y-2">
+    <div data-slot="repeater">
       {rows.length > 1 && (
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={expandAll} className="text-xs hover:underline">Expand all</button>
-          <button type="button" onClick={collapseAll} className="text-xs hover:underline">Collapse all</button>
+        <div className="flex justify-end" style={{ marginBottom: -2 }}>
+          {rows.every((_, i) => collapsedRows.has(i)) ? (
+            <button type="button" data-slot="text-action" onClick={expandAll}>
+              <ChevronsUpDown size={14} /> Expand all
+            </button>
+          ) : (
+            <button type="button" data-slot="text-action" onClick={collapseAll}>
+              <ChevronsDownUp size={14} /> Collapse all
+            </button>
+          )}
         </div>
       )}
       {rows.map((row, rowIndex) => {
         const isCollapsed = collapsedRows.has(rowIndex);
         return (
-          <div
-            key={rowIndex}
-            className="overflow-hidden"
-            style={{
-              border: "1px solid var(--border-strong)",
-              borderRadius: "var(--radius)",
-              background: "var(--card-bg)",
-            }}
-          >
-            {/* Row header */}
-            <div
-              className="flex items-center gap-2.5 cursor-pointer select-none"
-              style={{
-                padding: "9px 12px",
-                background: "var(--sub-bg)",
-                borderBottom: isCollapsed ? "none" : "1px solid var(--border-strong)",
-              }}
-              onClick={() => toggleCollapse(rowIndex)}
-            >
-              <ChevronDown
-                className="shrink-0 transition-transform"
-                size={14}
-                style={{
-                  color: "var(--fg-2)",
-                  transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+          <div key={rowIndex} data-slot="repeater-row" data-state={isCollapsed ? "closed" : "open"}>
+            <div data-slot="repeater-row-header" onClick={() => toggleCollapse(rowIndex)}>
+              <button
+                type="button"
+                className="flex flex-1 items-center min-w-0 text-left"
+                style={{ gap: 9, background: "transparent", border: 0, padding: 0 }}
+                aria-expanded={!isCollapsed}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCollapse(rowIndex);
                 }}
-              />
-              <span
-                className="shrink-0 font-mono font-medium"
-                style={{ fontSize: 12, color: "var(--fg-2)" }}
               >
-                #{rowIndex + 1}
-              </span>
-              {isCollapsed && (
+                <span data-slot="item-index">{rowIndex + 1}</span>
                 <span
                   className="truncate"
-                  style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}
+                  style={{ fontSize: 13.5, fontWeight: 500, color: isCollapsed ? "var(--fg)" : "var(--fg-muted)" }}
                 >
                   {getRowSummary(row, subFields)}
                 </span>
-              )}
-              <div className="flex-1" />
-              <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+              </button>
+              <div className="flex items-center shrink-0" style={{ gap: 1 }} onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
+                  data-slot="icon-button"
+                  data-size="sm"
                   onClick={() => moveRow(rowIndex, "up")}
                   disabled={rowIndex === 0}
-                  className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
-                  style={{ color: "var(--fg-2)" }}
                   title="Move up"
+                  aria-label="Move row up"
                 >
-                  <ChevronUp className="h-4 w-4" />
+                  <ArrowUp size={14} />
                 </button>
                 <button
                   type="button"
+                  data-slot="icon-button"
+                  data-size="sm"
                   onClick={() => moveRow(rowIndex, "down")}
                   disabled={rowIndex === rows.length - 1}
-                  className="p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5"
-                  style={{ color: "var(--fg-2)" }}
                   title="Move down"
+                  aria-label="Move row down"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <ArrowDown size={14} />
                 </button>
                 <button
                   type="button"
+                  data-slot="icon-button"
+                  data-size="sm"
+                  data-tone="danger"
                   onClick={() => removeRow(rowIndex)}
-                  className="p-1 rounded hover:bg-muted"
-                  style={{ color: "var(--danger)" }}
                   title="Remove row"
+                  aria-label="Remove row"
                 >
-                  <X className="h-4 w-4" />
+                  <Trash2 size={14} />
+                </button>
+                <button
+                  type="button"
+                  data-slot="icon-button"
+                  data-size="sm"
+                  onClick={() => toggleCollapse(rowIndex)}
+                  title={isCollapsed ? "Expand" : "Collapse"}
+                  aria-label={isCollapsed ? "Expand row" : "Collapse row"}
+                >
+                  <ChevronDown
+                    size={15}
+                    className="transition-transform"
+                    style={{ transform: isCollapsed ? "rotate(-90deg)" : "none" }}
+                  />
                 </button>
               </div>
             </div>
 
-            {/* Row fields - collapsible */}
             {!isCollapsed && (
-              <div style={{ padding: "14px 16px 18px" }}>
+              <div data-slot="repeater-row-body">
                 <div className="flex flex-wrap" style={{ gap: "18px 14px" }}>
                   {subFields.map((sf) => {
                     const w = typeof sf.width === "number" && sf.width > 0 && sf.width <= 100 ? sf.width : 100;
+                    const basis = `calc(${w}% - ${(14 * (100 - w)) / 100}px)`;
                     return (
                       <div
                         key={sf.name}
                         data-slug={sf.name}
                         className="space-y-2 min-w-0"
-                        style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
+                        style={{ flex: `0 0 ${basis}`, maxWidth: basis }}
                       >
                         <Label className="flex items-center" data-slug={sf.name}>
                           {sf.title}
@@ -353,15 +360,10 @@ function RepeaterFieldInput({
           </div>
         );
       })}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full rounded-lg border border-border-strong text-foreground hover:bg-muted font-medium py-2 shadow-2xs"
-        onClick={addRow}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Add Row
-      </Button>
+      <button type="button" data-slot="add-button" data-size="sm" onClick={addRow}>
+        <Plus size={15} />
+        Add {rows.length === 0 ? "item" : "another"}
+      </button>
     </div>
   );
 }
@@ -577,12 +579,29 @@ function NodeSelectorInput({
       {selected.length > 0 && (
         <div className="space-y-1.5">
           {selected.map((node) => (
-            <div key={node.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 px-3 py-2">
-              <span className="flex-1 text-sm font-medium text-foreground">{node.title}</span>
-              <span className="text-xs font-mono">{node.node_type}</span>
-              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => handleRemove(node.id)}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
+            <div
+              key={node.id}
+              className="flex items-center gap-2 rounded-lg"
+              style={{ padding: "5px 5px 5px 12px", background: "var(--sub-bg)", border: "1px solid var(--border)" }}
+            >
+              <span className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">{node.title}</span>
+              <span
+                className="shrink-0"
+                style={{ fontSize: 11.5, fontWeight: 500, padding: "1px 7px", borderRadius: 999, background: "var(--card-bg)", border: "1px solid var(--border)", color: "var(--fg-muted)" }}
+              >
+                {node.node_type}
+              </span>
+              <button
+                type="button"
+                data-slot="icon-button"
+                data-size="sm"
+                data-tone="danger"
+                onClick={() => handleRemove(node.id)}
+                title="Remove"
+                aria-label={`Remove ${node.title}`}
+              >
+                <X size={14} />
+              </button>
             </div>
           ))}
         </div>
@@ -590,7 +609,47 @@ function NodeSelectorInput({
 
       {/* Search input */}
       {(isMultiple || selected.length === 0) && (
-        <div className="relative">
+        <SearchDropdown
+          open={showResults && (!!searchQuery.trim() || searching)}
+          onOpenChange={setShowResults}
+          content={
+            searching ? (
+              <div data-slot="search-empty">Searching…</div>
+            ) : results.length === 0 ? (
+              <div data-slot="search-empty">
+                {searchQuery.trim() ? "No results found" : "Type to search…"}
+              </div>
+            ) : (
+              results.map((node) => (
+                <button
+                  key={node.id}
+                  type="button"
+                  data-slot="search-option"
+                  onClick={() => handleSelect(node)}
+                >
+                  <span className="truncate" style={{ fontWeight: 500 }}>{node.title}</span>
+                  <span className="ml-auto shrink-0" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--fg-subtle)" }}>
+                    {node.node_type}
+                  </span>
+                  <span
+                    className="shrink-0"
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 500,
+                      padding: "1px 7px",
+                      borderRadius: 999,
+                      ...(node.status === "published"
+                        ? { background: "var(--success-bg)", color: "var(--success)" }
+                        : { background: "var(--warning-bg)", color: "var(--warning)" }),
+                    }}
+                  >
+                    {node.status}
+                  </span>
+                </button>
+              ))
+            )
+          }
+        >
           <Input
             placeholder={`Search ${field.node_type_filter || "content"}...`}
             value={searchQuery}
@@ -601,34 +660,7 @@ function NodeSelectorInput({
             onFocus={() => setShowResults(true)}
             className="rounded-lg"
           />
-          {/* Dropdown results */}
-          {showResults && (searchQuery.trim() || searching) && (
-            <div className="mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
-              {searching ? (
-                <div className="px-3 py-2 text-sm">Searching...</div>
-              ) : results.length === 0 ? (
-                <div className="px-3 py-2 text-sm">
-                  {searchQuery.trim() ? "No results found" : "Type to search..."}
-                </div>
-              ) : (
-                results.map((node) => (
-                  <button
-                    key={node.id}
-                    type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
-                    onClick={() => handleSelect(node)}
-                  >
-                    <span className="font-medium text-foreground">{node.title}</span>
-                    <span className="text-xs font-mono ml-auto">{node.node_type}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded" style={node.status === "published" ? { background: "var(--success-bg)", color: "var(--success)" } : { background: "var(--warning-bg)", color: "var(--warning)" }}>
-                      {node.status}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+        </SearchDropdown>
       )}
     </div>
   );

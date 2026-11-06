@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBoot } from "../hooks/use-boot";
@@ -7,8 +7,9 @@ import { useAdminLanguage } from "../hooks/use-admin-language";
 import { useBranding } from "../hooks/use-branding";
 import { getThemeSettingsPages, clearCache } from "../api/client";
 import type { NavItem } from "./types";
-import * as Lucide from "lucide-react";
+import { resolveLucideIcon, type IconComponent } from "../lib/lucide-icon";
 import {
+  Puzzle,
   ChevronDown,
   Menu,
   X,
@@ -28,24 +29,9 @@ import { toast } from "sonner";
 // as the kebab-case aliases themes/extensions may pass ("image-down").
 // ---------------------------------------------------------------------------
 
-type IconComponent = React.ComponentType<{ className?: string; size?: number; style?: React.CSSProperties; strokeWidth?: number | string }>;
-const lucideIcons = Lucide as unknown as Record<string, IconComponent>;
-
-function toPascalCase(name: string): string {
-  return name
-    .split(/[-_]/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join("");
-}
-
 function getIcon(name: string): IconComponent | null {
   if (!name) return null;
-  return (
-    lucideIcons[name] ||
-    lucideIcons[toPascalCase(name)] ||
-    lucideIcons["Puzzle"] ||
-    null
-  );
+  return resolveLucideIcon(name) || Puzzle;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +141,11 @@ function firstNavigablePath(items: NavItem[] | undefined): string | null {
   return null;
 }
 
+// Every route renders its own SduiAdminShell, so the sidebar remounts on each
+// navigation. Its scroll offset lives at module scope to survive that remount
+// instead of jumping back to the top whenever an item is clicked.
+let sidebarScrollTop = 0;
+
 function SidebarNav({
   navigation,
   collapsed,
@@ -163,6 +154,23 @@ function SidebarNav({
 }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const navRef = useRef<HTMLElement>(null);
+
+  // Restore the previous offset before paint; if the current page's item is
+  // still out of view (first load, deep link), bring it into view.
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    nav.scrollTop = sidebarScrollTop;
+    const current = nav.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!current) return;
+    const view = nav.getBoundingClientRect();
+    const item = current.getBoundingClientRect();
+    if (item.top < view.top || item.bottom > view.bottom) {
+      nav.scrollTop += item.top - view.top - (view.height - item.height) / 2;
+      sidebarScrollTop = nav.scrollTop;
+    }
+  }, [location.pathname, navigation.length]);
   // Tracks groups explicitly toggled by the user (overrides auto-open logic).
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -228,8 +236,8 @@ function SidebarNav({
       return (
         <div
           key={item.id}
-          className="px-3 pt-4 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.06em]"
-          style={{color: "var(--sb-fg-muted)"}}
+          className="px-3 pt-5 pb-1.5 text-[12px] font-semibold"
+          style={{color: "var(--sb-fg-muted)", letterSpacing: "-0.003em"}}
         >
           {item.label}
         </div>
@@ -253,20 +261,22 @@ function SidebarNav({
       return (
         <div key={item.id}>
           <div
-            className="group flex w-full items-stretch rounded-lg text-[13px] font-medium transition-colors"
+            data-slot="nav-item"
+            className="group flex w-full items-stretch rounded-lg text-[13.5px] font-medium"
             style={{color: childActive ? "var(--sb-fg-active)" : "var(--sb-fg)"}}
           >
             <button
               type="button"
               onClick={handleNavigate}
-              className="flex flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-left min-w-0"
+              className="flex flex-1 items-center gap-2.5 rounded-lg px-3 py-[7px] text-left min-w-0"
               title={collapsed ? item.label : undefined}
             >
               {IconComp && (
                 <IconComp
-                  size={15}
+                  size={16}
+                  strokeWidth={1.75}
                   className="shrink-0"
-                  style={{color: childActive ? "var(--sb-fg-active)" : "var(--sb-fg-muted)", opacity: childActive ? 1 : 0.7}}
+                  style={{color: childActive ? "var(--sb-accent)" : "var(--sb-fg-muted)", opacity: 1}}
                 />
               )}
               {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
@@ -314,12 +324,12 @@ function SidebarNav({
       <>
         {IconComp && (
           <IconComp
-            size={14.5}
-            strokeWidth={1.6}
+            size={16}
+            strokeWidth={1.75}
             className="shrink-0"
             style={{
-              color: active ? "var(--sb-fg-active)" : "var(--sb-fg-muted)",
-              opacity: active ? 1 : 0.7,
+              color: active ? "var(--sb-accent)" : "var(--sb-fg-muted)",
+              opacity: 1,
             }}
           />
         )}
@@ -333,7 +343,11 @@ function SidebarNav({
           key={item.id}
           to={item.path}
           onClick={onClose}
-          className={`relative flex w-full items-center gap-2.5 ${radiusClass} px-3 py-2 text-[13px] font-medium transition-colors`}
+          data-slot="nav-item"
+          data-active={active ? "true" : undefined}
+          data-child={isChild ? "true" : undefined}
+          aria-current={active ? "page" : undefined}
+          className={`relative flex w-full items-center gap-2.5 ${radiusClass} px-3 py-[7px] text-[13.5px] font-medium`}
           style={{
             color: active ? "var(--sb-fg-active)" : "var(--sb-fg)",
             background: active ? "var(--sb-active)" : undefined,
@@ -351,7 +365,10 @@ function SidebarNav({
     return (
       <button
         key={item.id}
-        className={`relative flex w-full items-center gap-2.5 ${radiusClass} px-3 py-2 text-[13px] font-medium transition-colors`}
+        data-slot="nav-item"
+        data-active={active ? "true" : undefined}
+        data-child={isChild ? "true" : undefined}
+        className={`relative flex w-full items-center gap-2.5 ${radiusClass} px-3 py-[7px] text-[13.5px] font-medium`}
         style={{
           color: active ? "var(--sb-fg-active)" : "var(--sb-fg)",
           background: active ? "var(--sb-active)" : undefined,
@@ -364,7 +381,13 @@ function SidebarNav({
   };
 
   return (
-    <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
+    <nav
+      ref={navRef}
+      onScroll={(e) => {
+        sidebarScrollTop = e.currentTarget.scrollTop;
+      }}
+      className="flex-1 overflow-y-auto px-2 py-2 sb-scroll"
+    >
       {/* Expand button when collapsed */}
       {collapsed && (
         <div className="mb-2 flex justify-center">
@@ -504,35 +527,34 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
         style={{ width: sidebarWidth, background: "var(--sb-bg)" }}
       >
         {/* Logo header */}
-        <div className="flex shrink-0 items-center" style={{ height: 48, padding: "0 14px" }}>
-          <div className="flex items-center" style={{ gap: 10 }}>
+        <div className="flex shrink-0 items-center" style={{ height: 56, padding: "0 14px", borderBottom: "1px solid var(--sb-border)" }}>
+          <div className="flex items-center min-w-0" style={{ gap: 10 }}>
             <div
               className="grid shrink-0 place-items-center overflow-hidden"
               style={{
-                width: 22,
-                height: 22,
-                borderRadius: 6,
+                width: 26,
+                height: 26,
+                borderRadius: 7,
                 background: branding.faviconUrl ? "transparent" : "var(--accent)",
                 color: "var(--accent-fg)",
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                fontWeight: 600,
+                fontSize: 13,
+                fontWeight: 700,
               }}
             >
               {branding.faviconUrl ? (
                 <img
                   src={branding.faviconUrl}
                   alt=""
-                  width={22}
-                  height={22}
-                  style={{ width: 22, height: 22, objectFit: "contain" }}
+                  width={26}
+                  height={26}
+                  style={{ width: 26, height: 26, objectFit: "contain" }}
                 />
               ) : (
                 branding.siteTitle.charAt(0).toUpperCase() || "S"
               )}
             </div>
             {!collapsed && (
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--sb-fg-active)", letterSpacing: "-0.02em" }}>
+              <span className="truncate" style={{ fontSize: 14.5, fontWeight: 600, color: "var(--sb-fg-active)", letterSpacing: "-0.02em" }}>
                 {branding.siteTitle}
               </span>
             )}
@@ -576,25 +598,27 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
               <LogOut size={15} />
             </button>
           ) : (
-            <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
-              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold" style={{background: "rgba(99,102,241,0.2)", color: "var(--accent)"}}>
+            <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[13px] font-semibold" style={{background: "var(--accent)", color: "var(--accent-fg)"}}>
                 {(user?.full_name || user?.email || "A")
                   .charAt(0)
                   .toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium" style={{color: "var(--sb-fg)"}}>
+                <p className="truncate text-[13px] font-medium" style={{color: "var(--sb-fg-active)"}}>
                   {user?.full_name || "Admin"}
                 </p>
-                <p className="truncate text-[10px]" style={{color: "var(--sb-fg-muted)"}}>
+                <p className="truncate text-[12px]" style={{color: "var(--sb-fg-muted)"}}>
                   {user?.email}
                 </p>
               </div>
               <button
                 onClick={handleLogout}
-                className="shrink-0 rounded p-1"
+                data-slot="nav-item"
+                className="shrink-0 rounded-md p-1.5"
                 style={{color: "var(--sb-fg-muted)"}}
                 title="Log out"
+                aria-label="Log out"
               >
                 <LogOut size={14} />
               </button>
@@ -614,25 +638,29 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
       <div className="flex flex-1 flex-col overflow-hidden min-w-0 min-h-0">
         {/* Top bar */}
         <header
+          data-slot="topbar"
           className="flex shrink-0 items-center justify-between"
-          style={{ height: 48, padding: "0 22px", background: "var(--app-bg)", borderBottom: "1px solid var(--divider)" }}
+          style={{ height: 56, gap: 12, background: "var(--card-bg)", borderBottom: "1px solid var(--border)" }}
         >
-          <div className="flex items-center" style={{ gap: 8 }}>
+          <div className="flex items-center min-w-0" style={{ gap: 8 }}>
             <button
-              className="flex h-7 w-7 items-center justify-center rounded-md lg:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded-md lg:hidden"
               style={{ color: "var(--fg-muted)" }}
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
             >
               <Menu size={18} />
             </button>
-            <nav className="flex items-center" style={{ gap: 6, fontSize: 12.5, color: "var(--fg-muted)", letterSpacing: "-0.005em" }}>
-              <Home size={12} style={{ color: "var(--fg-subtle)" }} />
+            <nav aria-label="Breadcrumb" className="flex items-center min-w-0" style={{ gap: 7, fontSize: 13.5, color: "var(--fg-muted)", letterSpacing: "-0.006em" }}>
+              <Home size={14} style={{ color: "var(--fg-subtle)", flexShrink: 0 }} />
               {breadcrumbs.map((crumb, i) => {
                 const last = i === breadcrumbs.length - 1;
+                // Phones and small tablets keep only the parent and current crumb.
+                const early = i < breadcrumbs.length - 2;
                 return (
-                  <span key={i} className="flex items-center" style={{ gap: 6 }}>
-                    <span style={{ color: "var(--fg-hint)", fontSize: 12, opacity: 0.7 }}>/</span>
-                    <span style={{ color: last ? "var(--fg)" : "var(--fg-muted)", fontWeight: last ? 500 : 400 }}>
+                  <span key={i} className={`${early ? "hidden md:flex" : "flex"} items-center min-w-0`} style={{ gap: 7 }}>
+                    <ChevronRight size={13} style={{ color: "var(--fg-hint)", flexShrink: 0 }} />
+                    <span className="truncate" style={{ color: last ? "var(--fg)" : "var(--fg-muted)", fontWeight: last ? 600 : 500 }}>
                       {crumb}
                     </span>
                   </span>
@@ -641,20 +669,19 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
             </nav>
           </div>
 
-          <div className="flex items-center" style={{ gap: 4 }}>
+          <div className="flex items-center" style={{ gap: 2 }}>
             {languages.length > 0 && (
               <label
+                data-slot="topbar-action"
                 className="hidden sm:flex items-center"
-                style={{ height: 28, padding: "0 10px", borderRadius: 6, gap: 6, fontSize: 12.5, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.005em", transition: "background 0.12s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                style={{ height: 32, padding: "0 10px", borderRadius: 7, gap: 7, fontSize: 13, color: "var(--fg-2)", letterSpacing: "-0.006em" }}
               >
-                <Globe size={12} style={{ opacity: 0.6 }} />
+                <Globe size={14} style={{ color: "var(--fg-subtle)" }} />
                 <select
                   value={currentCode}
                   onChange={(e) => handleLanguageChange(e.target.value)}
                   className="bg-transparent outline-none"
-                  style={{ fontSize: 12.5, color: "var(--fg-2)" }}
+                  style={{ fontSize: 13, fontWeight: 500, color: "var(--fg-2)" }}
                   aria-label="Admin language"
                 >
                   {languages.map((lang) => (
@@ -667,54 +694,54 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
             )}
 
             <button
+              data-slot="topbar-action"
               onClick={handleClearCache}
               disabled={clearingCache}
               className="hidden sm:flex items-center"
-              style={{ height: 28, padding: "0 10px", borderRadius: 6, gap: 6, fontSize: 12.5, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.005em", opacity: clearingCache ? 0.5 : 1, transition: "background 0.12s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              style={{ height: 32, padding: "0 10px", borderRadius: 7, gap: 7, fontSize: 13, fontWeight: 500, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.006em", opacity: clearingCache ? 0.5 : 1 }}
               title="Clear all caches"
+              aria-label="Clear cache"
             >
-              <RefreshCw size={12} style={{ opacity: 0.6 }} className={clearingCache ? "animate-spin" : ""} />
-              {clearingCache ? "Clearing…" : "Clear cache"}
+              <RefreshCw size={14} style={{ color: "var(--fg-subtle)" }} className={clearingCache ? "animate-spin" : ""} />
+              <span className="hidden xl:inline">{clearingCache ? "Clearing…" : "Clear cache"}</span>
             </button>
 
             <button
+              data-slot="topbar-action"
               onClick={() => window.open("/", "_blank")}
               className="hidden sm:flex items-center"
-              style={{ height: 28, padding: "0 10px", borderRadius: 6, gap: 6, fontSize: 12.5, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.005em", transition: "background 0.12s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              style={{ height: 32, padding: "0 10px", borderRadius: 7, gap: 7, fontSize: 13, fontWeight: 500, color: "var(--fg-2)", background: "transparent", letterSpacing: "-0.006em" }}
+              title="Visit site"
+              aria-label="Visit site"
             >
-              <ExternalLink size={12} style={{ opacity: 0.6 }} />
-              Visit site
+              <ExternalLink size={14} style={{ color: "var(--fg-subtle)" }} />
+              <span className="hidden xl:inline">Visit site</span>
             </button>
 
             <button
+              data-slot="topbar-action"
               className="flex items-center justify-center"
-              style={{ width: 28, height: 28, borderRadius: 6, color: "var(--fg-muted)", background: "transparent", border: "none", transition: "background 0.12s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              style={{ width: 32, height: 32, borderRadius: 7, color: "var(--fg-muted)", background: "transparent", border: "none" }}
+              aria-label="Notifications"
             >
-              <Bell size={14} style={{ opacity: 0.7 }} />
+              <Bell size={16} />
             </button>
 
-            <div style={{ width: 1, height: 18, background: "var(--divider)", margin: "0 4px" }} />
+            <div style={{ width: 1, height: 22, background: "var(--border)", margin: "0 8px" }} />
 
             <button
+              data-slot="topbar-action"
               className="flex items-center"
-              style={{ height: 28, padding: "0 10px 0 4px", borderRadius: 14, gap: 8, background: "transparent", border: "none", transition: "background 0.1s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              style={{ height: 34, padding: "0 10px 0 4px", borderRadius: 17, gap: 8, background: "transparent", border: "none" }}
               title={user?.email}
             >
               <span
                 className="grid place-items-center shrink-0"
-                style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--accent)", color: "var(--accent-fg)", fontSize: 10, fontWeight: 600 }}
+                style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--accent)", color: "var(--accent-fg)", fontSize: 12, fontWeight: 600 }}
               >
                 {(user?.full_name || user?.email || "A").charAt(0).toUpperCase()}
               </span>
-              <span className="hidden sm:inline" style={{ fontSize: 12.5, fontWeight: 500, color: "var(--fg-2)" }}>
+              <span className="hidden sm:inline" style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>
                 {user?.full_name || (user?.email ? user.email.split("@")[0] : "Admin")}
               </span>
             </button>
@@ -723,6 +750,7 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
 
         {/* Page content */}
         <main
+          data-slot="admin-main"
           className={mainClassName ?? "flex-1 overflow-y-auto"}
           style={{
             // position: relative makes <main> the containing block for
@@ -731,8 +759,9 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
             // escape this scroll container and stretch the document, so the
             // window itself scrolls and the shell slides away ("overscroll /
             // cut off" bug). The shell root is relative for the same reason.
+            // Gutters come from [data-slot="admin-main"] in index.css so they
+            // can tighten on tablets and phones.
             position: "relative",
-            padding: "18px 22px 40px",
             // overflow-anchor: none avoids Chrome's scroll-anchoring kicking in
             // when content above the viewport changes height — that was firing
             // mid-scroll and causing the "lower half of page goes blank" paint
@@ -740,7 +769,7 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
             overflowAnchor: "none",
           }}
         >
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>{children}</div>
+          <div style={{ maxWidth: 1320, margin: "0 auto" }}>{children}</div>
         </main>
       </div>
     </div>

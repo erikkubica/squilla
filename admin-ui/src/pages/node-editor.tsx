@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, type FormEvent } from "react";
+import { createElement, useEffect, useState, useRef, type CSSProperties, type FormEvent } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import {
   Save,
@@ -7,9 +7,14 @@ import {
   Home,
   Loader2,
   Plus,
-  ChevronUp,
   ChevronDown,
   ChevronRight,
+  ChevronsUpDown,
+  ChevronsDownUp,
+  ArrowUp,
+  ArrowDown,
+  Blocks,
+  Info,
   X,
   LayoutTemplate,
   Square,
@@ -17,6 +22,7 @@ import {
   Code as CodeIcon,
   Tag,
 } from "lucide-react";
+import { resolveLucideIcon } from "@/lib/lucide-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,8 +32,8 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
+import { SearchDropdown } from "@/components/ui/search-dropdown";
 import { Titlebar } from "@/components/ui/titlebar";
-import { TabsCard } from "@/components/ui/tabs-card";
 import { PublishActions } from "@/components/ui/publish-actions";
 import {
   Select,
@@ -111,6 +117,50 @@ function getFieldWidth(field: NodeTypeField): number {
   return 100;
 }
 
+// Flex basis for a field of `width` percent in a wrapping row with `gap` px
+// between items: full-width fields reach the right edge, and fields whose
+// widths add up to 100 fill one row exactly.
+function fieldFlex(width: number, gap: number): CSSProperties {
+  const basis = `calc(${width}% - ${(gap * (100 - width)) / 100}px)`;
+  return { flex: `0 0 ${basis}`, maxWidth: basis };
+}
+
+const SUMMARY_FIELD_TYPES = new Set(["text", "string", "textarea", "richtext", "wysiwyg"]);
+const SUMMARY_FIELD_PRIORITY = ["heading", "title", "headline", "name", "label", "eyebrow", "text"];
+
+// One line of a collapsed block's own content (its heading, title, …) so a
+// stack of collapsed blocks of the same type can still be told apart.
+function getBlockSummary(fields: NodeTypeField[], values: Record<string, unknown>): string {
+  const rank = (name: string) => {
+    const i = SUMMARY_FIELD_PRIORITY.findIndex((key) => name.toLowerCase().includes(key));
+    return i === -1 ? SUMMARY_FIELD_PRIORITY.length : i;
+  };
+  const candidates = fields
+    .filter((f) => SUMMARY_FIELD_TYPES.has(f.type))
+    .sort((a, b) => rank(a.name) - rank(b.name));
+  for (const f of candidates) {
+    const v = values?.[f.name];
+    if (typeof v !== "string") continue;
+    const text = v.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (text) return text.length > 140 ? `${text.slice(0, 140)}…` : text;
+  }
+  return "";
+}
+
+// Block type glyph: a lucide icon name from block.json, an emoji, or a
+// neutral square when the type declares neither.
+function BlockTypeIcon({ icon }: { icon?: string }) {
+  // resolveLucideIcon returns lucide's module-level components, so the element
+  // type is stable across renders; createElement only picks which one.
+  const Icon = resolveLucideIcon(icon);
+  const isGlyph = !!icon && !Icon && !/^[a-z0-9-]+$/i.test(icon);
+  return (
+    <span data-slot="block-icon" aria-hidden>
+      {Icon ? createElement(Icon, { size: 16, strokeWidth: 1.8 }) : isGlyph ? icon : <Square size={15} strokeWidth={1.8} />}
+    </span>
+  );
+}
+
 export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -123,7 +173,6 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
   const [deleting, setDeleting] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!isEdit);
   const manualSlugRef = useRef<string>("");
-  const [activeTab, setActiveTab] = useState<"blocks" | "excerpt" | "seo" | "custom">("blocks");
 
   // Languages
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -579,6 +628,21 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
     });
   }
 
+  const allBlocksCollapsed = blocks.length > 0 && blocks.every((_, i) => collapsedBlocks.has(i));
+
+  // Negative keys in collapsedBlocks belong to layout partials; leave them.
+  function expandAllBlocks() {
+    setCollapsedBlocks((prev) => new Set([...prev].filter((k) => k < 0)));
+  }
+
+  function collapseAllBlocks() {
+    setCollapsedBlocks((prev) => {
+      const next = new Set([...prev].filter((k) => k < 0));
+      blocks.forEach((_, i) => next.add(i));
+      return next;
+    });
+  }
+
   function applyRawJson() {
     try {
       const parsed = JSON.parse(rawJson);
@@ -816,557 +880,444 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
             onBack={() => navigate(basePath)}
           />
 
-          {/* Visual Block Editor — unified TabsCard primitive */}
-          <TabsCard
-            value={activeTab}
-            onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-            tabs={[
-              ...(blocksEnabled
-                ? [
-                    {
-                      value: "blocks",
-                      label: "Blocks",
-                      badge: blocks.length,
-                      content: (<>
-            <div className="flex items-center justify-between mb-2">
-              <span style={{ fontSize: 12, color: "var(--fg-muted)", letterSpacing: "-0.005em" }}>
-                Drag, expand, or remove blocks. Changes are saved on Save.
-              </span>
-              <button
-                type="button"
-                onClick={openLoadTemplate}
-                className="inline-flex items-center cursor-pointer"
-                style={{
-                  height: 26,
-                  padding: "0 8px",
-                  borderRadius: 6,
-                  background: "transparent",
-                  color: "var(--fg-muted)",
-                  fontSize: 11.5,
-                  fontWeight: 500,
-                  gap: 5,
-                  border: "none",
-                  transition: "background 0.12s, color 0.12s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--hover-bg)";
-                  e.currentTarget.style.color = "var(--fg)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "var(--fg-muted)";
-                }}
-              >
-                <LayoutTemplate size={12} style={{ opacity: 0.65 }} />
-                Load template
-              </button>
-            </div>
-            <div>
-              {blocks.length === 0 && (
-                <div
-                  className="flex flex-col items-center justify-center"
-                  style={{
-                    gap: 8,
-                    padding: "44px 0",
-                    borderRadius: "var(--radius-lg)",
-                    background: "var(--sub-bg)",
-                    color: "var(--fg-subtle)",
-                  }}
-                >
-                  <Square style={{ width: 28, height: 28, color: "var(--fg-subtle)" }} />
-                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--fg-muted)", margin: 0 }}>No blocks yet</p>
-                  <p style={{ fontSize: 12, color: "var(--fg-subtle)", margin: 0 }}>Add a block or load a template to get started</p>
+          {/* Entity fields — the content type's own attributes come first. */}
+          {customFields.length > 0 && (
+            <Card>
+              <SectionHeader title={`${label} details`} count={customFields.length} />
+              <div style={{ padding: "18px 18px 22px" }}>
+                <div className="flex flex-wrap" style={{ gap: "22px 16px" }}>
+                  {customFields.map((field) => {
+                    const w = getFieldWidth(field);
+                    return (
+                      <div
+                        key={field.name}
+                        className="min-w-0 flex flex-col"
+                        data-slug={field.name}
+                        style={{ ...fieldFlex(w, 16), gap: 7 }}
+                      >
+                        <Label className="flex items-center gap-1" data-slug={field.name}>
+                          {field.title}
+                          {field.required && <span className="text-destructive">*</span>}
+                        </Label>
+                        {(field as { hint?: string }).hint && (
+                          <span style={{ fontSize: 12.5, color: "var(--fg-muted)", lineHeight: 1.45, marginTop: -2 }}>
+                            {(field as { hint?: string }).hint}
+                          </span>
+                        )}
+                        <CustomFieldInput
+                          field={field}
+                          value={fieldsData[field.name]}
+                          onChange={(val) => updateFieldValue(field.name, val)}
+                          languageCode={languageCode}
+                          namePath={field.name}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            </Card>
+          )}
 
-              {blocks.map((block, index) => {
-                const blockTypeDef = getBlockTypeDef(block.type);
-                const isCollapsed = collapsedBlocks.has(index);
-                const blockFields = blockTypeDef?.fields || [];
-
-                return (
+          {/* Page builder — every block is its own card on a recessed well. */}
+          {blocksEnabled && (
+            <Card>
+              <SectionHeader
+                title="Page builder"
+                icon={<Blocks size={16} />}
+                count={blocks.length}
+                actions={
+                  <>
+                    {blocks.length > 1 &&
+                      (allBlocksCollapsed ? (
+                        <button type="button" data-slot="text-action" onClick={expandAllBlocks}>
+                          <ChevronsUpDown size={14} /> Expand all
+                        </button>
+                      ) : (
+                        <button type="button" data-slot="text-action" onClick={collapseAllBlocks}>
+                          <ChevronsDownUp size={14} /> Collapse all
+                        </button>
+                      ))}
+                    <button type="button" data-slot="text-action" onClick={openLoadTemplate}>
+                      <LayoutTemplate size={14} /> Load template
+                    </button>
+                  </>
+                }
+              />
+              <div data-slot="block-well">
+                {blocks.length === 0 && (
                   <div
-                    key={index}
-                    data-block-type={block.type}
-                    data-slug={block.type}
+                    className="flex flex-col items-center justify-center text-center"
                     style={{
-                      borderTop: index === 0 ? "none" : "1px solid var(--border-strong)",
+                      gap: 6,
+                      padding: "40px 16px",
+                      borderRadius: "var(--radius-lg)",
+                      background: "var(--card-bg)",
+                      border: "1px solid var(--border)",
                     }}
                   >
-                    {/* Block header — flat row, no bg, no border. Active state via type weight. */}
-                    <div
-                      className="flex items-center cursor-pointer select-none"
-                      data-block-type={block.type}
-                      data-slug={block.type}
-                      style={{
-                        gap: 8,
-                        padding: "11px 12px",
-                        margin: "0 -8px",
-                        borderRadius: 6,
-                        background: !isCollapsed ? "transparent" : undefined,
-                        transition: "background 0.1s",
-                      }}
-                      onClick={() => toggleBlockCollapse(index)}
-                      onMouseEnter={(e) => { if (isCollapsed) e.currentTarget.style.background = "var(--hover-bg)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                    >
-                      <span
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ color: "var(--fg-hint)", cursor: "grab", flexShrink: 0, opacity: 0.55, display: "inline-flex" }}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                          <circle cx="9" cy="6" r="1.2" fill="currentColor" />
-                          <circle cx="9" cy="12" r="1.2" fill="currentColor" />
-                          <circle cx="9" cy="18" r="1.2" fill="currentColor" />
-                          <circle cx="15" cy="6" r="1.2" fill="currentColor" />
-                          <circle cx="15" cy="12" r="1.2" fill="currentColor" />
-                          <circle cx="15" cy="18" r="1.2" fill="currentColor" />
-                        </svg>
-                      </span>
-                      <ChevronDown
-                        size={11}
-                        className="shrink-0 transition-transform"
-                        style={{
-                          color: "var(--fg-subtle)",
-                          transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: isCollapsed ? 500 : 600,
-                          color: "var(--fg)",
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        {getBlockLabel(block.type)}
-                      </span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-subtle)", marginLeft: 4 }}>
-                        · {blockFields.length} {blockFields.length === 1 ? "field" : "fields"}
-                      </span>
-                      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 1 }} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => moveBlock(index, "up")}
-                          disabled={index === 0}
-                          style={{ width: 26, height: 26, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--fg-subtle)", background: "transparent", border: "none", cursor: index === 0 ? "default" : "pointer", opacity: index === 0 ? 0.3 : 1, transition: "background 0.1s" }}
-                          onMouseEnter={(e) => { if (index !== 0) { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; e.currentTarget.style.color = "var(--fg)"; } }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--fg-subtle)"; }}
-                          title="Move up"
-                        >
-                          <ChevronUp size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveBlock(index, "down")}
-                          disabled={index === blocks.length - 1}
-                          style={{ width: 26, height: 26, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--fg-subtle)", background: "transparent", border: "none", cursor: index === blocks.length - 1 ? "default" : "pointer", opacity: index === blocks.length - 1 ? 0.3 : 1, transition: "background 0.1s" }}
-                          onMouseEnter={(e) => { if (index !== blocks.length - 1) { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; e.currentTarget.style.color = "var(--fg)"; } }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--fg-subtle)"; }}
-                          title="Move down"
-                        >
-                          <ChevronDown size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeBlock(index)}
-                          style={{ width: 26, height: 26, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--fg-subtle)", background: "transparent", border: "none", cursor: "pointer", transition: "background 0.1s, color 0.1s" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--danger-bg)"; e.currentTarget.style.color = "var(--danger)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--fg-subtle)"; }}
-                          title="Delete block"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Block fields */}
-                    {!isCollapsed && (
-                      <div style={{ padding: "6px 12px 20px" }} className="space-y-4">
-                        {blockTypeDef?.description && (
-                          <div
-                            style={{
-                              fontSize: 12.5,
-                              color: "var(--fg-2)",
-                              padding: "10px 14px",
-                              background: "var(--sub-bg)",
-                              border: "1px solid var(--border)",
-                              borderLeft: "3px solid var(--fg-muted)",
-                              borderRadius: 7,
-                              lineHeight: 1.55,
-                              marginBottom: 18,
-                            }}
-                          >
-                            {blockTypeDef.description}
-                          </div>
-                        )}
-                        {blockFields.length === 0 ? (
-                          <p className="text-center py-2" style={{ fontSize: 13, color: "var(--fg-subtle)" }}>
-                            This block type has no fields defined.
-                          </p>
-                        ) : (
-                          <div className="flex flex-wrap" style={{ gap: "22px 16px" }}>
-                            {blockFields.map((field) => {
-                              const w = getFieldWidth(field);
-                              return (
-                                <div
-                                  key={field.name}
-                                  className="min-w-0 flex flex-col"
-                                  data-slug={field.name}
-                                  style={{
-                                    flex: `0 0 calc(${w}% - 16px)`,
-                                    maxWidth: `calc(${w}% - 16px)`,
-                                    gap: 7,
-                                  }}
-                                >
-                                  <Label className="flex items-center gap-1.5" data-slug={field.name}>
-                                    {field.title}
-                                    {field.required && <span className="text-destructive">*</span>}
-                                  </Label>
-                                  {(field as { hint?: string }).hint && (
-                                    <span style={{ fontSize: 11.5, color: "var(--fg-muted)", lineHeight: 1.45 }}>{(field as { hint?: string }).hint}</span>
-                                  )}
-                                  <CustomFieldInput
-                                    field={field}
-                                    value={block.fields[field.name]}
-                                    onChange={(val) => updateBlockField(index, field.name, val)}
-                                    languageCode={languageCode}
-                                    namePath={`blocks[${index}][${field.name}]`}
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <span data-slot="block-icon" style={{ width: 40, height: 40, borderRadius: 10, marginBottom: 6 }}>
+                      <Blocks size={20} />
+                    </span>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)", margin: 0 }}>No blocks yet</p>
+                    <p style={{ fontSize: 13, color: "var(--fg-muted)", margin: 0 }}>Add a block or load a template to get started.</p>
                   </div>
-                );
-              })}
+                )}
 
-              {/* Add Block / Insert Template — ghosted, type-led, full-width row */}
-              <div
-                className="flex"
-                style={{
-                  gap: 4,
-                  marginTop: 6,
-                  paddingTop: 8,
-                  borderTop: "1px solid var(--divider)",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setShowAddBlock(true)}
-                  className="inline-flex items-center justify-center"
-                  style={{
-                    flex: 1,
-                    height: 34,
-                    borderRadius: 7,
-                    background: "transparent",
-                    color: "var(--fg-muted)",
-                    fontSize: 12.5,
-                    fontWeight: 500,
-                    gap: 6,
-                    border: "none",
-                    cursor: "pointer",
-                    transition: "background 0.12s, color 0.12s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--hover-bg)";
-                    e.currentTarget.style.color = "var(--fg)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "var(--fg-muted)";
-                  }}
-                >
-                  <Plus size={13} style={{ opacity: 0.7 }} />
-                  Add block
-                </button>
-                {templates.length > 0 && (
+                {blocks.length > 0 && (
+                  <div data-slot="block-list">
+                    {blocks.map((block, index) => {
+                      const blockTypeDef = getBlockTypeDef(block.type);
+                      const isCollapsed = collapsedBlocks.has(index);
+                      const blockFields = blockTypeDef?.fields || [];
+                      const summary = isCollapsed ? getBlockSummary(blockFields, block.fields) : "";
+
+                      return (
+                        <div
+                          key={index}
+                          data-slot="block-card"
+                          data-state={isCollapsed ? "closed" : "open"}
+                          data-block-type={block.type}
+                          data-slug={block.type}
+                        >
+                          <div
+                            data-slot="block-card-header"
+                            data-block-type={block.type}
+                            data-slug={block.type}
+                            onClick={() => toggleBlockCollapse(index)}
+                          >
+                            <button
+                              type="button"
+                              className="flex flex-1 items-center min-w-0 text-left"
+                              style={{ gap: 10, background: "transparent", border: 0, padding: 0 }}
+                              aria-expanded={!isCollapsed}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleBlockCollapse(index);
+                              }}
+                            >
+                              <span data-slot="item-index">{index + 1}</span>
+                              <BlockTypeIcon icon={blockTypeDef?.icon} />
+                              <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
+                                <span className="flex items-baseline min-w-0" style={{ gap: 8 }}>
+                                  <span data-slot="block-card-title">{getBlockLabel(block.type)}</span>
+                                  <span data-slot="block-card-meta" className="shrink-0" style={{ fontSize: 12, color: "var(--fg-subtle)" }}>
+                                    {blockFields.length} {blockFields.length === 1 ? "field" : "fields"}
+                                  </span>
+                                </span>
+                                {summary && (
+                                  <span className="truncate" style={{ fontSize: 12.5, color: "var(--fg-muted)" }}>
+                                    {summary}
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                            <div data-slot="block-card-actions" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                data-slot="icon-button"
+                                onClick={() => moveBlock(index, "up")}
+                                disabled={index === 0}
+                                title="Move up"
+                                aria-label="Move block up"
+                              >
+                                <ArrowUp size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                data-slot="icon-button"
+                                onClick={() => moveBlock(index, "down")}
+                                disabled={index === blocks.length - 1}
+                                title="Move down"
+                                aria-label="Move block down"
+                              >
+                                <ArrowDown size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                data-slot="icon-button"
+                                data-tone="danger"
+                                onClick={() => removeBlock(index)}
+                                title="Remove block"
+                                aria-label="Remove block"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                              <span data-slot="block-card-divider" aria-hidden />
+                              <button
+                                type="button"
+                                data-slot="icon-button"
+                                onClick={() => toggleBlockCollapse(index)}
+                                title={isCollapsed ? "Expand" : "Collapse"}
+                                aria-label={isCollapsed ? "Expand block" : "Collapse block"}
+                              >
+                                <ChevronDown
+                                  size={17}
+                                  className="transition-transform"
+                                  style={{ transform: isCollapsed ? "rotate(-90deg)" : "none" }}
+                                />
+                              </button>
+                            </div>
+                          </div>
+
+                          {!isCollapsed && (
+                            <div data-slot="block-card-body">
+                              {blockTypeDef?.description && (
+                                <p
+                                  className="flex items-start"
+                                  style={{ gap: 8, fontSize: 13, color: "var(--fg-muted)", lineHeight: 1.5, margin: "0 0 20px" }}
+                                >
+                                  <Info size={15} style={{ flexShrink: 0, marginTop: 2, color: "var(--fg-subtle)" }} />
+                                  <span>{blockTypeDef.description}</span>
+                                </p>
+                              )}
+                              {blockFields.length === 0 ? (
+                                <p className="text-center py-2" style={{ fontSize: 13, color: "var(--fg-muted)" }}>
+                                  This block type has no fields defined.
+                                </p>
+                              ) : (
+                                <div className="flex flex-wrap" style={{ gap: "22px 16px" }}>
+                                  {blockFields.map((field) => {
+                                    const w = getFieldWidth(field);
+                                    return (
+                                      <div
+                                        key={field.name}
+                                        className="min-w-0 flex flex-col"
+                                        data-slug={field.name}
+                                        style={{ ...fieldFlex(w, 16), gap: 7 }}
+                                      >
+                                        <Label className="flex items-center gap-1" data-slug={field.name}>
+                                          {field.title}
+                                          {field.required && <span className="text-destructive">*</span>}
+                                        </Label>
+                                        {(field as { hint?: string }).hint && (
+                                          <span style={{ fontSize: 12.5, color: "var(--fg-muted)", lineHeight: 1.45, marginTop: -2 }}>
+                                            {(field as { hint?: string }).hint}
+                                          </span>
+                                        )}
+                                        <CustomFieldInput
+                                          field={field}
+                                          value={block.fields[field.name]}
+                                          onChange={(val) => updateBlockField(index, field.name, val)}
+                                          languageCode={languageCode}
+                                          namePath={`blocks[${index}][${field.name}]`}
+                                        />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap" style={{ gap: 8 }}>
                   <button
                     type="button"
-                    onClick={() => setShowInsertTemplate(true)}
-                    className="inline-flex items-center justify-center"
-                    style={{
-                      flex: 1,
-                      height: 34,
-                      borderRadius: 7,
-                      background: "transparent",
-                      color: "var(--fg-muted)",
-                      fontSize: 12.5,
-                      fontWeight: 500,
-                      gap: 6,
-                      border: "none",
-                      cursor: "pointer",
-                      transition: "background 0.12s, color 0.12s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--hover-bg)";
-                      e.currentTarget.style.color = "var(--fg)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "var(--fg-muted)";
+                    data-slot="add-button"
+                    style={{ flex: "999 1 240px", width: "auto" }}
+                    onClick={() => setShowAddBlock(true)}
+                  >
+                    <Plus size={16} />
+                    Add block
+                  </button>
+                  {templates.length > 0 && (
+                    <button
+                      type="button"
+                      data-slot="add-button"
+                      style={{ flex: "1 1 auto", width: "auto", padding: "0 18px" }}
+                      onClick={() => setShowInsertTemplate(true)}
+                    >
+                      <LayoutTemplate size={15} />
+                      Insert template
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between" style={{ gap: 8 }}>
+                  <button
+                    type="button"
+                    data-slot="text-action"
+                    aria-expanded={showRawJson}
+                    style={{ marginLeft: -6 }}
+                    onClick={() => {
+                      if (!showRawJson) {
+                        setRawJson(JSON.stringify(blocks, null, 2));
+                      }
+                      setShowRawJson(!showRawJson);
                     }}
                   >
-                    <LayoutTemplate size={13} style={{ opacity: 0.7 }} />
-                    Insert template
+                    <CodeIcon size={14} />
+                    Raw JSON
+                    <ChevronRight size={13} style={{ transform: showRawJson ? "rotate(90deg)" : "none", transition: "transform 0.15s" }} />
                   </button>
-                )}
-              </div>
-
-              {/* Raw JSON collapsible — sep-label style: mono uppercase tiny text with flanking dividers */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!showRawJson) {
-                      setRawJson(JSON.stringify(blocks, null, 2));
-                    }
-                    setShowRawJson(!showRawJson);
-                  }}
-                  className="flex items-center cursor-pointer w-full"
-                  style={{
-                    gap: 8,
-                    margin: "8px 0 4px",
-                    padding: 0,
-                    border: "none",
-                    background: "transparent",
-                    fontSize: 11,
-                    fontWeight: 500,
-                    fontFamily: "var(--font-mono)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: "var(--fg-muted)",
-                    transition: "color 0.12s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--fg-2)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--fg-muted)")}
-                >
-                  <span style={{ flex: 1, height: 1, background: "var(--divider)" }} />
-                  <CodeIcon size={11} />
-                  <span>Raw JSON</span>
-                  <ChevronRight size={9} style={{ transform: showRawJson ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
-                  <span style={{ flex: 1, height: 1, background: "var(--divider)" }} />
-                </button>
+                  <span style={{ fontSize: 12.5, color: "var(--fg-subtle)" }}>
+                    Changes are saved when you click Save.
+                  </span>
+                </div>
                 {showRawJson && (
-                  <div className="mt-3 space-y-2">
+                  <div className="space-y-2">
                     <Textarea
                       value={rawJson}
                       onChange={(e) => setRawJson(e.target.value)}
                       rows={12}
                       className="font-mono text-xs rounded-lg"
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="rounded-lg text-xs"
-                      onClick={applyRawJson}
-                    >
+                    <Button type="button" variant="outline" size="sm" onClick={applyRawJson}>
                       Apply JSON
                     </Button>
                   </div>
                 )}
               </div>
-            </div>
-              </>),
-                    },
-                  ]
-                : []),
-              {
-                value: "excerpt",
-                label: "Excerpt",
-                content: (<>
-                <div className="space-y-2">
-                  <Label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em" }}>Excerpt</Label>
-                  <p style={{ fontSize: 11.5, color: "var(--fg-muted)", lineHeight: 1.45 }}>
-                    Short description used in cards and search results. If empty, may be auto-generated.
-                  </p>
-                  <Textarea
-                    placeholder="Enter a short summary or teaser…"
-                    value={excerpt}
-                    onChange={(e) => setExcerpt(e.target.value)}
-                    rows={4}
-                    className="resize-none"
-                    style={{ marginTop: 4 }}
-                  />
-                </div>
-              </>),
-              },
-              ...(seoEnabled ? [{
-                value: "seo",
-                label: "SEO",
-                content: (<>
-                <div className="flex flex-col" style={{ gap: 14 }}>
-                  <div className="space-y-1.5">
-                    <Label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em" }}>SEO title</Label>
-                    <p style={{ fontSize: 11.5, color: "var(--fg-muted)", lineHeight: 1.45 }}>
-                      Overrides the page title in search results
-                    </p>
+            </Card>
+          )}
+
+          {/* Excerpt & SEO — one short form, always visible. */}
+          <Card>
+            <SectionHeader title={seoEnabled ? "Excerpt & SEO" : "Excerpt"} />
+            <div className="flex flex-col" style={{ gap: 20, padding: "18px 18px 22px" }}>
+              <div className="flex flex-col" style={{ gap: 7 }}>
+                <Label htmlFor="node-excerpt">Excerpt</Label>
+                <span style={{ fontSize: 12.5, color: "var(--fg-muted)", lineHeight: 1.45, marginTop: -2 }}>
+                  Short description used in cards and search results. If empty, it may be generated from the content.
+                </span>
+                <Textarea
+                  id="node-excerpt"
+                  placeholder="Enter a short summary or teaser…"
+                  value={excerpt}
+                  onChange={(e) => setExcerpt(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+              {seoEnabled && (
+                <>
+                  <div className="flex flex-col" style={{ gap: 7 }}>
+                    <Label htmlFor="node-seo-title">SEO title</Label>
+                    <span style={{ fontSize: 12.5, color: "var(--fg-muted)", lineHeight: 1.45, marginTop: -2 }}>
+                      Overrides the page title in search results.
+                    </span>
                     <Input
+                      id="node-seo-title"
                       placeholder={title || "Leave blank to use page title"}
                       value={seoTitle}
                       onChange={(e) => setSeoTitle(e.target.value)}
-                      style={{ marginTop: 4 }}
                     />
-                    <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
-                      {seoTitle.length || 0}/60 — Leave empty to use page title
-                    </p>
+                    <span style={{ fontSize: 12, color: seoTitle.length > 60 ? "var(--warning)" : "var(--fg-subtle)" }}>
+                      {seoTitle.length || 0}/60 · leave empty to use the page title
+                    </span>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)", letterSpacing: "-0.005em" }}>Meta description</Label>
-                    <p style={{ fontSize: 11.5, color: "var(--fg-muted)", lineHeight: 1.45 }}>
-                      Shown in search results and link previews
-                    </p>
+                  <div className="flex flex-col" style={{ gap: 7 }}>
+                    <Label htmlFor="node-seo-description">Meta description</Label>
+                    <span style={{ fontSize: 12.5, color: "var(--fg-muted)", lineHeight: 1.45, marginTop: -2 }}>
+                      Shown in search results and link previews.
+                    </span>
                     <Textarea
+                      id="node-seo-description"
                       placeholder="Enter a meta description…"
                       value={seoDescription}
                       onChange={(e) => setSeoDescription(e.target.value)}
                       rows={3}
                       className="resize-none"
-                      style={{ marginTop: 4 }}
                     />
-                    <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
+                    <span style={{ fontSize: 12, color: seoDescription.length > 160 ? "var(--warning)" : "var(--fg-subtle)" }}>
                       {seoDescription.length || 0}/160 recommended
-                    </p>
+                    </span>
                   </div>
                   <div
-                    className="rounded-lg p-3"
-                    style={{ background: "var(--sub-bg)", border: "1px solid var(--border)" }}
+                    className="rounded-lg"
+                    style={{ padding: "12px 14px", background: "var(--sub-bg)", border: "1px solid var(--border)" }}
                   >
-                    <p className="text-[11px] mb-1" style={{ color: "var(--fg-subtle)" }}>Search preview</p>
-                    <p className="text-sm font-medium truncate" style={{ color: "var(--accent-strong)" }}>
-                      {seoTitle || title || "Page Title"}
+                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-subtle)", marginBottom: 6 }}>Search preview</p>
+                    <p className="truncate" style={{ fontSize: 16, fontWeight: 500, color: "var(--accent-strong)", lineHeight: 1.3 }}>
+                      {seoTitle || title || "Page title"}
                     </p>
-                    <p className="text-xs truncate" style={{ color: "var(--success)" }}>
+                    <p className="truncate" style={{ fontSize: 12.5, color: "var(--success)", marginTop: 2 }}>
                       {typeof window !== "undefined" ? window.location.origin : ""}
                       {originalNode?.full_url || "/"}
                     </p>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                    <p className="line-clamp-2" style={{ fontSize: 13, color: "var(--fg-muted)", marginTop: 4 }}>
                       {seoDescription || "No description set. Search engines will use page content."}
                     </p>
                   </div>
-                </div>
-              </>),
-              }] : []),
-              {
-                value: "custom",
-                label: "Custom Fields",
-                badge: customFields.length,
-                content: (<>
-                {customFields.length === 0 ? (
-                  <div style={{ color: "var(--fg-muted)", fontSize: 12.5, padding: "26px 0", textAlign: "center" }}>
-                    No custom fields defined for this content type.
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap" style={{ gap: "16px 14px" }}>
-                    {customFields.map((field) => {
-                      const w = getFieldWidth(field);
-                      return (
-                        <div
-                          key={field.name}
-                          className="space-y-1.5 min-w-0"
-                          data-slug={field.name}
-                          style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
-                        >
-                          <Label className="flex items-center gap-1.5" data-slug={field.name}>
-                            {field.title}
-                            {field.required && <span className="text-destructive">*</span>}
-                          </Label>
-                          <CustomFieldInput
-                            field={field}
-                            value={fieldsData[field.name]}
-                            onChange={(val) => updateFieldValue(field.name, val)}
-                            languageCode={languageCode}
-                            namePath={field.name}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>),
-              },
-            ]}
-          />
+                </>
+              )}
+            </div>
+          </Card>
 
           {/* Layout Partial Fields */}
           {layoutPartials.map((partial) => {
             const partialCollapsed = collapsedBlocks.has(-partial.id);
+            const togglePartial = () => {
+              setCollapsedBlocks((prev) => {
+                const next = new Set(prev);
+                const key = -partial.id;
+                if (next.has(key)) next.delete(key); else next.add(key);
+                return next;
+              });
+            };
             return (
-            <div
-              key={partial.slug}
-              className="overflow-hidden"
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-lg)",
-                background: "var(--card-bg)",
-              }}
-            >
-              <div
-                className="flex items-center gap-2 cursor-pointer select-none"
-                style={{
-                  padding: "8px 10px",
-                  background: "var(--sub-bg)",
-                  borderBottom: partialCollapsed ? "none" : "1px solid var(--border)",
-                }}
-                onClick={() => {
-                  setCollapsedBlocks((prev) => {
-                    const next = new Set(prev);
-                    const key = -partial.id;
-                    if (next.has(key)) next.delete(key); else next.add(key);
-                    return next;
-                  });
-                }}
-              >
-                <ChevronDown
-                  size={12}
-                  className="shrink-0 transition-transform"
-                  style={{
-                    color: "var(--fg-muted)",
-                    transform: partialCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
-                  }}
-                />
-                <LayoutTemplate size={14} style={{ color: "var(--fg-muted)" }} className="shrink-0" />
-                <span className="font-semibold" style={{ fontSize: 12.5, color: "var(--fg)" }}>
-                  {partial.name}
-                </span>
-                <Badge
-                  variant="secondary"
-                  className="ml-auto"
-                  style={{
-                    fontSize: 10,
-                    background: "color-mix(in oklab, #a855f7 14%, transparent)",
-                    color: "#7e22ce",
-                    border: "1px solid color-mix(in oklab, #a855f7 24%, transparent)",
+            <div key={partial.slug} data-slot="block-card" data-state={partialCollapsed ? "closed" : "open"}>
+              <div data-slot="block-card-header" onClick={togglePartial}>
+                <button
+                  type="button"
+                  className="flex flex-1 items-center min-w-0 text-left"
+                  style={{ gap: 10, background: "transparent", border: 0, padding: 0 }}
+                  aria-expanded={!partialCollapsed}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePartial();
                   }}
                 >
-                  Layout Partial
-                </Badge>
+                  <span data-slot="block-icon" aria-hidden>
+                    <LayoutTemplate size={16} strokeWidth={1.8} />
+                  </span>
+                  <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
+                    <span data-slot="block-card-title">{partial.name}</span>
+                    <span style={{ fontSize: 12, color: "var(--fg-subtle)" }}>Layout partial</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  data-slot="icon-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePartial();
+                  }}
+                  aria-label={partialCollapsed ? "Expand partial" : "Collapse partial"}
+                >
+                  <ChevronDown
+                    size={17}
+                    className="transition-transform"
+                    style={{ transform: partialCollapsed ? "rotate(-90deg)" : "none" }}
+                  />
+                </button>
               </div>
               {!partialCollapsed && (
-                <div style={{ padding: "12px 14px 14px" }}>
-                  <div className="flex flex-wrap" style={{ gap: "16px 14px" }}>
+                <div data-slot="block-card-body">
+                  <div className="flex flex-wrap" style={{ gap: "22px 16px" }}>
                     {(partial.fields || []).map((field) => {
-                      const fieldKey = field.name || field.name;
+                      const fieldKey = field.name;
                       const partialData = layoutData[partial.slug] || {};
                       const w = getFieldWidth(field);
                       return (
                         <div
                           key={fieldKey}
-                          className="space-y-2 min-w-0"
-                          style={{ flex: `0 0 calc(${w}% - 14px)`, maxWidth: `calc(${w}% - 14px)` }}
+                          className="min-w-0 flex flex-col"
+                          style={{ ...fieldFlex(w, 16), gap: 7 }}
                         >
-                          <Label className="text-sm font-medium text-foreground">
+                          <Label className="flex items-center gap-1">
                             {field.title}
-                            {field.required && <span className="ml-1" style={{ color: "var(--danger)" }}>*</span>}
+                            {field.required && <span className="text-destructive">*</span>}
                           </Label>
                           {(field as any).default_from && !partialData[fieldKey] && (
-                            <p className="text-xs" style={{ color: "var(--fg-subtle)" }}>
+                            <span style={{ fontSize: 12.5, color: "var(--fg-muted)", marginTop: -2 }}>
                               Falls back to <code className="bg-muted px-1 rounded">{(field as any).default_from}</code>
-                            </p>
+                            </span>
                           )}
                           <CustomFieldInput
                             field={field}
@@ -1488,7 +1439,37 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                       </button>
                     </div>
                   ) : (
-                    <div className="relative">
+                    <SearchDropdown
+                      open={showParentResults && (!!parentSearch.trim() || parentSearching)}
+                      onOpenChange={setShowParentResults}
+                      content={
+                        parentSearching ? (
+                          <div data-slot="search-empty">Searching…</div>
+                        ) : parentResults.length === 0 ? (
+                          <div data-slot="search-empty">
+                            {parentSearch.trim() ? "No results found" : "Type to search…"}
+                          </div>
+                        ) : (
+                          parentResults.map((node) => (
+                            <button
+                              key={node.id}
+                              type="button"
+                              data-slot="search-option"
+                              onClick={() => {
+                                setParentId(String(node.id));
+                                setParentNode(node);
+                                setParentSearch("");
+                                setParentResults([]);
+                                setShowParentResults(false);
+                              }}
+                            >
+                              <span className="truncate" style={{ fontWeight: 500 }}>{node.title}</span>
+                              <span className="ml-auto shrink-0" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--fg-subtle)" }}>/{node.slug}</span>
+                            </button>
+                          ))
+                        )
+                      }
+                    >
                       <Input
                         placeholder={`Search ${label.toLowerCase()}s...`}
                         value={parentSearch}
@@ -1500,37 +1481,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                         onBlur={() => setTimeout(() => setShowParentResults(false), 200)}
                         className="h-9 rounded-lg text-sm"
                       />
-                      {showParentResults && (parentSearch.trim() || parentSearching) && (
-                        <div className="mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-48 overflow-y-auto">
-                          {parentSearching ? (
-                            <div className="px-3 py-2 text-sm" style={{ color: "var(--fg-subtle)" }}>Searching...</div>
-                          ) : parentResults.length === 0 ? (
-                            <div className="px-3 py-2 text-sm" style={{ color: "var(--fg-subtle)" }}>
-                              {parentSearch.trim() ? "No results found" : "Type to search..."}
-                            </div>
-                          ) : (
-                            parentResults.map((node) => (
-                              <button
-                                key={node.id}
-                                type="button"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => {
-                                  setParentId(String(node.id));
-                                  setParentNode(node);
-                                  setParentSearch("");
-                                  setParentResults([]);
-                                  setShowParentResults(false);
-                                }}
-                              >
-                                <span className="font-medium text-foreground truncate">{node.title}</span>
-                                <span className="text-[10px] font-mono ml-auto shrink-0" style={{ color: "var(--fg-subtle)" }}>/{node.slug}</span>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    </SearchDropdown>
                   )}
                 </div>
 
@@ -1703,8 +1654,83 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           ))}
                         </div>
                       )}
-                      {/* Search input */}
-                      <div className="relative">
+                      {/* Search input; results float over the page */}
+                      <SearchDropdown
+                        open={isOpen && (!!searchValue.trim() || filtered.length > 0)}
+                        onOpenChange={(open) => setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: open }))}
+                        content={
+                          <>
+                            {filtered.length === 0 && !searchValue.trim() && (
+                              <div data-slot="search-empty">No terms available</div>
+                            )}
+                            {filtered.slice(0, 20).map((term) => (
+                              <button
+                                key={term.id}
+                                type="button"
+                                data-slot="search-option"
+                                onClick={() => {
+                                  if (!tax.multiple && selectedTerms.length > 0) {
+                                    setTaxonomies({ ...taxonomies, [tax.slug]: [term.slug] });
+                                  } else {
+                                    setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, term.slug] });
+                                  }
+                                  setTaxonomySearch(prev => ({ ...prev, [tax.slug]: "" }));
+                                  setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
+                                }}
+                              >
+                                <Tag size={14} style={{ color: "var(--fg-subtle)", flexShrink: 0 }} />
+                                <span className="truncate">{term.name}</span>
+                              </button>
+                            ))}
+                            {searchValue.trim() && !exactMatch && (
+                              <>
+                                {filtered.length > 0 && <div data-slot="search-separator" />}
+                                <button
+                                  type="button"
+                                  data-slot="search-option"
+                                  data-tone="create"
+                                  onClick={async () => {
+                                    let val = searchValue.trim();
+                                    // Persist a real taxonomy_terms row in the node's
+                                    // language so the term appears in the term list
+                                    // and other nodes can reuse it, then select its
+                                    // slug. Pre-existing rows surface SLUG_CONFLICT —
+                                    // fall back to the typed text without creating a
+                                    // duplicate row.
+                                    try {
+                                      const created = await createTerm(nodeTypeProp, tax.slug, {
+                                        name: val,
+                                        language_code: languageCode,
+                                      });
+                                      setAvailableTerms(prev => ({
+                                        ...prev,
+                                        [tax.slug]: [...(prev[tax.slug] || []), created],
+                                      }));
+                                      val = created.slug;
+                                    } catch {
+                                      // Non-fatal: a row may already exist in another
+                                      // language scope. The selection below still
+                                      // wires the name onto the node.
+                                    }
+                                    if (!selectedTerms.includes(val)) {
+                                      if (!tax.multiple && selectedTerms.length > 0) {
+                                        setTaxonomies({ ...taxonomies, [tax.slug]: [val] });
+                                      } else {
+                                        setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, val] });
+                                      }
+                                    }
+                                    setTaxonomySearch(prev => ({ ...prev, [tax.slug]: "" }));
+                                    setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
+                                  }}
+                                >
+                                  <Plus size={14} style={{ flexShrink: 0 }} />
+                                  <span className="truncate">Create “{searchValue.trim()}”</span>
+                                </button>
+                              </>
+                            )}
+                          </>
+                        }
+                      >
                         <Input
                           placeholder={`Search ${tax.label.toLowerCase()}...`}
                           value={searchValue}
@@ -1716,77 +1742,7 @@ export default function NodeEditorPage({ nodeTypeProp }: NodeEditorProps) {
                           onBlur={() => setTimeout(() => setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false })), 200)}
                           className="h-8 rounded-lg text-xs"
                         />
-                        {isOpen && (searchValue.trim() || filtered.length > 0) && (
-                          <div className="mt-1 w-full rounded-lg border border-border bg-card shadow-lg max-h-40 overflow-y-auto">
-                            {filtered.length === 0 && !searchValue.trim() && (
-                              <div className="px-3 py-2 text-xs" style={{ color: "var(--fg-subtle)" }}>No terms available</div>
-                            )}
-                            {filtered.slice(0, 20).map((term) => (
-                              <button
-                                key={term.id}
-                                type="button"
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent transition-colors"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => {
-                                  if (!tax.multiple && selectedTerms.length > 0) {
-                                    setTaxonomies({ ...taxonomies, [tax.slug]: [term.slug] });
-                                  } else {
-                                    setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, term.slug] });
-                                  }
-                                  setTaxonomySearch(prev => ({ ...prev, [tax.slug]: "" }));
-                                  setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
-                                }}
-                              >
-                                <Tag className="h-3 w-3" style={{ color: "var(--fg-subtle)" }} />
-                                <span className="font-medium text-foreground">{term.name}</span>
-                              </button>
-                            ))}
-                            {searchValue.trim() && !exactMatch && (
-                              <button
-                                type="button"
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent transition-colors border-t border-border"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={async () => {
-                                  let val = searchValue.trim();
-                                  // Persist a real taxonomy_terms row in the node's
-                                  // language so the term appears in the term list
-                                  // and other nodes can reuse it, then select its
-                                  // slug. Pre-existing rows surface SLUG_CONFLICT —
-                                  // fall back to the typed text without creating a
-                                  // duplicate row.
-                                  try {
-                                    const created = await createTerm(nodeTypeProp, tax.slug, {
-                                      name: val,
-                                      language_code: languageCode,
-                                    });
-                                    setAvailableTerms(prev => ({
-                                      ...prev,
-                                      [tax.slug]: [...(prev[tax.slug] || []), created],
-                                    }));
-                                    val = created.slug;
-                                  } catch {
-                                    // Non-fatal: a row may already exist in another
-                                    // language scope. The selection below still
-                                    // wires the name onto the node.
-                                  }
-                                  if (!selectedTerms.includes(val)) {
-                                    if (!tax.multiple && selectedTerms.length > 0) {
-                                      setTaxonomies({ ...taxonomies, [tax.slug]: [val] });
-                                    } else {
-                                      setTaxonomies({ ...taxonomies, [tax.slug]: [...selectedTerms, val] });
-                                    }
-                                  }
-                                  setTaxonomySearch(prev => ({ ...prev, [tax.slug]: "" }));
-                                  setTaxonomyDropdownOpen(prev => ({ ...prev, [tax.slug]: false }));
-                                }}
-                              >
-                                <Plus className="h-3 w-3" style={{ color: "var(--success)" }} />
-                                <span className="font-medium" style={{ color: "var(--success)" }}>Create: {searchValue.trim()}</span>
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      </SearchDropdown>
                     </div>
                   );
                 })}
