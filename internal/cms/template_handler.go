@@ -47,6 +47,8 @@ func (h *TemplateHandler) resolveBlockConfigOne(t *models.Template) {
 	if h.db == nil || t == nil || len(t.BlockConfig) == 0 {
 		return
 	}
+	// Node references resolve against this site's content (template_node_refs.go).
+	t.BlockConfig = models.JSONB(ResolveNodeRefsInJSON(h.db, []byte(t.BlockConfig)))
 	lookup := LoadAssetLookup(h.db, ActiveThemeName(h.db))
 	if lookup.Empty() {
 		return
