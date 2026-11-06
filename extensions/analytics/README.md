@@ -159,9 +159,12 @@ excluded paths get the page unchanged.
 Every URL carries only a page number and a block key; the visit is recognised
 on the server from the same daily hash and the `Referer` / `Ping-From` page.
 Signals are deduplicated per page view, capped per visitor per minute, and a
-signal that carries `Sec-Purpose` (prerender) is ignored. A page shown from a
-cache (no document request) is counted once from its activation; no views are
-created for 10 minutes after a plugin start or salt rotation.
+signal that carries `Sec-Purpose` (prerender) is ignored. Signals that arrive
+before their page's request is recorded (requests reach the plugin in batches,
+about every 2 s) wait for it. A page shown from a cache (no document request)
+is counted once from its activation when no request turns up within 10 seconds;
+no views are created that way for 10 minutes after a plugin start or salt
+rotation.
 Page weight, measured on the Beyond Vietnam homepage (9 sections, 27 links): about
 +5.4 KB raw and +1 KB gzip on the HTML document, no extra blocking request.
 How each browser behaves is in [docs/browser-matrix.md](docs/browser-matrix.md).

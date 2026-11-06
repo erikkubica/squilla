@@ -236,7 +236,7 @@ func (p *AnalyticsPlugin) handleSignal(_ context.Context, rest string, req *pb.P
 	if !p.sigRate.allow(vid, now) {
 		return reply
 	}
-	p.applySignal(c, cfg, vid, path, sr, now)
+	p.applySignal(c, vid, path, sr, now)
 	return reply
 }
 
@@ -253,18 +253,30 @@ func itoa(n int) string { b, _ := json.Marshal(n); return string(b) }
 
 // applySignal attaches sr to the visitor's pageview of path, or parks it
 // until the kernel's record for that pageview arrives.
-func (p *AnalyticsPlugin) applySignal(c *client, cfg *Config, vid, path string, sr signalRequest, now time.Time) {
+func (p *AnalyticsPlugin) applySignal(c *client, vid, path string, sr signalRequest, now time.Time) {
 	pv, ok := p.beacons.lookupRecent(vid, path, now, 30*time.Minute)
-	if !ok {
-		if sr.kind == "activate" && p.mayCreateView(now) {
-			// A shown page with no request on record: served from a cache
-			// (or prerendered) — a real view, counted once.
-			p.createCachedView(c, cfg, vid, path, sr, now)
-			return
+	activated := ok && !pv.activatedAt.IsZero()
+	if sr.kind == "activate" && activated && now.Sub(pv.activatedAt) < repeatActivation {
+		return // the same document's activation, repeated
+	}
+	// A document activates about a second after it loads, usually before the
+	// kernel delivers its record (records are batched), so its signals wait
+	// for that record: when no view of the page is on record yet, and when
+	// the view on record was already activated (the visitor opened the page
+	// again), together with the new document's later signals. A document that
+	// never produces a record came from the browser's cache; settleOrphans
+	// turns it into a cached view once the wait is over.
+	if !ok || (sr.kind == "activate" && activated) || now.Before(pv.awaitUntil) {
+		if ok && sr.kind == "activate" {
+			p.beacons.awaitNewView(vid, path, now.Add(orphanWait+2*flushInterval))
 		}
-		p.beacons.addPending(vid, path, pendingSig{
+		sg := pendingSig{
 			kind: sr.kind, key: sr.key, value: sr.value, dest: sr.dest, viewport: sr.viewport, scheme: sr.scheme, ts: now,
-		})
+		}
+		if sr.kind == "activate" {
+			sg.client, sg.nodeID = c, sr.nodeID
+		}
+		p.beacons.addPending(vid, path, sg)
 		return
 	}
 	p.recordSignal(vid, path, pv, sr, now)
@@ -282,6 +294,7 @@ func (p *AnalyticsPlugin) recordSignal(vid, path string, pv recentPV, sr signalR
 		p.buf.addConfirm(confirmation{EID: pv.eid, Since: pv.ts.Add(-time.Minute), Viewport: sr.viewport, ColorScheme: sr.scheme, Printed: sr.print, Meta: true})
 		return
 	case "activate":
+		p.beacons.markActivated(vid, path, now)
 		if pv.done {
 			return
 		}
@@ -310,19 +323,53 @@ func (p *AnalyticsPlugin) mayCreateView(now time.Time) bool {
 	return now.Sub(p.salt.rotatedAtTime()) >= quietAfterReset
 }
 
-// createCachedView synthesises the pageview of a page served from a cache.
-func (p *AnalyticsPlugin) createCachedView(c *client, cfg *Config, vid, path string, sr signalRequest, now time.Time) {
+// orphanWait is how long a parked activation waits for its document's
+// record before the page counts as served from a cache. Records arrive
+// within about two seconds; the margin covers a busy server (a record
+// arriving after the wait would count the view a second time).
+const orphanWait = 10 * time.Second
+
+// settleOrphans turns parked activations whose record never came into
+// cached views (not right after a restart or salt rotation).
+func (p *AnalyticsPlugin) settleOrphans(now time.Time) {
+	orphans := p.beacons.takeOrphans(now, orphanWait)
+	if len(orphans) == 0 {
+		return
+	}
+	cfg := p.config()
+	for _, o := range orphans {
+		if p.mayCreateView(o.act.ts) {
+			p.createCachedView(cfg, o)
+		}
+	}
+}
+
+// createCachedView records the pageview of a page served from a cache (its
+// document never reached the server) and attaches its parked signals.
+func (p *AnalyticsPlugin) createCachedView(cfg *Config, o orphan) {
+	c, vid, path, at := o.act.client, o.visitor, o.path, o.act.ts
 	ev := Event{
-		TS: now, Host: c.Host, Path: path, NodeID: sr.nodeID, VisitorID: vid, Kind: kindPageview, EID: randomHex(8),
+		TS: at, Host: c.Host, Path: path, NodeID: o.act.nodeID, VisitorID: vid, Kind: kindPageview, EID: randomHex(8),
 		Country: c.Country, Language: c.Language, Device: c.Device, Browser: c.Browser, OS: c.OS,
-		Cached: true, Confirmed: true, Viewport: sr.viewport, ColorScheme: sr.scheme,
+		Cached: true, Confirmed: true,
 	}
 	p.attachSession(&ev, acquisitionInput{host: c.Host}, cfg, true)
 	p.buf.addEvent(ev)
-	p.beacons.rememberPageview(vid, path, ev.EID, ev.SessionID, now, false)
-	p.beacons.markDone(vid, path)
 	for _, g := range p.matchPageviewGoals(path) {
 		p.buf.addEvent(goalEvent(ev, g.ID))
+	}
+	if cur, ok := p.beacons.lookupRecent(vid, path, at, 30*time.Minute); ok && cur.ts.After(at) {
+		// The visitor has opened the page again since; that view keeps the
+		// signals from here on.
+		return
+	}
+	p.beacons.rememberPageview(vid, path, ev.EID, ev.SessionID, at, false)
+	p.beacons.markDone(vid, path)
+	p.beacons.markActivated(vid, path, at)
+	pv, _ := p.beacons.lookupRecent(vid, path, at, 30*time.Minute)
+	for _, sg := range o.rest {
+		sr := signalRequest{kind: sg.kind, key: sg.key, value: sg.value, dest: sg.dest, viewport: sg.viewport, scheme: sg.scheme}
+		p.recordSignal(vid, path, pv, sr, sg.ts)
 	}
 }
 

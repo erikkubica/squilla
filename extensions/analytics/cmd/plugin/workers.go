@@ -25,6 +25,7 @@ func (p *AnalyticsPlugin) startWorkers(ctx context.Context) {
 			case <-t.C:
 			case <-p.buf.wake:
 			}
+			p.settleOrphans(p.now())
 			fctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 			p.flush(fctx)
 			cancel()

@@ -31,6 +31,14 @@ type recentPV struct {
 	spec bool     // stored as a speculative (prefetch/prerender) load
 	done bool     // already confirmed by a beacon or an activation
 	seen []string // signal dedupe keys already recorded for this view
+	// activatedAt is when this view's own activation beacon arrived. A page
+	// sends one per document, a second after it loads, so a later one means
+	// the visitor opened the page again and that view's record is still on
+	// its way (or never comes: the page was served from a cache).
+	activatedAt time.Time
+	// awaitUntil holds signals back for that newer view until its record
+	// arrives (or this time passes).
+	awaitUntil time.Time
 }
 
 // pendingSig is a signal that reached us before the kernel delivered its
@@ -39,6 +47,11 @@ type pendingSig struct {
 	kind, key, value, dest string
 	viewport, scheme       string
 	ts                     time.Time
+	// An activation keeps its sender and page so that a document which never
+	// produces a record (served from the browser's cache) can still become a
+	// view (takeOrphans).
+	client *client
+	nodeID int64
 }
 
 func newBeaconTracker() *beaconTracker {
@@ -133,10 +146,34 @@ func (t *beaconTracker) markDone(visitor, path string) {
 	t.mu.Unlock()
 }
 
+// markActivated records when the view's activation beacon arrived.
+func (t *beaconTracker) markActivated(visitor, path string, at time.Time) {
+	t.mu.Lock()
+	if pv, ok := t.recent[beaconKey(visitor, path)]; ok && pv.activatedAt.IsZero() {
+		pv.activatedAt = at
+		t.recent[beaconKey(visitor, path)] = pv
+	}
+	t.mu.Unlock()
+}
+
+// awaitNewView holds the visitor's signals for path back until a newer
+// pageview record replaces the current one, or until `until`.
+func (t *beaconTracker) awaitNewView(visitor, path string, until time.Time) {
+	t.mu.Lock()
+	if pv, ok := t.recent[beaconKey(visitor, path)]; ok {
+		pv.awaitUntil = until
+		t.recent[beaconKey(visitor, path)] = pv
+	}
+	t.mu.Unlock()
+}
+
 const (
 	maxPendingKeys   = 5000
-	maxPendingPerKey = 12
+	maxPendingPerKey = 24
 	pendingWindow    = 10 * time.Second
+	// repeatActivation: activation fires a second after a document loads, so
+	// two within a second are one document's request, repeated.
+	repeatActivation = time.Second
 )
 
 func (t *beaconTracker) addPending(visitor, path string, sg pendingSig) {
@@ -147,12 +184,22 @@ func (t *beaconTracker) addPending(visitor, path string, sg pendingSig) {
 	if len(cur) == 0 && len(t.pending) >= maxPendingKeys {
 		return
 	}
+	if sg.kind == "activate" {
+		for _, o := range cur {
+			if d := sg.ts.Sub(o.ts); o.kind == "activate" && d < repeatActivation && d > -repeatActivation {
+				return
+			}
+		}
+	}
 	if len(cur) < maxPendingPerKey {
 		t.pending[k] = append(cur, sg)
 	}
 }
 
-// takePending consumes the signals that arrived shortly before ts.
+// takePending consumes the signals of the document whose request started at
+// ts. A page signals only after its response arrived, so earlier signals came
+// from another document (one served from the browser's cache) and stay
+// parked for takeOrphans.
 func (t *beaconTracker) takePending(visitor, path string, ts time.Time) []pendingSig {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -161,11 +208,76 @@ func (t *beaconTracker) takePending(visitor, path string, ts time.Time) []pendin
 	if !ok {
 		return nil
 	}
-	delete(t.pending, k)
-	var out []pendingSig
+	var out, keep []pendingSig
 	for _, sg := range all {
-		if d := sg.ts.Sub(ts); d >= -5*time.Second && d <= pendingWindow {
+		if d := sg.ts.Sub(ts); d >= -time.Second && d <= pendingWindow {
 			out = append(out, sg)
+		} else {
+			keep = append(keep, sg)
+		}
+	}
+	if len(keep) > 0 {
+		t.pending[k] = keep
+	} else {
+		delete(t.pending, k)
+	}
+	return out
+}
+
+// orphan is a parked activation whose document never produced a record,
+// with that document's other parked signals.
+type orphan struct {
+	visitor, path string
+	act           pendingSig
+	rest          []pendingSig
+}
+
+// takeOrphans removes and returns the activations parked for at least wait:
+// their record would have arrived by now, so the page came from a cache.
+// A document's signals are the ones parked from just before its activation
+// (its viewport facts) up to the next document's.
+func (t *beaconTracker) takeOrphans(now time.Time, wait time.Duration) []orphan {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var out []orphan
+	for k, sigs := range t.pending {
+		visitor, path, _ := strings.Cut(k, "|")
+		for {
+			ai := -1
+			for i, sg := range sigs {
+				if sg.kind == "activate" && sg.client != nil && now.Sub(sg.ts) >= wait {
+					ai = i
+					break
+				}
+			}
+			if ai < 0 {
+				break
+			}
+			o := orphan{visitor: visitor, path: path, act: sigs[ai]}
+			from, until := o.act.ts.Add(-2*time.Second), time.Time{}
+			for _, sg := range sigs[ai+1:] {
+				if sg.kind == "activate" {
+					until = sg.ts.Add(-2 * time.Second)
+					break
+				}
+			}
+			var keep []pendingSig
+			for i, sg := range sigs {
+				switch {
+				case i == ai:
+				case !sg.ts.Before(from) && (until.IsZero() || sg.ts.Before(until)):
+					o.rest = append(o.rest, sg)
+				default:
+					keep = append(keep, sg)
+				}
+			}
+			out = append(out, o)
+			sigs = keep
+		}
+		if len(sigs) > 0 {
+			t.pending[k] = sigs
+		} else {
+			delete(t.pending, k)
 		}
 	}
 	return out

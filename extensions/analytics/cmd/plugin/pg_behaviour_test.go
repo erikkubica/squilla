@@ -67,8 +67,19 @@ func TestPostgresBehaviour(t *testing.T) {
 			cEvent = e
 		}
 	}
-	p.buf.addConfirm(confirmation{EID: cEvent.EID, Since: cEvent.TS.Add(-time.Minute), Viewport: "m", ColorScheme: "light"})
+	// Its activation and viewport facts flushed together (both waited for its
+	// record): both must land, whatever their order.
+	p.buf.addConfirm(confirmation{EID: cEvent.EID, Since: cEvent.TS.Add(-time.Minute)})
+	p.buf.addConfirm(confirmation{EID: cEvent.EID, Since: cEvent.TS.Add(-time.Minute), Viewport: "m", ColorScheme: "light", Meta: true})
 	p.flush(ctx)
+	var cf struct {
+		Confirmed bool
+		Viewport  string
+	}
+	db.Raw("SELECT confirmed, viewport FROM analytics_events WHERE eid = ?", cEvent.EID).Scan(&cf)
+	if !cf.Confirmed || cf.Viewport != "m" {
+		t.Fatalf("activation + viewport in one flush = %+v, want both applied", cf)
+	}
 	rows := []map[string]any{
 		{"ts": t0.Add(10 * time.Second), "eid": cEvent.EID, "session_id": cEvent.SessionID, "path": "/tours", "kind": "section", "block_key": "bv-hero.0"},
 		{"ts": t0.Add(12 * time.Second), "eid": cEvent.EID, "session_id": cEvent.SessionID, "path": "/tours", "kind": "section", "block_key": "bv-faq.0"},
