@@ -39,6 +39,8 @@ async function request<T>(method: string, path: string, opts: { query?: Query; b
       : { Accept: "application/json" },
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
   });
+  // A write makes any shared read stale.
+  if (method !== "GET") shared.clear();
   const text = await res.text();
   let data: unknown = null;
   if (text) {
@@ -55,7 +57,39 @@ async function request<T>(method: string, path: string, opts: { query?: Query; b
   return data as T;
 }
 
-const get = <T,>(path: string, query?: Query, signal?: AbortSignal) => request<T>("GET", path, { query, signal });
+// Several cards on one page ask for the same report (the Overview's
+// highlights reuse the top-pages and channels lists). Identical GETs made
+// within a few seconds share one request; each caller can still abort its
+// own wait without cancelling the others.
+const SHARE_MS = 5000;
+const shared = new Map<string, { at: number; promise: Promise<unknown> }>();
+
+function get<T>(path: string, query?: Query, signal?: AbortSignal): Promise<T> {
+  const url = buildUrl(path, query);
+  const now = Date.now();
+  let entry = shared.get(url);
+  if (!entry || now - entry.at > SHARE_MS) {
+    const fresh = { at: now, promise: request<T>("GET", path, { query }) as Promise<unknown> };
+    entry = fresh;
+    shared.set(url, fresh);
+    fresh.promise.catch(() => {
+      if (shared.get(url) === fresh) shared.delete(url);
+    });
+    if (shared.size > 200) for (const [k, v] of shared) if (now - v.at > SHARE_MS) shared.delete(k);
+  }
+  const p = entry.promise as Promise<T>;
+  if (!signal) return p;
+  return new Promise<T>((resolve, reject) => {
+    if (signal.aborted) return reject(new DOMException("Aborted", "AbortError"));
+    signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+    p.then(resolve, reject);
+  });
+}
+
+/** Forget shared GET results (after a save, so the next read is fresh). */
+export function forgetShared(): void {
+  shared.clear();
+}
 
 export const api = {
   summary: (q: URLSearchParams, signal?: AbortSignal) => get<SummaryResponse>("summary", q, signal),

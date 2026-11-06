@@ -4,7 +4,9 @@ import { blockName, pct, reasonLabel, seconds } from "./behaviour";
 describe("behaviour helpers", () => {
   it("names blocks and layout partials", () => {
     expect(blockName("bv-wall-of-love.0")).toBe("Wall of love");
-    expect(blockName("p.default-cta")).toBe("Default cta (layout)");
+    expect(blockName("p.default-cta")).toBe("Default CTA (shared)");
+    expect(blockName("n")).toBe("Menu");
+    expect(blockName("x")).toBe("Elsewhere on the page");
     expect(blockName("hero.0", "Hero banner")).toBe("Hero banner");
     expect(blockName("image-text.1")).toBe("Image text 2");
   });

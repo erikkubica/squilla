@@ -14,20 +14,22 @@ import { Segmented } from "./Segmented";
 
 const METRIC_LABELS: Record<SeriesMetric, string> = {
   visitors: "Visitors",
-  pageviews: "Pageviews",
+  pageviews: "Page views",
   visits: "Visits",
   conversions: "Conversions",
 };
 
-const INTERVAL_LABELS: Record<Interval, string> = { hour: "Hour", day: "Day", week: "Week", month: "Month" };
+const INTERVAL_LABELS: Record<Interval, string> = { hour: "Hours", day: "Days", week: "Weeks", month: "Months" };
+const INTERVAL_ONE: Record<Interval, string> = { hour: "Hour", day: "Day", week: "Week", month: "Month" };
 
-export function MainChartCard({ vm }: { vm: ViewModel }) {
+/** The trend for one metric over the selected period. */
+export function MainChartCard({ vm, height = 260 }: { vm: ViewModel; height?: number }) {
   const { state, interval, range, query, queryKey, update } = vm;
   const metric = state.metric;
   const [asTable, setAsTable] = useState(false);
   const ts = useAsync((s) => api.timeseries(query, interval, s), `${queryKey}|${interval}`);
   const allowed = allowedIntervals(range);
-  const prevName = state.compare === "year" ? "Year ago" : "Previous period";
+  const prevName = state.compare === "year" ? "Same days last year" : "Previous period";
 
   const points: TSPoint[] = useMemo(() => {
     const d = ts.data;
@@ -48,19 +50,11 @@ export function MainChartCard({ vm }: { vm: ViewModel }) {
   return (
     <Panel
       id="an-main-chart"
-      title="Traffic trend"
-      leading={
-          <Segmented<SeriesMetric>
-            label="Chart metric"
-            value={metric}
-            onChange={(m) => update({ metric: m }, true)}
-            options={(Object.keys(METRIC_LABELS) as SeriesMetric[]).map((m) => ({ value: m, label: METRIC_LABELS[m] }))}
-          />
-      }
+      title={`${METRIC_LABELS[metric]} over time`}
       actions={
         <>
           <Segmented<Interval>
-            label="Interval"
+            label="Show the chart by"
             size="xs"
             value={interval}
             onChange={(iv) => update({ interval: iv }, true)}
@@ -74,33 +68,42 @@ export function MainChartCard({ vm }: { vm: ViewModel }) {
             type="button"
             onClick={() => setAsTable((v) => !v)}
             aria-pressed={asTable}
-            aria-label={asTable ? "View as chart" : "View as table"}
-            title={asTable ? "View as chart" : "View as table"}
+            aria-label={asTable ? "Show as chart" : "Show as table"}
+            title={asTable ? "Show as chart" : "Show as table"}
             className="an-focus inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-an-muted hover:bg-an-hover hover:text-an-ink"
           >
             {asTable ? <LineChart className="size-3.5" aria-hidden="true" /> : <Table2 className="size-3.5" aria-hidden="true" />}
           </button>
-          <ExportMenu label="Export time series" query={query} options={[{ label: "Time series", spec: { dataset: "timeseries", interval } }]} />
+          <ExportMenu label="Download this chart’s data" query={query} options={[{ label: "Numbers over time", spec: { dataset: "timeseries", interval } }]} />
         </>
       }
     >
+      <div className="mb-3">
+        <Segmented<SeriesMetric>
+          label="What to chart"
+          value={metric}
+          onChange={(m) => update({ metric: m }, true)}
+          options={(Object.keys(METRIC_LABELS) as SeriesMetric[]).map((m) => ({ value: m, label: METRIC_LABELS[m] }))}
+        />
+      </div>
       {ts.error && !ts.data ? (
         <ErrorNote message={errorMessage(ts.error)} onRetry={() => ts.reload()} />
       ) : ts.loading && !ts.data ? (
-        <Skeleton style={{ height: 260 }} />
+        <Skeleton style={{ height }} />
       ) : asTable ? (
         <DataTable
-          caption={`${METRIC_LABELS[metric]} by ${interval}`}
-          columns={[INTERVAL_LABELS[interval], METRIC_LABELS[metric], ...(state.compare ? [prevName] : [])]}
+          caption={`${METRIC_LABELS[metric]} by ${INTERVAL_ONE[interval].toLowerCase()}`}
+          columns={[INTERVAL_ONE[interval], METRIC_LABELS[metric], ...(state.compare ? [prevName] : [])]}
           rows={points.map((p) => [p.label, formatInt(p.value), ...(state.compare ? [p.prev != null ? formatInt(p.prev) : "—"] : [])])}
         />
       ) : (
         <div className={ts.loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
           <TimeSeriesChart
             points={points}
-            seriesLabel={METRIC_LABELS[metric]}
+            seriesLabel="This period"
+            height={height}
             prevSeriesLabel={prevName}
-            ariaLabel={`${METRIC_LABELS[metric]} per ${interval}. Use left and right arrow keys to inspect values, or switch to the table view.`}
+            ariaLabel={`${METRIC_LABELS[metric]} per ${INTERVAL_ONE[interval].toLowerCase()}. Use the left and right arrow keys to read values, or switch to the table.`}
           />
         </div>
       )}

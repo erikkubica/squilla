@@ -1,76 +1,118 @@
-import type { ReactNode } from "react";
-import { X } from "@squilla/icons";
+import { useState } from "react";
+import { ArrowLeftRight, Check, ChevronDown, Funnel, X } from "@squilla/icons";
 import type { CompareMode, FilterDim } from "../api/types";
-import { todayIn } from "../lib/dates";
+import { compareRange, comparePhrase, rangeLabel, todayIn } from "../lib/dates";
 import { DIM_LABELS, valueLabel, valuePrefix } from "../lib/dims";
 import type { ViewModel } from "../hooks/useViewState";
+import { ui } from "../shared";
 import { DateRangePicker } from "./DateRangePicker";
-import { Segmented } from "./Segmented";
 
-type CompareValue = "off" | CompareMode;
+const { Popover, PopoverTrigger, PopoverContent } = ui;
 
-/** Sticky range / compare / filter-chip bar. All state lives in the URL. */
-export function FilterBar({ vm, right, showCompare = true }: { vm: ViewModel; right?: ReactNode; showCompare?: boolean }) {
-  const { state, range, update, removeFilter } = vm;
-  const chips = Object.entries(state.filters) as [FilterDim, string][];
+/** Period picker for the page header. All state lives in the URL. */
+export function PeriodControl({ vm }: { vm: ViewModel }) {
+  const { state, range, update } = vm;
   return (
-    <div className="sticky top-0 z-20 -mx-1 mb-4 bg-an-canvas/90 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-an-canvas/75">
-      <div className="flex flex-wrap items-center gap-2">
-        <DateRangePicker
-          preset={state.preset}
-          range={range}
-          today={todayIn(vm.tz)}
-          onPreset={(p) => update({ preset: p })}
-          onCustom={(r) => update({ preset: "custom", custom: r })}
-        />
-        {showCompare && (
-          <div className="flex items-center gap-1.5">
-            <span className="hidden text-xs text-an-muted sm:inline">Compare</span>
-            <Segmented<CompareValue>
-              label="Compare with"
-              size="xs"
-              value={state.compare ?? "off"}
-              onChange={(v) => update({ compare: v === "off" ? null : v })}
-              options={[
-                { value: "off", label: "Off" },
-                { value: "previous", label: "Previous period" },
-                { value: "year", label: "Year ago" },
-              ]}
-            />
-          </div>
-        )}
-        {right && <div className="ml-auto flex items-center gap-1.5">{right}</div>}
-      </div>
-      {chips.length > 0 && (
-        <ul className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="Active filters">
-          {chips.map(([dim, value]) => (
-            <li key={dim}>
-              <span className="inline-flex max-w-[280px] items-center gap-1 rounded-full bg-an-surface py-0.5 pr-1 pl-2.5 text-xs text-an-ink ring-1 ring-an-line">
-                <span className="text-an-muted">{DIM_LABELS[dim]}:</span>
-                <span className="truncate font-medium">
-                  {valuePrefix(dim, value) && <span aria-hidden="true">{valuePrefix(dim, value)} </span>}
-                  {valueLabel(dim, value)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeFilter(dim)}
-                  aria-label={`Remove filter ${DIM_LABELS[dim]}: ${valueLabel(dim, value)}`}
-                  className="an-focus ml-0.5 inline-flex size-5 cursor-pointer items-center justify-center rounded-full text-an-muted hover:bg-an-hover hover:text-an-ink"
-                >
-                  <X className="size-3" aria-hidden="true" />
-                </button>
+    <DateRangePicker
+      preset={state.preset}
+      range={range}
+      today={todayIn(vm.tz)}
+      onPreset={(p) => update({ preset: p })}
+      onCustom={(r) => update({ preset: "custom", custom: r })}
+    />
+  );
+}
+
+type CompareValue = CompareMode | "off";
+
+const COMPARE_LABEL: Record<CompareValue, string> = {
+  previous: "vs previous period",
+  year: "vs last year",
+  off: "No comparison",
+};
+
+/** "vs previous period ▾": what the Overview's changes and dashed lines compare with. */
+export function CompareControl({ vm }: { vm: ViewModel }) {
+  const [open, setOpen] = useState(false);
+  const value: CompareValue = vm.state.compare ?? "off";
+  const options: { value: CompareValue; title: string; desc: string }[] = [
+    { value: "previous", title: "Previous period", desc: `${cap(comparePhrase(vm.range, "previous"))} (${rangeLabel(compareRange(vm.range, "previous"))})` },
+    { value: "year", title: "Same days last year", desc: rangeLabel(compareRange(vm.range, "year")) },
+    { value: "off", title: "Don’t compare", desc: "Hide the changes and the dashed line" },
+  ];
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="an-pick an-focus" aria-label={`Compare with: ${COMPARE_LABEL[value]}`}>
+          <ArrowLeftRight aria-hidden="true" />
+          <span>{COMPARE_LABEL[value]}</span>
+          <ChevronDown className="an-pick-chev" aria-hidden="true" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[min(92vw,300px)] p-0">
+        <div className="an-root rounded-md bg-an-surface p-1.5" role="listbox" aria-label="Compare with">
+          <div className="px-2.5 pt-1.5 pb-1 text-xs font-medium text-an-muted">Compare the numbers with</div>
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              role="option"
+              aria-selected={o.value === value}
+              className="an-option an-focus"
+              onClick={() => {
+                vm.update({ compare: o.value === "off" ? null : o.value });
+                setOpen(false);
+              }}
+            >
+              <span className="min-w-0">
+                <span className="an-option-title">{o.title}</span>
+                <span className="an-option-desc">{o.desc}</span>
               </span>
-            </li>
+              {o.value === value && <Check className="an-option-check" aria-hidden="true" />}
+            </button>
           ))}
-          {chips.length > 1 && (
-            <li>
-              <button type="button" onClick={() => update({ filters: {} })} className="an-focus cursor-pointer px-1 text-xs text-an-muted underline-offset-2 hover:text-an-ink hover:underline">
-                Clear all
-              </button>
-            </li>
-          )}
-        </ul>
-      )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** "Showing only Country: Vietnam ×". Every report on these pages applies them. */
+export function ActiveFilters({ vm }: { vm: ViewModel }) {
+  const chips = Object.entries(vm.state.filters) as [FilterDim, string][];
+  if (chips.length === 0) return null;
+  return (
+    <div className="an-filters" role="group" aria-label="Active filters">
+      <span className="an-filters-label">
+        <Funnel aria-hidden="true" />
+        Showing only
+      </span>
+      {chips.map(([dim, value]) => (
+        <span key={dim} className="an-chip">
+          <span className="text-an-muted">{DIM_LABELS[dim]}:</span>
+          <span className="truncate font-medium">
+            {valuePrefix(dim, value) && <span aria-hidden="true">{valuePrefix(dim, value)} </span>}
+            {valueLabel(dim, value)}
+          </span>
+          <button
+            type="button"
+            onClick={() => vm.removeFilter(dim)}
+            aria-label={`Remove filter ${DIM_LABELS[dim]}: ${valueLabel(dim, value)}`}
+            title="Remove this filter"
+            className="an-chip-x an-focus"
+          >
+            <X aria-hidden="true" />
+          </button>
+        </span>
+      ))}
+      <button type="button" onClick={() => vm.update({ filters: {} })} className="an-filters-clear an-focus">
+        {chips.length > 1 ? "Clear all" : "Clear"}
+      </button>
+      <span className="an-filters-note">Every number and list on these pages counts only these visits.</span>
     </div>
   );
 }

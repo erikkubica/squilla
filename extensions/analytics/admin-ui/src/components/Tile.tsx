@@ -1,12 +1,18 @@
 import type { ReactNode } from "react";
+import { InfoTip } from "./InfoTip";
 
-/** Small KPI card used by the behaviour pages. */
-export function Tile({ label, value, hint }: { label: ReactNode; value: ReactNode; hint?: ReactNode }) {
+/** A single number with a label, in the same style as the Overview tiles. */
+export function Tile({ label, value, hint, info, text }: { label: string; value: ReactNode; hint?: ReactNode; info?: ReactNode; text?: boolean }) {
   return (
-    <div className="an-card p-3">
-      <div className="text-xs font-medium text-an-muted">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight text-an-ink">{value}</div>
-      {hint && <div className="text-xs text-an-muted">{hint}</div>}
+    <div className="an-card an-kpi">
+      <span className="an-kpi-label">{label}</span>
+      <span className="an-kpi-value" data-size={text ? "text" : undefined}>{value}</span>
+      {hint && <span className="an-kpi-meta">{hint}</span>}
+      {info && (
+        <span className="an-kpi-info">
+          <InfoTip label={`About ${label.toLowerCase()}`} align="right">{info}</InfoTip>
+        </span>
+      )}
     </div>
   );
 }

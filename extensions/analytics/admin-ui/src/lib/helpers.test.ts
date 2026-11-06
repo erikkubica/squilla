@@ -64,12 +64,20 @@ describe("format", () => {
 describe("url state", () => {
   it("round-trips view state and drops defaults", () => {
     const sp = writeViewState(new URLSearchParams(), { preset: "7d", compare: "previous", filters: { country: "VN" }, metric: "pageviews" });
-    expect(sp.toString()).toBe("period=7d&compare=previous&f.country=VN&metric=pageviews");
+    expect(sp.toString()).toBe("period=7d&f.country=VN&metric=pageviews");
     const st = parseViewState(sp);
     expect(st.preset).toBe("7d");
+    expect(st.compare).toBe("previous");
     expect(st.filters).toEqual({ country: "VN" });
-    const back = writeViewState(sp, { preset: "30d", metric: "visitors", compare: null, filters: {} });
+    const back = writeViewState(sp, { preset: "30d", metric: "visitors", compare: "previous", filters: {} });
     expect(back.toString()).toBe("");
+  });
+  it("compares with the previous period unless turned off", () => {
+    const off = writeViewState(new URLSearchParams(), { compare: null });
+    expect(off.toString()).toBe("compare=off");
+    expect(parseViewState(off).compare).toBeNull();
+    expect(parseViewState(new URLSearchParams("compare=year")).compare).toBe("year");
+    expect(parseViewState(new URLSearchParams("compare=bogus")).compare).toBe("previous");
   });
   it("ignores unknown filters and bad values", () => {
     const st = parseViewState(new URLSearchParams("period=bogus&f.evil=1&f.page=/x&interval=year"));
@@ -82,7 +90,8 @@ describe("url state", () => {
     const st = parseViewState(sp);
     const range = { from: "2026-01-01", to: "2026-01-02" };
     expect(effectiveInterval(st, range)).toBe("hour");
-    expect(apiQuery(st, range).toString()).toBe("from=2026-01-01&to=2026-01-02&f.device=mobile");
+    expect(apiQuery(st, range).toString()).toBe("from=2026-01-01&to=2026-01-02&compare=previous&f.device=mobile");
+    expect(apiQuery(st, range, false).toString()).toBe("from=2026-01-01&to=2026-01-02&f.device=mobile");
     expect(carryParams(sp)).toBe("?period=custom&from=2026-01-01&to=2026-01-02&f.device=mobile");
   });
 });

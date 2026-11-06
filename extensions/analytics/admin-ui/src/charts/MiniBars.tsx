@@ -14,6 +14,8 @@ export function MiniBars({ bars, height = 56, ariaLabel, unit = "pageviews" }: {
   const [hover, setHover] = useState<number | null>(null);
   const n = bars.length || 1;
   const max = Math.max(1, ...bars.map((b) => b.value));
+  // All zero: low stubs read as "nothing this minute" instead of an empty box.
+  const flat = bars.every((b) => b.value === 0);
   const slot = width / n;
   const bw = Math.min(24, Math.max(1, slot - 2));
   return (
@@ -21,11 +23,11 @@ export function MiniBars({ bars, height = 56, ariaLabel, unit = "pageviews" }: {
       <svg width={width} height={height} role="img" aria-label={ariaLabel} className="block" onPointerLeave={() => setHover(null)}>
         <line x1={0} x2={width} y1={height - 0.5} y2={height - 0.5} stroke="var(--an-grid)" strokeWidth={1} />
         {bars.map((b, i) => {
-          const h = (b.value / max) * (height - 4);
+          const h = flat ? 3 : (b.value / max) * (height - 4);
           const x = i * slot + (slot - bw) / 2;
           return (
             <g key={i}>
-              <path d={columnPath(x, height - h, bw, h, 2)} fill="var(--an-c1)" opacity={hover == null || hover === i ? 1 : 0.55} />
+              <path d={columnPath(x, height - h, bw, h, flat ? 1 : 2)} fill={flat ? "var(--an-line)" : "var(--an-c1)"} opacity={hover == null || hover === i ? 1 : 0.55} />
               <rect x={i * slot} y={0} width={slot} height={height} fill="transparent" onPointerEnter={() => setHover(i)} onPointerDown={() => setHover(i)} />
             </g>
           );

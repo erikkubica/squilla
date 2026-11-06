@@ -33,11 +33,13 @@ export function RealtimeCard() {
   return (
     <Panel
       id="an-realtime"
-      title="Realtime"
+      title="Right now"
+      subtitle={visible ? "Updates every 15 seconds" : "Paused while this tab is hidden"}
+      bodyClassName="p-4 an-fit-body"
       actions={
-        <span className="inline-flex items-center gap-1.5 text-xs text-an-muted" aria-live="polite">
-          <span aria-hidden="true" className={`inline-block size-2 rounded-full ${visible ? "bg-an-up" : "bg-an-subtle"}`} style={visible ? { animation: "an-pulse 2s ease-in-out infinite" } : undefined} />
-          {visible ? "Live · every 15s" : "Paused"}
+        <span className="an-live" data-paused={visible ? undefined : ""} aria-hidden="true">
+          <span />
+          {visible ? "Live" : "Paused"}
         </span>
       }
     >
@@ -46,30 +48,31 @@ export function RealtimeCard() {
       ) : !d ? (
         <div className="space-y-3"><Skeleton className="h-10 w-32" /><Skeleton className="h-14" /><Skeleton className="h-24" /></div>
       ) : (
-        <div className="space-y-4">
+        <div className="an-rt">
           <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
             <div>
               <div className="text-3xl leading-none font-semibold tracking-tight text-an-ink">{formatInt(d.visitors_5m)}</div>
-              <div className="mt-1 text-xs text-an-muted">visitors in the last 5 min</div>
+              <div className="mt-1 text-xs text-an-muted">people on your site in the last 5 minutes</div>
             </div>
             <dl className="flex gap-5 text-xs">
-              <div><dt className="text-an-muted">Visitors · 30 min</dt><dd className="an-num mt-0.5 text-sm font-medium text-an-ink">{formatInt(d.visitors_30m)}</dd></div>
-              <div><dt className="text-an-muted">Pageviews · 30 min</dt><dd className="an-num mt-0.5 text-sm font-medium text-an-ink">{formatInt(d.pageviews_30m)}</dd></div>
+              <div><dt className="text-an-muted">Visitors, last 30 min</dt><dd className="an-num mt-0.5 text-sm font-medium text-an-ink">{formatInt(d.visitors_30m)}</dd></div>
+              <div><dt className="text-an-muted">Page views, last 30 min</dt><dd className="an-num mt-0.5 text-sm font-medium text-an-ink">{formatInt(d.pageviews_30m)}</dd></div>
             </dl>
           </div>
           <div>
-            <div className="mb-1 text-[11px] text-an-subtle">Pageviews per minute, last 30 minutes</div>
+            <div className="mb-1 text-[11px] text-an-subtle">Page views per minute</div>
             <MiniBars
               bars={d.per_minute.map((p) => ({ label: minuteLabel(p.t), value: p.pageviews }))}
               ariaLabel={`Pageviews per minute over the last 30 minutes, ${formatInt(d.pageviews_30m)} in total`}
             />
           </div>
+          <div className="an-rt-rest">
           <div>
-            <h3 className="mb-1.5 text-xs font-medium text-an-muted">Recent activity</h3>
+            <h3 className="mb-1.5 text-xs font-medium text-an-muted">Latest page views</h3>
             {d.recent.length === 0 ? (
-              <p className="py-3 text-xs text-an-muted">Nothing in the last 30 minutes.</p>
+              <p className="py-3 text-xs text-an-muted">No one in the last 30 minutes.</p>
             ) : (
-              <ul className="max-h-56 space-y-0.5 overflow-y-auto pr-1">
+              <ul className="an-rt-scroll space-y-0.5 pr-1">
                 {d.recent.map((r, i) => (
                   <li key={`${r.ts}-${i}`} className="flex items-center gap-2 rounded px-1 py-1 text-xs hover:bg-an-hover/60">
                     <DeviceIcon device={r.device} />
@@ -78,7 +81,7 @@ export function RealtimeCard() {
                       {r.kind && r.kind !== "pageview" && <span className="mr-1 rounded bg-an-surface-2 px-1 py-px text-[10px] text-an-muted uppercase">{humanize(r.kind)}</span>}
                       {r.path}
                     </span>
-                    <span className="hidden max-w-24 truncate text-an-muted sm:inline" title={r.source}>{r.source || "Direct"}</span>
+                    <span className="max-w-24 truncate text-an-muted" title={r.source}>{r.source || "Direct"}</span>
                     <span className="an-num w-14 shrink-0 text-right text-an-subtle">{relativeTime(r.ts)}</span>
                   </li>
                 ))}
@@ -87,7 +90,7 @@ export function RealtimeCard() {
           </div>
           {d.top_pages.length > 0 && (
             <div>
-              <h3 className="mb-1.5 text-xs font-medium text-an-muted">Active pages</h3>
+              <h3 className="mb-1.5 text-xs font-medium text-an-muted">Most viewed in the last 30 minutes</h3>
               <ul className="space-y-0.5 text-xs">
                 {d.top_pages.slice(0, 5).map((p) => (
                   <li key={p.value} className="flex justify-between gap-3 px-1">
@@ -98,6 +101,7 @@ export function RealtimeCard() {
               </ul>
             </div>
           )}
+          </div>
         </div>
       )}
     </Panel>

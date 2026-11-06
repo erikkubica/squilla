@@ -160,6 +160,29 @@ export function shortDate(iso: string, withYear = false): string {
   return withYear ? `${base}, ${y}` : base;
 }
 
+/** Completes "… visited your site {phrase}". */
+export function rangePhrase(preset: PresetKey, r: DateRange): string {
+  switch (preset) {
+    case "today": return "today";
+    case "yesterday": return "yesterday";
+    case "7d": return "in the last 7 days";
+    case "30d": return "in the last 30 days";
+    case "90d": return "in the last 90 days";
+    case "month": return "this month";
+    case "last_month": return "last month";
+    case "12mo": return "in the last 12 months";
+    default:
+      return r.from === r.to ? `on ${shortDate(r.from, true)}` : `between ${shortDate(r.from)} and ${shortDate(r.to, true)}`;
+  }
+}
+
+/** The comparison window in words: "the 30 days before", "the same days last year". */
+export function comparePhrase(r: DateRange, mode: CompareMode): string {
+  if (mode === "year") return "the same days last year";
+  const n = rangeDays(r);
+  return n === 1 ? "the day before" : `the ${n} days before`;
+}
+
 export function rangeLabel(r: DateRange): string {
   const sameYear = r.from.slice(0, 4) === r.to.slice(0, 4);
   if (r.from === r.to) return shortDate(r.from, true);

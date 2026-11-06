@@ -58,13 +58,13 @@ export function LinksPanel({ links, error, onChanged }: Props) {
   return (
     <Panel
       title="Tracked links"
-      subtitle="Outbound links you share — WhatsApp, booking platforms, partner sites"
+      subtitle="Short /go/ links that count every click. Use them for WhatsApp, booking sites or partners, in your pages, emails and social posts."
       actions={
-        <button type="button" onClick={() => { setEditing(null); setOpen(true); }} className="an-focus inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-an-surface px-3 text-[13px] font-medium text-an-ink ring-1 ring-an-line hover:bg-an-hover">
-          <Plus className="size-3.5" aria-hidden="true" /> New link
+        <button type="button" onClick={() => { setEditing(null); setOpen(true); }} className="an-btn an-focus" data-variant="outline" data-size="sm">
+          <Plus aria-hidden="true" /> Add a link
         </button>
       }
-      bodyClassName="p-2 sm:p-3"
+      bodyClassName="p-2"
     >
       {error && !links ? (
         <ErrorNote message={errorMessage(error)} onRetry={onChanged} />
@@ -74,7 +74,7 @@ export function LinksPanel({ links, error, onChanged }: Props) {
         <div className="flex flex-col items-center py-10 text-center">
           <Link2 className="mb-2 size-6 text-an-subtle" aria-hidden="true" />
           <p className="text-sm font-medium text-an-ink">No tracked links yet</p>
-          <p className="mt-1 max-w-sm text-xs text-an-muted">Create a short /go/ link to count clicks to external destinations without any JavaScript.</p>
+          <p className="mt-1 max-w-sm text-xs text-an-muted">For example, make <code>/go/whatsapp</code> point to your WhatsApp chat and use it everywhere. Every click is counted, and you can turn it into a goal.</p>
         </div>
       ) : (
         <ul className="divide-y divide-an-line">
@@ -91,8 +91,8 @@ export function LinksPanel({ links, error, onChanged }: Props) {
                   </a>
                 </div>
               </div>
-              <div className="an-num w-24 text-right text-[13px] text-an-ink">
-                {formatInt(l.clicks_30d)} <span className="text-[11px] text-an-muted">clicks · 30d</span>
+              <div className="an-num w-32 text-right text-[13px] text-an-ink">
+                {formatInt(l.clicks_30d)} <span className="text-[11px] text-an-muted">clicks in 30 days</span>
               </div>
               <div className="flex items-center">
                 <button type="button" onClick={() => void copy(l)} aria-label={`Copy URL for ${l.label}`} className="an-focus inline-flex h-7 cursor-pointer items-center gap-1 rounded-md px-2 text-xs text-an-muted hover:bg-an-hover hover:text-an-ink">
@@ -113,8 +113,8 @@ export function LinksPanel({ links, error, onChanged }: Props) {
       <LinkDialog open={open} link={editing} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); onChanged(); }} />
       <ConfirmDialog
         open={!!deleting}
-        title="Delete tracked link?"
-        body={<>/go/{deleting?.slug} will stop redirecting. Anyone using a shared copy of it will get a 404.</>}
+        title="Delete this link?"
+        body={<>/go/{deleting?.slug} will stop working. Anyone who opens a copy you already shared will see “page not found”.</>}
         busy={busy}
         onCancel={() => setDeleting(null)}
         onConfirm={() => void confirmDelete()}

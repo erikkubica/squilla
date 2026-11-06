@@ -1,5 +1,4 @@
 import { api } from "../api/client";
-import { FilterBar } from "../components/FilterBar";
 import { PageShell } from "../components/PageShell";
 import { useAsync } from "../hooks/useAsync";
 import { useViewState } from "../hooks/useViewState";
@@ -20,11 +19,24 @@ export default function AnalyticsGoals() {
     stats.reload(true);
   };
 
+  const clearNew = () => {
+    const next = new URLSearchParams(vm.searchParams);
+    next.delete("new");
+    vm.setSearchParams(next, { replace: true });
+  };
+
   return (
-    <PageShell active="goals" title="Goals & links">
-      <FilterBar vm={vm} showCompare={false} />
-      <div className="space-y-4">
-        <GoalsPanel goals={goals.data} goalsError={goals.error} stats={stats.data} links={links.data ?? []} onChanged={refresh} />
+    <PageShell active="goals" vm={vm}>
+      <div className="an-stack">
+        <GoalsPanel
+          goals={goals.data}
+          goalsError={goals.error}
+          stats={stats.data}
+          links={links.data ?? []}
+          autoOpen={vm.searchParams.get("new") === "1" && !!goals.data}
+          onAutoOpened={clearNew}
+          onChanged={refresh}
+        />
         <LinksPanel links={links.data} error={links.error} onChanged={refresh} />
       </div>
     </PageShell>

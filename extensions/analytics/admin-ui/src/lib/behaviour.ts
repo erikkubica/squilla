@@ -1,5 +1,15 @@
 // Labels and explanations for exit reasons and block keys.
 
+/** Endings that mean the visit did its job, and ones worth a look. */
+export const EXIT_TONE: Record<string, "good" | "bad" | "warn" | undefined> = {
+  converted: "good",
+  left_to_contact: "good",
+  read_and_left: "good",
+  hit_error: "bad",
+  quick_exit: "bad",
+  skimmed: "warn",
+};
+
 export const EXIT_REASONS: Record<string, { label: string; help: string }> = {
   converted: { label: "Converted", help: "The visit completed a goal (for example a contact form)." },
   left_to_contact: { label: "Left to contact us", help: "The last thing they did was open WhatsApp, Zalo, Messenger, a phone or an email link." },
@@ -14,14 +24,26 @@ export const EXIT_REASONS: Record<string, { label: string; help: string }> = {
 
 export const reasonLabel = (r: string) => EXIT_REASONS[r]?.label ?? r;
 
-/** "bv-wall-of-love.0" → "Wall of love"; "p.default-cta" → "Default cta (layout)". */
+const SPECIAL_KEYS: Record<string, string> = {
+  h: "Header",
+  n: "Menu",
+  f: "Footer",
+  x: "Elsewhere on the page",
+  "": "Whole page",
+};
+
+const ACRONYMS = /\b(cta|faq|faqs|seo|url|ai|utm)\b/gi;
+
+/** "bv-wall-of-love.0" → "Wall of love"; "p.default-cta" → "Default CTA (shared)". */
 export function blockName(key: string, label?: string): string {
   if (label) return label;
+  if (key in SPECIAL_KEYS) return SPECIAL_KEYS[key];
   const layout = key.startsWith("p.");
   const occ = /\.(\d+)$/.exec(key);
   const base = (layout ? key.slice(2) : key).replace(/\.\d+$/, "").replace(/^bv-/, "").replace(/[-_]+/g, " ");
-  const name = base.charAt(0).toUpperCase() + base.slice(1);
-  if (layout) return `${name} (layout)`;
+  const words = base.replace(ACRONYMS, (m) => m.toUpperCase());
+  const name = words.charAt(0).toUpperCase() + words.slice(1);
+  if (layout) return `${name} (shared)`;
   return occ && Number(occ[1]) > 0 ? `${name} ${Number(occ[1]) + 1}` : name;
 }
 

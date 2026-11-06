@@ -9,19 +9,29 @@ export interface ExportOption {
   spec: Omit<ExportSpec, "format">;
 }
 
-/** Download menu: each option offered as CSV and JSON via plain <a download>. */
+/**
+ * Download menu: each option offered as CSV and JSON via plain <a download>.
+ * `compact` is the icon button cards use; otherwise a header button.
+ */
 export function ExportMenu({ query, options, compact = true, label = "Export" }: { query: URLSearchParams; options: ExportOption[]; compact?: boolean; label?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={label}
-          className="an-focus inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs font-medium text-an-muted hover:bg-an-hover hover:text-an-ink"
-        >
-          <Download className="size-3.5" aria-hidden="true" />
-          {!compact && <span>Export</span>}
-        </button>
+        {compact ? (
+          <button
+            type="button"
+            aria-label={label}
+            title={label}
+            className="an-focus inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs font-medium text-an-muted hover:bg-an-hover hover:text-an-ink"
+          >
+            <Download className="size-3.5" aria-hidden="true" />
+          </button>
+        ) : (
+          <button type="button" aria-label={label} title={label} className="an-btn an-focus" data-variant="outline">
+            <Download aria-hidden="true" />
+            <span className="an-btn-label">Export</span>
+          </button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48">
         {options.map((o, i) => (

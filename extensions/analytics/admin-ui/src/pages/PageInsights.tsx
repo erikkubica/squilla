@@ -1,99 +1,222 @@
-import { useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { ExternalLink } from "@squilla/icons";
 import { api, errorMessage } from "../api/client";
-import type { PageInsightsResponse } from "../api/types";
-import { FilterBar } from "../components/FilterBar";
+import type { PageInsightsResponse, StatusResponse } from "../api/types";
+import { InfoTip } from "../components/InfoTip";
+import { NeedsSignalsNotice } from "../components/Notice";
+import { PagePicker } from "../components/PagePicker";
 import { PageShell } from "../components/PageShell";
 import { ErrorNote, Panel, Skeleton } from "../components/Panel";
 import { Tile } from "../components/Tile";
-import { ShareBar } from "../charts/ShareBar";
 import { useAsync } from "../hooks/useAsync";
 import { useViewState } from "../hooks/useViewState";
-import { blockName, pct, reasonLabel, seconds } from "../lib/behaviour";
+import { EXIT_REASONS, EXIT_TONE, blockName, pct, reasonLabel, seconds } from "../lib/behaviour";
 import { formatInt } from "../lib/format";
+import { withCarry } from "../lib/params";
+import { BASE_PATH, Link, useSearchParams } from "../shared";
 
+/** Report for a single page: traffic, scroll depth, clicks and endings. */
 export default function AnalyticsPageInsights() {
   const vm = useViewState();
-  const [sp, setSp] = useSearchParams();
+  const sp = vm.searchParams;
   const path = sp.get("path") ?? "";
-  const [draft, setDraft] = useState(path);
-  const res = useAsync((s) => (path ? api.pageInsights(path, vm.query, s) : Promise.resolve(null)), `page|${path}|${vm.queryKey}`);
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const next = new URLSearchParams(sp);
-    next.set("path", draft.startsWith("/") ? draft : `/${draft}`);
-    setSp(next);
-  };
+  const q = new URLSearchParams(vm.query);
+  q.delete("compare");
+  const res = useAsync((s) => (path ? api.pageInsights(path, q, s) : Promise.resolve(null)), `page|${path}|${q}`);
+  const status = useAsync<StatusResponse | null>((s) => api.status(s).catch(() => null), "status");
   const d = res.data;
+  const back = withCarry(`${BASE_PATH}/pages`, sp);
+
   return (
-    <PageShell active="page" title={path ? `Page: ${path}` : "Page insights"}>
-      <FilterBar vm={vm} showCompare={false} />
-      <form onSubmit={submit} className="mb-4 flex gap-2">
-        <input aria-label="Page path" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="/en/experiences/hanoi-food-tour" className="an-focus w-full max-w-md rounded-md border border-an-line bg-an-surface px-2 py-1 text-sm" />
-        <button className="an-focus rounded-md border border-an-line px-3 py-1 text-sm" type="submit">Show</button>
-      </form>
-      {!path ? (
-        <Panel><p className="py-8 text-center text-sm text-an-muted">Enter a page path, or open one from Why they leave or Clicks &amp; CTAs.</p></Panel>
-      ) : res.error && !d ? (
-        <ErrorNote message={errorMessage(res.error)} onRetry={() => res.reload()} />
-      ) : !d ? (
-        <Skeleton className="h-72" />
-      ) : (
-        <Body d={d} />
-      )}
+    <PageShell
+      active="pages"
+      title={path ? <span className="break-all">{path}</span> : "Look at one page"}
+      intro={path ? "How this page did in the selected period." : "Pick a page to see how it performs."}
+      back={{ to: back, label: "Back to Pages" }}
+      vm={vm}
+      actions={
+        path ? (
+          <a href={path} target="_blank" rel="noopener noreferrer" className="an-btn an-focus" data-variant="outline" title="Open this page on your site">
+            <ExternalLink aria-hidden="true" />
+            <span className="an-btn-label">Open on your site</span>
+          </a>
+        ) : undefined
+      }
+    >
+      <div className="an-stack">
+        <PagePicker key={path} vm={vm} current={path} compact={!!path} />
+        {!path ? null : res.error && !d ? (
+          <ErrorNote message={errorMessage(res.error)} onRetry={() => res.reload()} />
+        ) : !d ? (
+          <div className="an-stack"><div className="an-kpis">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div><Skeleton className="h-64" /></div>
+        ) : d.views === 0 ? (
+          <Panel><p className="py-10 text-center text-sm text-an-muted">Nobody opened this page in the selected period. Check the address, or choose a longer period.</p></Panel>
+        ) : (
+          <Body d={d} enhanced={status.data?.enhanced_mode ?? true} />
+        )}
+      </div>
     </PageShell>
   );
 }
 
-function Body({ d }: { d: PageInsightsResponse }) {
-  const seenMax = Math.max(1, d.activated_views, ...d.blocks.map((b) => b.seen));
+/** Backend markers for "no page before / after this one". */
+const NAV_MARKERS: Record<string, string> = {
+  "(entry / external)": "Started here or came from another site",
+  "(exit)": "Left your site",
+};
+
+function PathLink({ path }: { path: string }) {
+  const [sp] = useSearchParams();
+  if (NAV_MARKERS[path]) return <span className="an-trunc block italic text-an-muted">{NAV_MARKERS[path]}</span>;
+  if (!path.startsWith("/")) return <span className="an-trunc block" title={path}>{path || "Unknown"}</span>;
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Tile label="Views" value={formatInt(d.views)} hint={`${formatInt(d.entrances)} entrances`} />
-        <Tile label="Exit rate" value={pct(d.exits, d.views)} hint={`${formatInt(d.quick_exits)} quick exits`} />
-        <Tile label="Median view time" value={seconds(d.median_view_s)} hint="Gap to the next page" />
-        <Tile label="Conversions" value={formatInt(d.conversions)} hint="Visits that included this page" />
+    <Link to={withCarry(`${BASE_PATH}/page?path=${encodeURIComponent(path)}`, sp)} className="an-rowlink an-focus an-trunc block" title={`Open the report for ${path}`}>
+      {path}
+    </Link>
+  );
+}
+
+const LINK_ROWS = 10;
+
+function Body({ d, enhanced }: { d: PageInsightsResponse; enhanced: boolean }) {
+  // Views that sent in-page signals. A repeat view of the same page by the
+  // same visitor isn't marked as activated, so never divide by less than the
+  // most-seen section (keeps shares at or below 100%).
+  const measured = Math.max(d.activated_views, ...d.blocks.map((b) => b.seen), ...d.stay.map((s) => s.views));
+  const noSignals = measured === 0;
+  const exitTotal = d.exit_reasons.reduce((a, r) => a + r.n, 0);
+  const exitMax = Math.max(1, ...d.exit_reasons.map((r) => r.n));
+  const links = [...d.links].sort((a, b) => b.clicks - a.clicks);
+  const [allLinks, setAllLinks] = useState(false);
+  const unclicked = links.filter((l) => l.clicks === 0).length;
+  const shownLinks = allLinks ? links : links.slice(0, LINK_ROWS);
+  return (
+    <div className="an-stack">
+      <div className="an-kpis">
+        <Tile label="Views" value={formatInt(d.views)} hint={`${formatInt(d.entrances)} visits started here`} />
+        <Tile
+          label="Left from here"
+          value={pct(d.exits, d.views)}
+          hint={`${formatInt(d.exits)} visits ended on this page`}
+          info="The share of views after which the person left your site. High is normal for contact or thank-you pages, and worth a look for pages meant to lead somewhere."
+        />
+        <Tile label="Typical time on page" value={seconds(d.median_view_s)} hint="Until they opened another page" info="The middle value for views followed by another page. The last page of a visit is timed only with in-page measurement." />
+        <Tile label="Conversions" value={formatInt(d.conversions)} hint="Visits that saw this page and reached a goal" />
       </div>
-      <Panel title="Section funnel" subtitle={`${formatInt(d.activated_views)} views with in-page signals`} bodyClassName="p-2 sm:p-3">
-        {d.blocks.length === 0 ? <p className="py-6 text-center text-sm text-an-muted">No section data. Turn on in-page signals in Settings.</p> : (
-          <ul>
-            {d.blocks.map((b) => (
-              <li key={b.block_key} className="flex items-center gap-2">
-                <div className="min-w-0 flex-1"><ShareBar share={b.seen / seenMax}>{blockName(b.block_key, b.label)}</ShareBar></div>
-                <span className="w-20 text-right text-[13px]">{pct(b.seen, d.activated_views)}</span>
-                <span className="w-24 text-right text-[13px] text-an-muted">{formatInt(b.clicks)} clicks</span>
-              </li>
-            ))}
-          </ul>
+
+      {noSignals && !enhanced && <NeedsSignalsNotice what="How far people scroll, how long they stay and what they click on this page" />}
+
+      <div className="an-grid-2">
+        <Panel title="How far people get" subtitle={noSignals ? "Sections of the page seen by visitors" : `Share of ${formatInt(measured)} measured views that reached each section`} bodyClassName="px-3 py-2">
+          {d.blocks.length === 0 ? (
+            <p className="py-6 text-center text-sm text-an-muted">{enhanced ? "No section data for this page yet." : "Turn on in-page measurement to see this."}</p>
+          ) : (
+            <ul className="an-rank">
+              {d.blocks.map((b) => (
+                <li key={b.block_key}>
+                  <span className="an-rank-name"><span className="an-trunc">{blockName(b.block_key, b.label)}</span></span>
+                  <span className="an-rank-val">{pct(b.seen, measured)}{b.clicks > 0 && <small>{formatInt(b.clicks)} clicks</small>}</span>
+                  <span className="an-rank-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, (b.seen / Math.max(1, measured)) * 100)}%` }} /></span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+        <div className="an-stack">
+          <Panel title="How long people stay" subtitle="Share of measured views that stayed at least this long" bodyClassName="px-3 py-2">
+            {d.stay.length === 0 ? (
+              <p className="py-6 text-center text-sm text-an-muted">{enhanced ? "No time marks for this page yet." : "Turn on in-page measurement to see this."}</p>
+            ) : (
+              <ul className="an-rank">
+                {d.stay.map((s) => (
+                  <li key={s.sec}>
+                    <span className="an-rank-name">{seconds(s.sec)} or longer</span>
+                    <span className="an-rank-val">{pct(s.views, measured)}</span>
+                    <span className="an-rank-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, (s.views / Math.max(1, measured)) * 100)}%` }} /></span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+          {d.exit_reasons.length > 0 && (
+            <Panel title="How visits ended on this page" subtitle={`${formatInt(exitTotal)} visits ended here`} bodyClassName="px-3 py-2">
+              <ul className="an-rank">
+                {d.exit_reasons.map((r) => (
+                  <li key={r.reason}>
+                    <span className="an-rank-name">
+                      {reasonLabel(r.reason)}
+                      {EXIT_REASONS[r.reason] && <InfoTip label={`About ${reasonLabel(r.reason)}`}>{EXIT_REASONS[r.reason].help}</InfoTip>}
+                    </span>
+                    <span className="an-rank-val">{formatInt(r.n)}<small>{pct(r.n, exitTotal)}</small></span>
+                    <span className="an-rank-bar" data-tone={EXIT_TONE[r.reason]} aria-hidden="true"><span style={{ width: `${(r.n / exitMax) * 100}%` }} /></span>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+        </div>
+      </div>
+
+      <Panel
+        title="Links on this page"
+        subtitle={unclicked > 0 ? `Most clicked first. ${formatInt(unclicked)} of ${formatInt(links.length)} links were never clicked.` : "Most clicked first."}
+        bodyClassName="px-2 py-2"
+      >
+        {links.length === 0 ? (
+          <p className="py-6 text-center text-sm text-an-muted">{enhanced ? "No links recorded on this page yet." : "Turn on in-page measurement to see this."}</p>
+        ) : (
+          <table className="an-table">
+            <caption className="an-sr-only">Links on this page and how often they were clicked</caption>
+            <thead><tr><th scope="col">Link</th><th scope="col" className="an-col-wide" style={{ width: "30%" }}>Section</th><th scope="col" className="an-r" style={{ width: 72 }}>Clicks</th></tr></thead>
+            <tbody>
+              {shownLinks.map((l) => (
+                <tr key={l.block_key + l.href}>
+                  <td>
+                    <span className="an-trunc block font-medium" title={l.label || l.href}>{l.label || l.href}</span>
+                    <span className="an-trunc block text-xs text-an-muted" title={l.href}>{l.href}</span>
+                  </td>
+                  <td className="an-col-wide an-dim"><span className="an-trunc block">{blockName(l.block_key)}</span></td>
+                  <td className="an-r">{l.clicks === 0 ? <span className="whitespace-nowrap text-xs text-an-subtle">None</span> : formatInt(l.clicks)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {links.length > LINK_ROWS && (
+          <div className="an-showall">
+            <button type="button" className="an-btn an-focus" data-variant="ghost" data-size="sm" aria-expanded={allLinks} onClick={() => setAllLinks((v) => !v)}>
+              {allLinks ? "Show fewer" : `Show all ${formatInt(links.length)} links`}
+            </button>
+          </div>
         )}
       </Panel>
-      <Panel title="Links on this page" subtitle="Links nobody clicked are listed last" bodyClassName="p-2 sm:p-3">
-        <table className="w-full table-fixed text-[13px]"><tbody>
-          {d.links.map((l) => (
-            <tr key={l.block_key + l.href}>
-              <td className="w-40 truncate px-2 py-0.5 text-an-muted">{blockName(l.block_key)}</td>
-              <td className="truncate">{l.label || l.href}</td>
-              <td className="hidden w-48 truncate text-an-muted sm:table-cell">{l.href}</td>
-              <td className={`w-14 text-right ${l.clicks === 0 ? "text-an-subtle" : ""}`}>{formatInt(l.clicks)}</td>
-            </tr>
-          ))}
-        </tbody></table>
-      </Panel>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="How long they stay" bodyClassName="p-2 sm:p-3">
-          {d.stay.length === 0 ? <p className="py-4 text-center text-sm text-an-muted">No dwell marks yet.</p> : d.stay.map((s) => (
-            <ShareBar key={s.sec} share={s.views / Math.max(1, d.activated_views)}>{seconds(s.sec)} · {pct(s.views, d.activated_views)}</ShareBar>
-          ))}
+
+      <div className="an-grid-2">
+        <Panel title="Where they came from" subtitle="The page or site they saw just before" bodyClassName="px-2 py-2">
+          <NavList rows={d.came_from} empty="Every visit to this page started here." />
         </Panel>
-        <Panel title="Came from" bodyClassName="p-2 sm:p-3">{d.came_from.map((x) => <div key={x.path} className="flex justify-between px-2 text-[13px]"><span className="truncate">{x.path}</span><span>{formatInt(x.n)}</span></div>)}</Panel>
-        <Panel title="Went to" bodyClassName="p-2 sm:p-3">{d.went_to.map((x) => <div key={x.path} className="flex justify-between px-2 text-[13px]"><span className="truncate">{x.path}</span><span>{formatInt(x.n)}</span></div>)}</Panel>
+        <Panel title="Where they went next" bodyClassName="px-2 py-2">
+          <NavList rows={d.went_to} empty="Nobody went on to another page from here." />
+        </Panel>
       </div>
-      {d.exit_reasons.length > 0 && (
-        <Panel title="Why they left from here" bodyClassName="p-2 sm:p-3">
-          {d.exit_reasons.map((r) => <div key={r.reason} className="flex justify-between px-2 text-[13px]"><span>{reasonLabel(r.reason)}</span><span>{formatInt(r.n)}</span></div>)}
-        </Panel>
-      )}
+
     </div>
+  );
+}
+
+function NavList({ rows, empty }: { rows: { path: string; n: number }[]; empty: string }) {
+  if (rows.length === 0) return <p className="py-6 text-center text-sm text-an-muted">{empty}</p>;
+  return (
+    <table className="an-table">
+      <thead><tr><th scope="col">Page</th><th scope="col" className="an-r" style={{ width: 72 }}>Visits</th></tr></thead>
+      <tbody>
+        {rows.map((x) => (
+          <tr key={x.path}>
+            <td><PathLink path={x.path} /></td>
+            <td className="an-r">{formatInt(x.n)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

@@ -11,7 +11,7 @@ import { Segmented } from "./Segmented";
 type M = "pageviews" | "visitors";
 
 export function HeatmapCard({ vm }: { vm: ViewModel }) {
-  const [metric, setMetric] = useState<M>("pageviews");
+  const [metric, setMetric] = useState<M>("visitors");
   const q = new URLSearchParams(vm.query);
   q.delete("compare");
   const hm = useAsync((s) => api.heatmap(q, s), `heat|${vm.queryKey}`);
@@ -21,8 +21,8 @@ export function HeatmapCard({ vm }: { vm: ViewModel }) {
     <Panel
       id="an-heatmap"
       title="When people visit"
-      subtitle={`Hour of week${tz}`}
-      actions={<Segmented<M> label="Heatmap metric" size="xs" value={metric} onChange={setMetric} options={[{ value: "pageviews", label: "Pageviews" }, { value: "visitors", label: "Visitors" }]} />}
+      subtitle={`Busiest days and hours${tz}. Darker means more.`}
+      actions={<Segmented<M> label="Heatmap metric" size="xs" value={metric} onChange={setMetric} options={[{ value: "visitors", label: "Visitors" }, { value: "pageviews", label: "Page views" }]} />}
     >
       {hm.error && !hm.data ? (
         <ErrorNote message={errorMessage(hm.error)} onRetry={() => hm.reload()} />

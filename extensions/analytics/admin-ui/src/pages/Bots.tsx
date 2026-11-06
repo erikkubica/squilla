@@ -5,7 +5,6 @@ import type { BotsResponse } from "../api/types";
 import { DataTable } from "../charts/DataTable";
 import { ShareBar } from "../charts/ShareBar";
 import { StackedBars } from "../charts/StackedBars";
-import { FilterBar } from "../components/FilterBar";
 import { InfoTip } from "../components/InfoTip";
 import { PageShell } from "../components/PageShell";
 import { ErrorNote, Panel, Skeleton } from "../components/Panel";
@@ -22,16 +21,12 @@ export default function AnalyticsBots() {
   const d = res.data;
 
   return (
-    <PageShell active="bots" title="Bots & AI">
-      <FilterBar vm={vm} showCompare={false} />
-      <p className="mb-4 max-w-3xl text-sm text-an-muted">
-        Automated traffic is classified on the server and kept as daily counts only — it never appears in your visitor numbers.
-      </p>
+    <PageShell active="bots" vm={vm}>
       {res.error && !d ? (
         <ErrorNote message={errorMessage(res.error)} onRetry={() => res.reload()} />
       ) : !d ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-20" />)}</div>
+        <div className="an-stack">
+          <div className="an-kpis">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-20" />)}</div>
           <Skeleton className="h-72" />
         </div>
       ) : (
@@ -55,41 +50,54 @@ function BotsBody({ data, days }: { data: BotsResponse; days: number }) {
   const topMax = Math.max(1, ...top.map((x) => x.hits));
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {BOT_GROUPS.map((g) => (
-          <div key={g.key} className="an-card relative p-3">
-            <div className="flex items-center gap-1.5 pr-5 text-xs font-medium text-an-muted">
-              <span aria-hidden="true" className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: g.color }} />
-              <span className="truncate">{g.label}</span>
+    <div className="an-stack">
+      <section className="an-card" aria-label="Summary of this period">
+        <div className="an-report-lead">
+          <span className="an-report-lead-icon" aria-hidden="true"><Bot /></span>
+          <p className="an-summary">
+            <strong>{formatInt(grand)}</strong> automated requests {grand === 1 ? "was" : "were"} answered in this period
+            {totals.ai_assistant > 0 && <>, including <strong>{formatInt(totals.ai_assistant)}</strong> by AI assistants answering someone’s question</>}
+            {totals.link_preview > 0 && <>{totals.ai_assistant > 0 ? ", and " : ", including "}<strong>{formatInt(totals.link_preview)}</strong> link previews when someone shared your page</>}.
+          </p>
+        </div>
+        <div className="an-cells">
+          {BOT_GROUPS.map((g) => (
+            <div key={g.key} className="an-kpi">
+              <span className="an-kpi-label">
+                <span aria-hidden="true" className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: g.color }} />
+                <span className="truncate">{g.label}</span>
+              </span>
+              <span className="an-kpi-value" title={formatInt(totals[g.key])}>{compact(totals[g.key])}</span>
+              <span className="an-kpi-meta">{grand ? `${((totals[g.key] / grand) * 100).toFixed(1).replace(/\.0$/, "")}% of bot requests` : "—"}</span>
+              <span className="an-kpi-info"><InfoTip label={`About ${g.label}`} align="right">{g.description}</InfoTip></span>
             </div>
-            <span className="absolute top-2.5 right-2.5"><InfoTip label={`About ${g.label}`} align="right">{g.description}</InfoTip></span>
-            <div className="mt-1 text-2xl font-semibold tracking-tight text-an-ink" title={formatInt(totals[g.key])}>{compact(totals[g.key])}</div>
-            <div className="text-xs text-an-muted">{grand ? `${((totals[g.key] / grand) * 100).toFixed(1).replace(/\.0$/, "")}% of bot hits` : "—"}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+        <p className="an-report-foot">
+          None of these count as visitors. Your server sees every request, so bots show up here even though they never run scripts.
+        </p>
+      </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="an-grid-2">
         <HighlightCard
           icon={<Bot className="size-4" aria-hidden="true" />}
           title="AI assistants reading your pages"
-          hint="Each hit is a live fetch because someone asked an AI assistant about your content — a strong signal of interest even though no human visit is recorded."
+          hint="Each one is a person asking ChatGPT, Claude or another assistant something your page answers. A good sign of interest, even though no visit is recorded."
           rows={assistants}
           total={totals.ai_assistant}
         />
         <HighlightCard
           icon={<Share2 className="size-4" aria-hidden="true" />}
-          title="Shares by app"
-          hint="Link-preview fetches happen when someone pastes your link into a chat or social app. They approximate how often your pages are shared, by app."
+          title="Shared in apps"
+          hint="When someone pastes your link into WhatsApp, Facebook, Slack and similar apps, the app fetches a preview. Roughly how often your pages are shared, by app."
           rows={previews}
           total={totals.link_preview}
         />
       </div>
 
-      <Panel title="Bot hits by category" subtitle="Daily counts">
+      <Panel title="Automated requests per day" subtitle="By kind of bot">
         {buckets.length === 0 ? (
-          <p className="py-10 text-center text-sm text-an-muted">No bot traffic in this range.</p>
+          <p className="py-10 text-center text-sm text-an-muted">No automated traffic in this period.</p>
         ) : (
           <>
             <StackedBars series={series} buckets={buckets} ariaLabel="Stacked daily bot hits by category; table follows for screen readers" />
@@ -98,7 +106,7 @@ function BotsBody({ data, days }: { data: BotsResponse; days: number }) {
         )}
       </Panel>
 
-      <Panel title="Top bots" bodyClassName="p-2 sm:p-3">
+      <Panel title="Most active bots" bodyClassName="p-2">
         {data.top.length === 0 ? (
           <p className="py-8 text-center text-sm text-an-muted">No bots identified yet.</p>
         ) : (
@@ -107,8 +115,8 @@ function BotsBody({ data, days }: { data: BotsResponse; days: number }) {
             <thead>
               <tr className="text-[11px] tracking-wide text-an-subtle uppercase">
                 <th scope="col" className="px-2 pb-1 text-left font-medium">Bot</th>
-                <th scope="col" className="hidden w-48 pb-1 text-left font-medium sm:table-cell">Category</th>
-                <th scope="col" className="w-20 pb-1 text-right font-medium">Hits</th>
+                <th scope="col" className="an-col-wide w-48 pb-1 text-left font-medium">Kind</th>
+                <th scope="col" className="w-20 pb-1 text-right font-medium">Requests</th>
               </tr>
             </thead>
             <tbody>
@@ -119,7 +127,7 @@ function BotsBody({ data, days }: { data: BotsResponse; days: number }) {
                     <th scope="row" className="py-0.5 text-left font-normal">
                       <ShareBar share={t.hits / topMax}>{t.name}</ShareBar>
                     </th>
-                    <td className="hidden pl-2 text-an-muted sm:table-cell">
+                    <td className="an-col-wide pl-2 text-an-muted">
                       <span className="inline-flex items-center gap-1.5"><span aria-hidden="true" className="inline-block size-2 rounded-[2px]" style={{ background: g.color }} />{categoryLabel(t.category)}</span>
                     </td>
                     <td className="an-num pl-2 text-right text-an-ink">{formatInt(t.hits)}</td>

@@ -5,7 +5,7 @@ const { Label, Switch, Textarea } = ui;
 
 export function Row({ id, label, hint, children, wide = false }: { id: string; label: string; hint?: ReactNode; children: ReactNode; wide?: boolean }) {
   return (
-    <div className={`grid gap-1.5 py-3 ${wide ? "" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] sm:items-start sm:gap-6"}`}>
+    <div className="an-row" data-wide={wide ? "" : undefined}>
       <div>
         <Label htmlFor={id}>{label}</Label>
         {hint && <p id={`${id}-hint`} className="mt-1 text-xs leading-relaxed text-an-muted">{hint}</p>}

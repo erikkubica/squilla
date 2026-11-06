@@ -1,31 +1,32 @@
 // Dimension metadata: labels, value display and dashboard → filter mapping.
 import type { BreakdownDim, FilterDim } from "../api/types";
+import { channelInfo } from "./channels";
 import { countryName, flagEmoji, humanize, languageName } from "./format";
 
 export const DIM_LABELS: Record<BreakdownDim, string> = {
   page: "Page",
-  entry_page: "Entry page",
-  exit_page: "Exit page",
-  source: "Source",
+  entry_page: "Landing page",
+  exit_page: "Last page",
+  source: "Website or app",
   channel: "Channel",
-  referrer: "Referrer",
-  utm_source: "UTM source",
-  utm_medium: "UTM medium",
+  referrer: "Referring link",
+  utm_source: "Campaign source",
+  utm_medium: "Campaign medium",
   utm_campaign: "Campaign",
-  utm_content: "UTM content",
-  utm_term: "UTM term",
+  utm_content: "Campaign content",
+  utm_term: "Campaign term",
   country: "Country",
   language: "Language",
   device: "Device",
   browser: "Browser",
   os: "Operating system",
   page_type: "Page type",
-  not_found: "Not found path",
-  download: "Download",
-  outbound: "Outbound link",
+  not_found: "Missing page",
+  download: "File",
+  outbound: "Link to another site",
   goal: "Goal",
-  viewport: "Viewport",
-  color_scheme: "Color scheme",
+  viewport: "Screen size",
+  color_scheme: "Light or dark mode",
 };
 
 /** Which filter (if any) clicking a breakdown row applies. */
@@ -54,28 +55,39 @@ export function filterDimFor(dim: BreakdownDim): FilterDim | null {
   }
 }
 
-const CHANNELS: Record<string, string> = {
-  direct: "Direct",
-  organic_search: "Organic search",
-  paid_search: "Paid search",
-  organic_social: "Organic social",
-  paid_social: "Paid social",
-  ai: "AI assistants",
-  email: "Email",
-  referral: "Referral",
-  campaign: "Campaign",
+/** What an empty value means for each dimension. */
+const EMPTY_LABELS: Partial<Record<BreakdownDim | FilterDim, string>> = {
+  country: "Unknown country",
+  language: "Unknown language",
+  source: "No source (direct)",
+  referrer: "No referring link",
+  utm_source: "Not tagged",
+  utm_medium: "Not tagged",
+  utm_campaign: "Not tagged",
+  utm_content: "Not tagged",
+  utm_term: "Not tagged",
+  browser: "Unknown browser",
+  os: "Unknown system",
+  device: "Unknown device",
+  page_type: "Other pages",
+  viewport: "Unknown size",
+  color_scheme: "Unknown",
 };
+
+const VIEWPORTS: Record<string, string> = { s: "Small (phone)", m: "Medium (tablet)", l: "Large (laptop, desktop)" };
 
 /** Human label for a raw dimension value (falls back to the API label). */
 export function valueLabel(dim: BreakdownDim | FilterDim, value: string, apiLabel?: string): string {
-  if (!value) return apiLabel || "(none)";
+  if (!value) return EMPTY_LABELS[dim] || (apiLabel && apiLabel !== "(none)" ? apiLabel : "Not set");
   switch (dim) {
     case "country":
       return apiLabel && apiLabel !== value ? apiLabel : countryName(value);
     case "language":
       return apiLabel && apiLabel !== value ? apiLabel : languageName(value);
     case "channel":
-      return CHANNELS[value] ?? apiLabel ?? humanize(value);
+      return channelInfo(value)?.label ?? apiLabel ?? humanize(value);
+    case "viewport":
+      return VIEWPORTS[value] ?? apiLabel ?? value;
     case "device":
     case "page_type":
     case "color_scheme":

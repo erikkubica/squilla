@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { ChevronDown } from "@squilla/icons";
 import { Panel } from "../../components/Panel";
 
 export const PRIVACY_NOTICE =
@@ -6,51 +8,78 @@ export const PRIVACY_NOTICE =
   "We count page views, how far down a page a section scrolled into view, how long a page stayed open and which links were clicked. " +
   "We do not share this data. You can switch measurement off at any time on the opt-out page, and we respect the Global Privacy Control signal.";
 
-export function PrivacyExplainer({ prefix = "/_s" }: { prefix?: string }) {
+function Q({ q, children, id }: { q: string; children: ReactNode; id?: string }) {
   return (
-    <Panel title="How it works & privacy">
-      <div className="space-y-2.5 text-xs leading-relaxed text-an-ink-2">
-        <p><strong>No analytics JavaScript, no cookies.</strong> Every public page request is measured on the server. With in-page signals on, the page also carries a small stylesheet; the browser asks your own server for tiny images as parts of the page are seen. Nothing is loaded from another domain.</p>
-        <p>
-          <strong>Daily anonymous visitors.</strong> A visitor is a one-way hash of the IP address, browser and language, mixed with a random salt that exists
-          only in memory and is replaced at midnight (site timezone). IP addresses are never stored. Visits that are open at midnight are carried across the
-          change for one session timeout, using yesterday’s salt from memory; it is never written to disk.
-        </p>
-        <p><strong>No identifiers in signals.</strong> Signal URLs contain only a page number and a section name. Which visit a signal belongs to is worked out on the server from the same daily hash.</p>
-        <p><strong>No query strings.</strong> Only known campaign parameters (utm_*, ref) are kept; click IDs are recorded as yes/no only. Outbound destinations are stored as host and path.</p>
-        <p><strong>Bots are separated.</strong> Crawlers, AI agents and link previews are classified and kept as daily counts, never as visitors.</p>
-        <p>
-          <strong>Opt-out and Global Privacy Control.</strong> Visitors can switch measurement off at <code>{prefix}/optout</code> (one small cookie). Browsers that send
-          Global Privacy Control, and signed-in editors, get no measurement markup at all.
-        </p>
-        <p>
-          <strong>Legal basis.</strong> EDPB Guidelines 2/2023 treat a request made only for measurement as access to the device (ePrivacy Art. 5(3)). The CNIL exempts
-          strictly anonymous audience measurement from consent when visitors are informed and can opt out; that is the model here. Other regulators may differ — check yours.
-        </p>
-        <div>
-          <strong>Privacy-notice paragraph</strong> (copy into your privacy page, with a link to the opt-out page):
-          <textarea readOnly rows={6} value={PRIVACY_NOTICE} aria-label="Privacy notice text" className="an-focus mt-1.5 w-full rounded-md border border-an-line bg-an-surface p-2 text-xs" onFocus={(e) => e.currentTarget.select()} />
-        </div>
-      </div>
-    </Panel>
+    <details id={id} className={id ? "an-anchor" : undefined}>
+      <summary className="an-focus">
+        {q}
+        <ChevronDown aria-hidden="true" />
+      </summary>
+      <div className="an-faq-body">{children}</div>
+    </details>
   );
 }
 
-export function KnownLimits() {
+/** Plain-language answers to the questions people ask about privacy and accuracy. */
+export function PrivacyFaq({ prefix = "/_s" }: { prefix?: string }) {
   return (
-    <Panel title="Known limits">
-      <ul className="list-disc space-y-2 pl-4 text-xs leading-relaxed text-an-ink-2">
-        <li>
-          <strong>Proxies:</strong> behind a load balancer or CDN, the real client IP must be trusted. Set <code>TRUSTED_PROXIES</code> (and{" "}
-          <code>CLIENT_IP_HEADER</code>, e.g. <code>CF-Connecting-IP</code>) on the server, otherwise every request appears to come from the proxy and visitors collapse into one.
-        </li>
-        <li><strong>CDN caching:</strong> HTML served from a CDN cache never reaches the server and is not counted. Keep HTML uncached at the CDN.</li>
-        <li><strong>Back/forward cache:</strong> pages restored instantly by the browser’s back/forward cache make no request and are invisible.</li>
-        <li><strong>Estimated visitors:</strong> shared networks (CGNAT, offices), private relays and reduced user-agent strings merge or split people. Multi-day visitor counts are sums of daily uniques.</li>
-        <li><strong>Time on page:</strong> single-page visits have a length only with in-page signals; stay marks are 10 s, 30 s, 1 min and 3 min.</li>
-        <li><strong>Link clicks:</strong> use the browser’s link ping, which Firefox, some privacy browsers and ad blockers do not send. Click-through rates for those visitors are understated.</li>
-        <li><strong>Browsers:</strong> section signals need scroll-driven animations (Chrome/Edge, Safari 26+, recent Firefox). Others still send activation and stay marks.</li>
-      </ul>
+    <Panel title="Questions & answers" subtitle="Privacy, accuracy and what to tell your visitors" bodyClassName="p-0">
+      <div className="an-faq">
+        <Q q="Do I need a cookie banner?">
+          <p>Not for Analytics. It sets no cookies and loads no tracking scripts; every page view is counted by your own server.</p>
+          <p>
+            If you turn on <strong>in-page measurement</strong>, add the short paragraph from that section to your privacy page, with a link to the opt-out page. That follows the
+            French CNIL’s exemption for anonymous audience measurement. Rules differ between countries, so check yours if you are unsure.
+          </p>
+        </Q>
+        <Q q="What exactly is stored?">
+          <ul>
+            <li>The page address, the site that sent the visitor, and campaign tags (utm_…). Other query strings are dropped.</li>
+            <li>Country, browser language, device type, browser and operating system.</li>
+            <li>An anonymous daily visit number. IP addresses are never stored.</li>
+            <li>With in-page measurement: which sections were seen, time marks (10 s, 30 s, 1 min, 3 min) and which links were clicked.</li>
+          </ul>
+        </Q>
+        <Q q="How are visitors counted without cookies?">
+          <p>
+            Each day the server mixes the visitor’s network address, browser and language with a random value that exists only in memory, and keeps the
+            one-way result. At midnight the value is replaced, so nobody can be recognised from one day to the next.
+          </p>
+          <p>That’s why visitor numbers over several days are estimates: someone who visits on three days counts as three visitors.</p>
+        </Q>
+        <Q q="Why don’t my numbers match Google Analytics?">
+          <ul>
+            <li>Bots, AI crawlers and link previews are left out here and shown separately under Bots & AI.</li>
+            <li>Your own visits are skipped while you’re logged in.</li>
+            <li>Ad blockers can’t stop page views from being counted, because that happens on your server. Many of them block Google Analytics.</li>
+            <li>Google Analytics follows people across days with cookies; Analytics counts people once per day.</li>
+          </ul>
+        </Q>
+        <Q q="Why is a visit missing?" id="missing-visits">
+          <ul>
+            <li><strong>You were logged in.</strong> Open your site in a private window to test.</li>
+            <li><strong>A CDN served the page from its cache</strong>, so the request never reached your server. Keep HTML pages uncached at the CDN.</li>
+            <li><strong>The browser restored the page instantly</strong> with the back button. These pages make no request and can’t be seen.</li>
+            <li>
+              <strong>Behind a proxy or load balancer</strong> every visitor can look like one. Set <code>TRUSTED_PROXIES</code> and, behind Cloudflare,{" "}
+              <code>CLIENT_IP_HEADER=CF-Connecting-IP</code> on the server.
+            </li>
+          </ul>
+        </Q>
+        <Q q="How accurate is in-page measurement?">
+          <ul>
+            <li>Time on page is measured in steps: 10 s, 30 s, 1 min and 3 min.</li>
+            <li>Firefox and some ad blockers don’t report link clicks, so real click numbers are a bit higher.</li>
+            <li>Section views need a recent browser (Chrome, Edge, Safari 26 or newer, recent Firefox). Older browsers still report time on page.</li>
+          </ul>
+        </Q>
+        <Q q="Can visitors switch it off?">
+          <p>
+            Yes. The opt-out page at <code>{prefix}/optout</code> sets one small cookie that turns measurement off for that browser. When “Respect Global Privacy
+            Control” is on, browsers that send that signal are only counted in totals.
+          </p>
+        </Q>
+      </div>
     </Panel>
   );
 }

@@ -18,7 +18,7 @@ export function Panel({ title, subtitle, actions, leading, children, className =
     <section className={`an-card min-w-0 ${className}`} aria-labelledby={id && title ? `${id}-title` : undefined}>
       {(title || actions || leading) && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-an-line px-4 py-3">
-          <div className="min-w-0">
+          <div className="an-panel-title">
             {title && <h2 id={id ? `${id}-title` : undefined} className={leading ? "an-sr-only" : "text-sm font-semibold tracking-tight text-an-ink"}>{title}</h2>}
             {leading}
             {subtitle && <p className="mt-0.5 text-xs text-an-muted">{subtitle}</p>}

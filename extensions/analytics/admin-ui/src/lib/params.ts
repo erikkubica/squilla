@@ -29,8 +29,10 @@ export function parseViewState(sp: URLSearchParams): ViewState {
   const custom: Partial<DateRange> = {};
   if (isIsoDate(from)) custom.from = from;
   if (isIsoDate(to)) custom.to = to;
+  // Comparing with the previous period is the default: every number then
+  // shows whether it went up or down. `compare=off` turns it off.
   const cmp = sp.get("compare");
-  const compare = cmp === "previous" || cmp === "year" ? cmp : null;
+  const compare: CompareMode | null = cmp === "off" ? null : cmp === "year" ? "year" : "previous";
   const filters: ViewState["filters"] = {};
   sp.forEach((value, key) => {
     if (!key.startsWith("f.") || !value) return;
@@ -62,8 +64,9 @@ export function writeViewState(prev: URLSearchParams, patch: Partial<ViewState>)
     if (patch.custom.to) next.set("to", patch.custom.to);
   }
   if ("compare" in patch) {
-    if (patch.compare) next.set("compare", patch.compare);
-    else next.delete("compare");
+    if (patch.compare === null) next.set("compare", "off");
+    else if (!patch.compare || patch.compare === "previous") next.delete("compare");
+    else next.set("compare", patch.compare);
   }
   if (patch.filters) {
     for (const key of [...next.keys()]) if (key.startsWith("f.")) next.delete(key);
@@ -111,4 +114,12 @@ export function carryParams(sp: URLSearchParams): string {
   });
   const s = out.toString();
   return s ? `?${s}` : "";
+}
+
+/** Append the shared state to a link that may already have a query string. */
+export function withCarry(to: string, sp: URLSearchParams): string {
+  const carry = carryParams(sp);
+  if (!carry) return to;
+  const [path, hash = ""] = to.split("#");
+  return `${path}${path.includes("?") ? "&" + carry.slice(1) : carry}${hash ? "#" + hash : ""}`;
 }

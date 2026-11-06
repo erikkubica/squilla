@@ -32,18 +32,14 @@ export function DateRangePicker({ preset, range, today, onPreset, onCustom }: Pr
       }}
     >
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="an-focus inline-flex h-8 cursor-pointer items-center gap-2 rounded-md bg-an-surface px-2.5 text-[13px] font-medium text-an-ink ring-1 ring-an-line hover:bg-an-hover"
-          aria-label={`Date range: ${current?.label ?? "Custom"}, ${rangeLabel(range)}`}
-        >
-          <Calendar className="size-3.5 text-an-muted" aria-hidden="true" />
+        <button type="button" className="an-pick an-focus" aria-label={`Date range: ${current?.label ?? "Custom"}, ${rangeLabel(range)}`}>
+          <Calendar aria-hidden="true" />
           <span>{preset === "custom" ? rangeLabel(range) : current?.label}</span>
-          {preset !== "custom" && <span className="hidden text-an-muted sm:inline">· {rangeLabel(range)}</span>}
-          <ChevronDown className="size-3.5 text-an-muted" aria-hidden="true" />
+          {preset !== "custom" && <span className="an-range-label">{rangeLabel(range)}</span>}
+          <ChevronDown className="an-pick-chev" aria-hidden="true" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[min(92vw,340px)] p-0">
+      <PopoverContent align="end" className="w-[min(92vw,340px)] p-0">
         <div className="an-root rounded-md bg-an-surface">
           <ul className="grid grid-cols-2 gap-0.5 p-1.5" role="listbox" aria-label="Date presets">
             {PRESETS.filter((p) => p.key !== "custom").map((p) => (
