@@ -59,9 +59,34 @@ func registerThemeAssets(app *fiber.App, resolver *themeAssetsResolver) {
 		if clean == "/" || clean == "." {
 			return c.SendStatus(fiber.StatusNotFound)
 		}
-		full := filepath.Join(resolver.Get(), clean)
+		assetsDir := resolver.Get()
+		if strings.EqualFold(filepath.Ext(clean), ".css") {
+			if body, gz, hash, ok := cms.ThemeCSS(filepath.Dir(assetsDir), clean); ok {
+				return sendThemeCSS(c, body, gz, hash)
+			}
+		}
+		full := filepath.Join(assetsDir, clean)
 		return sendCachedAsset(c, full)
 	})
+}
+
+// sendThemeCSS serves a theme stylesheet whose asset references were
+// versioned (cms.ThemeCSS). The body is built in memory, so compression
+// and revalidation are handled here rather than by SendFile.
+func sendThemeCSS(c *fiber.Ctx, body, gz []byte, hash string) error {
+	etag := `"` + hash + `"`
+	c.Set(fiber.HeaderCacheControl, cms.ThemeAssetCacheControl(c.Query("v") != ""))
+	c.Set(fiber.HeaderETag, etag)
+	c.Set(fiber.HeaderVary, fiber.HeaderAcceptEncoding)
+	c.Set(fiber.HeaderContentType, "text/css; charset=utf-8")
+	if c.Get(fiber.HeaderIfNoneMatch) == etag {
+		return c.SendStatus(fiber.StatusNotModified)
+	}
+	if strings.Contains(c.Get(fiber.HeaderAcceptEncoding), "gzip") && len(gz) > 0 {
+		c.Set(fiber.HeaderContentEncoding, "gzip")
+		return c.Send(gz)
+	}
+	return c.Send(body)
 }
 
 // sendCachedAsset serves a public theme/block asset with a browser cache

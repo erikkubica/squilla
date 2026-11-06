@@ -203,6 +203,9 @@ func wrapBlocksWithTransformMarkers(rendered []string, blocks []map[string]inter
 // finishPublicHTML runs the transform chain over a finished page and
 // strips the kernel's markers. Cheap no-op when no transformer is active.
 func (h *PublicHandler) finishPublicHTML(c *fiber.Ctx, html string, node *models.ContentNode, user *models.User, is404 bool) string {
+	if h.renderCtx != nil {
+		html = h.renderCtx.themeAssets.VersionThemeAssetRefs(html)
+	}
 	if !h.transformActive() {
 		return stripTransformMarkers(html)
 	}

@@ -65,7 +65,14 @@ func versionThemeAssetURL(themeDir, url string) string {
 		return url
 	}
 	rel := filepath.Clean("/" + strings.TrimPrefix(url, themeAssetURLPrefix))
-	hash := fingerprintFile(filepath.Join(themeDir, "assets", rel))
+	var hash string
+	if strings.EqualFold(filepath.Ext(rel), ".css") {
+		// A stylesheet is served rewritten (theme_asset_refs.go); its
+		// version covers the files it references too.
+		_, _, hash, _ = ThemeCSS(themeDir, rel)
+	} else {
+		hash = fingerprintFile(filepath.Join(themeDir, "assets", rel))
+	}
 	if hash == "" {
 		return url
 	}
