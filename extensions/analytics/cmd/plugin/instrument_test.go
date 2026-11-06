@@ -13,7 +13,7 @@ import (
 const fixturePage = `<!doctype html><html><head><title>x</title><!--sqx:p:site-head--><meta name="a" content="b"><!--sqx:/p--></head><body class="a">
 <header><nav><a href="/en/about">About</a></nav></header>
 <main>
-<!--sqx:b:0:bv-hero--><section data-block="bv-hero"><a href="/en/experiences" class="b">See <b>tours</b></a><a href="https://wa.me/84969655521">WhatsApp</a></section><!--sqx:/b-->
+<!--sqx:b:0:bv-hero--><section data-block="bv-hero"><a href="/en/experiences" class="b">See <b>tours</b> <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></a><a href="https://wa.me/84969655521"><span ARIA-HIDDEN = 'true'>chat</span>WhatsApp</a></section><!--sqx:/b-->
 <!--sqx:b:1:bv-faq--><section><details open><summary>q</summary>a</details><details><summary>r</summary>b</details></section><!--sqx:/b-->
 <!--sqx:b:2:bv-hero--><div><form action="/forms/submit/x"><input name="a"></form></div><section><img src="/a.png"/></section><!--sqx:/b-->
 </main>

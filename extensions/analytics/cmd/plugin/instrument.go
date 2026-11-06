@@ -139,6 +139,29 @@ func hasAttr(raw []byte, name string) bool {
 	return strings.Contains(strings.ToLower(string(raw)), " "+name)
 }
 
+// ariaHidden reports aria-hidden="true" on a raw start tag. Link labels
+// skip such subtrees (icon ligatures like "arrow_forward"), as screen
+// readers do. It reads the raw bytes because attrValue consumes the
+// tokenizer's attributes.
+func ariaHidden(raw []byte) bool {
+	s := strings.ToLower(string(raw))
+	for i := strings.Index(s, "aria-hidden"); i >= 0; {
+		if i > 0 && strings.ContainsRune(" \t\n\r\f", rune(s[i-1])) {
+			v := strings.TrimLeft(s[i+len("aria-hidden"):], " \t\n\r\f")
+			if strings.HasPrefix(v, "=") {
+				v = strings.TrimLeft(v[1:], " \t\n\r\f\"'")
+				return strings.HasPrefix(v, "true")
+			}
+		}
+		j := strings.Index(s[i+1:], "aria-hidden")
+		if j < 0 {
+			break
+		}
+		i += 1 + j
+	}
+	return false
+}
+
 // instrument rewrites src. nil is returned when there is nothing to track.
 func instrument(src string, o instrumentOpts) *instrumented {
 	z := html.NewTokenizer(strings.NewReader(src))
@@ -157,6 +180,7 @@ func instrument(src string, o instrumentOpts) *instrumented {
 		layoutDepth       = -1
 		curSection        = -1
 		curLink           = -1
+		hiddenDepth       = -1 // inside an aria-hidden subtree (icons): not part of a link label
 		sections          = 0
 	)
 	zone := func() string {
@@ -283,6 +307,9 @@ func instrument(src string, o instrumentOpts) *instrumented {
 			}
 			out.Write(raw)
 			if tt == html.StartTagToken && !voidElements[tag] {
+				if hiddenDepth < 0 && ariaHidden(raw) {
+					hiddenDepth = len(stack)
+				}
 				stack = append(stack, frame{tag})
 			}
 		case html.EndTagToken:
@@ -297,12 +324,15 @@ func instrument(src string, o instrumentOpts) *instrumented {
 			if layoutKey != "" && len(stack) <= layoutDepth {
 				layoutKey, layoutDepth, curSection = "", -1, -1
 			}
+			if hiddenDepth >= 0 && len(stack) <= hiddenDepth {
+				hiddenDepth = -1
+			}
 			if tag == "a" {
 				curLink = -1
 			}
 			out.Write(raw)
 		case html.TextToken:
-			if curLink >= 0 {
+			if curLink >= 0 && hiddenDepth < 0 {
 				l := &res.Links[curLink]
 				if len(l.Label) < 80 {
 					l.Label = strings.TrimSpace(l.Label + " " + strings.Join(strings.Fields(string(z.Text())), " "))
