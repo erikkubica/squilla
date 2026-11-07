@@ -2,20 +2,24 @@ import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { blockBoundingRect, findBlockForNode, indexBlockMarkers } from "./blockIndex";
 import { requestInsertAt } from "./insertBus";
-import { SidePanel } from "./SidePanel";
-import { getAdminBar, type AdminBarAPI, type BlockEntry, type BootstrapConfig } from "./types";
+import { takeResume, type ResumeState } from "./resume";
+import { SidePanel, adminBarHeight } from "./SidePanel";
+import { getAdminBar, type AdminBarAPI, type BlockEntry, type BootstrapConfig, type Rect } from "./types";
 
 interface EditorRootProps {
   config: BootstrapConfig;
 }
 
 export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
+  // After the editor's own reload (Discard) it reopens where it was.
+  const [resume] = useState<ResumeState | null>(() => takeResume(config.nodeId));
+
   // `active` flips on the first time the user opens the editor and stays
   // on for the lifetime of the page so SidePanel's in-memory edit state
   // survives a close. `hidden` is the visual toggle: clicking × hides
   // the panel + overlays so the user can see the full page, but state
   // is retained until refresh.
-  const [active, setActive] = useState(false);
+  const [active, setActive] = useState(() => resume !== null);
   const [hidden, setHidden] = useState(false);
   const live = active && !hidden;
   const [entries, setEntries] = useState<BlockEntry[]>([]);
@@ -54,8 +58,11 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
   useEffect(() => {
     adminBar?.update("visual-editor", { label: live ? "Close editor" : "Customize", active: live });
   }, [adminBar, live]);
+
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  /** Block type labels by slug, filled once the panel has loaded them. */
+  const labelsRef = useRef<Map<string, string>>(new Map());
 
   // Refs to the outline divs so we can move them via rAF without going
   // through React state. setTick-on-scroll caused visible lag because
@@ -63,6 +70,7 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
   const hoverRef = useRef<HTMLDivElement | null>(null);
   const selectedRef = useRef<HTMLDivElement | null>(null);
   const guttersRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!live) {
@@ -80,26 +88,32 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
   useEffect(() => {
     if (!live) return;
     let frame = 0;
-    let lastSig = "";
+    let lastCount = -1;
     const tick = () => {
-      const hover = hoverIndex == null ? null : entries.find((e) => e.index === hoverIndex) ?? null;
-      const selected =
-        selectedIndex == null ? null : entries.find((e) => e.index === selectedIndex) ?? null;
-      const hoverRect = hover ? blockBoundingRect(hover) : null;
-      const selectedRect = selected ? blockBoundingRect(selected) : null;
+      const barH = adminBarHeight();
+      const hoverPos = hoverIndex == null ? -1 : entries.findIndex((e) => e.index === hoverIndex);
+      const selectedPos = selectedIndex == null ? -1 : entries.findIndex((e) => e.index === selectedIndex);
+      const hover = hoverPos >= 0 ? entries[hoverPos]! : null;
+      const selected = selectedPos >= 0 ? entries[selectedPos]! : null;
 
-      paintOutline(hoverRef.current, hoverRect, hover && hoverIndex !== selectedIndex ? hover.slug : null);
-      paintOutline(selectedRef.current, selectedRect, selected ? selected.slug : null);
+      paintOutline(hoverRef.current, hover && hoverPos !== selectedPos ? blockBoundingRect(hover) : null, hover ? caption(hoverPos, hover.slug, labelsRef.current) : "", barH);
+      paintOutline(selectedRef.current, selected ? blockBoundingRect(selected) : null, selected ? caption(selectedPos, selected.slug, labelsRef.current) : "", barH);
 
-      // Insert gutters: cheap to recompute every frame against current rects.
-      // We rebuild the children only when the count changes; otherwise we
-      // just update positions to avoid touching the DOM tree.
-      const sig = `${entries.length}`;
-      if (sig !== lastSig && guttersRef.current) {
+      // Insert gutters: rebuilt only when the block count changes, then
+      // just repositioned. Only the gaps around the hovered and selected
+      // blocks show a "+", so the page isn't covered in buttons.
+      if (entries.length !== lastCount && guttersRef.current) {
         rebuildGutters(guttersRef.current, entries.length);
-        lastSig = sig;
+        lastCount = entries.length;
       }
-      paintGutters(guttersRef.current, entries);
+      const visible = new Set<number>();
+      for (const p of [hoverPos, selectedPos]) {
+        if (p >= 0) {
+          visible.add(p);
+          visible.add(p + 1);
+        }
+      }
+      paintGutters(guttersRef.current, entries, visible, visibleArea(rootRef.current, barH));
 
       frame = requestAnimationFrame(tick);
     };
@@ -122,6 +136,8 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
       if ((e.target as Element)?.closest?.("[data-vedit-host]")) return;
       const block = findBlockForNode(target, entries);
       if (block) {
+        // While editing, clicks on the page select blocks instead of
+        // following links or opening lightboxes.
         e.preventDefault();
         e.stopPropagation();
         setSelectedIndex(block.index);
@@ -135,13 +151,11 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
     };
   }, [live, entries]);
 
-  // (Escape-to-close is owned by SidePanel so the dirty check stays
-  // co-located with the unsaved-changes state.)
-
-  // Stable callbacks for the side panel — using refs so the panel's
-  // useEffect deps don't churn each render and bust debounced timers.
-  const reindex = useMemo(
-    () => () => setEntries(indexBlockMarkers(document.body)),
+  const reindex = useMemo(() => () => setEntries(indexBlockMarkers(document.body)), []);
+  const onBlockTypes = useMemo(
+    () => (labels: Map<string, string>) => {
+      labelsRef.current = labels;
+    },
     [],
   );
 
@@ -151,19 +165,17 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
         <button
           type="button"
           className="vedit-toggle"
-          data-active={false}
           onClick={() => {
             setActive(true);
             setHidden(false);
           }}
-          aria-pressed={false}
         >
           Edit page
         </button>
       )}
 
       {active && (
-        <div style={hidden ? { display: "none" } : undefined}>
+        <div ref={rootRef} style={hidden ? { display: "none" } : undefined}>
           <div className="vedit-overlay" aria-hidden="true">
             <div ref={hoverRef} className="vedit-outline" data-kind="hover" style={{ display: "none" }}>
               <span className="vedit-label" />
@@ -179,9 +191,11 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
             domEntries={entries}
             selectedIndex={selectedIndex}
             onSelect={setSelectedIndex}
+            hidden={hidden}
             onClose={() => setHidden(true)}
             onReindex={reindex}
-            onSaved={() => window.location.reload()}
+            onBlockTypes={onBlockTypes}
+            resume={resume}
           />
         </div>
       )}
@@ -189,9 +203,21 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
   );
 }
 
-function paintOutline(node: HTMLDivElement | null, rect: ReturnType<typeof blockBoundingRect>, label: string | null): void {
+function caption(pos: number, slug: string, labels: Map<string, string>): string {
+  return `${pos + 1} · ${labels.get(slug) ?? slug}`;
+}
+
+const LABEL_H = 22;
+
+/**
+ * Position an outline over a block. The caption sits above the block's
+ * top edge; when that edge is under the admin bar or off-screen, the
+ * caption moves inside the outline and sticks to the top of the visible
+ * area so it never gets cut off.
+ */
+function paintOutline(node: HTMLDivElement | null, rect: Rect | null, label: string, barH: number): void {
   if (!node) return;
-  if (!rect || !label) {
+  if (!rect || !label || rect.top + rect.height < barH || rect.top > window.innerHeight) {
     node.style.display = "none";
     return;
   }
@@ -200,7 +226,13 @@ function paintOutline(node: HTMLDivElement | null, rect: ReturnType<typeof block
   node.style.width = `${rect.width}px`;
   node.style.height = `${rect.height}px`;
   const labelEl = node.firstElementChild as HTMLElement | null;
-  if (labelEl && labelEl.textContent !== label) labelEl.textContent = label;
+  if (!labelEl) return;
+  if (labelEl.textContent !== label) labelEl.textContent = label;
+  const roomAbove = rect.top - barH >= LABEL_H;
+  labelEl.dataset.inside = roomAbove ? "" : "true";
+  // Inside: pin to the first visible pixel of the block.
+  labelEl.style.top = roomAbove ? `${-LABEL_H}px` : `${Math.max(0, barH - rect.top)}px`;
+  labelEl.style.left = `${Math.max(0, -rect.left) - (roomAbove ? 2 : 0)}px`;
 }
 
 function rebuildGutters(container: HTMLDivElement, count: number): void {
@@ -210,8 +242,10 @@ function rebuildGutters(container: HTMLDivElement, count: number): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "vedit-insert-gutter";
-    btn.textContent = "+";
-    btn.setAttribute("aria-label", `Insert block at position ${i}`);
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+    btn.title = "Add a block here";
+    btn.setAttribute("aria-label", `Add a block at position ${i + 1}`);
     btn.dataset.idx = String(i);
     btn.addEventListener("click", (ev) => {
       ev.preventDefault();
@@ -222,14 +256,30 @@ function rebuildGutters(container: HTMLDivElement, count: number): void {
   }
 }
 
-function paintGutters(container: HTMLDivElement | null, entries: BlockEntry[]): void {
+const GUTTER = 28;
+
+/** The part of the page the user can see: below the admin bar, left of the panel. */
+interface Viewport {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+function visibleArea(root: HTMLElement | null, barH: number): Viewport {
+  const panel = root?.querySelector<HTMLElement>(".vedit-panel");
+  const panelLeft = panel ? panel.getBoundingClientRect().left : window.innerWidth;
+  return { top: barH, bottom: window.innerHeight, left: 0, right: Math.min(window.innerWidth, panelLeft) };
+}
+
+function paintGutters(container: HTMLDivElement | null, entries: BlockEntry[], visible: Set<number>, view: Viewport): void {
   if (!container) return;
   const buttons = container.children;
   if (entries.length === 0) {
     const b = buttons[0] as HTMLElement | undefined;
     if (b) {
-      b.style.display = "block";
-      b.style.transform = `translate(calc(50% - 14px), 16px)`;
+      b.style.display = "grid";
+      b.style.transform = `translate(${(view.left + view.right - GUTTER) / 2}px, ${view.top + 24}px)`;
     }
     return;
   }
@@ -239,26 +289,27 @@ function paintGutters(container: HTMLDivElement | null, entries: BlockEntry[]): 
     if (!btn) continue;
     const before = i === 0 ? null : rects[i - 1];
     const after = i === entries.length ? null : rects[i];
-    let top: number;
-    let left: number;
-    if (before && after) {
-      top = (before.top + before.height + after.top) / 2 - 14;
-      left = (before.left + before.width / 2 + after.left + after.width / 2) / 2;
-    } else if (before) {
-      top = before.top + before.height + 4;
-      left = before.left + before.width / 2;
-    } else if (after) {
-      top = after.top - 28;
-      left = after.left + after.width / 2;
-    } else {
+    const pair = [before, after].filter((r): r is Rect => r != null);
+    if (!visible.has(i) || pair.length === 0) {
       btn.style.display = "none";
       continue;
     }
-    if (!Number.isFinite(top) || !Number.isFinite(left)) {
+    // Vertically: in the gap between the two blocks (or on the outer edge).
+    const top =
+      before && after
+        ? (before.top + before.height + after.top) / 2 - GUTTER / 2
+        : before
+          ? before.top + before.height - GUTTER / 2
+          : after!.top - GUTTER / 2;
+    // Horizontally: centred on the part of the blocks that isn't under the panel.
+    const left = Math.max(view.left, Math.min(...pair.map((r) => r.left)));
+    const right = Math.min(view.right, Math.max(...pair.map((r) => r.left + r.width)));
+    const onScreen = top >= view.top && top + GUTTER <= view.bottom && right - left >= GUTTER;
+    if (!onScreen || !Number.isFinite(top) || !Number.isFinite(left + right)) {
       btn.style.display = "none";
       continue;
     }
-    btn.style.display = "block";
-    btn.style.transform = `translate(${left - 14}px, ${top}px)`;
+    btn.style.display = "grid";
+    btn.style.transform = `translate(${(left + right - GUTTER) / 2}px, ${top}px)`;
   }
 }

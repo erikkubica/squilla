@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { listMedia, type MediaItem } from "../api";
+import { Glyph, Modal, SearchInput } from "../ui";
 
 interface PickerProps {
   /** "image" → only picks images, "file" → any, "gallery" → image multi-select. */
@@ -14,16 +15,18 @@ export function MediaPicker({ mode, onPick, onCancel }: PickerProps): React.JSX.
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<number[]>([]);
+  const multi = mode === "gallery";
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     const handle = window.setTimeout(() => {
-      listMedia({ search, mime: mode === "image" || mode === "gallery" ? "image" : undefined, perPage: 80 })
+      listMedia({ search, mime: mode === "file" ? undefined : "image", perPage: 80 })
         .then((res) => {
           if (cancelled) return;
           setItems(res);
+          setError(null);
           setLoading(false);
         })
         .catch((err) => {
@@ -38,135 +41,120 @@ export function MediaPicker({ mode, onPick, onCancel }: PickerProps): React.JSX.
     };
   }, [search, mode]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
-
-  const multi = mode === "gallery";
-
-  const toggle = (id: number): void => {
+  const toggle = (item: MediaItem): void => {
     if (!multi) {
-      const item = items.find((m) => m.id === id);
-      if (item) onPick([item]);
+      onPick([item]);
       return;
     }
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelected((prev) => (prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]));
   };
 
-  const confirmMulti = (): void => {
-    const picked = items.filter((m) => selected.has(m.id));
-    if (picked.length > 0) onPick(picked);
-  };
+  const title = mode === "gallery" ? "Add images" : mode === "image" ? "Choose an image" : "Choose a file";
 
   return (
-    <div className="vedit-modal-backdrop" onClick={onCancel}>
-      <div className="vedit-modal vedit-media-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="vedit-modal-header">
-          <span className="vedit-modal-title">
-            {mode === "gallery" ? "Pick images" : mode === "image" ? "Pick image" : "Pick file"}
-          </span>
-          <button type="button" className="vedit-link" onClick={onCancel}>Cancel</button>
-        </header>
-        <input
-          type="search"
-          className="vedit-input"
-          placeholder="Search media…"
-          value={search}
-          autoFocus
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {error && <div className="vedit-error">{error}</div>}
-        {loading && items.length === 0 && <p className="vedit-empty">Loading…</p>}
-        {!loading && items.length === 0 && <p className="vedit-empty">No media found.</p>}
-        <div className="vedit-media-grid">
-          {items.map((m) => {
-            const isImage = (m.mime_type || "").startsWith("image/");
-            const checked = selected.has(m.id);
-            return (
-              <button
-                key={m.id}
-                type="button"
-                className="vedit-media-tile"
-                data-selected={checked ? "true" : "false"}
-                onClick={() => toggle(m.id)}
-                title={m.original_name ?? m.url}
-              >
-                {isImage ? (
-                  <img src={m.url} alt={m.alt_text ?? ""} loading="lazy" />
-                ) : (
-                  <span className="vedit-media-fileicon">📄</span>
-                )}
-                <span className="vedit-media-name">{m.original_name ?? `#${m.id}`}</span>
-              </button>
-            );
-          })}
-        </div>
-        {multi && (
-          <footer className="vedit-modal-footer">
+    <Modal
+      title={title}
+      subtitle="From the media library"
+      size="lg"
+      onClose={onCancel}
+      footer={
+        multi ? (
+          <>
+            <span className="vedit-modal-count">{selected.length ? `${selected.length} selected` : "Click images to select them"}</span>
             <button type="button" className="vedit-btn" data-variant="secondary" onClick={onCancel}>Cancel</button>
             <button
               type="button"
               className="vedit-btn"
               data-variant="primary"
-              onClick={confirmMulti}
-              disabled={selected.size === 0}
+              disabled={selected.length === 0}
+              onClick={() => onPick(selected.map((id) => items.find((m) => m.id === id)).filter((m): m is MediaItem => !!m))}
             >
-              Add {selected.size} item{selected.size === 1 ? "" : "s"}
+              Add {selected.length || ""} {selected.length === 1 ? "image" : "images"}
             </button>
-          </footer>
-        )}
-      </div>
-    </div>
+          </>
+        ) : undefined
+      }
+    >
+      <SearchInput value={search} onChange={setSearch} placeholder="Search by file name…" autoFocus />
+      {error && <div className="vedit-alert" data-tone="danger">{error}</div>}
+      {loading && items.length === 0 ? (
+        <p className="vedit-empty">Loading…</p>
+      ) : items.length === 0 ? (
+        <p className="vedit-empty">{search ? `Nothing matches “${search}”.` : "The media library is empty."}</p>
+      ) : (
+        <div className="vedit-media-grid">
+          {items.map((m) => {
+            const isImage = (m.mime_type || "").startsWith("image/");
+            const order = selected.indexOf(m.id);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                className="vedit-media-tile"
+                data-selected={order >= 0 || undefined}
+                onClick={() => toggle(m)}
+                title={m.original_name ?? m.url}
+              >
+                <span className="vedit-media-preview">
+                  {isImage ? <img src={m.url} alt={m.alt_text ?? ""} loading="lazy" /> : <Glyph name="file" size={28} strokeWidth={1.5} />}
+                  {multi && order >= 0 && <span className="vedit-media-check">{order + 1}</span>}
+                </span>
+                <span className="vedit-media-name">{m.original_name ?? `#${m.id}`}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </Modal>
   );
 }
 
-interface ImageFieldProps {
-  value: unknown;
-  onChange: (next: unknown) => void;
+function fileName(url: string): string {
+  try {
+    return decodeURIComponent(url.split("?")[0]!.split("/").pop() || url);
+  } catch {
+    return url;
+  }
 }
 
-/** image field — stores {url, alt, width, height, id?}. */
-export function ImageField({ value, onChange }: ImageFieldProps): React.JSX.Element {
+/** image field — stores {id, url, alt, width, height}. */
+export function ImageField({ value, onChange }: { value: unknown; onChange: (next: unknown) => void }): React.JSX.Element {
   const [picking, setPicking] = useState(false);
-  const v = (typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {}) as {
+  const v = (typeof value === "object" && value !== null ? value : {}) as {
     url?: string;
     alt?: string;
     width?: number;
     height?: number;
     id?: number;
   };
+  // A bare URL string (older content, theme-asset refs) still previews.
+  const url = typeof value === "string" ? value : v.url;
 
   return (
-    <div className="vedit-image-field">
-      {v.url ? (
-        <div className="vedit-image-preview">
-          <img src={v.url} alt={v.alt ?? ""} />
+    <>
+      {url ? (
+        <div className="vedit-image-card">
+          <button type="button" className="vedit-image-thumb" onClick={() => setPicking(true)} title="Replace image">
+            {url.startsWith("theme-asset:") ? <Glyph name="image" size={22} strokeWidth={1.6} /> : <img src={url} alt={v.alt ?? ""} />}
+          </button>
           <div className="vedit-image-meta">
-            <input
-              type="text"
-              className="vedit-input"
-              placeholder="Alt text"
-              value={v.alt ?? ""}
-              onChange={(e) => onChange({ ...v, alt: e.target.value })}
-            />
-            <div className="vedit-actions-row">
-              <button type="button" className="vedit-btn" data-variant="secondary" onClick={() => setPicking(true)}>Replace</button>
-              <button type="button" className="vedit-btn" data-variant="danger" onClick={() => onChange(null)}>Remove</button>
+            <span className="vedit-image-name" title={url}>
+              {fileName(url)}
+              {v.width && v.height ? <span className="vedit-image-dims">{v.width}×{v.height}</span> : null}
+            </span>
+            {typeof value === "object" && value !== null && (
+              <input type="text" className="vedit-input" data-size="sm" placeholder="Alt text — describe the image" value={v.alt ?? ""} onChange={(e) => onChange({ ...v, alt: e.target.value })} />
+            )}
+            <div className="vedit-inline-actions">
+              <button type="button" className="vedit-btn" data-variant="secondary" data-size="sm" onClick={() => setPicking(true)}>Replace</button>
+              <button type="button" className="vedit-btn" data-variant="ghost-danger" data-size="sm" onClick={() => onChange(null)}>Remove</button>
             </div>
           </div>
         </div>
       ) : (
-        <button type="button" className="vedit-add-block" onClick={() => setPicking(true)}>
-          + Pick image
+        <button type="button" className="vedit-media-empty" onClick={() => setPicking(true)}>
+          <Glyph name="image" size={18} strokeWidth={1.7} />
+          Choose image
         </button>
       )}
       {picking && (
@@ -180,37 +168,31 @@ export function ImageField({ value, onChange }: ImageFieldProps): React.JSX.Elem
           onCancel={() => setPicking(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 
-interface FileFieldProps {
-  value: unknown;
-  onChange: (next: unknown) => void;
-}
-
-/** file field — stores {url, name, size?, mime?, id?}. */
-export function FileField({ value, onChange }: FileFieldProps): React.JSX.Element {
+/** file field — stores {id, url, name}. */
+export function FileField({ value, onChange }: { value: unknown; onChange: (next: unknown) => void }): React.JSX.Element {
   const [picking, setPicking] = useState(false);
-  const v = (typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {}) as {
-    url?: string;
-    name?: string;
-    id?: number;
-  };
+  const v = (typeof value === "object" && value !== null ? value : {}) as { url?: string; name?: string; id?: number };
 
   return (
-    <div>
+    <>
       {v.url ? (
-        <div className="vedit-field-unsupported">
-          <div className="vedit-field-unsupported-summary">📄 {v.name ?? v.url}</div>
-          <div className="vedit-actions-row">
-            <a href={v.url} target="_blank" rel="noreferrer" className="vedit-link">Open ↗</a>
-            <button type="button" className="vedit-btn" data-variant="secondary" onClick={() => setPicking(true)}>Replace</button>
-            <button type="button" className="vedit-btn" data-variant="danger" onClick={() => onChange(null)}>Remove</button>
-          </div>
+        <div className="vedit-file-card">
+          <span className="vedit-file-icon"><Glyph name="file" size={18} strokeWidth={1.7} /></span>
+          <a className="vedit-file-name" href={v.url} target="_blank" rel="noreferrer" title="Open file">{v.name || fileName(v.url)}</a>
+          <button type="button" className="vedit-btn" data-variant="secondary" data-size="sm" onClick={() => setPicking(true)}>Replace</button>
+          <button type="button" className="vedit-icon-btn" data-size="sm" data-tone="danger" onClick={() => onChange(null)} title="Remove file" aria-label="Remove file">
+            <Glyph name="x" size={15} />
+          </button>
         </div>
       ) : (
-        <button type="button" className="vedit-add-block" onClick={() => setPicking(true)}>+ Pick file</button>
+        <button type="button" className="vedit-media-empty" onClick={() => setPicking(true)}>
+          <Glyph name="file" size={18} strokeWidth={1.7} />
+          Choose file
+        </button>
       )}
       {picking && (
         <MediaPicker
@@ -223,47 +205,53 @@ export function FileField({ value, onChange }: FileFieldProps): React.JSX.Elemen
           onCancel={() => setPicking(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 
-interface GalleryFieldProps {
-  value: unknown;
-  onChange: (next: unknown) => void;
-}
-
-/** gallery field — stores array of image objects. */
-export function GalleryField({ value, onChange }: GalleryFieldProps): React.JSX.Element {
+/** gallery field — stores an array of image objects. */
+export function GalleryField({ value, onChange }: { value: unknown; onChange: (next: unknown) => void }): React.JSX.Element {
   const [picking, setPicking] = useState(false);
   const items = useMemo<Array<Record<string, unknown>>>(
     () => (Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []),
     [value],
   );
-
-  const remove = (idx: number): void => {
-    onChange(items.filter((_, i) => i !== idx));
+  const move = (i: number, d: -1 | 1): void => {
+    const j = i + d;
+    if (j < 0 || j >= items.length) return;
+    const next = items.slice();
+    [next[i], next[j]] = [next[j]!, next[i]!];
+    onChange(next);
   };
 
   return (
-    <div>
-      <div className="vedit-gallery-grid">
-        {items.map((it, i) => {
-          const url = (it.url as string) ?? "";
-          return (
-            <div key={i} className="vedit-gallery-tile">
-              {url && <img src={url} alt={(it.alt as string) ?? ""} />}
-              <button type="button" className="vedit-gallery-remove" onClick={() => remove(i)} aria-label="Remove">×</button>
-            </div>
-          );
-        })}
-      </div>
-      <button type="button" className="vedit-add-block" onClick={() => setPicking(true)}>+ Add images</button>
+    <div className="vedit-gallery-field">
+      {items.length > 0 && (
+        <div className="vedit-gallery">
+          {items.map((it, i) => {
+            const url = typeof it.url === "string" ? it.url : "";
+            return (
+              <div key={`${url}-${i}`} className="vedit-gallery-tile">
+                {url && <img src={url} alt={typeof it.alt === "string" ? it.alt : ""} />}
+                <span className="vedit-gallery-actions">
+                  <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move earlier" title="Move earlier"><Glyph name="arrow-up" size={12} style={{ transform: "rotate(-90deg)" }} /></button>
+                  <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label="Move later" title="Move later"><Glyph name="arrow-down" size={12} style={{ transform: "rotate(-90deg)" }} /></button>
+                  <button type="button" data-tone="danger" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label="Remove image" title="Remove"><Glyph name="x" size={12} /></button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <button type="button" className="vedit-add-button" data-size="sm" onClick={() => setPicking(true)}>
+        <Glyph name="plus" size={15} />
+        {items.length ? "Add more images" : "Add images"}
+      </button>
       {picking && (
         <MediaPicker
           mode="gallery"
           onPick={(picked) => {
-            const additions = picked.map((m) => ({ id: m.id, url: m.url, alt: m.alt_text ?? "", width: m.width, height: m.height }));
-            onChange([...items, ...additions]);
+            onChange([...items, ...picked.map((m) => ({ id: m.id, url: m.url, alt: m.alt_text ?? "", width: m.width, height: m.height }))]);
             setPicking(false);
           }}
           onCancel={() => setPicking(false)}

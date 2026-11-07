@@ -83,12 +83,12 @@ export function FormSelectorField({ value, onChange, id }: Props): React.JSX.Ele
         )}
       </select>
       {error && (
-        <div className="vedit-error" style={{ marginTop: 6 }}>
+        <div className="vedit-alert" data-tone="danger" style={{ marginTop: 6 }}>
           Failed to load forms: {error}. The forms extension may be inactive.
         </div>
       )}
       {!loading && !error && forms.length === 0 && (
-        <div className="vedit-help" style={{ marginTop: 6 }}>
+        <div className="vedit-field-hint" style={{ marginTop: 6 }}>
           No forms yet. Create one in Admin → Forms.
         </div>
       )}

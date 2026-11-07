@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { EditorRoot } from "./EditorRoot";
 import type { BootstrapConfig } from "./types";
+import { setModalLayer } from "./ui";
 import styles from "./styles.css?inline";
 
 // Bootstrap path: the Go plugin emits two tags into <body> for admins:
@@ -58,6 +59,12 @@ function bootstrap(): void {
   const mount = document.createElement("div");
   mount.style.pointerEvents = "auto";
   shadow.appendChild(mount);
+
+  // Dialogs render here, above the panel and outside its cards.
+  const modals = document.createElement("div");
+  modals.style.pointerEvents = "auto";
+  shadow.appendChild(modals);
+  setModalLayer(modals);
 
   const root = createRoot(mount);
   root.render(

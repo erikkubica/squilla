@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -9,116 +9,143 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+  adminEditURL,
+  blockRenderError,
+  blockTypeFields,
+  blockTypeLabel,
+  getBlockTypes,
+  getNode,
+  renderBlocks,
+  updateNodeBlocks,
+  type BlockType,
+  type BlocksDataEntry,
+  type ContentNode,
+} from "./api";
+import { AddBlockDialog } from "./AddBlockDialog";
+import { BlockCard, blockIconValue, type EditorBlock } from "./BlockCard";
 import {
+  blockBoundingRect,
   createSyntheticMarkers,
   insertBlockMarkers,
   nextSyntheticIndex,
   removeBlockMarkers,
-  replaceBlockRange,
   reorderBlocksInDOM,
+  replaceBlockRange,
 } from "./blockIndex";
-import { FieldInput } from "./fields/FieldInput";
+import { useIconLookup } from "./fields/IconField";
+import { emptyValues } from "./fields/layout";
 import { onInsertRequest } from "./insertBus";
-import {
-  type BlockField,
-  type BlockType,
-  type BlocksDataEntry,
-  type ContentNode,
-  blockTypeFields,
-  blockTypeLabel,
-  getBlockType,
-  getBlockTypes,
-  getNode,
-  previewBlock,
-  updateNodeBlocks,
-} from "./api";
-
-/** Editor-local block. `__loadedIndex` is the marker index (kernel or
- *  synthetic) used to look up the corresponding DOM entry. `__cid` is a
- *  stable per-block client id used for selection tracking that survives
- *  drags. `__isNew` flags blocks added in this session so we can
- *  distinguish "unsaved" from "loaded from server". All three are
- *  stripped before save. */
-type EditorBlock = BlocksDataEntry & {
-  __loadedIndex: number;
-  __cid: string;
-  __isNew: boolean;
-};
+import { writeResume, type ResumeState } from "./resume";
+import type { BlockEntry, BootstrapConfig } from "./types";
+import { Glyph, humanize, modalOpen, pushEscape } from "./ui";
 
 let cidCounter = 0;
 function nextCid(): string {
   cidCounter += 1;
   return `vec-${cidCounter}-${Math.random().toString(36).slice(2, 8)}`;
 }
-import type { BlockEntry, BootstrapConfig } from "./types";
 
 interface SidePanelProps {
   config: BootstrapConfig;
   domEntries: BlockEntry[];
   selectedIndex: number | null;
   onSelect: (i: number | null) => void;
+  /** The panel stays mounted while hidden so unsaved edits survive. */
+  hidden: boolean;
   onClose: () => void;
-  onSaved: () => void;
-  onReindex?: () => void;
+  onReindex: () => void;
+  /** Block type labels by slug, for the on-page outline captions. */
+  onBlockTypes: (labels: Map<string, string>) => void;
+  resume: ResumeState | null;
 }
 
-type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "error"; message: string };
+type SaveState = { kind: "idle"; saved: boolean } | { kind: "saving" } | { kind: "error"; message: string };
 
-const DEFAULT_WIDTH = 540;
-const MIN_WIDTH = 360;
+const DEFAULT_WIDTH = 480;
+const MIN_WIDTH = 380;
+const WIDTH_KEY = "vedit-panel-width";
+
+/** Height of the kernel's front-end admin bar, read from the CSS variable
+ *  it sets on <html>. */
+export function adminBarHeight(): number {
+  const v = getComputedStyle(document.documentElement).getPropertyValue("--squilla-admin-bar-h");
+  return parseFloat(v) || 0;
+}
 
 export function SidePanel({
   config,
   domEntries,
   selectedIndex,
   onSelect,
+  hidden,
   onClose,
-  onSaved,
   onReindex,
+  onBlockTypes,
+  resume,
 }: SidePanelProps): React.JSX.Element {
   const [node, setNode] = useState<ContentNode | null>(null);
   const [blockTypes, setBlockTypes] = useState<BlockType[]>([]);
   const [blocks, setBlocks] = useState<EditorBlock[]>([]);
-  const [snapshot, setSnapshot] = useState<string>("");
-  /** Cache of full block-type records (with html_template) lazy-fetched
-   *  for live preview. The list endpoint strips html_template, so the
-   *  shallow blockTypes array can't drive previewBlock alone. */
-  const [tplCache, setTplCache] = useState<Record<string, string>>({});
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
-  const [pendingInsertAt, setPendingInsertAt] = useState<number | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle", saved: false });
+  const [insertAt, setInsertAt] = useState<number | null>(null);
+  const [renderErrors, setRenderErrors] = useState<Record<string, string>>({});
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(resume?.toast ?? null);
   const [width, setWidth] = useState(() => {
-    const stored = Number(window.localStorage.getItem("vedit-panel-width"));
-    return Number.isFinite(stored) && stored >= MIN_WIDTH ? stored : DEFAULT_WIDTH;
+    try {
+      const stored = Number(window.localStorage.getItem(WIDTH_KEY));
+      return Number.isFinite(stored) && stored >= MIN_WIDTH ? stored : DEFAULT_WIDTH;
+    } catch {
+      return DEFAULT_WIDTH;
+    }
   });
 
-  // Stable refs so the live-preview effect doesn't tear down its timer
-  // each parent render.
-  const onReindexRef = useRef(onReindex);
-  onReindexRef.current = onReindex;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const cardEls = useRef(new Map<string, HTMLDivElement>());
+  const leavingRef = useRef(false);
+  /** cid → JSON of the fields last sent for rendering. */
+  const renderedRef = useRef(new Map<string, string>());
+  /** cid → sequence number of the newest render request for it. */
+  const renderSeqRef = useRef(new Map<string, number>());
+  const seqRef = useRef(0);
+
+  // Stable refs so effects don't re-subscribe on every parent render.
   const domEntriesRef = useRef(domEntries);
   domEntriesRef.current = domEntries;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const onBlockTypesRef = useRef(onBlockTypes);
+  onBlockTypesRef.current = onBlockTypes;
+  const resumeRef = useRef(resume);
 
+  // --- Load --------------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
     Promise.all([getNode(config.nodeId), getBlockTypes()])
       .then(([n, types]) => {
         if (cancelled) return;
-        const initial = (n.blocks_data ?? []).map(
-          (b, i) => ({ ...b, __loadedIndex: i, __cid: nextCid(), __isNew: false } as EditorBlock),
-        );
+        const initial: EditorBlock[] = (n.blocks_data ?? []).map((b, i) => ({
+          ...b,
+          fields: b.fields ?? {},
+          __loadedIndex: i,
+          __cid: nextCid(),
+          __isNew: false,
+        }));
+        // What the server rendered is what's on the page already.
+        for (const b of initial) renderedRef.current.set(b.__cid, JSON.stringify(b.fields));
         setNode(n);
         setBlockTypes(types);
         setBlocks(initial);
-        setSnapshot(JSON.stringify(stripLocal(initial)));
+        setSnapshot(takeSnapshot(initial));
+        onBlockTypesRef.current(new Map(types.map((t) => [t.slug, blockTypeLabel(t)])));
+        const pos = resumeRef.current?.pos;
+        if (pos != null && initial[pos]) onSelectRef.current(initial[pos].__loadedIndex);
       })
       .catch((err: Error) => {
         if (!cancelled) setLoadError(err.message);
@@ -128,84 +155,229 @@ export function SidePanel({
     };
   }, [config.nodeId]);
 
-  const blockTypeBySlug = useMemo(() => {
-    const m = new Map<string, BlockType>();
-    for (const bt of blockTypes) m.set(bt.slug, bt);
-    return m;
-  }, [blockTypes]);
+  // Restore the list's scroll offset once after a resume (and skip the
+  // scroll-to-open-card that would otherwise follow).
+  const skipRevealRef = useRef(false);
+  const restoredRef = useRef(false);
+  useLayoutEffect(() => {
+    if (restoredRef.current || blocks.length === 0) return;
+    restoredRef.current = true;
+    const top = resumeRef.current?.panelScroll;
+    if (top && scrollRef.current) {
+      scrollRef.current.scrollTop = top;
+      skipRevealRef.current = true;
+    }
+  }, [blocks.length]);
 
-  /** Resolve the currently-selected block's local position by mapping
-   *  the parent-supplied marker index (kernel or synthetic) to a slot
-   *  in the local blocks array. This single mapping drives both
-   *  click-on-page and click-on-sidebar selection: every block has a
-   *  unique loadedIndex (kernel for loaded, synthetic for inserts), so
-   *  no separate cid-based selection state is needed. */
+  const blockTypeBySlug = useMemo(() => new Map(blockTypes.map((bt) => [bt.slug, bt])), [blockTypes]);
+  const iconValues = useMemo(
+    () => blockTypes.map((bt) => blockIconValue(bt.icon)).filter((v): v is string => !!v),
+    [blockTypes],
+  );
+  const icons = useIconLookup(iconValues);
+
   const selectedPos = useMemo<number | null>(() => {
     if (selectedIndex === null) return null;
     const i = blocks.findIndex((b) => b.__loadedIndex === selectedIndex);
     return i === -1 ? null : i;
   }, [selectedIndex, blocks]);
+  const selectedCid = selectedPos === null ? null : blocks[selectedPos]?.__cid ?? null;
 
-  /** Pick a block by its position in the side-panel list. Mirrors to
-   *  the parent's selectedIndex (= loadedIndex) and scrolls the live
-   *  DOM range into view. */
-  const selectByPos = (pos: number | null): void => {
-    if (pos === null) {
+  const current = useMemo(() => JSON.stringify(stripLocal(blocks)), [blocks]);
+  const dirty = snapshot !== null && current !== snapshot.json;
+  const dirtyCount = useMemo(() => (dirty && snapshot ? countDirty(blocks, snapshot) : 0), [dirty, blocks, snapshot]);
+
+  // Keep the open card in view when the selection comes from the page.
+  useEffect(() => {
+    if (!selectedCid || hidden) return;
+    if (skipRevealRef.current) {
+      skipRevealRef.current = false;
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      const el = cardEls.current.get(selectedCid);
+      const sc = scrollRef.current;
+      if (!el || !sc) return;
+      const er = el.getBoundingClientRect();
+      const sr = sc.getBoundingClientRect();
+      if (er.top < sr.top + 4 || er.top > sr.bottom - 140) {
+        sc.scrollTo({ top: sc.scrollTop + (er.top - sr.top) - 12, behavior: "smooth" });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedCid, hidden]);
+
+  // --- Live preview --------------------------------------------------------------
+  // Any block whose fields differ from what was last rendered is sent to
+  // the node's render endpoint (debounced while typing; immediately for
+  // brand-new blocks) and its range on the page is swapped in place.
+  useEffect(() => {
+    if (!node) return;
+    const pending = blocks.filter((b) => renderedRef.current.get(b.__cid) !== JSON.stringify(b.fields ?? {}));
+    if (pending.length === 0) return;
+    const fresh = pending.every((b) => !renderedRef.current.has(b.__cid));
+    const timer = window.setTimeout(
+      () => {
+        const seq = ++seqRef.current;
+        const batch = pending.map((b) => {
+          renderedRef.current.set(b.__cid, JSON.stringify(b.fields ?? {}));
+          renderSeqRef.current.set(b.__cid, seq);
+          return { cid: b.__cid, index: b.__loadedIndex, slug: b.type, payload: { type: b.type, fields: b.fields ?? {} } };
+        });
+        renderBlocks(node.id, batch.map((p) => p.payload))
+          .then((htmls) => {
+            const errors: Record<string, string | null> = {};
+            batch.forEach((p, i) => {
+              if (renderSeqRef.current.get(p.cid) !== seq) return; // superseded
+              const entry = domEntriesRef.current.find((e) => e.index === p.index);
+              if (!entry) return;
+              const html = htmls[i] ?? "";
+              replaceBlockRange(entry, html);
+              errors[p.cid] = blockRenderError(html);
+              // Lets theme scripts re-initialise widgets inside the block.
+              document.dispatchEvent(
+                new CustomEvent("squilla:block-rendered", { detail: { index: p.index, slug: p.slug, start: entry.startNode, end: entry.endNode } }),
+              );
+            });
+            setRenderErrors((prev) => {
+              const next = { ...prev };
+              for (const [cid, msg] of Object.entries(errors)) {
+                if (msg) next[cid] = msg;
+                else delete next[cid];
+              }
+              return next;
+            });
+            setPreviewError(null);
+          })
+          .catch((err: Error) => {
+            batch.forEach((p) => {
+              if (renderSeqRef.current.get(p.cid) === seq) renderedRef.current.delete(p.cid);
+            });
+            setPreviewError(err.message);
+          });
+      },
+      fresh ? 0 : 250,
+    );
+    return () => window.clearTimeout(timer);
+  }, [blocks, node]);
+
+  // --- Editing ----------------------------------------------------------------------
+  const updateField = (cid: string, name: string, value: unknown): void => {
+    setBlocks((prev) => prev.map((b) => (b.__cid === cid ? { ...b, fields: { ...(b.fields ?? {}), [name]: value } } : b)));
+  };
+
+  /** Scroll the page so a block is in view (below the admin bar and any
+   *  sticky header), unless it already is. */
+  const revealOnPage = (loadedIndex: number): void => {
+    const entry = domEntriesRef.current.find((e) => e.index === loadedIndex);
+    const rect = entry ? blockBoundingRect(entry) : null;
+    if (!rect) return;
+    const top = adminBarHeight() + 72;
+    if (rect.top >= top - 24 && rect.top < window.innerHeight * 0.5) return;
+    window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - top), behavior: "smooth" });
+  };
+
+  const toggleCard = (b: EditorBlock): void => {
+    if (selectedIndex === b.__loadedIndex) {
       onSelect(null);
       return;
     }
-    const block = blocks[pos];
-    if (!block) return;
-    onSelect(block.__loadedIndex);
-
-    // Scroll the corresponding block on the page into view so the user
-    // sees what they're editing. We pick the first non-marker sibling
-    // — the start comment itself has no geometry.
-    const entry = domEntriesRef.current.find((e) => e.index === block.__loadedIndex);
-    if (entry) {
-      let n: Node | null = entry.startNode.nextSibling;
-      while (n && n !== entry.endNode) {
-        if (n.nodeType === Node.ELEMENT_NODE) {
-          (n as Element).scrollIntoView({ behavior: "smooth", block: "center" });
-          break;
-        }
-        n = n.nextSibling;
-      }
-    }
+    onSelect(b.__loadedIndex);
+    revealOnPage(b.__loadedIndex);
   };
 
-  const dirty = JSON.stringify(stripLocal(blocks)) !== snapshot;
+  const insertBlock = (position: number, slug: string, fields: Record<string, unknown>): void => {
+    const cid = nextCid();
+    const idx = nextSyntheticIndex();
+    const { start, end } = createSyntheticMarkers(idx, slug);
+    // Empty range for now; the preview effect renders it straight away.
+    insertBlockMarkers(domEntriesRef.current, position, start, end, "");
+    setBlocks((prev) => {
+      const next = prev.slice();
+      next.splice(position, 0, { type: slug, fields, __loadedIndex: idx, __cid: cid, __isNew: true });
+      return next;
+    });
+    onReindex();
+    onSelect(idx);
+    window.setTimeout(() => revealOnPage(idx), 350);
+  };
 
-  const updateField = (index: number, fieldName: string, value: unknown): void => {
-    setBlocks((prev) =>
-      prev.map((b, i) =>
-        i === index ? { ...b, fields: { ...(b.fields ?? {}), [fieldName]: value } } : b,
-      ),
+  const duplicateBlock = (i: number): void => {
+    const b = blocks[i];
+    if (!b) return;
+    insertBlock(i + 1, b.type, JSON.parse(JSON.stringify(b.fields ?? {})) as Record<string, unknown>);
+  };
+
+  const deleteBlock = (i: number): void => {
+    const b = blocks[i];
+    if (!b) return;
+    const entry = domEntriesRef.current.find((e) => e.index === b.__loadedIndex);
+    if (entry) removeBlockMarkers(entry);
+    renderedRef.current.delete(b.__cid);
+    setBlocks((prev) => prev.filter((x) => x.__cid !== b.__cid));
+    if (selectedIndex === b.__loadedIndex) onSelect(null);
+    onReindex();
+  };
+
+  const moveBlock = (from: number, to: number): void => {
+    if (from === to || from < 0 || to < 0 || from >= blocks.length || to >= blocks.length) return;
+    // The page's block ranges are in the same order as `blocks`, so the
+    // same move applies to both.
+    reorderBlocksInDOM(domEntriesRef.current, from, to);
+    setBlocks((prev) => arrayMove(prev, from, to));
+    onReindex();
+    const moved = blocks[from];
+    if (moved && selectedIndex === moved.__loadedIndex) window.setTimeout(() => revealOnPage(moved.__loadedIndex), 60);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const handleDragEnd = ({ active, over }: DragEndEvent): void => {
+    if (!over || active.id === over.id) return;
+    moveBlock(
+      blocks.findIndex((b) => b.__cid === active.id),
+      blocks.findIndex((b) => b.__cid === over.id),
     );
   };
 
-  const deleteBlock = (index: number): void => {
-    const block = blocks[index];
-    if (!block) return;
-    const entry = domEntriesRef.current.find((e) => e.index === block.__loadedIndex);
-    if (entry) removeBlockMarkers(entry);
-    setBlocks((prev) => prev.filter((_, i) => i !== index));
-    onSelect(null);
-    onReindexRef.current?.();
-  };
+  // Page "+" gutters ask for an insert at a position.
+  useEffect(() => onInsertRequest((idx) => setInsertAt(idx)), []);
 
-  const duplicateBlock = (index: number): void => {
-    const target = blocks[index];
-    if (!target) return;
-    const clonedFields = JSON.parse(JSON.stringify(target.fields ?? {})) as Record<string, unknown>;
-    void insertAt(index + 1, target.type, clonedFields);
+  // --- Save / discard -------------------------------------------------------------
+  const handleSave = async (): Promise<void> => {
+    if (!node || saveState.kind === "saving") return;
+    setSaveState({ kind: "saving" });
+    const sent = blocks;
+    try {
+      await updateNodeBlocks(node.id, stripLocal(sent));
+      // The page already shows these blocks; just move the baseline.
+      setSnapshot(takeSnapshot(sent));
+      setBlocks((prev) => prev.map((b) => (b.__isNew ? { ...b, __isNew: false } : b)));
+      setSaveState({ kind: "idle", saved: true });
+      setToast("Changes saved");
+    } catch (err) {
+      setSaveState({ kind: "error", message: (err as Error).message });
+    }
   };
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
 
-  useEffect(() => onInsertRequest((idx) => setPendingInsertAt(idx)), []);
+  const handleDiscard = (): void => {
+    if (!dirty) return;
+    if (!window.confirm(`Discard ${dirtyCount === 1 ? "this unsaved change" : `all ${dirtyCount} unsaved changes`}?`)) return;
+    // Inserts, deletes and moves have already changed the live page; a
+    // reload is the faithful revert. The editor reopens where it was.
+    writeResume(config.nodeId, { pos: selectedPos, panelScroll: scrollRef.current?.scrollTop ?? 0, toast: "Changes discarded" });
+    leavingRef.current = true;
+    window.location.reload();
+  };
 
   useEffect(() => {
     if (!dirty) return;
     const onBeforeUnload = (e: BeforeUnloadEvent): void => {
+      if (leavingRef.current) return;
       e.preventDefault();
       e.returnValue = "";
     };
@@ -213,573 +385,240 @@ export function SidePanel({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
 
-  // Lazy-load full block-type record (with html_template) on selection.
-  // The list endpoint strips html_template; we fetch the single record
-  // by id once and cache the template by slug for subsequent previews.
+  // ⌘S / Ctrl+S saves while the panel is open.
   useEffect(() => {
-    if (selectedPos === null) return;
-    const block = blocks[selectedPos];
-    if (!block) return;
-    if (tplCache[block.type] !== undefined) return;
-    const bt = blockTypeBySlug.get(block.type);
-    if (!bt) return;
-    let cancelled = false;
-    getBlockType(bt.id)
-      .then((full) => {
-        if (cancelled) return;
-        setTplCache((prev) => ({ ...prev, [block.type]: full.html_template ?? "" }));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setTplCache((prev) => ({ ...prev, [block.type]: "" }));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedPos, blocks, blockTypeBySlug, tplCache]);
-
-  // Live preview: debounce 250ms then re-render the block server-side
-  // and swap its DOM range. Only fires for blocks that exist in the
-  // page (loadedIndex !== null) — newly-inserted blocks live only in
-  // state until Save, since synthesizing canonical comment markers on
-  // the fly would conflict with kernel-issued indexes.
-  useEffect(() => {
-    if (selectedPos === null) return;
-    const block = blocks[selectedPos];
-    if (!block) return;
-    const tpl = tplCache[block.type];
-    if (!tpl) return;
-    const entry = domEntriesRef.current.find((e) => e.index === block.__loadedIndex);
-    if (!entry) return;
-
-    const handle = window.setTimeout(() => {
-      previewBlock(tpl, block.fields ?? {})
-        .then((html) => replaceBlockRange(entry, html))
-        .catch(() => {
-          /* swallow — non-fatal, save+reload still works */
-        });
-    }, 250);
-    return () => window.clearTimeout(handle);
-  }, [selectedPos, blocks, tplCache]);
-
-  useEffect(() => {
+    if (hidden) return;
     const onKey = (e: KeyboardEvent): void => {
-      const isSaveCombo = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s";
-      if (!isSaveCombo) return;
-      if (!dirty || saveState.kind === "saving") return;
+      if (!((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s")) return;
       e.preventDefault();
-      void handleSave();
+      if (modalOpen()) return;
+      void saveRef.current();
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [dirty, saveState.kind]);
+  }, [hidden]);
 
-  /**
-   * Insert a block at the given position with the supplied field values.
-   * Updates state, materializes the block in the DOM (marker pair +
-   * rendered HTML so the admin sees it on the page), and selects it.
-   * Used for both "+ Add block" and Duplicate.
-   */
-  const insertAt = async (
-    position: number,
-    slug: string,
-    fields: Record<string, unknown>,
-  ): Promise<void> => {
-    const bt = blockTypeBySlug.get(slug);
-    if (!bt) return;
-    const cid = nextCid();
-    const syntheticIdx = nextSyntheticIndex();
-
-    // Optimistic state update so the side-panel list updates immediately.
-    setBlocks((prev) => {
-      const next = [...prev];
-      next.splice(position, 0, {
-        type: slug,
-        fields,
-        __loadedIndex: syntheticIdx,
-        __cid: cid,
-        __isNew: true,
-      });
-      return next;
-    });
-    // Select the new block via its synthetic index — the same lookup
-    // path used for loaded blocks, so clicking other blocks afterwards
-    // correctly switches selection.
-    onSelect(syntheticIdx);
-
-    // Lazy-fetch the html_template if we don't have it yet — list
-    // endpoint strips it for payload size, so insertion can happen
-    // before the user has selected this block-type even once.
-    let tpl = tplCache[slug];
-    if (tpl === undefined) {
-      try {
-        const full = await getBlockType(bt.id);
-        tpl = full.html_template ?? "";
-        setTplCache((prev) => ({ ...prev, [slug]: tpl ?? "" }));
-      } catch {
-        tpl = "";
+  // Escape closes the panel — but first just leaves a text field the
+  // cursor is in. Modals sit above this on the Escape stack.
+  useEffect(() => {
+    if (hidden) return;
+    return pushEscape((e) => {
+      const target = e.composedPath()[0] as HTMLElement | undefined;
+      const root = target?.getRootNode?.();
+      const inEditor = root instanceof ShadowRoot && root.host.hasAttribute("data-vedit-host");
+      if (inEditor && target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) {
+        target.blur();
+        return;
       }
-    }
-
-    let html = "";
-    if (tpl) {
-      try {
-        html = await previewBlock(tpl, fields);
-      } catch {
-        /* swallow — we still insert empty markers so a save works */
-      }
-    }
-
-    const { start, end } = createSyntheticMarkers(syntheticIdx, slug);
-    insertBlockMarkers(domEntriesRef.current, position, start, end, html);
-    onReindexRef.current?.();
-  };
-
-  const insertBlock = (index: number, slug: string): void => {
-    const bt = blockTypeBySlug.get(slug);
-    if (!bt) return;
-    const fields = defaultFieldsFromSchema(blockTypeFields(bt));
-    void insertAt(index, slug, fields);
-  };
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  const dndIds = useMemo(() => blocks.map((_, i) => `block-${i}`), [blocks]);
-
-  const handleDragEnd = (event: DragEndEvent): void => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = dndIds.indexOf(String(active.id));
-    const newIndex = dndIds.indexOf(String(over.id));
-    if (oldIndex < 0 || newIndex < 0) return;
-
-    // Every block in state now has a corresponding DOM entry (loaded
-    // entries with kernel indexes, inserts with synthetic ones), so
-    // we can move the DOM range unconditionally and keep visual order
-    // matching the side-panel list.
-    reorderBlocksInDOM(domEntriesRef.current, oldIndex, newIndex);
-    onReindexRef.current?.();
-
-    setBlocks((prev) => arrayMove(prev, oldIndex, newIndex));
-    // Selection follows the block by cid automatically (selectedPos
-    // recomputes) — no manual fix-ups needed.
-  };
-
-  const handleSave = async (): Promise<void> => {
-    if (!node) return;
-    setSaveState({ kind: "saving" });
-    try {
-      await updateNodeBlocks(node.id, stripLocal(blocks));
-      setSaveState({ kind: "idle" });
-      onSaved();
-    } catch (err) {
-      setSaveState({ kind: "error", message: (err as Error).message });
-    }
-  };
-
-  const handleDiscard = (): void => {
-    if (!snapshot) return;
-    // Inserted/deleted blocks have already mutated the live DOM; the
-    // simplest faithful revert is a full page reload, which re-renders
-    // the canonical theme output from the server.
-    window.location.reload();
-  };
-
-  // Closing the panel only hides it — neither saves nor discards. The
-  // parent keeps SidePanel mounted across hide/show, so unsaved edits
-  // (both block list mutations and field values) survive until the user
-  // explicitly saves, discards, or refreshes the page.
-  const requestClose = (): void => {
-    onClose();
-  };
+      onCloseRef.current();
+    }, false);
+  }, [hidden]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== "Escape") return;
-      e.preventDefault();
-      requestClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
-  // Resize handle: drag to set drawer width. Persists to localStorage.
+  // --- Resize ---------------------------------------------------------------------------
   const startResize = (e: React.PointerEvent): void => {
     e.preventDefault();
     const startX = e.clientX;
     const startW = width;
+    let latest = startW;
     const onMove = (ev: PointerEvent): void => {
-      const delta = startX - ev.clientX;
-      const next = Math.max(MIN_WIDTH, Math.min(window.innerWidth * 0.7, startW + delta));
-      setWidth(next);
+      latest = Math.round(Math.max(MIN_WIDTH, Math.min(window.innerWidth * 0.7, startW + (startX - ev.clientX))));
+      setWidth(latest);
     };
     const onUp = (): void => {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
-      window.localStorage.setItem("vedit-panel-width", String(Math.round(width)));
+      try {
+        window.localStorage.setItem(WIDTH_KEY, String(latest));
+      } catch {
+        /* ignore */
+      }
     };
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
   };
 
-  const selected = selectedPos == null ? null : blocks[selectedPos] ?? null;
-  const selectedType = selected ? blockTypeBySlug.get(selected.type) : undefined;
-  const dirtyCount = countDirty(blocks, snapshot);
+  // --- Render ------------------------------------------------------------------------------
+  const ctx = { nodeId: config.nodeId, nodeType: config.nodeType };
+  const placement = (pos: number): string => {
+    if (blocks.length === 0) return "It will be the first block on this page.";
+    if (pos >= blocks.length) return "It goes at the end of the page.";
+    const before = blocks[pos];
+    const label = before ? blockTypeLabel(blockTypeBySlug.get(before.type)) : "";
+    return `It goes above block ${pos + 1}${label && label !== "(unnamed)" ? ` (${label})` : ""}.`;
+  };
+
+  let status: React.ReactNode;
+  let statusTone: "muted" | "dirty" | "danger" = "muted";
+  if (!node && !loadError) status = "Loading…";
+  else if (saveState.kind === "saving") status = <><Glyph name="loader" size={14} className="vedit-spin" /> Saving…</>;
+  else if (saveState.kind === "error") {
+    status = `Couldn't save: ${saveState.message}`;
+    statusTone = "danger";
+  } else if (dirty) {
+    status = `${dirtyCount} unsaved change${dirtyCount === 1 ? "" : "s"}`;
+    statusTone = "dirty";
+  } else status = saveState.saved ? <><Glyph name="check" size={14} /> All changes saved</> : "No changes";
 
   return (
-    <aside className="vedit-panel" aria-label="Visual editor" style={{ width }}>
-      <div className="vedit-resize-handle" onPointerDown={startResize} aria-label="Resize panel" />
+    <aside className="vedit-panel" aria-label="Page editor" style={{ width }}>
+      <div className="vedit-resize-handle" onPointerDown={startResize} title="Drag to resize" />
       <header className="vedit-panel-header">
-        <div className="vedit-panel-title-block">
-          <span className="vedit-panel-title">{node ? node.title : `Editing #${config.nodeId}`}</span>
-          {node && <span className="vedit-panel-subtitle">{node.node_type} · {node.language_code}</span>}
+        <div className="vedit-panel-heading">
+          <span className="vedit-panel-eyebrow">
+            {node ? `${humanize(node.node_type)} · ${node.language_code.toUpperCase()}` : "Editing"}
+            {node?.status && node.status !== "published" && <span className="vedit-status-pill">{node.status}</span>}
+          </span>
+          <span className="vedit-panel-title">{node ? node.title : `#${config.nodeId}`}</span>
         </div>
-        <button type="button" className="vedit-icon-btn" onClick={requestClose} aria-label="Close" title="Close">×</button>
+        <a className="vedit-icon-btn" href={adminEditURL(config.nodeType, config.nodeId)} target="_blank" rel="noopener" title="Open in admin" aria-label="Open this page in the admin">
+          <Glyph name="external" size={16} />
+        </a>
+        <button type="button" className="vedit-icon-btn" onClick={onClose} title="Close (Esc) — unsaved changes are kept" aria-label="Close editor">
+          <Glyph name="x" size={18} />
+        </button>
       </header>
 
-      <div className="vedit-panel-body">
-        {loadError && <div className="vedit-error">Failed to load page: {loadError}</div>}
-
-        <PanelSection title="Blocks">
-          {blocks.length === 0 ? (
-            <p className="vedit-empty">No blocks on this page yet.</p>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={dndIds} strategy={verticalListSortingStrategy}>
-                <ul className="vedit-block-list">
-                  {blocks.map((b, i) => {
-                    const known = blockTypeBySlug.get(b.type);
-                    const stale = b.__isNew;
-                    const label = known ? blockTypeLabel(known) : b.type;
-                    return (
-                      <SortableBlockItem
-                        key={b.__cid}
-                        id={dndIds[i]!}
-                        label={label}
-                        index={i}
-                        selected={i === selectedPos}
-                        stale={stale}
-                        onSelect={() => selectByPos(i)}
-                        onDuplicate={() => duplicateBlock(i)}
-                        onDelete={() => {
-                          if (window.confirm(`Delete this ${label} block?`)) deleteBlock(i);
-                        }}
-                      />
-                    );
-                  })}
-                </ul>
-              </SortableContext>
-            </DndContext>
-          )}
-          <button
-            type="button"
-            className="vedit-add-block"
-            onClick={() => setPendingInsertAt(blocks.length)}
-            disabled={blockTypes.length === 0}
-          >
-            + Add block
-          </button>
-        </PanelSection>
-
-        {pendingInsertAt !== null && (
-          <BlockTypeDialog
-            blockTypes={blockTypes}
-            atIndex={pendingInsertAt}
-            onCancel={() => setPendingInsertAt(null)}
-            onPick={(slug) => {
-              insertBlock(pendingInsertAt, slug);
-              setPendingInsertAt(null);
-            }}
-          />
+      <div className="vedit-panel-body" ref={scrollRef}>
+        {loadError && <div className="vedit-alert" data-tone="danger">Couldn't load this page: {loadError}</div>}
+        {previewError && (
+          <div className="vedit-alert" data-tone="warning">
+            <Glyph name="alert" size={15} />
+            <span>Live preview failed ({previewError}). Your edits are kept — save and reload to see them.</span>
+          </div>
         )}
 
-        {selected && selectedPos !== null && (
-          <section className="vedit-fields-section">
-            <h3 className="vedit-fields-title">
-              {selectedType ? blockTypeLabel(selectedType) : selected.type}
-              <span className="vedit-fields-subtitle">block #{selectedPos}</span>
-            </h3>
-            {selected.__isNew && (
-              <div className="vedit-info">
-                Unsaved block — Save to keep this on the page.
+        {node && (
+          <div className="vedit-section-head">
+            <span className="vedit-section-title">Blocks</span>
+            <span className="vedit-count">{blocks.length}</span>
+          </div>
+        )}
+
+        {node && blocks.length === 0 && (
+          <div className="vedit-empty-state">
+            <span className="vedit-empty-icon"><Glyph name="blocks" size={20} /></span>
+            <p className="vedit-empty-title">No blocks yet</p>
+            <p className="vedit-empty-text">Add a block to start building this page.</p>
+          </div>
+        )}
+
+        {blocks.length > 0 && (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={blocks.map((b) => b.__cid)} strategy={verticalListSortingStrategy}>
+              <div className="vedit-block-list">
+                {blocks.map((b, i) => (
+                  <BlockCard
+                    key={b.__cid}
+                    block={b}
+                    index={i}
+                    total={blocks.length}
+                    blockType={blockTypeBySlug.get(b.type)}
+                    icons={icons}
+                    open={b.__cid === selectedCid}
+                    renderError={renderErrors[b.__cid]}
+                    ctx={ctx}
+                    onToggle={() => toggleCard(b)}
+                    onMove={(d) => moveBlock(i, i + d)}
+                    onDuplicate={() => duplicateBlock(i)}
+                    onDelete={() => deleteBlock(i)}
+                    onFieldChange={(name, value) => updateField(b.__cid, name, value)}
+                    cardRef={(el) => {
+                      if (el) cardEls.current.set(b.__cid, el);
+                      else cardEls.current.delete(b.__cid);
+                    }}
+                  />
+                ))}
               </div>
-            )}
-            <BlockForm
-              block={selected}
-              schema={selectedType ? blockTypeFields(selectedType) : []}
-              nodeId={config.nodeId}
-              nodeType={config.nodeType}
-              onFieldChange={(fieldName, value) => updateField(selectedPos, fieldName, value)}
-            />
-          </section>
+            </SortableContext>
+          </DndContext>
+        )}
+
+        {node && (
+          <button type="button" className="vedit-add-button" onClick={() => setInsertAt(blocks.length)} disabled={blockTypes.length === 0}>
+            <Glyph name="plus" size={16} />
+            Add block
+          </button>
         )}
       </div>
 
+      {toast && (
+        <div className="vedit-toast" role="status">
+          <Glyph name="check" size={14} strokeWidth={2.4} />
+          {toast}
+        </div>
+      )}
+
       <footer className="vedit-panel-footer">
-        <span className="vedit-footer-status">
-          {saveState.kind === "saving" && "Saving…"}
-          {saveState.kind === "error" && <span className="vedit-error-text">Save failed: {saveState.message}</span>}
-          {saveState.kind === "idle" && dirty && `${dirtyCount} pending change${dirtyCount === 1 ? "" : "s"}`}
-          {saveState.kind === "idle" && !dirty && "No changes"}
-        </span>
-        <button type="button" className="vedit-btn" data-variant="secondary" onClick={handleDiscard} disabled={!dirty || saveState.kind === "saving"}>Discard</button>
-        <button type="button" className="vedit-btn" data-variant="primary" onClick={handleSave} disabled={!dirty || saveState.kind === "saving"}>Save</button>
+        <span className="vedit-footer-status" data-tone={statusTone}>{status}</span>
+        <button type="button" className="vedit-btn" data-variant="secondary" onClick={handleDiscard} disabled={!dirty || saveState.kind === "saving"}>
+          Discard
+        </button>
+        <button type="button" className="vedit-btn" data-variant="primary" onClick={() => void handleSave()} disabled={!dirty || saveState.kind === "saving"} title="Save (⌘S)">
+          {saveState.kind === "saving" ? "Saving…" : "Save"}
+        </button>
       </footer>
+
+      {insertAt !== null && (
+        <AddBlockDialog
+          blockTypes={blockTypes}
+          icons={icons}
+          placement={placement(insertAt)}
+          onClose={() => setInsertAt(null)}
+          onPick={(slug) => {
+            const bt = blockTypeBySlug.get(slug);
+            const at = Math.min(insertAt, blocks.length);
+            setInsertAt(null);
+            if (bt) insertBlock(at, slug, emptyValues(blockTypeFields(bt)));
+          }}
+        />
+      )}
     </aside>
   );
 }
 
-function PanelSection({ title, children }: { title: string; children: React.ReactNode }): React.JSX.Element {
-  return (
-    <section className="vedit-section">
-      <h3 className="vedit-section-title">{title}</h3>
-      <div className="vedit-section-body">{children}</div>
-    </section>
-  );
-}
-
-function SortableBlockItem({
-  id,
-  label,
-  index,
-  selected,
-  stale,
-  onSelect,
-  onDuplicate,
-  onDelete,
-}: {
-  id: string;
-  label: string;
-  index: number;
-  selected: boolean;
-  stale: boolean;
-  onSelect: () => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-}): React.JSX.Element {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-  return (
-    <li ref={setNodeRef} style={style}>
-      <div className="vedit-block-row" data-selected={selected}>
-        <button type="button" className="vedit-drag-handle" aria-label="Drag to reorder" {...attributes} {...listeners}>
-          <DragGrip />
-        </button>
-        <button
-          type="button"
-          className="vedit-block-item"
-          aria-current={selected}
-          onClick={onSelect}
-          title={stale ? "Added in this session — Save to keep on the page" : undefined}
-        >
-          <span className="vedit-block-item-label">
-            <strong>{label}</strong>
-            <span className="vedit-block-meta">#{index}</span>
-          </span>
-          {stale && <span className="vedit-stale-badge">unsaved</span>}
-        </button>
-        <div className="vedit-row-actions">
-          <button
-            type="button"
-            className="vedit-row-icon"
-            aria-label="Duplicate"
-            title="Duplicate"
-            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-          >
-            <DuplicateIcon />
-          </button>
-          <button
-            type="button"
-            className="vedit-row-icon"
-            data-variant="danger"
-            aria-label="Delete"
-            title="Delete"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          >
-            <TrashIcon />
-          </button>
-        </div>
-      </div>
-    </li>
-  );
-}
-
-function DragGrip(): React.JSX.Element {
-  return (
-    <svg width="10" height="14" viewBox="0 0 10 14" aria-hidden="true">
-      <circle cx="2" cy="3" r="1.2" fill="currentColor" />
-      <circle cx="2" cy="7" r="1.2" fill="currentColor" />
-      <circle cx="2" cy="11" r="1.2" fill="currentColor" />
-      <circle cx="8" cy="3" r="1.2" fill="currentColor" />
-      <circle cx="8" cy="7" r="1.2" fill="currentColor" />
-      <circle cx="8" cy="11" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function DuplicateIcon(): React.JSX.Element {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="4.5" y="4.5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M3 11V3.5A1.5 1.5 0 0 1 4.5 2H11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function TrashIcon(): React.JSX.Element {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M3 4h10M6 4V2.5A.5.5 0 0 1 6.5 2h3a.5.5 0 0 1 .5.5V4M5 4l.5 9.5A1 1 0 0 0 6.5 14.5h3a1 1 0 0 0 1-1L11 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function BlockTypeDialog({
-  blockTypes,
-  atIndex,
-  onCancel,
-  onPick,
-}: {
-  blockTypes: BlockType[];
-  atIndex: number;
-  onCancel: () => void;
-  onPick: (slug: string) => void;
-}): React.JSX.Element {
-  const [filter, setFilter] = useState("");
-  const sorted = useMemo(
-    () => [...blockTypes].sort((a, b) => blockTypeLabel(a).localeCompare(blockTypeLabel(b))),
-    [blockTypes],
-  );
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter(
-      (bt) => blockTypeLabel(bt).toLowerCase().includes(q) || bt.slug.toLowerCase().includes(q),
-    );
-  }, [sorted, filter]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
-
-  return (
-    <div className="vedit-modal-backdrop" onClick={onCancel}>
-      <div className="vedit-modal" onClick={(e) => e.stopPropagation()}>
-        <header className="vedit-modal-header">
-          <span className="vedit-modal-title">Insert block at position {atIndex}</span>
-          <button type="button" className="vedit-link" onClick={onCancel}>Cancel</button>
-        </header>
-        <input
-          type="text"
-          className="vedit-input"
-          placeholder="Search block types…"
-          autoFocus
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-        <ul className="vedit-block-picker-list">
-          {filtered.length === 0 && <li className="vedit-empty">No matches.</li>}
-          {filtered.map((bt) => (
-            <li key={bt.slug}>
-              <button type="button" className="vedit-block-picker-item" onClick={() => onPick(bt.slug)}>
-                <strong>{blockTypeLabel(bt)}</strong>
-                <span className="vedit-block-meta">{bt.slug}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function defaultFieldsFromSchema(schema: BlockField[]): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const f of schema) {
-    if (f.initialValue !== undefined) {
-      out[f.name] = f.initialValue;
-      continue;
-    }
-    const t = (f.type || "").toLowerCase();
-    if (t === "boolean" || t === "toggle") out[f.name] = false;
-    else if (t === "number" || t === "integer" || t === "range") out[f.name] = null;
-    else if (t === "object" || t === "group") out[f.name] = {};
-    else if (t === "array" || t === "repeater" || t === "gallery" || t === "checkbox") out[f.name] = [];
-    else if (t === "string" || t === "text" || t === "textarea" || t === "url" || t === "email" || t === "richtext" || t === "wysiwyg") out[f.name] = "";
-    else out[f.name] = null;
-  }
-  return out;
-}
-
-function BlockForm({
-  block,
-  schema,
-  nodeId,
-  nodeType,
-  onFieldChange,
-}: {
-  block: BlocksDataEntry;
-  schema: BlockField[];
-  nodeId: number;
-  nodeType: string;
-  onFieldChange: (fieldName: string, value: unknown) => void;
-}): React.JSX.Element {
-  if (schema.length === 0) {
-    return (
-      <p className="vedit-empty">
-        No field schema registered for &quot;{block.type}&quot;. Use the admin editor for raw JSON edits.
-      </p>
-    );
-  }
-  const fields = (block.fields ?? {}) as Record<string, unknown>;
-  return (
-    <div className="vedit-form">
-      {schema.map((f) => (
-        <FieldInput
-          key={f.name}
-          field={f}
-          value={fields[f.name]}
-          onChange={(v) => onFieldChange(f.name, v)}
-          nodeId={nodeId}
-          nodeType={nodeType}
-          path={f.name}
-        />
-      ))}
-    </div>
-  );
-}
-
 /** Strip editor-local fields (anything starting with __) before sending
- *  to the API. The kernel rejects unknown JSON fields silently but we
- *  keep the wire payload clean. */
+ *  to the API. */
 function stripLocal(blocks: EditorBlock[]): BlocksDataEntry[] {
   return blocks.map(({ __loadedIndex: _li, __cid: _cid, __isNew: _new, ...rest }) => rest as BlocksDataEntry);
 }
 
-function countDirty(current: EditorBlock[], snapshotJSON: string): number {
-  if (!snapshotJSON) return 0;
-  let prev: BlocksDataEntry[] = [];
-  try {
-    prev = JSON.parse(snapshotJSON) as BlocksDataEntry[];
-  } catch {
-    return 0;
-  }
-  const cur = stripLocal(current);
-  const max = Math.max(cur.length, prev.length);
-  let diff = 0;
-  for (let i = 0; i < max; i++) {
-    if (JSON.stringify(cur[i]) !== JSON.stringify(prev[i])) diff++;
-  }
-  return diff;
+/** The saved state, by block identity, so changes can be counted the way
+ *  an editor thinks of them. */
+interface Snapshot {
+  json: string;
+  byCid: Map<string, string>;
+  order: string[];
+}
+
+function takeSnapshot(blocks: EditorBlock[]): Snapshot {
+  const plain = stripLocal(blocks);
+  return {
+    json: JSON.stringify(plain),
+    byCid: new Map(blocks.map((b, i) => [b.__cid, JSON.stringify(plain[i])])),
+    order: blocks.map((b) => b.__cid),
+  };
+}
+
+/** One per added, removed or edited block, plus one if the remaining
+ *  blocks were reordered. Inserting a block counts once, not once for
+ *  every block it pushed down. */
+function countDirty(current: EditorBlock[], saved: Snapshot): number {
+  const plain = stripLocal(current);
+  let n = 0;
+  current.forEach((b, i) => {
+    const was = saved.byCid.get(b.__cid);
+    if (was === undefined || was !== JSON.stringify(plain[i])) n++;
+  });
+  const live = new Set(current.map((b) => b.__cid));
+  const kept = saved.order.filter((cid) => live.has(cid));
+  n += saved.order.length - kept.length;
+  const nowOrder = current.map((b) => b.__cid).filter((cid) => saved.byCid.has(cid));
+  if (nowOrder.some((cid, i) => cid !== kept[i])) n++;
+  return n;
 }

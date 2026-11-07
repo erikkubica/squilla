@@ -30,6 +30,11 @@ export default defineConfig({
         // editor module asks for it (or the editor injects it via
         // <link> in shadow root from a fetched URL).
         assetFileNames: "editor.css",
+        // Lazily imported data (the emoji picker's dataset) lands in
+        // content-hashed chunks next to editor.js; the plugin serves them
+        // from the same /static/ path. `npm run build` clears the folder
+        // first so stale chunks don't pile up in the embedded assets.
+        chunkFileNames: "chunks/[name]-[hash].js",
       },
     },
     cssCodeSplit: false,

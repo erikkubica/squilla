@@ -1,15 +1,9 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { listTerms, nodeThumb, searchNodes, type NodeSummary, type TermSummary } from "../api";
-import type { BlockField } from "../api";
+import { listTerms, nodeThumb, searchNodes, type BlockField, type NodeSummary, type TermSummary } from "../api";
+import { Glyph, Modal, SearchInput, humanize } from "../ui";
 
 // --- Reference (content node) ---
-
-interface NodeRefProps {
-  field: BlockField;
-  value: unknown;
-  onChange: (next: unknown) => void;
-}
 
 interface RefItem {
   id: number;
@@ -25,20 +19,21 @@ function toItems(value: unknown): RefItem[] {
     .filter((v): v is RefItem => v !== null && v.id !== undefined);
 }
 
-function humanize(slug: string): string {
-  return slug.replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-}
-
-function Thumb({ src, label }: { src: string; label: string }): React.JSX.Element {
+function Thumb({ src, label, size }: { src: string; label: string; size?: "lg" }): React.JSX.Element {
   const [broken, setBroken] = useState(false);
   return (
-    <span className="vedit-ref-thumb" aria-hidden="true">
+    <span className="vedit-ref-thumb" data-size={size} aria-hidden="true">
       {src && !broken ? <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} /> : <span>{label.charAt(0).toUpperCase() || "?"}</span>}
     </span>
   );
 }
 
-export function NodeRefField({ field, value, onChange }: NodeRefProps): React.JSX.Element {
+function StatusPill({ status }: { status?: string }): React.JSX.Element | null {
+  if (!status || status === "published") return null;
+  return <span className="vedit-status-pill">{status}</span>;
+}
+
+export function NodeRefField({ field, value, onChange }: { field: BlockField; value: unknown; onChange: (next: unknown) => void }): React.JSX.Element {
   const [picking, setPicking] = useState(false);
   const schema = field as unknown as { node_types?: string[]; node_type_filter?: string | string[]; multiple?: boolean };
   const multiple = !!schema.multiple;
@@ -49,6 +44,7 @@ export function NodeRefField({ field, value, onChange }: NodeRefProps): React.JS
   // Stored references only carry id/title/slug; look up thumbnails and
   // current titles so the list reads like the content it points at.
   const [lookup, setLookup] = useState<Record<number, NodeSummary>>({});
+  const [looked, setLooked] = useState(false);
   const allowedKey = allowed.join(",");
   useEffect(() => {
     if (items.length === 0) return;
@@ -60,6 +56,9 @@ export function NodeRefField({ field, value, onChange }: NodeRefProps): React.JS
         const map: Record<number, NodeSummary> = {};
         for (const n of lists.flat()) map[n.id] = n;
         setLookup(map);
+        // The search caps at 100 per type; past that a reference can be
+        // real yet absent from the lookup, so don't flag anything.
+        setLooked(lists.every((l) => l.length < 100));
       })
       .catch(() => undefined);
     return () => {
@@ -79,6 +78,7 @@ export function NodeRefField({ field, value, onChange }: NodeRefProps): React.JS
     [next[i], next[j]] = [next[j]!, next[i]!];
     commit(next);
   };
+  const typeLabel = allowed.length === 1 ? humanize(allowed[0]!).toLowerCase() : "content";
 
   return (
     <div className="vedit-ref">
@@ -87,24 +87,31 @@ export function NodeRefField({ field, value, onChange }: NodeRefProps): React.JS
           {items.map((item, i) => {
             const live = lookup[item.id];
             const title = live?.title || item.title || item.slug || `#${item.id}`;
-            const missing = Object.keys(lookup).length > 0 && !live;
+            const missing = looked && !live;
             return (
               <li key={item.id} className="vedit-ref-row" data-missing={missing || undefined}>
                 <Thumb src={nodeThumb(live?.featured_image)} label={title} />
                 <span className="vedit-ref-text">
                   <span className="vedit-ref-title">{title}</span>
                   <span className="vedit-ref-meta">
-                    {missing ? "Not found — it may have been deleted" : `${humanize(live?.node_type || item.node_type || "content")}${live?.status && live.status !== "published" ? ` · ${live.status}` : ""}`}
+                    {missing ? "Not found — it may have been deleted" : humanize(live?.node_type || item.node_type || "content")}
+                    {!missing && <StatusPill status={live?.status} />}
                   </span>
                 </span>
                 <span className="vedit-ref-actions">
                   {multiple && items.length > 1 && (
                     <>
-                      <button type="button" className="vedit-ref-icon" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Move ${title} up`} title="Move up">↑</button>
-                      <button type="button" className="vedit-ref-icon" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label={`Move ${title} down`} title="Move down">↓</button>
+                      <button type="button" className="vedit-icon-btn" data-size="sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Move ${title} up`} title="Move up">
+                        <Glyph name="arrow-up" size={14} />
+                      </button>
+                      <button type="button" className="vedit-icon-btn" data-size="sm" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label={`Move ${title} down`} title="Move down">
+                        <Glyph name="arrow-down" size={14} />
+                      </button>
                     </>
                   )}
-                  <button type="button" className="vedit-ref-icon" data-variant="danger" onClick={() => commit(items.filter((_, j) => j !== i))} aria-label={`Remove ${title}`} title="Remove">✕</button>
+                  <button type="button" className="vedit-icon-btn" data-size="sm" data-tone="danger" onClick={() => commit(items.filter((_, j) => j !== i))} aria-label={`Remove ${title}`} title="Remove">
+                    <Glyph name="x" size={15} />
+                  </button>
                 </span>
               </li>
             );
@@ -112,11 +119,12 @@ export function NodeRefField({ field, value, onChange }: NodeRefProps): React.JS
         </ul>
       )}
       <div className="vedit-ref-footer">
-        <button type="button" className="vedit-ref-add" onClick={() => setPicking(true)}>
-          {multiple ? (items.length ? "+ Add or remove" : "+ Choose items") : items.length ? "Change" : "+ Choose item"}
+        <button type="button" className="vedit-add-button" data-size="sm" data-fit onClick={() => setPicking(true)}>
+          <Glyph name={items.length ? "link" : "plus"} size={15} />
+          {multiple ? (items.length ? "Add or remove" : `Choose ${typeLabel}`) : items.length ? "Change" : `Choose ${typeLabel}`}
         </button>
-        {multiple && items.length > 0 && (
-          <button type="button" className="vedit-link" onClick={() => commit([])}>Clear all</button>
+        {multiple && items.length > 1 && (
+          <button type="button" className="vedit-text-action" onClick={() => commit([])}>Clear all</button>
         )}
       </div>
       {picking && (
@@ -124,6 +132,7 @@ export function NodeRefField({ field, value, onChange }: NodeRefProps): React.JS
           allowedNodeTypes={allowed}
           multiple={multiple}
           initial={items}
+          typeLabel={typeLabel}
           onDone={(next) => {
             commit(next);
             setPicking(false);
@@ -139,12 +148,14 @@ function NodePickerModal({
   allowedNodeTypes,
   multiple,
   initial,
+  typeLabel,
   onDone,
   onCancel,
 }: {
   allowedNodeTypes: string[];
   multiple: boolean;
   initial: RefItem[];
+  typeLabel: string;
   onDone: (items: RefItem[]) => void;
   onCancel: () => void;
 }): React.JSX.Element {
@@ -166,15 +177,6 @@ function NodePickerModal({
     return () => window.clearTimeout(handle);
   }, [search, activeType]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
-
-  const isPicked = (id: number): boolean => picked.some((p) => p.id === id);
   const toggle = (n: NodeSummary): void => {
     const item: RefItem = { id: n.id, title: n.title, slug: n.slug, node_type: n.node_type };
     if (!multiple) {
@@ -183,86 +185,90 @@ function NodePickerModal({
     }
     setPicked((cur) => (cur.some((p) => p.id === n.id) ? cur.filter((p) => p.id !== n.id) : [...cur, item]));
   };
-  const typeLabel = allowedNodeTypes.length === 1 ? humanize(allowedNodeTypes[0]!).toLowerCase() : "content";
 
   return (
-    <div className="vedit-modal-backdrop" onClick={onCancel}>
-      <div className="vedit-modal vedit-ref-modal" role="dialog" aria-modal="true" aria-label={`Choose ${typeLabel}`} onClick={(e) => e.stopPropagation()}>
-        <header className="vedit-modal-header">
-          <span className="vedit-modal-title">Choose {typeLabel}</span>
-          <button type="button" className="vedit-link" onClick={onCancel}>Cancel</button>
-        </header>
-        {allowedNodeTypes.length > 1 && (
-          <div className="vedit-tabs">
-            {allowedNodeTypes.map((t) => (
-              <button key={t} type="button" className="vedit-tab" data-active={t === activeType} onClick={() => setActiveType(t)}>
-                {humanize(t)}
-              </button>
-            ))}
-          </div>
-        )}
-        <input
-          type="search"
-          className="vedit-input"
-          placeholder={`Search ${typeLabel} by title…`}
-          autoFocus
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {error && <div className="vedit-error">{error}</div>}
-        <ul className="vedit-ref-results">
-          {results === null && <li className="vedit-empty">Loading…</li>}
-          {results?.length === 0 && <li className="vedit-empty">No matches.</li>}
-          {results?.map((n) => {
-            const on = isPicked(n.id);
-            return (
-              <li key={n.id}>
-                <button type="button" className="vedit-ref-result" data-selected={on || undefined} aria-pressed={multiple ? on : undefined} onClick={() => toggle(n)}>
-                  <Thumb src={nodeThumb(n.featured_image)} label={n.title} />
-                  <span className="vedit-ref-text">
-                    <span className="vedit-ref-title">{n.title}</span>
-                    <span className="vedit-ref-meta">
-                      {n.full_url || `/${n.slug}`}
-                      {n.status && n.status !== "published" && <span className="vedit-ref-status">{n.status}</span>}
-                    </span>
-                  </span>
-                  {multiple && <span className="vedit-ref-check" aria-hidden="true">{on ? "✓" : ""}</span>}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        {multiple && (
-          <footer className="vedit-modal-footer vedit-ref-modal-footer">
-            <span className="vedit-ref-count">{picked.length ? `${picked.length} selected` : "None selected"}</span>
+    <Modal
+      title={`Choose ${typeLabel}`}
+      subtitle={multiple ? "Pick as many as you need. The order you pick them in is the order they show." : undefined}
+      size="md"
+      className="vedit-ref-modal"
+      onClose={onCancel}
+      footer={
+        multiple ? (
+          <>
+            <span className="vedit-modal-count">{picked.length ? `${picked.length} selected` : "None selected"}</span>
             <button type="button" className="vedit-btn" data-variant="secondary" onClick={onCancel}>Cancel</button>
             <button type="button" className="vedit-btn" data-variant="primary" onClick={() => onDone(picked)}>Done</button>
-          </footer>
-        )}
-      </div>
-    </div>
+          </>
+        ) : undefined
+      }
+    >
+      {allowedNodeTypes.length > 1 && (
+        <div className="vedit-tabs" role="tablist">
+          {allowedNodeTypes.map((t) => (
+            <button key={t} type="button" role="tab" className="vedit-tab" aria-selected={t === activeType} data-active={t === activeType} onClick={() => setActiveType(t)}>
+              {humanize(t)}
+            </button>
+          ))}
+        </div>
+      )}
+      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${typeLabel} by title…`} autoFocus />
+      {error && <div className="vedit-alert" data-tone="danger">{error}</div>}
+      <ul className="vedit-ref-results">
+        {results === null && <li className="vedit-empty">Loading…</li>}
+        {results?.length === 0 && <li className="vedit-empty">{search ? `Nothing matches “${search}”.` : "Nothing here yet."}</li>}
+        {results?.map((n) => {
+          const order = picked.findIndex((p) => p.id === n.id);
+          const on = order >= 0;
+          return (
+            <li key={n.id}>
+              <button type="button" className="vedit-ref-result" data-selected={on || undefined} aria-pressed={multiple ? on : undefined} onClick={() => toggle(n)}>
+                <Thumb src={nodeThumb(n.featured_image)} label={n.title} size="lg" />
+                <span className="vedit-ref-text">
+                  <span className="vedit-ref-title">{n.title}</span>
+                  <span className="vedit-ref-meta">
+                    <span className="vedit-ref-url">{n.full_url || `/${n.slug}`}</span>
+                    <StatusPill status={n.status} />
+                  </span>
+                </span>
+                {multiple && (
+                  <span className="vedit-ref-check" aria-hidden="true">
+                    {on ? <Glyph name="check" size={13} strokeWidth={3} /> : null}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </Modal>
   );
 }
 
 // --- Term (taxonomy) ---
 
-interface TermProps {
+export function TermField({
+  field,
+  value,
+  onChange,
+  defaultNodeType,
+}: {
   field: BlockField;
   value: unknown;
   onChange: (next: unknown) => void;
   /** Falls back here if the field schema doesn't carry node_type. */
   defaultNodeType: string;
-}
-
-export function TermField({ field, value, onChange, defaultNodeType }: TermProps): React.JSX.Element {
-  const taxonomy = (field as unknown as { taxonomy?: string }).taxonomy ?? "";
-  const nodeType = (field as unknown as { node_type?: string }).node_type ?? defaultNodeType;
+}): React.JSX.Element {
+  const schema = field as unknown as { taxonomy?: string; node_type?: string; term_node_type?: string };
+  const taxonomy = schema.taxonomy ?? "";
+  const nodeType = schema.term_node_type ?? schema.node_type ?? defaultNodeType;
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<TermSummary[]>([]);
+  const [items, setItems] = useState<TermSummary[] | null>(null);
+  const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const v = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
-  const display = v ? (v.name as string) ?? (v.slug as string) ?? `#${v.id}` : null;
+  const display = v ? ((v.name as string) ?? (v.slug as string) ?? `#${v.id}`) : null;
 
   useEffect(() => {
     if (!open || !taxonomy || !nodeType) return;
@@ -271,52 +277,56 @@ export function TermField({ field, value, onChange, defaultNodeType }: TermProps
       .catch((e) => setError((e as Error).message));
   }, [open, taxonomy, nodeType]);
 
-  if (!taxonomy) {
-    return <p className="vedit-empty">Field schema is missing taxonomy.</p>;
-  }
+  if (!taxonomy) return <p className="vedit-muted-note">This field has no taxonomy configured.</p>;
+
+  const q = search.trim().toLowerCase();
+  const shown = (items ?? []).filter((t) => !q || t.name.toLowerCase().includes(q) || t.slug.includes(q));
 
   return (
-    <div>
+    <>
       {display ? (
-        <div className="vedit-field-unsupported">
-          <div className="vedit-field-unsupported-summary">🏷 {display}</div>
-          <div className="vedit-actions-row">
-            <button type="button" className="vedit-btn" data-variant="secondary" onClick={() => setOpen(true)}>Change</button>
-            <button type="button" className="vedit-btn" data-variant="danger" onClick={() => onChange(null)}>Clear</button>
-          </div>
+        <div className="vedit-chip-row">
+          <span className="vedit-chip">
+            <Glyph name="tag" size={13} />
+            {display}
+          </span>
+          <button type="button" className="vedit-btn" data-variant="secondary" data-size="sm" onClick={() => setOpen(true)}>Change</button>
+          <button type="button" className="vedit-icon-btn" data-size="sm" data-tone="danger" onClick={() => onChange(null)} title="Clear" aria-label="Clear term">
+            <Glyph name="x" size={15} />
+          </button>
         </div>
       ) : (
-        <button type="button" className="vedit-add-block" onClick={() => setOpen(true)}>+ Pick term</button>
+        <button type="button" className="vedit-media-empty" onClick={() => setOpen(true)}>
+          <Glyph name="tag" size={17} strokeWidth={1.7} />
+          Choose {humanize(taxonomy).toLowerCase()}
+        </button>
       )}
       {open && (
-        <div className="vedit-modal-backdrop" onClick={() => setOpen(false)}>
-          <div className="vedit-modal" onClick={(e) => e.stopPropagation()}>
-            <header className="vedit-modal-header">
-              <span className="vedit-modal-title">Pick {taxonomy}</span>
-              <button type="button" className="vedit-link" onClick={() => setOpen(false)}>Cancel</button>
-            </header>
-            {error && <div className="vedit-error">{error}</div>}
-            <ul className="vedit-block-picker-list">
-              {items.length === 0 && <li className="vedit-empty">No terms.</li>}
-              {items.map((t) => (
-                <li key={t.id}>
-                  <button
-                    type="button"
-                    className="vedit-block-picker-item"
-                    onClick={() => {
-                      onChange({ id: t.id, slug: t.slug, name: t.name, taxonomy, node_type: nodeType });
-                      setOpen(false);
-                    }}
-                  >
-                    <strong>{t.name}</strong>
-                    <span className="vedit-block-meta">{t.slug}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <Modal title={`Choose ${humanize(taxonomy).toLowerCase()}`} size="sm" onClose={() => setOpen(false)}>
+          <SearchInput value={search} onChange={setSearch} placeholder="Filter…" autoFocus />
+          {error && <div className="vedit-alert" data-tone="danger">{error}</div>}
+          <ul className="vedit-option-list">
+            {items === null && !error && <li className="vedit-empty">Loading…</li>}
+            {items !== null && shown.length === 0 && <li className="vedit-empty">No terms.</li>}
+            {shown.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className="vedit-option"
+                  data-selected={v?.id === t.id || undefined}
+                  onClick={() => {
+                    onChange({ id: t.id, slug: t.slug, name: t.name, taxonomy, node_type: nodeType });
+                    setOpen(false);
+                  }}
+                >
+                  <span className="vedit-option-label">{t.name}</span>
+                  <span className="vedit-option-meta">{t.slug}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Modal>
       )}
-    </div>
+    </>
   );
 }

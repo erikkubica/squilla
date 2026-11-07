@@ -120,12 +120,12 @@ export function insertBlockMarkers(
     return;
   }
 
-  // No existing blocks. Best-effort: append to body. The page is
-  // unusual in this case (an editable node with zero blocks) and the
-  // result will look wherever the theme places body-level content.
-  document.body.appendChild(start);
-  document.body.appendChild(tmpl.content);
-  document.body.appendChild(end);
+  // No existing blocks. Best-effort: the page's <main>, else <body>.
+  // After a save the server renders the block in its real place.
+  const host = document.querySelector("main") ?? document.body;
+  host.appendChild(start);
+  host.appendChild(tmpl.content);
+  host.appendChild(end);
 }
 
 /**

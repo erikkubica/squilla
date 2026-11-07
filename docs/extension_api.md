@@ -225,6 +225,21 @@ const item = S.adminBar.add({
 
 The visual-editor extension uses this API for its **Customize** toggle (`extensions/visual-editor/editor-ui/src/EditorRoot.tsx`).
 
+### Visual editor live preview (`squilla:block-rendered`)
+
+While someone edits a page with **Customize**, the visual editor re-renders each changed block through `POST /admin/api/nodes/:id/render-blocks` and swaps the new HTML in between the block's markers. Inline `<script>` tags in the new HTML don't run, and theme scripts that set up widgets once on page load won't see the new elements. After each swap, `document` dispatches `squilla:block-rendered` so a theme can set the block up again:
+
+```js
+document.addEventListener("squilla:block-rendered", (event) => {
+  const { slug, index, start, end } = event.detail; // start/end: the block's marker comments
+  for (let n = start.nextSibling; n && n !== end; n = n.nextSibling) {
+    if (n.nodeType === Node.ELEMENT_NODE) initWidgets(n); // your theme's own setup
+  }
+});
+```
+
+Without a listener, a re-rendered block shows its markup as the server rendered it (no entrance animations or JS-driven state) until the page is reloaded. Clicks on the page select blocks while the editor is open, so interactive widgets aren't needed during editing.
+
 ---
 
 ## 4. Scripting (Tengo)

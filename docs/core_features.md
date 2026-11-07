@@ -236,6 +236,8 @@ A reusable component (e.g. "hero", "feature-grid", "login-form"). Fields: `slug`
 
 Editor preview endpoint: `POST /admin/api/block-types/preview` renders sample HTML in active theme chrome.
 
+Live block render: `POST /admin/api/nodes/:id/render-blocks` with `{blocks, path, query}` renders unsaved `blocks_data` entries for that node through the public page pipeline (theme settings, `request`, `node`, reference/term hydration) and returns `{data: {html: [...]}}`, one string per block. It needs read access to the node, writes nothing, is never cached and takes at most 200 blocks. The visual editor uses it for its live preview. A block that fails to render comes back as an `<!-- block error: … -->` comment.
+
 CRUD: `/admin/api/block-types`.
 
 ### 5.2 Layout blocks ("partials") (`layout_blocks` table)
