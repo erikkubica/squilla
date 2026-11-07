@@ -40,7 +40,7 @@ import {
 } from "./blockIndex";
 import { useIconLookup } from "./fields/IconField";
 import { useLayoutSettings } from "./layoutSettings";
-import { LayoutTab, PageCustomFields, PageDetails, type PageMeta } from "./PageTabs";
+import { LayoutTab, PageCustomFields, PageDetails, revealCard, type PageMeta } from "./PageTabs";
 import { onPanelMessage } from "./panelBus";
 import { previewInPlace } from "./pagePreview";
 import { applyLive, cancelInlineEdit, resolveTargets, targetFor } from "./pageTargets";
@@ -232,25 +232,48 @@ export function SidePanel({
   const dirtyCount = blocksDirtyCount + changedMeta.length + layoutDirty;
   const pageDirty = blocksDirty || changedMeta.length > 0;
 
+  // Picking a block on the page means "show me that block": leave the
+  // Site layout tab for it.
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  const onWakeRef = useRef(onWake);
+  onWakeRef.current = onWake;
+  const [revealN, setRevealN] = useState(0);
+  useEffect(
+    () =>
+      onPanelMessage((m) => {
+        if (m.type !== "block") return;
+        // The block wasn't visible from the Layout tab, so this click is a
+        // request to see it: keep the panel open instead of tucking it away.
+        if (tabRef.current === "layout") onWakeRef.current();
+        setTab("page");
+        // Even when the block was already selected.
+        setRevealN((n) => n + 1);
+      }),
+    [],
+  );
+
   // Keep the open card in view when the selection comes from the page.
   useEffect(() => {
-    if (!selectedCid || hidden) return;
+    if (!selectedCid || hidden || tab !== "page") return;
     if (skipRevealRef.current) {
       skipRevealRef.current = false;
       return;
     }
-    const frame = requestAnimationFrame(() => {
-      const el = cardEls.current.get(selectedCid);
-      const sc = scrollRef.current;
-      if (!el || !sc) return;
-      const er = el.getBoundingClientRect();
-      const sr = sc.getBoundingClientRect();
-      if (er.top < sr.top + 4 || er.top > sr.bottom - 140) {
-        sc.scrollTo({ top: sc.scrollTop + (er.top - sr.top) - 12, behavior: "smooth" });
-      }
+    // Two frames: the card may only just have been mounted (tab switch) or
+    // expanded, and its position isn't final until then.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        const el = cardEls.current.get(selectedCid);
+        if (el) revealCard(el);
+      });
     });
-    return () => cancelAnimationFrame(frame);
-  }, [selectedCid, hidden]);
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [selectedCid, hidden, tab, revealN]);
 
   // --- Live preview --------------------------------------------------------------
   // Any block whose fields differ from what was last rendered is sent to
@@ -352,6 +375,8 @@ export function SidePanel({
         if (m.type === "text") {
           setTab("page");
           setMeta((prev) => (prev ? { ...prev, [m.field]: m.value } : prev));
+        } else if (m.type === "block") {
+          return; // handled where the reveal lives
         } else if (m.kind === "settings") {
           openLayoutRef.current(m.key ?? "");
         } else {

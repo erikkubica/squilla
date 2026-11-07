@@ -171,6 +171,7 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
       const block = findBlockForNode(target, entries);
       setPeek((p) => (block ? !p : true));
       if (block) {
+        emitPanel({ type: "block", index: block.index });
         // While editing, clicks on the page select blocks instead of
         // following links or opening lightboxes.
         e.preventDefault();

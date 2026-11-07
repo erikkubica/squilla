@@ -94,6 +94,16 @@ export function PageCustomFields({
   );
 }
 
+/** Scroll the panel so a card sits a little below the top edge, not glued
+ *  to it. Used for every "show me this card" case (opening a Layout
+ *  accordion, picking a block on the page). */
+export function revealCard(el: HTMLElement): void {
+  const sc = el.closest<HTMLElement>(".vedit-panel-body");
+  if (!sc) return;
+  const top = sc.scrollTop + (el.getBoundingClientRect().top - sc.getBoundingClientRect().top) - 16;
+  sc.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
 /** Theme settings pages as accordions. */
 export function LayoutTab({
   pages,
@@ -121,7 +131,10 @@ export function LayoutTab({
   useEffect(() => {
     if (!openSlug || !loaded) return;
     const el = els.current.get(openSlug);
-    if (el) requestAnimationFrame(() => el.scrollIntoView({ block: "start", behavior: "smooth" }));
+    if (!el) return;
+    // Scroll the panel so the card sits a little below the top edge, not
+    // glued to it.
+    requestAnimationFrame(() => revealCard(el));
   }, [openSlug, loaded]);
 
   if (error) return <div className="vedit-alert" data-tone="danger">Couldn't load the layout settings: {error}</div>;
