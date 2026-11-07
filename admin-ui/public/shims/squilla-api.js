@@ -43,3 +43,6 @@ export const getSystemActions = lazy("getSystemActions");
 export const getNodeTypes = lazy("getNodeTypes");
 export const getRoles = lazy("getRoles");
 export const getLanguages = lazy("getLanguages");
+export const getSiteSettings = lazy("getSiteSettings");
+export const hasCapability = (...args) => getAPI("hasCapability")(...args);
+export const capabilitiesGrant = (...args) => getAPI("capabilitiesGrant")(...args);
