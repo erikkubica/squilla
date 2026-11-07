@@ -1694,16 +1694,32 @@ export async function getExtensionManifests(): Promise<Array<{
 }
 
 /**
+ * capabilitiesGrant reports whether a raw role capabilities map grants
+ * the given boolean capability. It mirrors the kernel's
+ * auth.HasCapability exactly: a `"*": true` wildcard grants every
+ * capability (including ones extensions register later) EXCEPT
+ * `admin_access`, which must always be set explicitly.
+ */
+export function capabilitiesGrant(
+  caps: Record<string, unknown> | null | undefined,
+  capability: string,
+): boolean {
+  if (!caps) return false;
+  if (capability !== "admin_access" && caps["*"] === true) return true;
+  return caps[capability] === true;
+}
+
+/**
  * hasCapability returns true when the user's role carries the given
  * boolean capability flag. This is the SPA mirror of the kernel's
  * auth.HasCapability and is the source of truth for client-side route
  * guards. Server-side gates still apply to every API call — this helper
  * just stops the SPA from rendering chrome the user can't actually use.
+ * Extensions get it via `window.__SQUILLA_SHARED__.api.hasCapability`.
  */
 export function hasCapability(user: User | null, capability: string): boolean {
   if (!user) return false;
-  const caps = user.capabilities || {};
-  return caps[capability] === true;
+  return capabilitiesGrant(user.capabilities, capability);
 }
 
 // Role Access helper

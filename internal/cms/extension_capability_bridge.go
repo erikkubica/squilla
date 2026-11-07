@@ -6,6 +6,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"gorm.io/gorm"
 
 	"squilla/internal/auth"
 	"squilla/internal/events"
@@ -19,6 +22,12 @@ import (
 // slug; on deactivation it drops every capability previously tagged for
 // that slug.
 //
+// An entry may also carry `default_roles` (role slugs). When the bridge
+// has a database (WithDB), each listed role is granted the capability on
+// activation/boot replay — but only if the role's capabilities map has
+// no entry for that key yet. An explicit false (an operator switched it
+// off in the role editor) is never overridden.
+//
 // The pattern mirrors ExtensionSettingsBridge — same lifecycle, same
 // boot replay so existing-active extensions don't need a deactivate /
 // reactivate cycle to surface their capabilities after a process
@@ -27,6 +36,79 @@ type ExtensionCapabilityBridge struct {
 	loader   *ExtensionLoader
 	registry *auth.CapabilityRegistry
 	eventBus *events.EventBus
+	db       *gorm.DB
+}
+
+// WithDB enables manifest `default_roles` grants. Without a database the
+// bridge only maintains the in-memory registry.
+func (b *ExtensionCapabilityBridge) WithDB(db *gorm.DB) *ExtensionCapabilityBridge {
+	b.db = db
+	return b
+}
+
+// manifestCapability is one admin_ui.capabilities entry.
+type manifestCapability struct {
+	Key          string   `json:"key"`
+	Label        string   `json:"label"`
+	Description  string   `json:"description"`
+	DefaultRoles []string `json:"default_roles"`
+}
+
+// parseManifestCapabilities extracts admin_ui.capabilities from raw
+// extension.json bytes, dropping entries without a key and normalising
+// default_roles (trimmed, deduplicated, empty removed). "*" is never a
+// valid declared key — the wildcard is kernel-owned.
+func parseManifestCapabilities(data []byte) ([]manifestCapability, error) {
+	var m struct {
+		AdminUI *struct {
+			Capabilities []manifestCapability `json:"capabilities"`
+		} `json:"admin_ui"`
+	}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+	if m.AdminUI == nil {
+		return nil, nil
+	}
+	out := make([]manifestCapability, 0, len(m.AdminUI.Capabilities))
+	for _, c := range m.AdminUI.Capabilities {
+		c.Key = strings.TrimSpace(c.Key)
+		if c.Key == "" || c.Key == "*" {
+			continue
+		}
+		seen := make(map[string]bool, len(c.DefaultRoles))
+		roles := make([]string, 0, len(c.DefaultRoles))
+		for _, r := range c.DefaultRoles {
+			r = strings.TrimSpace(r)
+			if r == "" || seen[r] {
+				continue
+			}
+			seen[r] = true
+			roles = append(roles, r)
+		}
+		c.DefaultRoles = roles
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+// grantDefaultRoles sets capabilities[key]=true on each listed role that
+// has no entry for key yet. Done as a single conditional UPDATE so it is
+// atomic against concurrent role-editor saves and idempotent across
+// restarts. Returns the number of roles changed.
+func (b *ExtensionCapabilityBridge) grantDefaultRoles(key string, roles []string) (int64, error) {
+	if b.db == nil || len(roles) == 0 {
+		return 0, nil
+	}
+	res := b.db.Exec(
+		`UPDATE roles
+		    SET capabilities = COALESCE(capabilities, '{}'::jsonb) || jsonb_build_object(?::text, true),
+		        updated_at = NOW()
+		  WHERE slug IN ?
+		    AND NOT jsonb_exists(COALESCE(capabilities, '{}'::jsonb), ?::text)`,
+		key, roles, key,
+	)
+	return res.RowsAffected, res.Error
 }
 
 // NewExtensionCapabilityBridge constructs the bridge. Subscribe must be
@@ -91,26 +173,12 @@ func (b *ExtensionCapabilityBridge) RegisterFromDisk(slug string) error {
 	// leave stale capabilities behind if the manifest's list changed.
 	b.registry.UnregisterBySource(extensionSource(slug))
 
-	var m struct {
-		AdminUI *struct {
-			Capabilities []struct {
-				Key         string `json:"key"`
-				Label       string `json:"label"`
-				Description string `json:"description"`
-			} `json:"capabilities"`
-		} `json:"admin_ui"`
-	}
-	if err := json.Unmarshal(data, &m); err != nil {
+	caps, err := parseManifestCapabilities(data)
+	if err != nil {
 		return fmt.Errorf("parse manifest: %w", err)
 	}
-	if m.AdminUI == nil {
-		return nil
-	}
 	source := extensionSource(slug)
-	for _, c := range m.AdminUI.Capabilities {
-		if c.Key == "" {
-			continue
-		}
+	for _, c := range caps {
 		label := c.Label
 		if label == "" {
 			label = c.Key
@@ -121,6 +189,11 @@ func (b *ExtensionCapabilityBridge) RegisterFromDisk(slug string) error {
 			Description: c.Description,
 			Source:      source,
 		})
+		if n, err := b.grantDefaultRoles(c.Key, c.DefaultRoles); err != nil {
+			log.Printf("[capability-bridge] %s: default grant %q: %v", slug, c.Key, err)
+		} else if n > 0 {
+			log.Printf("[capability-bridge] %s: granted %q to %d default role(s)", slug, c.Key, n)
+		}
 	}
 	return nil
 }

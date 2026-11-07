@@ -358,7 +358,7 @@ func main() {
 	// subscription, already-active extensions/themes are picked up by
 	// the replay.
 	capabilityRegistry := auth.NewCapabilityRegistry()
-	capabilityBridge := cms.NewExtensionCapabilityBridge(extLoader, capabilityRegistry, eventBus)
+	capabilityBridge := cms.NewExtensionCapabilityBridge(extLoader, capabilityRegistry, eventBus).WithDB(database)
 	capabilityBridge.Subscribe()
 	capabilityBridge.ReplayActive()
 	themeCapabilityBridge := cms.NewThemeCapabilityBridge(capabilityRegistry, eventBus)
