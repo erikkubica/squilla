@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/d5/tengo/v2"
+
+	"squilla/internal/icons"
 )
 
 // This file holds the smaller core/* Tengo modules that don't justify
@@ -406,6 +408,20 @@ func helpersModule() map[string]tengo.Object {
 				return tengo.UndefinedValue, nil
 			}
 			return rawToTengo(v), nil
+		}},
+		// icon_svg(value[, class]) renders an icon field value
+		// ("lucide:map-pin", "material:restaurant", or a bare legacy
+		// Material name) as an inline <svg> string — the same output as
+		// the {{ icon }} template helper. Unknown/empty values return "".
+		"icon_svg": &tengo.UserFunction{Name: "icon_svg", Value: func(args ...tengo.Object) (tengo.Object, error) {
+			if len(args) < 1 {
+				return &tengo.String{Value: ""}, nil
+			}
+			class := ""
+			if len(args) > 1 {
+				class = tengoToString(args[1])
+			}
+			return &tengo.String{Value: string(icons.Render(tengoToString(args[0]), class))}, nil
 		}},
 	}
 }

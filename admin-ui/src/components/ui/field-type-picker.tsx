@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Check, ChevronsUpDown, Type, AlignLeft, Hash, Calendar, ListOrdered, Image, ToggleLeft, Link2, Layers, Repeat, FileSearch, Tags, Palette, Mail, Globe, FileText as RichTextIcon, SlidersHorizontal, File, Images, CircleDot, CheckSquare, Puzzle, AlertCircle } from "lucide-react";
+import { Check, ChevronsUpDown, Type, AlignLeft, Hash, Calendar, ListOrdered, Image, ToggleLeft, Link2, Layers, Repeat, FileSearch, Tags, Palette, Mail, Globe, FileText as RichTextIcon, SlidersHorizontal, File, Images, CircleDot, CheckSquare, Puzzle, AlertCircle, Smile, Shapes } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,11 +31,11 @@ interface FieldTypeOption {
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Type, AlignLeft, FileText: RichTextIcon, Hash, SlidersHorizontal, Mail, Globe,
   Calendar, Palette, ToggleLeft, ListOrdered, CircleDot, CheckSquare, Image,
-  Images, File, Link2, FileSearch, Tags, Layers, Repeat,
+  Images, File, Link2, FileSearch, Tags, Layers, Repeat, Smile, Shapes,
 };
 
 // Fallback-only: used if /admin/api/field-types is unreachable. Mirrors the
-// canonical 20 types in internal/cms/field_types/registry.go exactly. Any
+// canonical types in internal/cms/field_types/registry.go exactly. Any
 // addition there must be reflected here for offline behaviour to stay in
 // sync.
 const FALLBACK_OPTIONS: FieldTypeOption[] = [
@@ -48,6 +48,8 @@ const FALLBACK_OPTIONS: FieldTypeOption[] = [
   { value: "url", label: "URL", description: "Web address input", icon: Globe, group: "Basic" },
   { value: "date", label: "Date", description: "Date picker", icon: Calendar, group: "Basic" },
   { value: "color", label: "Color Picker", description: "Color selection with hex value", icon: Palette, group: "Basic" },
+  { value: "emoji", label: "Emoji", description: "Emoji picker (native system emoji)", icon: Smile, group: "Basic" },
+  { value: "icon", label: "Icon", description: "SVG icon picker (Lucide, Material Symbols)", icon: Shapes, group: "Basic" },
   { value: "toggle", label: "Toggle", description: "On/off boolean switch", icon: ToggleLeft, group: "Choice" },
   { value: "select", label: "Select", description: "Dropdown with predefined options", icon: ListOrdered, group: "Choice" },
   { value: "radio", label: "Radio Buttons", description: "Single choice from options", icon: CircleDot, group: "Choice" },

@@ -1,0 +1,13 @@
+{
+  "name": "squilla-icon-data-generator",
+  "private": true,
+  "description": "Regenerates internal/icons/data/*.json.gz from pinned icon packages. See internal/icons/doc.go.",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "devDependencies": {
+    "@material-symbols/svg-400": "0.48.3",
+    "lucide-static": "1.70.0"
+  }
+}

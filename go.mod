@@ -14,6 +14,7 @@ require (
 	github.com/lib/pq v1.12.1
 	github.com/mark3labs/mcp-go v0.30.0
 	github.com/microcosm-cc/bluemonday v1.0.27
+	github.com/rivo/uniseg v0.2.0
 	golang.org/x/crypto v0.32.0
 	golang.org/x/image v0.23.0
 	golang.org/x/text v0.21.0
@@ -47,7 +48,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

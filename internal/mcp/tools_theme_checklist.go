@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"squilla/internal/cms"
+	"squilla/internal/icons"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -478,9 +479,12 @@ func validateTestData(blockSlug string, fields []any, td map[string]any) []strin
 
 func testDataValueLooksRealistic(typ string, v any) bool {
 	switch typ {
-	case "string", "text", "textarea", "richtext", "select", "radio", "color":
+	case "string", "text", "textarea", "richtext", "select", "radio", "color", "emoji":
 		s, ok := v.(string)
 		return ok && strings.TrimSpace(s) != ""
+	case "icon":
+		s, ok := v.(string)
+		return ok && strings.TrimSpace(s) != "" && icons.Validate(s, nil) == nil
 	case "number":
 		_, isF := v.(float64)
 		_, isI := v.(int)

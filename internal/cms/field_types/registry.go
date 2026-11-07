@@ -29,7 +29,7 @@ func IsBuiltin(typ string) bool {
 	return false
 }
 
-// Builtin returns the 20 field types that ship with the Squilla kernel.
+// Builtin returns the field types that ship with the Squilla kernel.
 // Extensions can contribute additional types through their admin_ui.field_types
 // manifest entry.
 func Builtin() []FieldTypeDef {
@@ -79,6 +79,17 @@ func Builtin() []FieldTypeDef {
 			Type: "color", Label: "Color Picker", Group: "Basic", Icon: "Palette",
 			Description: "Color selection with hex value",
 			HowTo: "Use when the author selects a color — background colors, accents, badges. Outputs a hex string like '#aabbcc'. If you only want a fixed palette, use Select with the palette values instead so authors can't drift from the design system.",
+		},
+
+		{
+			Type: "emoji", Label: "Emoji", Group: "Basic", Icon: "Smile",
+			Description: "Emoji picker (native system emoji)",
+			HowTo: "Use when the author picks a single emoji as a decorative marker — card badges, list bullets, section accents, '🍜 Street food'. Stores the emoji itself as a string (e.g. \"🍜\"), at most 4 emoji; templates print it directly: {{ with .badge }}<span aria-hidden=\"true\">{{ . }}</span>{{ end }}. Not for icons that must match the design's line style — use Icon for that.",
+		},
+		{
+			Type: "icon", Label: "Icon", Group: "Basic", Icon: "Shapes",
+			Description: "SVG icon picker (Lucide, Material Symbols)",
+			HowTo: "Use when the author picks an icon from the bundled SVG sets — feature-grid icons, contact rows, amenity lists. Stores \"provider:name\" (e.g. \"lucide:map-pin\", \"material:restaurant\"); a bare name is read as Material Symbols. Restrict sets with the schema option \"providers\": [\"lucide\"]. Render with the icon template helper, which outputs an inline <svg> using currentColor: {{ icon .feature_icon \"w-6 h-6\" }}. Never store icon names in a String field.",
 		},
 
 		// --- Choice ---

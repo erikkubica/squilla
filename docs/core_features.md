@@ -262,11 +262,11 @@ Block layout templates — describe which block types are placed in which slots.
 ### 5.5 Field types
 **Status:** ✅ working
 
-20 built-in field types in `internal/cms/field_types/registry.go`:
+22 built-in field types in `internal/cms/field_types/registry.go`:
 
 | Group | Types |
 |---|---|
-| Basic | text, textarea, richtext, number, range, email, url, date, color |
+| Basic | text, textarea, richtext, number, range, email, url, date, color, emoji, icon |
 | Choice | toggle, select, radio, checkbox |
 | Media | image, gallery, file |
 | Relational | link, node (selector), term (selector) |
@@ -275,6 +275,8 @@ Block layout templates — describe which block types are placed in which slots.
 Each has structured `HowTo` guidance for both human authors and AI tools (consumed by the MCP `core.field_types.list` tool and the `/admin/api/field-types` endpoint).
 
 Extensions can contribute additional field types via their manifest's `admin_ui.field_types`.
+
+`emoji` and `icon` values are validated on save (nodes' custom fields and blocks, theme settings, schema settings): an emoji field accepts at most 4 emoji and no text/HTML; an icon value must name an existing icon in an allowed provider. Icons come from the sets embedded in `internal/icons` (Lucide, Material Symbols), served to the admin picker by `GET /admin/api/icons` and rendered in templates by the `icon` helper.
 
 ### 5.6 Render pipeline
 **Status:** ✅ working

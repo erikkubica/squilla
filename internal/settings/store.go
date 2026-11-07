@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"squilla/internal/cms/field_types"
 	"squilla/internal/models"
 	"squilla/internal/secrets"
 )
@@ -181,6 +182,17 @@ func (s *Store) Save(schema Schema, locale string, values map[string]string) err
 		// admin UI can't slip through with a mismatched picker.
 		if err := validateNodeSelect(s.db, f, locale, raw); err != nil {
 			return err
+		}
+		// Emoji / icon fields hold a strict string shape.
+		switch f.Type {
+		case "emoji":
+			if err := field_types.ValidateEmoji(raw); err != nil {
+				return fmt.Errorf("settings: %q: %w", f.Key, err)
+			}
+		case "icon":
+			if err := field_types.ValidateIcon(raw, f.Providers); err != nil {
+				return fmt.Errorf("settings: %q: %w", f.Key, err)
+			}
 		}
 	}
 

@@ -368,6 +368,9 @@ func (h *NodeHandler) Create(c *fiber.Ctx) error {
 				"slug": err.Error(),
 			})
 		}
+		if isFieldValueError(err) {
+			return api.Error(c, fiber.StatusUnprocessableEntity, "INVALID_FIELD_VALUE", err.Error())
+		}
 		return api.Error(c, fiber.StatusInternalServerError, "CREATE_FAILED", "Failed to create content node")
 	}
 
@@ -448,6 +451,9 @@ func (h *NodeHandler) Update(c *fiber.Ctx) error {
 			return api.ValidationError(c, map[string]string{
 				"slug": err.Error(),
 			})
+		}
+		if isFieldValueError(err) {
+			return api.Error(c, fiber.StatusUnprocessableEntity, "INVALID_FIELD_VALUE", err.Error())
 		}
 		return api.Error(c, fiber.StatusInternalServerError, "UPDATE_FAILED", "Failed to update content node")
 	}

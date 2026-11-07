@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AccordionRow } from "@/components/ui/accordion-row";
 import NestedFieldsEditor from "@/components/ui/nested-fields-editor";
 import FieldTypePicker from "@/components/ui/field-type-picker";
+import { IconProvidersOption } from "@/components/ui/icon-picker";
 import { toast } from "sonner";
 import type { NodeTypeField } from "@/api/client";
 
@@ -57,6 +58,9 @@ export function fieldTypeBadgeClass(type: string): string {
     case "term":
       return "bg-teal-100 text-teal-700 hover:bg-teal-100";
     case "color":
+      return "bg-rose-100 text-rose-700 hover:bg-rose-100";
+    case "emoji":
+    case "icon":
       return "bg-rose-100 text-rose-700 hover:bg-rose-100";
     case "email":
       return "bg-blue-100 text-blue-700 hover:bg-blue-100";
@@ -123,6 +127,7 @@ export default function FieldSchemaEditor({
   const [newFieldPrepend, setNewFieldPrepend] = useState("");
   const [newFieldAppend, setNewFieldAppend] = useState("");
   const [newFieldAllowedTypes, setNewFieldAllowedTypes] = useState("");
+  const [newFieldProviders, setNewFieldProviders] = useState<string[] | undefined>(undefined);
   const [autoFieldKey, setAutoFieldKey] = useState(true);
 
   useEffect(() => {
@@ -155,6 +160,7 @@ export default function FieldSchemaEditor({
     setNewFieldAppend("");
     setNewFieldAllowedTypes("");
     setNewFieldWidth("100");
+    setNewFieldProviders(undefined);
     setAutoFieldKey(true);
     setShowAddField(false);
   }
@@ -212,6 +218,9 @@ export default function FieldSchemaEditor({
     if (["string", "text", "number", "email", "url"].includes(newFieldType)) {
       if (newFieldPrepend.trim()) sf.prepend = newFieldPrepend.trim();
       if (newFieldAppend.trim()) sf.append = newFieldAppend.trim();
+    }
+    if (newFieldType === "icon" && newFieldProviders?.length) {
+      sf.providers = newFieldProviders;
     }
     if (newFieldType === "file") {
       if (newFieldAllowedTypes.trim()) sf.allowed_types = newFieldAllowedTypes.trim();
@@ -374,6 +383,13 @@ export default function FieldSchemaEditor({
                     </label>
                   </div>
                 </div>
+              )}
+              {field.type === "icon" && (
+                <IconProvidersOption
+                  value={field.providers}
+                  disabled={disabled}
+                  onChange={(providers) => updateField(index, { providers })}
+                />
               )}
               {["string", "textarea", "number", "email", "url"].includes(field.type) && (
                 <div className="space-y-1">
@@ -598,6 +614,14 @@ export default function FieldSchemaEditor({
                   </label>
                 </div>
               </div>
+            )}
+
+            {newFieldType === "icon" && (
+              <IconProvidersOption
+                value={newFieldProviders}
+                onChange={setNewFieldProviders}
+                labelClassName="text-sm font-medium text-foreground"
+              />
             )}
 
             {["string", "textarea", "number", "email", "url"].includes(newFieldType) && (

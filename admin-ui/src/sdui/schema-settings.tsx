@@ -10,6 +10,8 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { SidebarCard } from "@/components/ui/sidebar-card";
 import { LanguageSelect } from "@/components/ui/language-select";
 import { Switch } from "@/components/ui/switch";
+import { EmojiFieldInput } from "@/components/ui/emoji-picker";
+import { IconFieldInput } from "@/components/ui/icon-picker";
 import {
   Select,
   SelectContent,
@@ -490,6 +492,12 @@ function SchemaField({
             ))}
           </SelectContent>
         </Select>
+      )}
+      {field.type === "emoji" && (
+        <EmojiFieldInput value={value} onChange={onChange} placeholder={field.placeholder} />
+      )}
+      {field.type === "icon" && (
+        <IconFieldInput value={value} onChange={onChange} providers={field.providers} />
       )}
       {field.help && <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>{field.help}</p>}
       {field.warning && (

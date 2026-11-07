@@ -823,7 +823,7 @@ Returned values are coerced to runtime forms based on the field's declared `type
 
 | Field type | Tengo shape |
 |---|---|
-| `text`, `textarea`, `richtext`, `select`, `radio`, `color` | string |
+| `text`, `textarea`, `richtext`, `select`, `radio`, `color`, `emoji`, `icon` | string |
 | `number` | float |
 | `toggle`, `checkbox` | bool |
 | `image`, `link`, `term`, `node` | map |
@@ -1624,6 +1624,15 @@ helpers.default(undefined, "fallback")       // "fallback"
 helpers.default("", "fallback")              // "fallback"
 helpers.default("hello", "fallback")         // "hello"
 helpers.default(undefined, "", "last")       // "last"
+```
+
+#### `helpers.icon_svg(value, class?)` -> string
+
+Renders an icon field value (`"lucide:map-pin"`, `"material:restaurant"`, or a bare Material name) as an inline `<svg aria-hidden="true">` string — the same markup as the `{{ icon }}` template helper. Returns `""` for empty or unknown values.
+
+```tengo
+helpers.icon_svg("lucide:map-pin", "w-5 h-5")  // "<svg ... class=\"w-5 h-5\" ...>...</svg>"
+helpers.icon_svg("nope:nothing")               // ""
 ```
 
 ---

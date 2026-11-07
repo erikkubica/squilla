@@ -113,6 +113,10 @@ func (s *ContentService) Create(node *models.ContentNode, userID int) error {
 		return fmt.Errorf("invalid slug: %w", err)
 	}
 
+	if err := s.validateNodeFieldValues(node.NodeType, node.FieldsData, node.BlocksData); err != nil {
+		return err
+	}
+
 	// Stamp the creating user as the author when one is available. Without
 	// this, scope='own' RBAC mode (per dev guide §3.4) is unusable — every
 	// node would be unowned. userID 0 = anonymous/system caller (MCP, seed,
@@ -163,6 +167,12 @@ func (s *ContentService) Create(node *models.ContentNode, userID int) error {
 func (s *ContentService) Update(id int, updates map[string]interface{}, userID int) (*models.ContentNode, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
+		return nil, err
+	}
+
+	// Reject malformed emoji/icon values before anything is written
+	// (including the revision snapshot).
+	if err := s.validateNodeFieldValues(existing.NodeType, updates["fields_data"], updates["blocks_data"]); err != nil {
 		return nil, err
 	}
 
