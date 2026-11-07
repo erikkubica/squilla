@@ -25,6 +25,10 @@ type AuthHandler struct {
 
 	loginLimiter *PerIPLimiter
 	lockout      *LockoutTracker
+	// passwordLockout throttles wrong current-password attempts on
+	// POST /me/password, keyed by user ID, so a stolen session can't
+	// brute-force the account password.
+	passwordLockout *LockoutTracker
 }
 
 // NewAuthHandler creates a new AuthHandler.
@@ -34,6 +38,8 @@ func NewAuthHandler(db *gorm.DB, sessionSvc *SessionService) *AuthHandler {
 		sessionSvc:   sessionSvc,
 		loginLimiter: NewPerIPLimiter(10, time.Minute, 10),
 		lockout:      NewLockoutTracker(5, 15*time.Minute, 15*time.Minute),
+
+		passwordLockout: NewLockoutTracker(5, 15*time.Minute, 15*time.Minute),
 	}
 }
 
@@ -42,6 +48,11 @@ func (h *AuthHandler) RegisterRoutes(app *fiber.App) {
 	app.Post("/auth/login", h.Login)
 	app.Post("/auth/logout", AuthRequired(h.sessionSvc), h.Logout)
 	app.Get("/me", AuthRequired(h.sessionSvc), h.Me)
+	// Self-service profile endpoints live outside /admin/api (so members
+	// without admin_access can use them too), which means the group-level
+	// CSRF guard doesn't cover them — mount it per route.
+	app.Patch("/me", AuthRequired(h.sessionSvc), JSONOnlyMutations(), h.UpdateMe)
+	app.Post("/me/password", AuthRequired(h.sessionSvc), JSONOnlyMutations(), h.ChangeMyPassword)
 }
 
 // Login authenticates a user with email and password, creates a session,
@@ -147,6 +158,7 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 		"email":         user.Email,
 		"full_name":     user.FullName,
 		"role":          user.Role.Slug,
+		"role_name":     user.Role.Name,
 		"role_id":       user.RoleID,
 		"capabilities":  ParseCapabilities(user.Role.Capabilities),
 		"last_login_at": user.LastLoginAt,

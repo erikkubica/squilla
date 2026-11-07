@@ -14,7 +14,7 @@ Stack: React 19, TypeScript, Vite, Tailwind v4, shadcn/ui, TanStack Query.
 src/
   api/                client.ts — typed fetch wrapper, language header injection
   components/
-    layout/           admin-layout.tsx — top bar + sidebar + outlet
+    layout/           page-meta.tsx — per-page breadcrumb overrides
     ui/               design-system primitives (see below)
   hooks/              use-extensions, use-boot, use-sse
   lib/                extension-loader.ts — dynamic ES module + CSS injection

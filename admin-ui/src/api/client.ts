@@ -4,6 +4,8 @@ export interface User {
   full_name: string;
   role_id: number;
   role: { id: number; slug: string; name: string; is_system: boolean } | string;
+  /** Human role name; only set on /me responses (where `role` is the slug). */
+  role_name?: string;
   capabilities?: Record<string, any>;
   last_login_at?: string;
   created_at: string;
@@ -53,18 +55,22 @@ interface ApiError {
   error: {
     code: string;
     message: string;
+    fields?: Record<string, string>;
   };
 }
 
-class ApiClientError extends Error {
+export class ApiClientError extends Error {
   code: string;
   status: number;
+  /** Per-field messages from VALIDATION_ERROR responses. */
+  fields?: Record<string, string>;
 
-  constructor(message: string, code: string, status: number) {
+  constructor(message: string, code: string, status: number, fields?: Record<string, string>) {
     super(message);
     this.name = "ApiClientError";
     this.code = code;
     this.status = status;
+    this.fields = fields;
   }
 }
 
@@ -102,7 +108,8 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
     throw new ApiClientError(
       error?.message || "An unexpected error occurred",
       error?.code || "unknown_error",
-      res.status
+      res.status,
+      error?.fields
     );
   }
 
@@ -124,6 +131,30 @@ export async function logout(): Promise<void> {
 export async function getMe(): Promise<User> {
   const res = await api<ApiResponse<User>>("/me");
   return res.data;
+}
+
+/** Updates the signed-in user's own name and/or email. Returns the fresh /me payload. */
+export async function updateMe(data: { full_name?: string; email?: string }): Promise<User> {
+  const res = await api<ApiResponse<User>>("/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+/**
+ * Changes the signed-in user's password. The server signs out every other
+ * session of the user; the current one stays valid.
+ */
+export async function changeMyPassword(data: {
+  current_password: string;
+  new_password: string;
+  password_confirm: string;
+}): Promise<void> {
+  await api("/me/password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 // --- Admin auth flows (unauthenticated; backed by /admin/api/auth/*) ---
