@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Shield, ArrowLeft, Loader2, Save } from "lucide-react";
+import { Shield, ShieldCheck, ArrowLeft, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,11 +40,15 @@ import {
 
 // Capabilities are fetched dynamically from /admin/api/capabilities so
 // extension- and theme-contributed capabilities surface here without
-// requiring a client rebuild. The wildcard "*" capability is hidden from
-// this editor — it's a server-side superuser shortcut, not a per-role
-// toggle, and exposing it would let an operator accidentally promote a
-// role to omnipotent with one click.
-const HIDDEN_CAPABILITY_KEYS = new Set(["*"]);
+// requiring a client rebuild. The wildcard "*" capability is not listed
+// as an ordinary toggle: it gets its own "Full access" switch at the top
+// of the section, because it grants every capability — including ones
+// extensions register later — except admin_access (see auth.HasCapability).
+const WILDCARD_KEY = "*";
+const HIDDEN_CAPABILITY_KEYS = new Set([WILDCARD_KEY]);
+// admin_access is never implied by the wildcard, so it stays editable
+// even while "Full access" is on.
+const WILDCARD_EXEMPT_KEYS = new Set(["admin_access"]);
 
 type AccessLevel = "default" | "none" | "read" | "write";
 type AccessScope = "all" | "own";
@@ -91,6 +95,8 @@ export default function RoleEditorPage() {
 
   // Form state -- capabilities (boolean flags)
   const [formCaps, setFormCaps] = useState<FormCapabilities>({});
+  // "*" wildcard — Full access.
+  const [formFullAccess, setFormFullAccess] = useState(false);
 
   // Form state -- node access matrix
   const [formNodeAccess, setFormNodeAccess] = useState<FormNodeAccess>({});
@@ -151,6 +157,7 @@ export default function RoleEditorPage() {
       caps[def.key] = !!r.capabilities?.[def.key];
     }
     setFormCaps(caps);
+    setFormFullAccess(r.capabilities?.[WILDCARD_KEY] === true);
 
     // Parse node access
     const nodeAccess: FormNodeAccess = {};
@@ -180,19 +187,25 @@ export default function RoleEditorPage() {
   function buildCapabilities(): Record<string, unknown> {
     const out: Record<string, unknown> = {};
 
-    // Preserve flags we don't manage in the form (wildcards, future
+    // Preserve hidden flags we don't manage in the form (future
     // server-side meta) so editing a role through the UI doesn't strip
-    // them. Without this round-trip, saving an admin role here would
-    // accidentally drop the "*" wildcard and break inheritance.
+    // them. The "*" wildcard is managed by the Full access switch and
+    // written explicitly below — never dropped by accident.
     if (role?.capabilities) {
       for (const [key, value] of Object.entries(role.capabilities)) {
-        if (HIDDEN_CAPABILITY_KEYS.has(key)) {
+        if (HIDDEN_CAPABILITY_KEYS.has(key) && key !== WILDCARD_KEY) {
           out[key] = value;
         }
       }
     }
+    if (formFullAccess) {
+      out[WILDCARD_KEY] = true;
+    }
 
-    // Boolean capabilities — only known keys from the registry.
+    // Boolean capabilities — only known keys from the registry. These
+    // are the role's own explicit flags; while Full access is on the
+    // toggles render as granted, but the underlying values are kept so
+    // switching Full access off later restores the previous selection.
     for (const def of capabilities) {
       out[def.key] = !!formCaps[def.key];
     }
@@ -438,6 +451,32 @@ export default function RoleEditorPage() {
         <Card className="rounded-xl border border-border shadow-sm">
           <SectionHeader title="Capabilities" />
           <CardContent className="space-y-6">
+            <label
+              className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border px-3 py-3 transition-colors"
+              style={{
+                borderColor: formFullAccess ? "var(--accent)" : "var(--border)",
+                background: formFullAccess ? "var(--accent-weak)" : undefined,
+              }}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <ShieldCheck
+                  className="h-5 w-5 shrink-0"
+                  style={{ color: formFullAccess ? "var(--accent-strong)" : "var(--fg-subtle)" }}
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground">Full access</div>
+                  <div className="text-xs text-muted-foreground">
+                    Grants every capability, including ones added by extensions later.
+                    Admin access is still controlled separately.
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={formFullAccess}
+                onCheckedChange={(checked) => setFormFullAccess(checked)}
+                aria-label="Full access"
+              />
+            </label>
             {Object.entries(
               capabilities.reduce<Record<string, CapabilityDef[]>>((acc, def) => {
                 (acc[def.source] ||= []).push(def);
@@ -455,11 +494,15 @@ export default function RoleEditorPage() {
                     {source === "kernel" ? "Built-in" : source.replace(":", " · ")}
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {defs.map((def) => (
+                    {defs.map((def) => {
+                      const implied = formFullAccess && !WILDCARD_EXEMPT_KEYS.has(def.key);
+                      return (
                       <label
                         key={def.key}
-                        className="flex items-center justify-between gap-3 cursor-pointer rounded-lg border border-border px-3 py-2 hover:bg-muted transition-colors"
-                        title={def.description || def.key}
+                        className={`flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 transition-colors ${
+                          implied ? "cursor-not-allowed" : "cursor-pointer hover:bg-muted"
+                        }`}
+                        title={implied ? "Granted by Full access" : def.description || def.key}
                       >
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-foreground truncate">{def.label}</div>
@@ -468,11 +511,13 @@ export default function RoleEditorPage() {
                           ) : null}
                         </div>
                         <Switch
-                          checked={!!formCaps[def.key]}
+                          checked={implied || !!formCaps[def.key]}
+                          disabled={implied}
                           onCheckedChange={() => toggleCap(def.key)}
                         />
                       </label>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
