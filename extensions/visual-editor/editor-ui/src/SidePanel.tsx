@@ -17,8 +17,12 @@ import {
   blockTypeLabel,
   getBlockTypes,
   getNode,
+  getNodeTypes,
+  mediaAvailable,
+  nodeThumb,
   renderBlocks,
-  updateNodeBlocks,
+  updateNode,
+  type BlockField,
   type BlockType,
   type BlocksDataEntry,
   type ContentNode,
@@ -35,6 +39,11 @@ import {
   replaceBlockRange,
 } from "./blockIndex";
 import { useIconLookup } from "./fields/IconField";
+import { useLayoutSettings } from "./layoutSettings";
+import { LayoutTab, PageCustomFields, PageDetails, type PageMeta } from "./PageTabs";
+import { onPanelMessage } from "./panelBus";
+import { previewInPlace } from "./pagePreview";
+import { applyLive, cancelInlineEdit, resolveTargets, targetFor } from "./pageTargets";
 import { emptyValues } from "./fields/layout";
 import { onInsertRequest } from "./insertBus";
 import { writeResume, type ResumeState } from "./resume";
@@ -59,6 +68,10 @@ interface SidePanelProps {
   /** Block type labels by slug, for the on-page outline captions. */
   onBlockTypes: (labels: Map<string, string>) => void;
   resume: ResumeState | null;
+  /** Slid mostly off-screen so more of the page shows. */
+  peek: boolean;
+  /** The pointer or focus came back to the panel. */
+  onWake: () => void;
 }
 
 type SaveState = { kind: "idle"; saved: boolean } | { kind: "saving" } | { kind: "error"; message: string };
@@ -84,8 +97,22 @@ export function SidePanel({
   onReindex,
   onBlockTypes,
   resume,
+  peek,
+  onWake,
 }: SidePanelProps): React.JSX.Element {
   const [node, setNode] = useState<ContentNode | null>(null);
+  const [tab, setTab] = useState<"page" | "layout">("page");
+  const [meta, setMeta] = useState<PageMeta | null>(null);
+  const [metaSaved, setMetaSaved] = useState("");
+  const [nodeFields, setNodeFields] = useState<BlockField[]>([]);
+  const [typeLabel, setTypeLabel] = useState("Page");
+  const [mediaOk, setMediaOk] = useState(false);
+  const [focus, setFocus] = useState<{ field: "title" | "excerpt" | "featured_image"; n: number } | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
+  const layout = useLayoutSettings(config.languageCode);
+  /** Settings page keyword asked for from the page, opened once they load. */
+  const pendingSettingsRef = useRef<string | null>(null);
   const [blockTypes, setBlockTypes] = useState<BlockType[]>([]);
   const [blocks, setBlocks] = useState<EditorBlock[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -127,9 +154,22 @@ export function SidePanel({
   // --- Load --------------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getNode(config.nodeId), getBlockTypes()])
-      .then(([n, types]) => {
+    Promise.all([getNode(config.nodeId), getBlockTypes(), getNodeTypes().catch(() => []), mediaAvailable()])
+      .then(([n, types, nodeTypes, media]) => {
         if (cancelled) return;
+        const m: PageMeta = {
+          title: n.title,
+          excerpt: n.excerpt ?? "",
+          featured_image: n.featured_image ?? null,
+          fields_data: (n.fields_data ?? {}) as Record<string, unknown>,
+        };
+        setMeta(m);
+        setMetaSaved(JSON.stringify(m));
+        setMediaOk(media);
+        const nt = nodeTypes.find((t) => t.slug === n.node_type);
+        setNodeFields(nt?.fields ?? []);
+        setTypeLabel(nt?.label ?? humanize(n.node_type));
+        resolveTargets({ title: n.title, excerpt: n.excerpt ?? "", imageUrl: nodeThumb(n.featured_image) });
         const initial: EditorBlock[] = (n.blocks_data ?? []).map((b, i) => ({
           ...b,
           fields: b.fields ?? {},
@@ -171,8 +211,8 @@ export function SidePanel({
 
   const blockTypeBySlug = useMemo(() => new Map(blockTypes.map((bt) => [bt.slug, bt])), [blockTypes]);
   const iconValues = useMemo(
-    () => blockTypes.map((bt) => blockIconValue(bt.icon)).filter((v): v is string => !!v),
-    [blockTypes],
+    () => [...blockTypes.map((bt) => bt.icon), ...(layout.pages ?? []).map((p) => p.info.icon)].map((i) => blockIconValue(i)).filter((v): v is string => !!v),
+    [blockTypes, layout.pages],
   );
   const icons = useIconLookup(iconValues);
 
@@ -184,8 +224,13 @@ export function SidePanel({
   const selectedCid = selectedPos === null ? null : blocks[selectedPos]?.__cid ?? null;
 
   const current = useMemo(() => JSON.stringify(stripLocal(blocks)), [blocks]);
-  const dirty = snapshot !== null && current !== snapshot.json;
-  const dirtyCount = useMemo(() => (dirty && snapshot ? countDirty(blocks, snapshot) : 0), [dirty, blocks, snapshot]);
+  const blocksDirty = snapshot !== null && current !== snapshot.json;
+  const changedMeta = useMemo(() => changedMetaKeys(meta, metaSaved), [meta, metaSaved]);
+  const layoutDirty = layout.dirtySlugs.length;
+  const dirty = blocksDirty || changedMeta.length > 0 || layoutDirty > 0;
+  const blocksDirtyCount = useMemo(() => (blocksDirty && snapshot ? countDirty(blocks, snapshot) : 0), [blocksDirty, blocks, snapshot]);
+  const dirtyCount = blocksDirtyCount + changedMeta.length + layoutDirty;
+  const pageDirty = blocksDirty || changedMeta.length > 0;
 
   // Keep the open card in view when the selection comes from the page.
   useEffect(() => {
@@ -260,6 +305,115 @@ export function SidePanel({
     );
     return () => window.clearTimeout(timer);
   }, [blocks, node]);
+
+  // --- Page fields: live on the page, and clicks coming from it ----------------
+  const updateMeta = (name: keyof PageMeta, value: unknown): void => {
+    setMeta((prev) => (prev ? { ...prev, [name]: value } : prev));
+  };
+  const imageUrl = nodeThumb(meta?.featured_image);
+  useEffect(() => {
+    if (meta) applyLive("title", meta.title);
+  }, [meta?.title]);
+  useEffect(() => {
+    if (meta) applyLive("excerpt", meta.excerpt);
+  }, [meta?.excerpt]);
+  useEffect(() => {
+    if (imageUrl) applyLive("featured_image", imageUrl);
+  }, [imageUrl]);
+
+  const openLayoutFor = (key: string): void => {
+    setTab("layout");
+    layout.load();
+    const pages = layout.pages;
+    if (!pages) {
+      pendingSettingsRef.current = key;
+      return;
+    }
+    const hit = pages.find((p) => p.info.slug === key) ?? pages.find((p) => p.info.slug.includes(key));
+    if (hit) setOpenSlug(hit.info.slug);
+  };
+  useEffect(() => {
+    if (!layout.pages || !pendingSettingsRef.current) return;
+    const key = pendingSettingsRef.current;
+    pendingSettingsRef.current = null;
+    const hit = layout.pages.find((p) => p.info.slug === key) ?? layout.pages.find((p) => p.info.slug.includes(key));
+    if (hit) setOpenSlug(hit.info.slug);
+  }, [layout.pages]);
+  const loadLayout = layout.load;
+  useEffect(() => {
+    if (tab === "layout") loadLayout();
+  }, [tab, loadLayout]);
+
+  const openLayoutRef = useRef(openLayoutFor);
+  openLayoutRef.current = openLayoutFor;
+  useEffect(
+    () =>
+      onPanelMessage((m) => {
+        if (m.type === "text") {
+          setTab("page");
+          setMeta((prev) => (prev ? { ...prev, [m.field]: m.value } : prev));
+        } else if (m.kind === "settings") {
+          openLayoutRef.current(m.key ?? "");
+        } else {
+          setTab("page");
+          setFocus((f) => ({ field: m.kind as "title" | "excerpt" | "featured_image", n: (f?.n ?? 0) + 1 }));
+        }
+      }),
+    [],
+  );
+
+  // --- Whole-page preview ------------------------------------------------------------
+  // Custom fields and site layout settings show up on the page without
+  // saving: the kernel renders the page with the unsaved values applied and
+  // the live page is patched to match (pagePreview.ts).
+  const layoutDraft = useMemo(() => {
+    const out: Record<string, Record<string, unknown>> = {};
+    for (const p of layout.pages ?? []) if (layout.dirtySlugs.includes(p.info.slug)) out[p.info.slug] = p.values;
+    return out;
+  }, [layout.pages, layout.dirtySlugs]);
+  const fieldsChanged = changedMeta.includes("fields_data");
+  const previewKey = JSON.stringify({ f: fieldsChanged ? meta?.fields_data : null, t: layoutDraft });
+  const CLEAN_KEY = JSON.stringify({ f: null, t: {} });
+  const sentKeyRef = useRef(CLEAN_KEY);
+  const previewSeqRef = useRef(0);
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+  const metaRef = useRef(meta);
+  metaRef.current = meta;
+  useEffect(() => {
+    if (!node || previewKey === sentKeyRef.current) return;
+    const timer = window.setTimeout(() => {
+      const m = metaRef.current;
+      if (!m) return;
+      sentKeyRef.current = previewKey;
+      const seq = ++previewSeqRef.current;
+      setPreviewing(true);
+      previewInPlace(node.id, {
+        title: m.title,
+        excerpt: m.excerpt,
+        featured_image: m.featured_image ?? {},
+        fields_data: m.fields_data,
+        blocks_data: stripLocal(blocksRef.current),
+        theme_settings: layoutDraft,
+      })
+        .then(() => {
+          if (seq !== previewSeqRef.current) return;
+          setPreviewError(null);
+          onReindex();
+          resolveTargets({ title: m.title, excerpt: m.excerpt, imageUrl: nodeThumb(m.featured_image) });
+        })
+        .catch((err: Error) => {
+          // Try again on the next edit rather than getting stuck.
+          sentKeyRef.current = "";
+          setPreviewError(err.message);
+        })
+        .finally(() => {
+          if (seq === previewSeqRef.current) setPreviewing(false);
+        });
+    }, 450);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewKey, node]);
 
   // --- Editing ----------------------------------------------------------------------
   const updateField = (cid: string, name: string, value: unknown): void => {
@@ -351,12 +505,20 @@ export function SidePanel({
     setSaveState({ kind: "saving" });
     const sent = blocks;
     try {
-      await updateNodeBlocks(node.id, stripLocal(sent));
+      const patch: Record<string, unknown> = {};
+      if (blocksDirty) patch.blocks_data = stripLocal(sent);
+      for (const k of changedMeta) patch[k] = k === "featured_image" ? (meta?.featured_image ?? {}) : meta?.[k];
+      if (Object.keys(patch).length > 0) await updateNode(node.id, patch);
+      if (layoutDirty > 0) await layout.save();
       // The page already shows these blocks; just move the baseline.
       setSnapshot(takeSnapshot(sent));
+      if (meta) setMetaSaved(JSON.stringify(meta));
       setBlocks((prev) => prev.map((b) => (b.__isNew ? { ...b, __isNew: false } : b)));
       setSaveState({ kind: "idle", saved: true });
       setToast("Changes saved");
+      // The page already shows these values (whole-page preview); the
+      // saved state is now the baseline, so nothing needs re-rendering.
+      sentKeyRef.current = CLEAN_KEY;
     } catch (err) {
       setSaveState({ kind: "error", message: (err as Error).message });
     }
@@ -403,6 +565,7 @@ export function SidePanel({
   useEffect(() => {
     if (hidden) return;
     return pushEscape((e) => {
+      if (cancelInlineEdit()) return;
       const target = e.composedPath()[0] as HTMLElement | undefined;
       const root = target?.getRootNode?.();
       const inEditor = root instanceof ShadowRoot && root.host.hasAttribute("data-vedit-host");
@@ -460,13 +623,28 @@ export function SidePanel({
   else if (saveState.kind === "error") {
     status = `Couldn't save: ${saveState.message}`;
     statusTone = "danger";
+  } else if (previewing) {
+    status = <><Glyph name="loader" size={14} className="vedit-spin" /> Updating preview…</>;
   } else if (dirty) {
     status = `${dirtyCount} unsaved change${dirtyCount === 1 ? "" : "s"}`;
     statusTone = "dirty";
   } else status = saveState.saved ? <><Glyph name="check" size={14} /> All changes saved</> : "No changes";
 
   return (
-    <aside className="vedit-panel" aria-label="Page editor" style={{ width }}>
+    <aside
+      className="vedit-panel"
+      aria-label="Page editor"
+      style={{ width }}
+      data-peek={peek || undefined}
+      onPointerEnter={onWake}
+      onPointerMove={peek ? onWake : undefined}
+      onFocusCapture={onWake}
+    >
+      {peek && (
+        <button type="button" className="vedit-peek-tab" onClick={onWake} title="Show the editor" aria-label="Show the editor">
+          <Glyph name="chevron-down" size={18} style={{ transform: "rotate(90deg)" }} />
+        </button>
+      )}
       <div className="vedit-resize-handle" onPointerDown={startResize} title="Drag to resize" />
       <header className="vedit-panel-header">
         <div className="vedit-panel-heading">
@@ -474,7 +652,7 @@ export function SidePanel({
             {node ? `${humanize(node.node_type)} · ${node.language_code.toUpperCase()}` : "Editing"}
             {node?.status && node.status !== "published" && <span className="vedit-status-pill">{node.status}</span>}
           </span>
-          <span className="vedit-panel-title">{node ? node.title : `#${config.nodeId}`}</span>
+          <span className="vedit-panel-title">{node ? meta?.title || node.title : `#${config.nodeId}`}</span>
         </div>
         <a className="vedit-icon-btn" href={adminEditURL(config.nodeType, config.nodeId)} target="_blank" rel="noopener" title="Open in admin" aria-label="Open this page in the admin">
           <Glyph name="external" size={16} />
@@ -483,6 +661,19 @@ export function SidePanel({
           <Glyph name="x" size={18} />
         </button>
       </header>
+
+      <nav className="vedit-ptabs" role="tablist" aria-label="What to edit">
+        <button type="button" role="tab" aria-selected={tab === "page"} className="vedit-ptab" data-active={tab === "page" || undefined} onClick={() => setTab("page")}>
+          This {typeLabel.toLowerCase()}
+          <span className="vedit-ptab-count">{blocks.length}</span>
+          {pageDirty && <span className="vedit-ptab-dot" aria-label="Unsaved changes" />}
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "layout"} className="vedit-ptab" data-active={tab === "layout" || undefined} onClick={() => setTab("layout")}>
+          Site layout
+          {layout.pages && <span className="vedit-ptab-count">{layout.pages.length}</span>}
+          {layoutDirty > 0 && <span className="vedit-ptab-dot" aria-label="Unsaved changes" />}
+        </button>
+      </nav>
 
       <div className="vedit-panel-body" ref={scrollRef}>
         {loadError && <div className="vedit-alert" data-tone="danger">Couldn't load this page: {loadError}</div>}
@@ -493,14 +684,34 @@ export function SidePanel({
           </div>
         )}
 
-        {node && (
+        {tab === "layout" && (
+          <LayoutTab pages={layout.pages} error={layout.error} icons={icons} openSlug={openSlug} setOpenSlug={setOpenSlug} dirtySlugs={layout.dirtySlugs} onChange={layout.setValue} ctx={ctx} />
+        )}
+
+        {tab === "page" && node && meta && (
+          <>
+            <div className="vedit-section-head">
+              <span className="vedit-section-title">{typeLabel}</span>
+            </div>
+            <PageDetails
+              meta={meta}
+              onChange={(name, value) => updateMeta(name, value)}
+              mediaOk={mediaOk}
+              supportsExcerpt={!!node.excerpt || !!targetFor("excerpt") || node.node_type !== "page"}
+              focus={focus}
+            />
+            <PageCustomFields schema={nodeFields} values={meta.fields_data} onFieldChange={(name, v) => updateMeta("fields_data", { ...meta.fields_data, [name]: v })} ctx={ctx} label={typeLabel} />
+          </>
+        )}
+
+        {tab === "page" && node && (
           <div className="vedit-section-head">
             <span className="vedit-section-title">Blocks</span>
             <span className="vedit-count">{blocks.length}</span>
           </div>
         )}
 
-        {node && blocks.length === 0 && (
+        {tab === "page" && node && blocks.length === 0 && (
           <div className="vedit-empty-state">
             <span className="vedit-empty-icon"><Glyph name="blocks" size={20} /></span>
             <p className="vedit-empty-title">No blocks yet</p>
@@ -508,7 +719,7 @@ export function SidePanel({
           </div>
         )}
 
-        {blocks.length > 0 && (
+        {tab === "page" && blocks.length > 0 && (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={blocks.map((b) => b.__cid)} strategy={verticalListSortingStrategy}>
               <div className="vedit-block-list">
@@ -539,7 +750,7 @@ export function SidePanel({
           </DndContext>
         )}
 
-        {node && (
+        {tab === "page" && node && (
           <button type="button" className="vedit-add-button" onClick={() => setInsertAt(blocks.length)} disabled={blockTypes.length === 0}>
             <Glyph name="plus" size={16} />
             Add block
@@ -580,6 +791,15 @@ export function SidePanel({
       )}
     </aside>
   );
+}
+
+const META_KEYS = ["title", "excerpt", "featured_image", "fields_data"] as const;
+
+/** Which of the page-level fields differ from what was last saved. */
+function changedMetaKeys(meta: PageMeta | null, saved: string): (typeof META_KEYS)[number][] {
+  if (!meta || !saved) return [];
+  const was = JSON.parse(saved) as PageMeta;
+  return META_KEYS.filter((k) => JSON.stringify(meta[k] ?? null) !== JSON.stringify(was[k] ?? null));
 }
 
 /** Strip editor-local fields (anything starting with __) before sending

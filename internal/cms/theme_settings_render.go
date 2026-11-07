@@ -2,6 +2,7 @@ package cms
 
 import (
 	"context"
+	"encoding/json"
 	"html/template"
 	"log"
 )
@@ -156,6 +157,46 @@ func mergeFuncMaps(maps ...template.FuncMap) template.FuncMap {
 	for _, m := range maps {
 		for k, v := range m {
 			out[k] = v
+		}
+	}
+	return out
+}
+
+// applyThemeSettingsDraft returns ts with unsaved values laid over it, for a
+// preview render. Values go through the same encode → coerce path as a real
+// save followed by a page load, so templates see exactly what they would
+// after Save. Unknown pages and fields are ignored, and a value that can't
+// be encoded keeps its stored value. ts itself is not modified.
+func (h *PublicHandler) applyThemeSettingsDraft(ts map[string]map[string]any, draft map[string]map[string]json.RawMessage) map[string]map[string]any {
+	if h.themeSettingsRegistry == nil || len(draft) == 0 {
+		return ts
+	}
+	out := make(map[string]map[string]any, len(ts))
+	for slug, page := range ts {
+		cp := make(map[string]any, len(page))
+		for k, v := range page {
+			cp[k] = v
+		}
+		out[slug] = cp
+	}
+	for _, p := range h.themeSettingsRegistry.ActivePages() {
+		values, ok := draft[p.Slug]
+		if !ok {
+			continue
+		}
+		if out[p.Slug] == nil {
+			out[p.Slug] = map[string]any{}
+		}
+		for _, f := range p.Fields {
+			raw, present := values[f.Name]
+			if !present {
+				continue
+			}
+			stored, err := encodeForStorage(f.Type, raw)
+			if err != nil {
+				continue
+			}
+			out[p.Slug][f.Name] = CoerceWithDefault(f, stored).Value
 		}
 	}
 	return out

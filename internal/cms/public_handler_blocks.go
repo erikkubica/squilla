@@ -154,11 +154,19 @@ func (h *PublicHandler) renderBlocksBatchFor(blocks []map[string]interface{}, lo
 // block's structured-data template (see structured_data.go) into *sd
 // when sd is non-nil.
 func (h *PublicHandler) renderBlocksCollect(blocks []map[string]interface{}, locale string, req map[string]interface{}, current map[string]interface{}, sd *[]any) []string {
+	return h.renderBlocksCollectTS(blocks, locale, req, current, sd, nil)
+}
+
+// renderBlocksCollectTS is renderBlocksCollect with the theme settings
+// supplied by the caller instead of loaded from the database. The admin
+// preview uses it to show unsaved settings; nil means "load as usual".
+func (h *PublicHandler) renderBlocksCollectTS(blocks []map[string]interface{}, locale string, req map[string]interface{}, current map[string]interface{}, sd *[]any, tsOverride map[string]map[string]any) []string {
 	if req == nil {
 		req = emptyRequestData()
 	}
-	// Only page-one, non-archive output is identical across requests.
-	shareable := isDefaultRequest(req)
+	// Only page-one, non-archive output is identical across requests. Output
+	// rendered with unsaved settings must never enter or come from the cache.
+	shareable := isDefaultRequest(req) && tsOverride == nil
 	var rendered []string
 	if len(blocks) == 0 {
 		return rendered
@@ -170,7 +178,10 @@ func (h *PublicHandler) renderBlocksCollect(blocks []map[string]interface{}, loc
 
 	// Load theme settings once per page render so the GetSettings round-trip
 	// happens exactly once, regardless of how many blocks we render.
-	ts := h.loadThemeSettingsForRender(context.Background(), locale)
+	ts := tsOverride
+	if ts == nil {
+		ts = h.loadThemeSettingsForRender(context.Background(), locale)
+	}
 
 	// Step 1: Collect all node IDs across all blocks
 	allNodeIDs := make(map[int]bool)

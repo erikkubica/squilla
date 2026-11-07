@@ -63,6 +63,8 @@ type adminPreviewBody struct {
 	SeoSettings   json.RawMessage `json:"seo_settings,omitempty"`
 	FeaturedImage json.RawMessage `json:"featured_image,omitempty"`
 	Taxonomies    json.RawMessage `json:"taxonomies,omitempty"`
+	// ThemeSettings: unsaved theme settings (page slug → field → value).
+	ThemeSettings map[string]map[string]json.RawMessage `json:"theme_settings,omitempty"`
 }
 
 // AdminNodePreviewWithDraft renders a node with in-flight form state
@@ -92,6 +94,7 @@ func (h *PublicHandler) AdminNodePreviewWithDraft(c *fiber.Ctx) error {
 		SeoSettings:   rawOrNil(body.SeoSettings),
 		FeaturedImage: rawOrNil(body.FeaturedImage),
 		Taxonomies:    rawOrNil(body.Taxonomies),
+		ThemeSettings: body.ThemeSettings,
 	}
 	return renderPreview(c, h, uint(id), draft)
 }

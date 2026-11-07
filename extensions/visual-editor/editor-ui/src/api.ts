@@ -81,6 +81,25 @@ export interface ContentNode {
   status?: string;
   blocks_data: BlocksDataEntry[] | null;
   full_url: string;
+  excerpt?: string;
+  /** {id, url, alt…}, a bare URL, or an empty object. */
+  featured_image?: unknown;
+  fields_data?: Record<string, unknown> | null;
+}
+
+/** The page-level (non-block) fields the Page tab edits. */
+export interface NodeMetaPatch {
+  title?: string;
+  excerpt?: string;
+  featured_image?: unknown;
+  fields_data?: Record<string, unknown>;
+}
+
+export async function updateNode(id: number, patch: NodeMetaPatch & { blocks_data?: BlocksDataEntry[] }): Promise<void> {
+  await api<ApiEnvelope<ContentNode>>(`/admin/api/nodes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
 }
 
 interface ApiEnvelope<T> {
@@ -127,6 +146,9 @@ export interface NodeTypeInfo {
   label_plural?: string;
   /** Lucide icon name, PascalCase ("PanelTop") or kebab-case. */
   icon?: string;
+  /** Custom fields of the type (the node's fields_data). */
+  fields?: BlockField[];
+  supports_blocks?: boolean;
 }
 
 export async function getNodeTypes(): Promise<NodeTypeInfo[]> {
@@ -295,4 +317,61 @@ export function adminEditURL(nodeType: string, id: number): string {
   if (nodeType === "page") return `/admin/pages/${id}/edit`;
   if (nodeType === "post") return `/admin/posts/${id}/edit`;
   return `/admin/content/${encodeURIComponent(nodeType)}/${id}/edit`;
+}
+
+
+// --- Theme settings (the "Layout" tab) ---------------------------------------
+// Same endpoints as Admin → Theme settings. One page per settings group
+// (header, footer, CTA…); values are per language for translatable fields.
+
+export interface ThemeSettingsPageInfo {
+  slug: string;
+  name: string;
+  icon?: string;
+  description?: string;
+}
+
+export interface ThemeSettingsFieldDef {
+  name: string;
+  title: string;
+  type: string;
+  initialValue?: unknown;
+  description?: string;
+  translatable?: boolean;
+  config?: Record<string, unknown>;
+}
+
+export interface ThemeSettingsPageData {
+  page: ThemeSettingsPageInfo & { fields: ThemeSettingsFieldDef[] };
+  values: Record<string, { value: unknown; compatible?: boolean }>;
+}
+
+const langHeader = (lang: string): Record<string, string> => (lang ? { "X-Admin-Language": lang } : {});
+
+export async function listThemeSettings(): Promise<ThemeSettingsPageInfo[]> {
+  const env = await api<ApiEnvelope<{ pages: ThemeSettingsPageInfo[] }>>("/admin/api/theme-settings");
+  return env.data?.pages ?? [];
+}
+
+export async function getThemeSettingsPage(slug: string, lang: string): Promise<ThemeSettingsPageData> {
+  const env = await api<ApiEnvelope<ThemeSettingsPageData>>(`/admin/api/theme-settings/${encodeURIComponent(slug)}`, { headers: langHeader(lang) });
+  return env.data;
+}
+
+export async function saveThemeSettingsPage(slug: string, values: Record<string, unknown>, lang: string): Promise<void> {
+  await api<unknown>(`/admin/api/theme-settings/${encodeURIComponent(slug)}`, {
+    method: "PUT",
+    body: JSON.stringify({ values }),
+    headers: langHeader(lang),
+  });
+}
+
+/** Whether the media-manager extension is on (featured image needs it). */
+export async function mediaAvailable(): Promise<boolean> {
+  try {
+    await listMedia({ perPage: 1 });
+    return true;
+  } catch {
+    return false;
+  }
 }

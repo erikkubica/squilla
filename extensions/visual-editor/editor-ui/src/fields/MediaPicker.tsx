@@ -118,8 +118,12 @@ function fileName(url: string): string {
 }
 
 /** image field — stores {id, url, alt, width, height}. */
-export function ImageField({ value, onChange }: { value: unknown; onChange: (next: unknown) => void }): React.JSX.Element {
+export function ImageField({ value, onChange, openSignal }: { value: unknown; onChange: (next: unknown) => void; openSignal?: number }): React.JSX.Element {
   const [picking, setPicking] = useState(false);
+  // The page's "Replace image" button opens the picker from outside.
+  useEffect(() => {
+    if (openSignal) setPicking(true);
+  }, [openSignal]);
   const v = (typeof value === "object" && value !== null ? value : {}) as {
     url?: string;
     alt?: string;

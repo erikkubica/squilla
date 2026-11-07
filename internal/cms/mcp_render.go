@@ -3,6 +3,7 @@ package cms
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -127,6 +128,10 @@ type NodeDraftOverrides struct {
 	SeoSettings   []byte
 	FeaturedImage []byte
 	Taxonomies    []byte
+	// ThemeSettings: unsaved theme settings, page slug → field name → raw
+	// JSON value (the shape the admin form saves). Applied over the stored
+	// settings for this render only.
+	ThemeSettings map[string]map[string]json.RawMessage
 }
 
 // RenderNodePreview renders a specific node (published or draft) via the
@@ -148,7 +153,11 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides
 	}
 
 	blocks := parseBlocks(node.BlocksData)
-	renderedBlocks := h.renderBlocksBatchFor(blocks, node.LanguageCode, nil, h.pageNodeData(&node))
+	var tsOverride map[string]map[string]any
+	if draft != nil && len(draft.ThemeSettings) > 0 {
+		tsOverride = h.applyThemeSettingsDraft(h.loadThemeSettingsForRender(context.Background(), node.LanguageCode), draft.ThemeSettings)
+	}
+	renderedBlocks := h.renderBlocksCollectTS(blocks, node.LanguageCode, nil, h.pageNodeData(&node), nil, tsOverride)
 
 	// Reuse the main render path but pass nil for Fiber ctx and nil user —
 	// renderNodeWithLayout reads from c only via currentUser which we skip.
@@ -188,10 +197,14 @@ func (h *PublicHandler) RenderNodePreview(nodeID uint, draft *NodeDraftOverrides
 	appData.Head = composeHead(appData)
 	appData.BodyEnd = composeBodyEnd(appData, extensionBodyEnd)
 
+	themeSettings := tsOverride
+	if themeSettings == nil {
+		themeSettings = h.loadThemeSettingsForRender(context.Background(), nodeData.LanguageCode)
+	}
 	templateData := TemplateData{
 		App:           appData,
 		Node:          nodeData,
-		ThemeSettings: h.loadThemeSettingsForRender(context.Background(), nodeData.LanguageCode),
+		ThemeSettings: themeSettings,
 	}
 	blockResolver := func(slug string) (string, error) {
 		lb, err := h.layoutBlockSvc.Resolve(slug, languageID)

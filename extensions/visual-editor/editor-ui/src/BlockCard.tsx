@@ -22,7 +22,8 @@ export type EditorBlock = BlocksDataEntry & {
 export function blockIconValue(icon: string | undefined): string | null {
   const v = (icon ?? "").trim();
   if (!v || v === "square") return null;
-  if (/^[a-z0-9-]+$/i.test(v)) return `lucide:${v.toLowerCase()}`;
+  // PascalCase names ("PanelTop", as settings pages declare them) → "panel-top".
+  if (/^[a-z0-9-]+$/i.test(v)) return `lucide:${v.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()}`;
   if (/^[a-z0-9_-]+:[a-z0-9_-]+$/i.test(v)) return v;
   return null;
 }

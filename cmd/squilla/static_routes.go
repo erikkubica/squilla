@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -95,7 +96,20 @@ func sendThemeCSS(c *fiber.Ctx, body, gz []byte, hash string) error {
 // policy browsers fall back to heuristic freshness and revalidate
 // render-blocking CSS on navigations — a full round trip each time.
 func sendCachedAsset(c *fiber.Ctx, full string) error {
-	if err := c.SendFile(full, true); err != nil {
+	err := c.SendFile(full, true)
+	// SendFile's compression keeps a gzipped copy next to the source file.
+	// Where that can't be written (a theme directory mounted read-only, as
+	// in Docker bind mounts) a client that accepts gzip gets a 404 for a
+	// file that exists. Serve it uncompressed rather than not at all.
+	if err != nil || c.Response().StatusCode() == fiber.StatusNotFound {
+		if info, statErr := os.Stat(full); statErr == nil && !info.IsDir() {
+			err = c.SendFile(full, false)
+			if err == nil {
+				c.Status(fiber.StatusOK) // the failed attempt left its 404
+			}
+		}
+	}
+	if err != nil {
 		return err
 	}
 	if code := c.Response().StatusCode(); code == fiber.StatusOK || code == fiber.StatusNotModified {
