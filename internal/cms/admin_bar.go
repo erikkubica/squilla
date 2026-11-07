@@ -95,9 +95,7 @@ func buildAdminBarView(user *models.User, node *models.ContentNode, is404 bool, 
 	if user.FullName != nil && strings.TrimSpace(*user.FullName) != "" {
 		v.UserName = strings.TrimSpace(*user.FullName)
 	}
-	if auth.HasCapability(user, "manage_users") {
-		v.ProfileURL = fmt.Sprintf("/admin/security/users/%d/edit", user.ID)
-	}
+	v.ProfileURL = "/admin/profile"
 	v.ClearCache = auth.HasCapability(user, "manage_settings")
 
 	labels := make(map[string]string, len(nodeTypes))
@@ -196,7 +194,7 @@ func renderAdminBar(v adminBarView) string {
 	}
 	b.WriteString(`<details class="dd end"><summary class="item user" aria-haspopup="menu"><span class="av" aria-hidden="true">` + esc(initial(v.UserName)) + `</span><span class="t name">` + esc(v.UserName) + `</span></summary><div class="menu" role="menu">`)
 	if v.ProfileURL != "" {
-		b.WriteString(`<a role="menuitem" href="` + esc(v.ProfileURL) + `">Edit profile</a>`)
+		b.WriteString(`<a role="menuitem" href="` + esc(v.ProfileURL) + `">My profile</a>`)
 	}
 	if v.HideControl {
 		b.WriteString(`<button type="button" role="menuitem" data-act="hide">Hide bar this session</button>`)

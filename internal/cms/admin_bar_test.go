@@ -70,7 +70,7 @@ func TestBuildAdminBarViewCapabilities(t *testing.T) {
 	if len(v.New) != 2 || v.New[0].URL != "/admin/pages/new" || v.New[1].URL != "/admin/content/tour/new" {
 		t.Fatalf("new links (non-public types excluded): %+v", v.New)
 	}
-	if !v.ClearCache || v.ProfileURL != "/admin/security/users/7/edit" {
+	if !v.ClearCache || v.ProfileURL != "/admin/profile" {
 		t.Fatalf("clear=%v profile=%q", v.ClearCache, v.ProfileURL)
 	}
 
@@ -88,7 +88,7 @@ func TestBuildAdminBarViewCapabilities(t *testing.T) {
 	if len(lv.New) != 1 || lv.New[0].Label != `Tour "<b>"` {
 		t.Fatalf("new for limited user: %+v", lv.New)
 	}
-	if lv.ClearCache || lv.ProfileURL != "" {
+	if lv.ClearCache || lv.ProfileURL != "/admin/profile" {
 		t.Fatalf("limited user got clear=%v profile=%q", lv.ClearCache, lv.ProfileURL)
 	}
 }
