@@ -502,7 +502,7 @@ export default function FieldSchemaEditor({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">Type</Label>
                 <FieldTypePicker value={newFieldType} onValueChange={(v) => setNewFieldType(v as NodeTypeField["type"])} />
@@ -523,18 +523,16 @@ export default function FieldSchemaEditor({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">&nbsp;</Label>
-                <label htmlFor="new-field-required" className="flex items-center gap-2 h-9 cursor-pointer">
-                  <Switch
-                    id="new-field-required"
-                    checked={newFieldRequired}
-                    onCheckedChange={setNewFieldRequired}
-                  />
-                  <span className="text-sm font-medium text-foreground">Required</span>
-                </label>
-              </div>
             </div>
+
+            <label htmlFor="new-field-required" className="flex w-fit items-center gap-2 h-9 cursor-pointer">
+              <Switch
+                id="new-field-required"
+                checked={newFieldRequired}
+                onCheckedChange={setNewFieldRequired}
+              />
+              <span className="text-sm font-medium text-foreground">Required</span>
+            </label>
 
             {newFieldType === "select" && (
               <div className="space-y-2">
