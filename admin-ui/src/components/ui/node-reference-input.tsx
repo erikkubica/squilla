@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Link2, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Link2, Loader2, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,8 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { searchNodes, type NodeSearchResult, type NodeTypeField } from "@/api/client";
+import { thumbURL } from "@/lib/node-thumb";
+import { type IconComponent } from "@/lib/lucide-icon";
+import { typeMeta, useNodeTypes } from "@/lib/node-types";
 
 // Reference ("node") field: the chosen content as a list of rows with a
 // thumbnail, title, type and status, reorderable, plus a picker dialog
@@ -52,16 +54,6 @@ function humanize(slug: string): string {
   return slug.replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
-/** Best-effort thumbnail URL from a node's featured_image payload. */
-function thumbURL(img: unknown): string {
-  // theme-asset:<key> refs only resolve server-side at render time.
-  if (typeof img === "string") return img.startsWith("theme-asset:") ? "" : img;
-  if (img && typeof img === "object" && typeof (img as { url?: unknown }).url === "string") {
-    return (img as { url: string }).url;
-  }
-  return "";
-}
-
 function allowedTypes(field: NodeTypeField): string[] {
   const f = field as NodeTypeField & { node_types?: string[]; node_type_filter?: string | string[] };
   if (Array.isArray(f.node_types) && f.node_types.length) return f.node_types;
@@ -70,11 +62,12 @@ function allowedTypes(field: NodeTypeField): string[] {
   return filter ? [filter] : [];
 }
 
-function Thumb({ src, label, large }: { src: string; label: string; large?: boolean }) {
+export function Thumb({ src, label, icon: Icon, large }: { src: string; label: string; icon?: IconComponent; large?: boolean }) {
   const [broken, setBroken] = useState(false);
+  const showImg = !!src && !broken;
   return (
-    <span data-slot="ref-thumb" data-size={large ? "lg" : undefined} aria-hidden>
-      {src && !broken ? <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} /> : label.charAt(0).toUpperCase() || "?"}
+    <span data-slot="ref-thumb" data-size={large ? "lg" : undefined} data-empty={!showImg || undefined} aria-hidden>
+      {showImg ? <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} /> : Icon ? <Icon size={large ? 18 : 16} /> : label.charAt(0).toUpperCase() || "?"}
     </span>
   );
 }
@@ -98,6 +91,7 @@ export function NodeReferenceInput({
   const items = toItems(value);
   const typeLabel = allowed.length === 1 ? humanize(allowed[0]).toLowerCase() : "content";
   const [picking, setPicking] = useState(false);
+  const types = useNodeTypes();
 
   // Stored references only carry a label; look up current titles,
   // statuses and thumbnails so the list reads like the content itself.
@@ -145,11 +139,11 @@ export function NodeReferenceInput({
             const missing = authoritative && !live;
             return (
               <li key={item.id} data-slot="ref-row" data-missing={missing || undefined}>
-                <Thumb src={thumbURL(live?.featured_image)} label={title} />
+                <Thumb src={thumbURL(live?.featured_image)} label={title} icon={typeMeta(types, live?.node_type || item.node_type || "").Icon} />
                 <span className="flex min-w-0 flex-1 flex-col" style={{ gap: 2 }}>
                   <span data-slot="ref-title">{title}</span>
                   <span data-slot="ref-meta">
-                    {missing ? "Not found — it may have been deleted" : humanize(live?.node_type || item.node_type || "content")}
+                    {missing ? "Not found — it may have been deleted" : typeMeta(types, live?.node_type || item.node_type || "content").label}
                     {!missing && <StatusPill status={live?.status ?? item.status} />}
                   </span>
                 </span>
@@ -216,28 +210,34 @@ function NodePickerDialog({
   onDone: (items: RefItem[]) => void;
   onCancel: () => void;
 }) {
+  const types = useNodeTypes();
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState(allowed[0] ?? "");
-  const [results, setResults] = useState<NodeSearchResult[] | null>(null);
+  const [results, setResults] = useState<{ key: string; list: NodeSearchResult[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<RefItem[]>(initial);
+  const q = search.trim();
+  const key = `${activeType}|${q}`;
 
   useEffect(() => {
     let cancelled = false;
-    const t = setTimeout(() => {
-      searchNodes({ q: search.trim() || undefined, node_type: activeType || undefined, limit: 50 })
-        .then((r) => {
-          if (cancelled) return;
-          setResults(r);
-          setError(null);
-        })
-        .catch((e) => !cancelled && setError((e as Error).message));
-    }, 200);
+    const t = setTimeout(
+      () => {
+        searchNodes({ q: q || undefined, node_type: activeType || undefined, limit: 50 })
+          .then((list) => {
+            if (cancelled) return;
+            setResults({ key, list });
+            setError(null);
+          })
+          .catch((e) => !cancelled && setError((e as Error).message));
+      },
+      q ? 180 : 0,
+    );
     return () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [search, activeType]);
+  }, [q, activeType, key]);
 
   const toggle = (n: NodeSearchResult) => {
     if (!multiple) {
@@ -246,77 +246,79 @@ function NodePickerDialog({
     }
     setPicked((cur) => (cur.some((p) => p.id === n.id) ? cur.filter((p) => p.id !== n.id) : [...cur, toRef(n)]));
   };
+  const loading = results?.key !== key;
+  const list = results?.list ?? [];
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="flex h-[min(600px,85vh)] flex-col gap-3 sm:max-w-[560px]">
+      <DialogContent className="flex h-[min(620px,85vh)] flex-col gap-4 sm:max-w-[580px]">
         <DialogHeader>
           <DialogTitle>Choose {typeLabel}</DialogTitle>
-          <DialogDescription>
-            {multiple ? "Pick as many as you need. The order you pick them in is the order they show." : "Pick one."}
-          </DialogDescription>
+          <DialogDescription>{multiple ? "Pick as many as you need. They show in the order you pick them." : "Click one to pick it."}</DialogDescription>
         </DialogHeader>
 
         {allowed.length > 1 && (
           <div data-slot="ref-tabs" role="tablist">
-            {allowed.map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={t === activeType} data-active={t === activeType || undefined} onClick={() => setActiveType(t)}>
-                {humanize(t)}
-              </button>
-            ))}
+            {allowed.map((t) => {
+              const meta = typeMeta(types, t);
+              return (
+                <button key={t} type="button" role="tab" aria-selected={t === activeType} data-active={t === activeType || undefined} onClick={() => setActiveType(t)}>
+                  <meta.Icon size={14} />
+                  {meta.plural}
+                </button>
+              );
+            })}
           </div>
         )}
 
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--fg-subtle)" }} />
-          <Input
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${typeLabel} by title…`}
-            className="rounded-lg pl-9"
-          />
+        <div data-slot="combo" className="min-h-0 flex-1">
+          <div data-slot="combo-search">
+            <Search size={16} aria-hidden />
+            <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search ${typeLabel} by title…`} autoComplete="off" spellCheck={false} />
+            {loading && q ? <Loader2 size={15} className="animate-spin" aria-hidden /> : null}
+            {search && (
+              <button type="button" data-slot="icon-button" data-size="sm" onClick={() => setSearch("")} aria-label="Clear" title="Clear">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <ul data-slot="combo-results" className="flex-1" style={{ maxHeight: "none" }}>
+            {error && <li data-slot="combo-empty" style={{ color: "var(--danger)" }}>{error}</li>}
+            {!error && results === null && <li data-slot="combo-empty">Loading…</li>}
+            {!error && results !== null && !loading && list.length === 0 && <li data-slot="combo-empty">{q ? `Nothing matches “${q}”.` : "Nothing here yet."}</li>}
+            {list.map((n) => {
+              const order = picked.findIndex((p) => p.id === n.id);
+              const on = order >= 0;
+              return (
+                <li key={n.id}>
+                  <button type="button" data-slot="ref-result" data-selected={on || undefined} aria-pressed={multiple ? on : undefined} onClick={() => toggle(n)}>
+                    <Thumb src={thumbURL(n.featured_image)} label={n.title} icon={typeMeta(types, n.node_type).Icon} />
+                    <span data-slot="ref-result-title">{n.title}</span>
+                    <StatusPill status={n.status} />
+                    <span data-slot="ref-result-path">
+                      <bdi>{n.full_url || `/${n.slug}`}</bdi>
+                    </span>
+                    {multiple && (
+                      <span data-slot="ref-check" aria-hidden>
+                        {on ? order + 1 : null}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        {error && (
-          <p className="rounded-md px-3 py-2 text-sm" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>
-            {error}
-          </p>
-        )}
-
-        <ul data-slot="ref-results" className="-mx-1.5 min-h-[120px] flex-1 overflow-y-auto px-1.5">
-          {results === null && <li data-slot="search-empty">Loading…</li>}
-          {results?.length === 0 && <li data-slot="search-empty">{search ? `Nothing matches “${search}”.` : "Nothing here yet."}</li>}
-          {results?.map((n) => {
-            const on = picked.some((p) => p.id === n.id);
-            return (
-              <li key={n.id}>
-                <button type="button" data-slot="ref-result" data-selected={on || undefined} aria-pressed={multiple ? on : undefined} onClick={() => toggle(n)}>
-                  <Thumb src={thumbURL(n.featured_image)} label={n.title} large />
-                  <span className="flex min-w-0 flex-1 flex-col" style={{ gap: 2 }}>
-                    <span data-slot="ref-title">{n.title}</span>
-                    <span data-slot="ref-meta">
-                      <span className="truncate" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
-                        {n.full_url || `/${n.slug}`}
-                      </span>
-                      <StatusPill status={n.status} />
-                    </span>
-                  </span>
-                  {multiple && (
-                    <span data-slot="ref-check" aria-hidden>
-                      {on && <Check size={13} strokeWidth={3} />}
-                    </span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-
         {multiple && (
-          <DialogFooter className="items-center border-t pt-3 sm:justify-between" style={{ borderColor: "var(--border)" }}>
-            <span className="text-sm" style={{ color: "var(--fg-muted)" }}>
+          <DialogFooter className="items-center border-t pt-4 sm:justify-between" style={{ borderColor: "var(--border)" }}>
+            <span className="flex items-center gap-3 text-sm" style={{ color: "var(--fg-subtle)" }}>
               {picked.length ? `${picked.length} selected` : "None selected"}
+              {picked.length > 0 && (
+                <button type="button" data-slot="text-action" onClick={() => setPicked([])}>
+                  Clear
+                </button>
+              )}
             </span>
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={onCancel}>

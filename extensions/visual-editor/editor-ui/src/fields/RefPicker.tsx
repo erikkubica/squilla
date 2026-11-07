@@ -19,7 +19,7 @@ function toItems(value: unknown): RefItem[] {
     .filter((v): v is RefItem => v !== null && v.id !== undefined);
 }
 
-function Thumb({ src, label, size }: { src: string; label: string; size?: "lg" }): React.JSX.Element {
+export function Thumb({ src, label, size }: { src: string; label: string; size?: "lg" }): React.JSX.Element {
   const [broken, setBroken] = useState(false);
   return (
     <span className="vedit-ref-thumb" data-size={size} aria-hidden="true">

@@ -121,6 +121,19 @@ export async function getNode(id: number): Promise<ContentNode> {
   return env.data;
 }
 
+export interface NodeTypeInfo {
+  slug: string;
+  label: string;
+  label_plural?: string;
+  /** Lucide icon name, PascalCase ("PanelTop") or kebab-case. */
+  icon?: string;
+}
+
+export async function getNodeTypes(): Promise<NodeTypeInfo[]> {
+  const env = await api<ApiEnvelope<NodeTypeInfo[]>>("/admin/api/node-types");
+  return env.data ?? [];
+}
+
 export async function getBlockTypes(): Promise<BlockType[]> {
   const env = await api<ApiEnvelope<BlockType[]>>("/admin/api/block-types?per_page=1000");
   return env.data ?? [];

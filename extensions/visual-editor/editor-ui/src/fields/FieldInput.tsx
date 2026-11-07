@@ -1,7 +1,8 @@
 import * as React from "react";
 import type { BlockField } from "../api";
 import { Switch } from "../ui";
-import { GroupField, LinkField, RepeaterField } from "./Composite";
+import { GroupField, RepeaterField } from "./Composite";
+import { LinkField } from "./LinkField";
 import { EmojiField } from "./EmojiField";
 import { FormSelectorField } from "./FormSelector";
 import { IconField } from "./IconField";
@@ -248,7 +249,7 @@ function Control({
     case "file":
       return <FileField value={value} onChange={onChange} />;
     case "link":
-      return <LinkField value={value} onChange={onChange} id={id} />;
+      return <LinkField value={value} onChange={onChange} id={id} label={fieldTitle(field)} />;
     case "reference":
     case "node":
       return <NodeRefField field={field} value={value} onChange={onChange} />;

@@ -9,11 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import { EmojiFieldInput } from "@/components/ui/emoji-picker";
 import { IconFieldInput } from "@/components/ui/icon-picker";
 import { NodeReferenceInput } from "@/components/ui/node-reference-input";
+import { LinkFieldInput } from "@/components/ui/link-field-input";
 import {
   Plus,
   ChevronDown,
@@ -31,58 +31,6 @@ import {
   type TaxonomyTerm,
 } from "@/api/client";
 import { useExtensions } from "@/hooks/use-extensions";
-
-// Link field: text, url, alt, open in new tab
-function LinkFieldInput({
-  value,
-  onChange,
-  namePath,
-}: {
-  value: Record<string, unknown> | null;
-  onChange: (val: unknown) => void;
-  namePath?: string;
-}) {
-  const defaultLink = { text: "", url: "", alt: "", target: "" };
-  const link = (value && typeof value === "object" && !Array.isArray(value) && "url" in value)
-    ? value
-    : defaultLink;
-  const update = (key: string, val: unknown) => onChange({ ...link, [key]: val });
-  const inputClass = "rounded-lg";
-  const basePath = namePath || "link";
-
-  return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted p-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1" data-slug="text">
-          <Label className="text-xs font-medium text-muted-foreground">Link Text</Label>
-          <Input name={`${basePath}[text]`} data-slug="text" value={String(link.text || "")} onChange={(e) => update("text", e.target.value)} placeholder="Click here" className={inputClass} />
-        </div>
-        <div className="space-y-1" data-slug="url">
-          <Label className="text-xs font-medium text-muted-foreground">URL</Label>
-          <Input name={`${basePath}[url]`} data-slug="url" value={String(link.url || "")} onChange={(e) => update("url", e.target.value)} placeholder="https://example.com" className={inputClass} />
-        </div>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1" data-slug="alt">
-          <Label className="text-xs font-medium text-muted-foreground">Alt / Title</Label>
-          <Input name={`${basePath}[alt]`} data-slug="alt" value={String(link.alt || "")} onChange={(e) => update("alt", e.target.value)} placeholder="Link description" className={inputClass} />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
-          <label className="flex items-center gap-2 h-9 cursor-pointer">
-            <Switch
-              name={`${basePath}[target]`}
-              data-slug="target"
-              checked={link.target === "_blank"}
-              onCheckedChange={(c) => update("target", c ? "_blank" : "")}
-            />
-            <span className="text-sm text-muted-foreground">Open in new tab</span>
-          </label>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Group field: renders sub-fields as a nested form
 function GroupFieldInput({
@@ -700,7 +648,7 @@ function CustomFieldInput({
         </div>
       );
     case "link":
-      return <LinkFieldInput value={value as Record<string, unknown> | null} onChange={onChange} namePath={fieldName} />;
+      return <LinkFieldInput value={value} onChange={onChange} name={field.name} label={field.title} />;
     case "object":
     case "group":
       return <GroupFieldInput field={field} value={value as Record<string, unknown> | null} onChange={onChange} namePath={fieldName} />;

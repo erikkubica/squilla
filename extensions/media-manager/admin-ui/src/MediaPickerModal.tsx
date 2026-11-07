@@ -9,24 +9,8 @@ import {
   Music,
   File,
   Check,
-  ChevronLeft,
-  ChevronRight,
 } from "@squilla/icons";
-import {
-  Button,
-  Input,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@squilla/ui";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@squilla/ui";
 import { toast } from "sonner";
 
 // ---------- Types ----------
@@ -140,6 +124,16 @@ function FileIcon({ mime, className }: { mime: string; className?: string }) {
 
 // ---------- Component ----------
 
+const PER_PAGE = 36;
+
+const TYPE_FILTERS: { value: string; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "image", label: "Images" },
+  { value: "video", label: "Videos" },
+  { value: "audio", label: "Audio" },
+  { value: "application", label: "Documents" },
+];
+
 export default function MediaPickerModal({
   open,
   onClose,
@@ -148,142 +142,192 @@ export default function MediaPickerModal({
   mimeFilter,
 }: MediaPickerModalProps) {
   const [files, setFiles] = useState<MediaFile[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta>({ total: 0, page: 1, per_page: 24, total_pages: 0 });
+  const [meta, setMeta] = useState<PaginationMeta>({ total: 0, page: 1, per_page: PER_PAGE, total_pages: 0 });
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Map<number, MediaFile>>(new Map());
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const [mimeType, setMimeType] = useState(mimeFilter || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const reqId = useRef(0);
+  const searchRef = useRef("");
 
-  const load = useCallback(async (page: number, searchOverride?: string) => {
-    setLoading(true);
-    try {
-      const result = await fetchMedia({
-        page,
-        per_page: 24,
-        mime_type: mimeType || undefined,
-        search: (searchOverride ?? search) || undefined,
-      });
-      setFiles(result.data);
-      setMeta(result.meta);
-    } catch {
-      toast.error("Failed to load media");
-    } finally {
-      setLoading(false);
-    }
-  }, [mimeType]); // eslint-disable-line react-hooks/exhaustive-deps
+  const load = useCallback(
+    async (page: number, append = false) => {
+      const id = ++reqId.current;
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      try {
+        const result = await fetchMedia({ page, per_page: PER_PAGE, mime_type: mimeType || undefined, search: searchRef.current || undefined });
+        if (id !== reqId.current) return;
+        setFiles((prev) => (append ? [...prev, ...result.data.filter((f) => !prev.some((p) => p.id === f.id))] : result.data));
+        setMeta(result.meta);
+      } catch {
+        if (id === reqId.current) toast.error("Couldn't load the media library");
+      } finally {
+        if (id === reqId.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
+      }
+    },
+    [mimeType],
+  );
 
   useEffect(() => {
-    if (open) {
-      setSelected(new Map());
-      load(1, "");
-    }
+    if (!open) return;
+    setSelected(new Map());
+    setSearch("");
+    searchRef.current = "";
+    void load(1);
   }, [open, load]);
+
+  // Infinite scroll: fetch the next page when the sentinel comes into view.
+  const hasMore = meta.page < meta.total_pages;
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore || loading || loadingMore) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) void load(meta.page + 1, true);
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, loading, loadingMore, meta.page, load, files.length]);
 
   function handleSearchChange(val: string) {
     setSearch(val);
+    searchRef.current = val.trim();
     clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => load(1, val), 300);
+    searchTimer.current = setTimeout(() => void load(1), 250);
   }
 
   function toggleSelect(file: MediaFile) {
-    if (multiple) {
-      setSelected((prev) => {
-        const next = new Map(prev);
-        if (next.has(file.id)) next.delete(file.id);
-        else next.set(file.id, file);
-        return next;
-      });
-    } else {
-      setSelected(new Map([[file.id, file]]));
-    }
+    setSelected((prev) => {
+      if (!multiple) return prev.has(file.id) ? new Map() : new Map([[file.id, file]]);
+      const next = new Map(prev);
+      if (next.has(file.id)) next.delete(file.id);
+      else next.set(file.id, file);
+      return next;
+    });
   }
 
-  function handleConfirm() {
-    if (selected.size === 0) return;
-    onSelect(Array.from(selected.values()));
+  function confirm(list: MediaFile[]) {
+    if (list.length === 0) return;
+    onSelect(list);
     onClose();
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const fileList = e.target.files;
-    if (!fileList?.length) return;
-    setUploading(true);
+  async function uploadFiles(list: globalThis.File[]) {
+    if (!list.length) return;
+    setUploading(list.length);
+    const added: MediaFile[] = [];
     try {
-      for (const f of Array.from(fileList)) {
-        await uploadMediaFile(f);
+      for (const f of list) {
+        added.push(await uploadMediaFile(f));
+        setUploading((n) => n - 1);
       }
-      toast.success(`Uploaded ${fileList.length} file(s)`);
-      await load(1);
+      toast.success(list.length === 1 ? "Uploaded" : `Uploaded ${list.length} files`);
     } catch {
       toast.error("Upload failed");
     } finally {
-      setUploading(false);
+      setUploading(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+    if (added.length) {
+      // Show the new files first and select them, ready to confirm.
+      setFiles((prev) => [...added.reverse(), ...prev.filter((p) => !added.some((a) => a.id === p.id))]);
+      setSelected((prev) => {
+        if (!multiple) return new Map([[added[0].id, added[0]]]);
+        const next = new Map(prev);
+        for (const f of added) next.set(f.id, f);
+        return next;
+      });
     }
   }
 
+  const selectedList = Array.from(selected.values());
+  const single = !multiple ? selectedList[0] : undefined;
+  const noun = mimeFilter === "image" ? "image" : "file";
+
   return (
     <Dialog open={open} onOpenChange={(v: boolean) => !v && onClose()}>
-      <DialogContent className="flex flex-col" style={{ maxWidth: "72rem", maxHeight: "90vh" }}>
-        <DialogHeader>
-          <DialogTitle>Select Media</DialogTitle>
-          <DialogDescription>Browse or upload files to select</DialogDescription>
+      <DialogContent data-mm="picker" style={{ maxWidth: "min(1080px, calc(100% - 2rem))", width: "100%", height: "min(800px, 90vh)", padding: 0, gap: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <DialogHeader style={{ padding: "20px 24px 0" }}>
+          <DialogTitle>{multiple ? `Choose ${noun}s` : `Choose ${mimeFilter === "image" ? "an image" : "a file"}`}</DialogTitle>
+          <DialogDescription>
+            {multiple ? "Pick as many as you need, or drop new files anywhere in this window." : "Pick one from the library, or drop a new file anywhere in this window."}
+          </DialogDescription>
         </DialogHeader>
 
-        {/* Toolbar */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search files..."
-              value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
-              className="pl-9 rounded-lg border-border"
-            />
-          </div>
-          <Select value={mimeType} onValueChange={(v: string) => { setMimeType(v === "all" ? "" : v); }}>
-            <SelectTrigger className="w-[150px] rounded-lg border-border">
-              <SelectValue placeholder="All types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
-              <SelectItem value="image">Images</SelectItem>
-              <SelectItem value="application">Documents</SelectItem>
-              <SelectItem value="video">Videos</SelectItem>
-              <SelectItem value="audio">Audio</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="rounded-lg"
-          >
-            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            Upload
-          </Button>
-          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
+        <div data-mm="picker-toolbar">
+          <label data-mm="picker-search">
+            <Search size={16} aria-hidden />
+            <input autoFocus placeholder={`Search ${noun}s by name`} value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+            {loading && search ? <Loader2 size={15} data-mm="spin" aria-hidden /> : null}
+          </label>
+          {!mimeFilter || mimeFilter === "" ? (
+            <div data-mm="seg" role="tablist" aria-label="File type">
+              {TYPE_FILTERS.map((t) => (
+                <button key={t.value || "all"} type="button" role="tab" aria-selected={mimeType === t.value} onClick={() => setMimeType(t.value)}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button type="button" data-mm="btn" onClick={() => fileInputRef.current?.click()} disabled={uploading > 0}>
+            {uploading > 0 ? <Loader2 size={15} data-mm="spin" /> : <Upload size={15} />}
+            {uploading > 0 ? `Uploading ${uploading}…` : "Upload"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={mimeFilter ? `${mimeFilter}/*` : undefined}
+            style={{ display: "none" }}
+            onChange={(e) => void uploadFiles(Array.from(e.target.files ?? []))}
+          />
         </div>
 
-        {/* Grid */}
-        <div className="flex-1 overflow-y-auto min-h-0 mt-2">
-          {loading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+        <div
+          data-mm="picker-body"
+          data-hot={dragging || undefined}
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            void uploadFiles(Array.from(e.dataTransfer.files));
+          }}
+        >
+          {loading && files.length === 0 ? (
+            <div data-mm="picker-grid" aria-busy>
+              {Array.from({ length: 12 }, (_, i) => (
+                <div key={i} data-mm="pick-skeleton" />
+              ))}
             </div>
           ) : files.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-              <ImageIcon className="h-12 w-12 mb-2" />
-              <p className="text-sm">No media files found</p>
+            <div data-mm="picker-empty">
+              <span data-mm="picker-empty-icon">
+                <ImageIcon size={22} />
+              </span>
+              <strong>{search ? `Nothing matches “${search}”` : "Nothing here yet"}</strong>
+              <span>{search ? "Try another name, or upload it." : "Drop files here or use Upload."}</span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div data-mm="picker-grid" data-loading={loading || undefined}>
               {files.map((file) => {
-                const isSelected = selected.has(file.id);
+                const order = multiple ? selectedList.findIndex((f) => f.id === file.id) : selected.has(file.id) ? 0 : -1;
+                const isSelected = order >= 0;
                 return (
                   <button
                     key={file.id}
@@ -291,93 +335,76 @@ export default function MediaPickerModal({
                     data-mm="pick"
                     data-selected={isSelected || undefined}
                     aria-pressed={isSelected}
+                    title={file.original_name}
                     onClick={() => toggleSelect(file)}
-                    className="group"
+                    onDoubleClick={() => !multiple && confirm([file])}
                   >
                     {isImage(file.mime_type) ? (
-                      <img
-                        src={imageSize(file.url, "medium", file.updated_at)}
-                        alt={file.alt || file.original_name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
+                      <img src={imageSize(file.url, "medium", file.updated_at)} alt={file.alt || file.original_name} loading="lazy" draggable={false} />
                     ) : (
-                      <div className="h-full w-full flex flex-col items-center justify-center bg-muted p-2">
-                        <FileIcon mime={file.mime_type} className="h-8 w-8 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground mt-1 truncate w-full text-center">
-                          {file.original_name}
-                        </span>
-                      </div>
+                      <span data-mm="pick-file">
+                        <FileIcon mime={file.mime_type} className="h-7 w-7" />
+                        <span>{file.original_name}</span>
+                      </span>
                     )}
-                    {/* Selection indicator */}
-                    {isSelected && (
-                      <div
-                        className="absolute top-2 right-2 grid place-items-center"
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 999,
-                          background: "var(--accent)",
-                          color: "var(--accent-fg)",
-                          boxShadow: "0 0 0 2px var(--card-bg), 0 1px 3px rgba(15, 23, 42, 0.3)",
-                        }}
-                      >
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                      </div>
-                    )}
-                    {/* File info overlay on hover */}
-                    <div className="absolute inset-x-0 bottom-0 bg-black/80 px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <p className="text-[11px] text-white font-medium truncate">{file.original_name}</p>
-                      <p className="text-[10px] text-white/80">{humanFileSize(file.size)}{file.width && file.height ? ` · ${file.width}×${file.height}` : ""}</p>
-                    </div>
+                    <span data-mm="pick-check" aria-hidden>
+                      {isSelected ? multiple ? order + 1 : <Check size={13} strokeWidth={3} /> : null}
+                    </span>
+                    <span data-mm="pick-caption">{file.original_name}</span>
                   </button>
                 );
               })}
             </div>
           )}
+          {hasMore && <div ref={sentinelRef} data-mm="picker-more">{loadingMore ? <Loader2 size={18} data-mm="spin" /> : null}</div>}
+          {dragging && (
+            <div data-mm="picker-drop">
+              <Upload size={22} />
+              Drop to upload
+            </div>
+          )}
         </div>
 
-        {/* Pagination */}
-        {meta.total_pages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={meta.page <= 1}
-              onClick={() => load(meta.page - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {meta.page} / {meta.total_pages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={meta.page >= meta.total_pages}
-              onClick={() => load(meta.page + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        <div data-mm="picker-foot">
+          <div data-mm="picker-summary">
+            {single ? (
+              <>
+                {isImage(single.mime_type) ? (
+                  <img src={imageSize(single.url, "thumbnail", single.updated_at)} alt="" />
+                ) : (
+                  <span data-mm="picker-summary-icon">
+                    <FileIcon mime={single.mime_type} className="h-4 w-4" />
+                  </span>
+                )}
+                <span style={{ minWidth: 0 }}>
+                  <strong>{single.original_name}</strong>
+                  <span>
+                    {single.width && single.height ? `${single.width} × ${single.height} · ` : ""}
+                    {humanFileSize(single.size)}
+                  </span>
+                </span>
+              </>
+            ) : selectedList.length > 0 ? (
+              <>
+                <strong>{selectedList.length} selected</strong>
+                <button type="button" data-mm="ghost-btn" onClick={() => setSelected(new Map())}>
+                  Clear
+                </button>
+              </>
+            ) : (
+              <span>
+                {meta.total} {meta.total === 1 ? noun : `${noun}s`}
+                {multiple ? " · click to select, in the order you want them" : " · double-click to pick right away"}
+              </span>
+            )}
           </div>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="rounded-lg">
+          <button type="button" data-mm="btn" onClick={onClose}>
             Cancel
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={selected.size === 0}
-            className="rounded-lg bg-primary hover:bg-primary/90"
-          >
-            {selected.size > 0
-              ? `Select ${selected.size} file${selected.size > 1 ? "s" : ""}`
-              : "Select"}
-          </Button>
-        </DialogFooter>
+          </button>
+          <button type="button" data-mm="btn" data-variant="primary" onClick={() => confirm(selectedList)} disabled={selectedList.length === 0}>
+            {multiple && selectedList.length > 1 ? `Add ${selectedList.length} ${noun}s` : multiple ? `Add ${noun}` : `Use this ${noun}`}
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );

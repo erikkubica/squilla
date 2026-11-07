@@ -2091,3 +2091,368 @@ a:focus-visible,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ─── Link field ─── */
+.vedit-link-add {
+  align-self: flex-start;
+  width: auto;
+  padding: 0 14px;
+}
+.vedit-link-card {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 5px 5px 5px 6px;
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  box-shadow: inset 0 0 0 1px var(--border-input), 0 1px 1px rgba(15, 23, 42, 0.03);
+  transition: box-shadow 0.12s ease;
+}
+.vedit-link-card:hover {
+  box-shadow: inset 0 0 0 1px var(--border-hover);
+}
+.vedit-link-card:focus-within {
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-mid);
+}
+.vedit-link-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px;
+  border-radius: 7px;
+  text-align: left;
+  outline: none;
+}
+.vedit-link-icon {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.vedit-link-card:is([data-kind="external"], [data-kind="chat"], [data-kind="map"]) .vedit-link-icon {
+  background: var(--sub-bg);
+  color: var(--fg-muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.vedit-link-card[data-kind="empty"] .vedit-link-icon {
+  background: var(--warning-bg, #fff7e6);
+  color: var(--warning, #b45309);
+}
+.vedit-link-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.vedit-link-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.vedit-link-title[data-placeholder] {
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+.vedit-link-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--fg-subtle);
+}
+.vedit-link-kind {
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+.vedit-link-kind::after {
+  content: "·";
+  margin-left: 6px;
+  color: var(--fg-hint);
+}
+.vedit-link-url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.vedit-link-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--sub-bg);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--fg-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.vedit-link-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warning, #b45309);
+  font-weight: 500;
+}
+.vedit-link-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 1px;
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+}
+.vedit-link-card:hover .vedit-link-actions,
+.vedit-link-card:focus-within .vedit-link-actions {
+  opacity: 1;
+}
+a.vedit-icon-btn {
+  text-decoration: none;
+}
+
+/* Link dialog: anchored near the top so it grows downward as
+   suggestions come and go instead of re-centring under the cursor. */
+.vedit-modal-backdrop:has(> .vedit-link-modal) {
+  align-items: flex-start;
+  padding-top: 12vh;
+}
+.vedit-link-modal .vedit-modal-body {
+  overflow-y: auto;
+}
+.vedit-link-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.vedit-link-form .vedit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vedit-field-error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+.vedit-optional {
+  margin-left: 4px;
+  font-weight: 400;
+  color: var(--fg-hint);
+}
+/* Search box + results as one bordered combobox */
+.vedit-combo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: inset 0 0 0 1px var(--border-input), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.vedit-combo:focus-within {
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-mid);
+}
+.vedit-combo[data-error] {
+  box-shadow: inset 0 0 0 1px var(--danger), 0 0 0 3px var(--danger-border);
+}
+.vedit-combo-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-hint);
+}
+.vedit-combo-search > svg {
+  flex-shrink: 0;
+}
+.vedit-combo-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.vedit-combo-search input::placeholder {
+  color: var(--fg-hint);
+}
+.vedit-combo-results {
+  max-height: 288px;
+  padding: 4px 6px 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.vedit-combo-group {
+  padding: 10px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-hint);
+}
+.vedit-combo-empty {
+  padding: 22px 12px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-subtle);
+}
+.vedit-combo-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--sub-bg);
+  font-size: 11.5px;
+  color: var(--fg-hint);
+}
+.vedit-combo-foot kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-right: 3px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: var(--card-bg);
+  box-shadow: inset 0 0 0 1px var(--border), 0 1px 0 var(--border);
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--fg-subtle);
+}
+.vedit-combo-hint {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .vedit-combo-hint {
+    display: none;
+  }
+}
+.vedit-link-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--fg-subtle);
+  text-align: left;
+}
+.vedit-link-result > svg,
+.vedit-link-result > .vedit-type-icon {
+  flex-shrink: 0;
+}
+.vedit-link-result[data-active] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.vedit-link-result-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--fg);
+}
+.vedit-link-result[data-active] .vedit-link-result-title {
+  color: var(--accent-strong);
+}
+.vedit-link-result-status {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--sub-bg);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--fg-subtle);
+}
+.vedit-link-result-path {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-hint);
+}
+.vedit-link-result-enter {
+  flex-shrink: 0;
+  opacity: 0;
+}
+.vedit-link-result[data-active] .vedit-link-result-enter {
+  opacity: 1;
+}
+.vedit-type-icon {
+  display: inline-grid;
+  flex-shrink: 0;
+}
+.vedit-type-icon .vedit-svg {
+  width: 100%;
+  height: 100%;
+}
+/* The chosen target, once picked */
+.vedit-link-picked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: inset 0 0 0 1px var(--border-input), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.vedit-link-picked .vedit-link-icon,
+.vedit-link-picked .vedit-ref-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+}
+.vedit-link-picked:is([data-kind="external"], [data-kind="chat"], [data-kind="map"]) .vedit-link-icon {
+  background: var(--sub-bg);
+  color: var(--fg-muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.vedit-link-picked .vedit-link-title {
+  font-size: 14px;
+}
+.vedit-link-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
