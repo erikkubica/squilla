@@ -104,6 +104,7 @@ export default function FieldSchemaEditor({
   const [newFieldKey, setNewFieldKey] = useState("");
   const [newFieldType, setNewFieldType] = useState<NodeTypeField["type"]>("string");
   const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [newFieldWidth, setNewFieldWidth] = useState("100");
   const [newFieldOptions, setNewFieldOptions] = useState("");
   const [newFieldSubFields, setNewFieldSubFields] = useState<NodeTypeField[]>([]);
   const [newFieldNodeTypeFilter, setNewFieldNodeTypeFilter] = useState("");
@@ -153,6 +154,7 @@ export default function FieldSchemaEditor({
     setNewFieldPrepend("");
     setNewFieldAppend("");
     setNewFieldAllowedTypes("");
+    setNewFieldWidth("100");
     setAutoFieldKey(true);
     setShowAddField(false);
   }
@@ -174,6 +176,7 @@ export default function FieldSchemaEditor({
       type: newFieldType,
       required: newFieldRequired || undefined,
     };
+    if (newFieldWidth !== "100") sf.width = Number(newFieldWidth);
 
     if (newFieldPlaceholder.trim()) sf.placeholder = newFieldPlaceholder.trim();
     if (newFieldDefaultValue.trim()) sf.initialValue = newFieldDefaultValue.trim();
@@ -499,10 +502,26 @@ export default function FieldSchemaEditor({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">Type</Label>
                 <FieldTypePicker value={newFieldType} onValueChange={(v) => setNewFieldType(v as NodeTypeField["type"])} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Width</Label>
+                <Select value={newFieldWidth} onValueChange={setNewFieldWidth}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100">100% — full row</SelectItem>
+                    <SelectItem value="75">75%</SelectItem>
+                    <SelectItem value="66">66% (2/3)</SelectItem>
+                    <SelectItem value="50">50% (half)</SelectItem>
+                    <SelectItem value="33">33% (1/3)</SelectItem>
+                    <SelectItem value="25">25% (quarter)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground">&nbsp;</Label>
