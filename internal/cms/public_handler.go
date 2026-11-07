@@ -246,6 +246,9 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 	}
 
 	c.Locals(requestLocalsKey, buildRequestData(c, archive))
+	if archive != nil {
+		c.Locals(adminBarArchiveKey, archive)
+	}
 	blocks := parseBlocks(node.BlocksData)
 	h.resolveAssetRefsInBlocks(blocks)
 	renderedBlocks := h.renderPageBlocks(c, blocks, node.LanguageCode, h.pageNodeData(node))

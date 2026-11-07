@@ -73,7 +73,7 @@ func TestHandleRenderBodyEnd_AdminGetsBootstrap(t *testing.T) {
 	if !strings.Contains(got, `"nodeId":42`) {
 		t.Errorf("config does not embed node id: %q", got)
 	}
-	if !strings.Contains(got, `src="/admin/api/ext/visual-editor/static/editor.js"`) {
+	if !strings.Contains(got, `src="/admin/api/ext/visual-editor/static/editor.js?v=`) {
 		t.Errorf("missing module script tag: %q", got)
 	}
 }

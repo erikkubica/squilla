@@ -370,6 +370,8 @@ func (p *MyPlugin) handleRender(ctx context.Context, payload []byte) (*pb.EventR
 ```
 *Note: If multiple extensions subscribe, the kernel concatenates all `Result` byte arrays in priority order.*
 
+On public pages, front-end scripts you inject this way can add buttons to the kernel's admin bar with `window.Squilla.adminBar.add({id, label, href?, onClick?, position?})`. Use the queue-safe stub, fall back to your own UI when `adminBar.ready` isn't `true`, and offset fixed UI with `top: var(--squilla-admin-bar-h, 0)`. See `docs/extension_api.md` → *Front-end admin bar*.
+
 ### Kernel Lifecycle Events
 
 | Event Name | Trigger | Payload Keys |

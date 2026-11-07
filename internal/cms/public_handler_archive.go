@@ -31,6 +31,7 @@ type termArchive struct {
 	Taxonomy        string
 	TaxonomyLabel   string
 	Term            string
+	TermID          int
 	TermName        string
 	TermDescription string
 	BaseURL         string
@@ -109,6 +110,7 @@ func (h *PublicHandler) resolveTermArchive(path string) (*models.ContentNode, *t
 				Taxonomy:        taxSlug,
 				TaxonomyLabel:   tx.Label,
 				Term:            term.Slug,
+				TermID:          term.ID,
 				TermName:        term.Name,
 				TermDescription: term.Description,
 				BaseURL:         strings.TrimSuffix(listing.FullURL, "/"),

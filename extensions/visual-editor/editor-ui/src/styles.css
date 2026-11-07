@@ -108,7 +108,8 @@ button {
  * left edge drags it. */
 .vedit-panel {
   position: fixed;
-  top: 0;
+  /* Sit below the kernel's front-end admin bar when it is shown. */
+  top: var(--squilla-admin-bar-h, 0px);
   right: 0;
   bottom: 0;
   background: var(--vedit-bg);
