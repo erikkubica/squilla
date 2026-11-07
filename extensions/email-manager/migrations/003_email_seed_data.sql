@@ -74,7 +74,7 @@ SELECT 'Default Layout', NULL, '<!DOCTYPE html>
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           <tr>
             <td style="background-color:#2563eb; padding:24px 32px; text-align:center;">
-              <h1 style="margin:0; color:#ffffff; font-size:22px; font-weight:600; letter-spacing:-0.02em;">{{.site.site_name}}</h1>
+              <h1 style="margin:0; color:#ffffff; font-size:22px; font-weight:600; letter-spacing:-0.02em;">{{.site.name}}</h1>
             </td>
           </tr>
           <tr>
@@ -84,7 +84,7 @@ SELECT 'Default Layout', NULL, '<!DOCTYPE html>
           </tr>
           <tr>
             <td style="background-color:#f8fafc; padding:20px 32px; text-align:center; border-top:1px solid #e2e8f0;">
-              <p style="margin:0; color:#94a3b8; font-size:13px;">&copy; {{.site.site_name}}</p>
+              <p style="margin:0; color:#94a3b8; font-size:13px;">&copy; {{.site.name}}</p>
             </td>
           </tr>
         </table>

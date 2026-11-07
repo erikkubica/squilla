@@ -29,7 +29,11 @@ interface BaseProps {
   disabled?: boolean;
   /** Optional ordering override. Defaults to language sort_order then name. */
   sort?: (a: Language, b: Language) => number;
-  /** When true, only languages with is_active=true are listed. Default true. */
+  /**
+   * When true, languages explicitly marked is_active=false are hidden.
+   * Entries without the flag (e.g. synthetic "Universal" options built by
+   * extensions) are kept. Default true.
+   */
   activeOnly?: boolean;
 }
 
@@ -54,9 +58,13 @@ export function LanguageSelect(props: Props): React.ReactElement | null {
   const { languages, className, triggerClassName, disabled, sort, activeOnly = true } = props;
 
   const visible = languages
-    .filter((l) => (activeOnly ? l.is_active : true))
+    .filter((l) => (activeOnly ? l.is_active !== false : true))
     .slice()
-    .sort(sort || ((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)));
+    .sort(
+      sort ||
+        // Entries without sort_order (synthetic options) sort first.
+        ((a, b) => (a.sort_order ?? -1) - (b.sort_order ?? -1) || a.name.localeCompare(b.name)),
+    );
 
   if (props.mode === "add") {
     const taken = new Set(props.existing);

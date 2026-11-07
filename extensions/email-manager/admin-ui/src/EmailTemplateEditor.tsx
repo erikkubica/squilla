@@ -22,6 +22,7 @@ import {
   updateEmailTemplate,
   getLanguages,
 } from "@squilla/api";
+import { useSiteSettingsForPreview, withSiteContext } from "./previewData";
 
 interface EmailTemplate {
   id: number;
@@ -109,6 +110,7 @@ export default function EmailTemplateEditor() {
   const [formTestData, setFormTestData] = useState("{}");
 
   const [autoSlug, setAutoSlug] = useState(!isEdit);
+  const previewSite = useSiteSettingsForPreview();
 
   // The languages prop for LanguagePicker. Includes a synthetic "Universal"
   // entry so operators can fall back to the language-agnostic template.
@@ -255,7 +257,7 @@ export default function EmailTemplateEditor() {
 
   function getPreviewHtml(): string {
     try {
-      const testData = JSON.parse(formTestData);
+      const testData = withSiteContext(JSON.parse(formTestData) || {}, previewSite);
       const body = renderPreview(formBody, testData);
       if (baseLayout) {
         const wrapped = baseLayout.replace(/\{\{\s*\.email_body\s*\}\}/g, body);
@@ -283,7 +285,7 @@ export default function EmailTemplateEditor() {
         </Label>
         <Input
           id="tpl-subject"
-          placeholder="e.g. Welcome to {{.site_name}}"
+          placeholder="e.g. Welcome to {{.site.name}}"
           value={formSubject}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSubject(e.target.value)}
           className="rounded-lg border-border"
@@ -296,7 +298,7 @@ export default function EmailTemplateEditor() {
           onChange={setFormBody}
           height="400px"
           placeholder={
-            '<div style="font-family: sans-serif;">\n  <h2>Hello {{.user_full_name}}</h2>\n  <p>Welcome to {{.site_name}}</p>\n</div>'
+            '<div style="font-family: sans-serif;">\n  <h2>Hello {{.user.full_name}}</h2>\n  <p>Welcome to {{.site.name}}</p>\n</div>'
           }
         />
       </div>
@@ -310,7 +312,7 @@ export default function EmailTemplateEditor() {
         value={formTestData}
         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormTestData(e.target.value)}
         className="min-h-[300px] font-mono text-sm rounded-lg border-border"
-        placeholder='{"user_full_name": "John", "site_name": "My Site"}'
+        placeholder='{"user": {"full_name": "Jane Doe"}, "site": {"name": "My Site"}}'
       />
       <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
         Sample data used for the preview tab. Must be valid JSON.

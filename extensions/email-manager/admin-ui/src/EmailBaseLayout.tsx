@@ -36,6 +36,7 @@ import {
 } from "@squilla/ui";
 import { toast } from "sonner";
 import { getLanguages } from "@squilla/api";
+import { useSiteSettingsForPreview, withSiteContext } from "./previewData";
 
 interface EmailLayout {
   id: number;
@@ -117,7 +118,7 @@ const DEFAULT_LAYOUT = `<!DOCTYPE html>
           <!-- Header -->
           <tr>
             <td style="background-color:#2563eb; padding:24px 32px; text-align:center;">
-              <h1 style="margin:0; color:#ffffff; font-size:22px; font-weight:600; letter-spacing:-0.02em;">{{.site.site_name}}</h1>
+              <h1 style="margin:0; color:#ffffff; font-size:22px; font-weight:600; letter-spacing:-0.02em;">{{.site.name}}</h1>
             </td>
           </tr>
           <!-- Content -->
@@ -129,7 +130,7 @@ const DEFAULT_LAYOUT = `<!DOCTYPE html>
           <!-- Footer -->
           <tr>
             <td style="background-color:#f8fafc; padding:20px 32px; text-align:center; border-top:1px solid #e2e8f0;">
-              <p style="margin:0; color:#94a3b8; font-size:13px;">&copy; {{.site.site_name}}</p>
+              <p style="margin:0; color:#94a3b8; font-size:13px;">&copy; {{.site.name}}</p>
             </td>
           </tr>
         </table>
@@ -202,6 +203,7 @@ export default function EmailBaseLayout() {
   const [editing, setEditing] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const previewSite = useSiteSettingsForPreview();
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -210,7 +212,6 @@ export default function EmailBaseLayout() {
   const [formTestData, setFormTestData] = useState<string>(
     JSON.stringify(
       {
-        site: { site_name: "My Site", site_url: "#" },
         user: { full_name: "Jane Doe", email: "jane@example.com" },
         recipient: { full_name: "Jane Doe", email: "jane@example.com" },
       },
@@ -367,17 +368,17 @@ export default function EmailBaseLayout() {
     }
     const sampleData: Record<string, any> = {
       email_body: SAMPLE_EMAIL_BODY,
-      site: { name: "My Site", url: "#", site_name: "My Site", site_url: "#" },
       user: { full_name: "Jane Doe", name: "Jane Doe", email: "jane@example.com" },
       recipient: { full_name: "Jane Doe", name: "Jane Doe", email: "jane@example.com" },
       ...parsed,
     };
+    const previewData = withSiteContext(sampleData, previewSite, { name: "My Site", url: "#" });
     return formBody.replace(
       /\{\{\s*\.([\w.]+)(?:\s*\|\s*(?:raw|safeHTML|safeURL))?\s*\}\}/g,
       (_match, path: string) => {
         const value = path
           .split(".")
-          .reduce<unknown>((acc, key) => (acc == null ? undefined : (acc as Record<string, unknown>)[key]), sampleData);
+          .reduce<unknown>((acc, key) => (acc == null ? undefined : (acc as Record<string, unknown>)[key]), previewData);
         return value !== undefined && value !== null ? String(value) : `{{.${path}}}`;
       },
     );
@@ -462,7 +463,7 @@ export default function EmailBaseLayout() {
           value={formTestData}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormTestData(e.target.value)}
           className="min-h-[300px] font-mono text-sm rounded-lg border-border"
-          placeholder='{"site": {"site_name": "My Site"}}'
+          placeholder='{"site": {"name": "My Site", "url": "https://example.com"}}'
         />
         <p className="text-[11px]" style={{ color: "var(--fg-subtle)" }}>
           Sample variables used for the preview tab. Must be valid JSON.
