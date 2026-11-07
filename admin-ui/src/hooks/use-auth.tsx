@@ -21,6 +21,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Re-fetches /me (or applies a fresh /me payload) so the chrome reflects profile edits. */
+  refreshUser: (next?: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -84,6 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate("/admin/login", { replace: true });
   }, [navigate]);
 
+  const refreshUser = useCallback(async (next?: User) => {
+    setUser(next ?? (await getMe()));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -92,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        refreshUser,
       }}
     >
       {children}

@@ -108,6 +108,21 @@ func (s *SessionService) DeleteSession(token string) error {
 	return nil
 }
 
+// DeleteOtherSessions removes every session of userID except the one
+// identified by keepToken. Used after a self-service password change so
+// other devices (including any stolen session) are signed out while the
+// caller stays logged in.
+func (s *SessionService) DeleteOtherSessions(userID int, keepToken string) error {
+	q := s.db.Where("user_id = ?", userID)
+	if keepToken != "" {
+		q = q.Where("token_hash <> ?", hashToken(keepToken))
+	}
+	if err := q.Delete(&models.Session{}).Error; err != nil {
+		return fmt.Errorf("failed to delete other sessions: %w", err)
+	}
+	return nil
+}
+
 // CleanExpired removes all sessions that have passed their expiry time.
 // This is intended to be called periodically by a background cron job.
 func (s *SessionService) CleanExpired() error {

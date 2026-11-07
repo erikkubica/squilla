@@ -24,6 +24,7 @@ import { SduiLayoutEditorPage } from "@/pages/sdui-layout-editor";
 import { SduiLayoutBlockEditorPage } from "@/pages/sdui-layout-block-editor";
 import { SduiMenuEditorPage } from "@/pages/sdui-menu-editor";
 import { SduiUserEditorPage } from "@/pages/sdui-user-editor";
+import { SduiProfilePage } from "@/pages/sdui-profile";
 import { SduiRoleEditorPage } from "@/pages/sdui-role-editor";
 import { SduiTermEditorPage } from "@/pages/sdui-term-editor";
 import { SduiTaxonomyEditorPage } from "@/pages/sdui-taxonomy-editor";
@@ -129,6 +130,9 @@ function AppRoutes() {
 
       {/* Dashboard */}
       <Route path="/admin/dashboard" element={<ProtectedRoute><SduiDashboardPage /></ProtectedRoute>} />
+
+      {/* Own account — any signed-in user, no capability needed */}
+      <Route path="/admin/profile" element={<ProtectedRoute><SduiProfilePage /></ProtectedRoute>} />
 
       {/* Content lists */}
       <Route path="/admin/content/:nodeType" element={<ProtectedRoute><DynamicNodeList /></ProtectedRoute>} />

@@ -17,11 +17,18 @@ import {
   ChevronRight,
   ExternalLink,
   Home,
-  Bell,
   RefreshCw,
   Globe,
+  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ---------------------------------------------------------------------------
 // Icon resolution — look up any icon name against the full lucide-react
@@ -67,6 +74,7 @@ const sectionBreadcrumbLabels: Record<string, string> = {
   languages: "Languages",
   settings: "Settings",
   "mcp-tokens": "MCP Tokens",
+  profile: "My Profile",
   ext: "Extensions",
   sdui: "SDUI",
 };
@@ -423,6 +431,7 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { data: boot } = useBoot();
   const { languages, currentCode, setCurrentCode } = useAdminLanguage();
@@ -464,8 +473,8 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
 
   // Document title — "{last crumb} — {site title}", falling back to
   // "{site title} Admin" on routes without breadcrumbs (e.g. dashboard).
-  // SduiAdminShell is the actual shell rendered by the SDUI pages; the
-  // sibling admin-layout.tsx covers the legacy non-SDUI routes.
+  // SduiAdminShell is the only admin chrome; every authenticated page
+  // renders inside it.
   const branding = useBranding();
   useEffect(() => {
     const last = breadcrumbs[breadcrumbs.length - 1];
@@ -504,6 +513,13 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
   const handleLogout = useCallback(async () => {
     await logout();
   }, [logout]);
+
+  const userDisplayName =
+    user?.full_name || (user?.email ? user.email.split("@")[0] : "Admin");
+  const userInitial = (user?.full_name || user?.email || "A").charAt(0).toUpperCase();
+  const userRoleName =
+    user?.role_name ||
+    (typeof user?.role === "object" ? user.role.name : user?.role ? prettify(user.role) : "");
 
   return (
     <div className="relative flex h-screen overflow-hidden" style={{background: "var(--app-bg)"}}>
@@ -718,33 +734,65 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
               <span className="hidden xl:inline">Visit site</span>
             </button>
 
-            <button
-              data-slot="topbar-action"
-              className="flex items-center justify-center"
-              style={{ width: 32, height: 32, borderRadius: 7, color: "var(--fg-muted)", background: "transparent", border: "none" }}
-              aria-label="Notifications"
-            >
-              <Bell size={16} />
-            </button>
-
             <div style={{ width: 1, height: 22, background: "var(--border)", margin: "0 8px" }} />
 
-            <button
-              data-slot="topbar-action"
-              className="flex items-center"
-              style={{ height: 34, padding: "0 10px 0 4px", borderRadius: 17, gap: 8, background: "transparent", border: "none" }}
-              title={user?.email}
-            >
-              <span
-                className="grid place-items-center shrink-0"
-                style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--accent)", color: "var(--accent-fg)", fontSize: 12, fontWeight: 600 }}
-              >
-                {(user?.full_name || user?.email || "A").charAt(0).toUpperCase()}
-              </span>
-              <span className="hidden sm:inline" style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>
-                {user?.full_name || (user?.email ? user.email.split("@")[0] : "Admin")}
-              </span>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  data-slot="topbar-action"
+                  className="flex items-center"
+                  style={{ height: 34, padding: "0 8px 0 4px", borderRadius: 17, gap: 8, background: "transparent", border: "none" }}
+                  title={user?.email}
+                  aria-label={`Account menu for ${userDisplayName}`}
+                >
+                  <span
+                    className="grid place-items-center shrink-0"
+                    style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--accent)", color: "var(--accent-fg)", fontSize: 12, fontWeight: 600 }}
+                    aria-hidden="true"
+                  >
+                    {userInitial}
+                  </span>
+                  <span className="hidden sm:inline" style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>
+                    {userDisplayName}
+                  </span>
+                  <ChevronDown size={13} style={{ color: "var(--fg-subtle)", flexShrink: 0 }} aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" sideOffset={6} className="w-60">
+                <div style={{ padding: "8px 8px 10px" }}>
+                  <p className="truncate" style={{ fontSize: 13.5, fontWeight: 600, color: "var(--fg)", margin: 0 }}>
+                    {user?.full_name || userDisplayName}
+                  </p>
+                  {user?.email && (
+                    <p className="truncate" style={{ fontSize: 12.5, color: "var(--fg-muted)", margin: "2px 0 0" }}>
+                      {user.email}
+                    </p>
+                  )}
+                  {userRoleName && (
+                    <span
+                      className="inline-block"
+                      style={{ marginTop: 6, fontSize: 11.5, fontWeight: 500, padding: "1px 8px", borderRadius: 10, background: "var(--sub-bg)", color: "var(--fg-muted)" }}
+                    >
+                      {userRoleName}
+                    </span>
+                  )}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navigate("/admin/profile")}>
+                  <UserRound />
+                  My profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => window.open("/", "_blank", "noopener")}>
+                  <ExternalLink />
+                  Visit site
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onSelect={() => void handleLogout()}>
+                  <LogOut />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
