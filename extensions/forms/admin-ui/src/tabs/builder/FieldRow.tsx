@@ -1,10 +1,44 @@
-import React, { useRef, useState } from "react";
-import { GripVertical, Copy, Trash2 } from "@squilla/icons";
+import React, { useState } from "react";
+import {
+  AlignLeft,
+  ArrowDown,
+  ArrowUp,
+  AtSign,
+  Calendar,
+  CheckSquare,
+  ChevronDown,
+  CircleDot,
+  Copy,
+  EyeOff,
+  Hash,
+  Link2,
+  List,
+  Paperclip,
+  Phone,
+  ShieldCheck,
+  SlidersHorizontal,
+  Trash2,
+  Type,
+} from "@squilla/icons";
 import { typeLabelMap } from "./types";
-import { normalizeOptions } from "./key-utils";
 import FieldEditor from "./FieldEditor";
 
-const { AccordionRow, Chip, Button } = (window as any).__SQUILLA_SHARED__.ui;
+const TYPE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+  text: Type,
+  email: AtSign,
+  tel: Phone,
+  url: Link2,
+  number: Hash,
+  range: SlidersHorizontal,
+  textarea: AlignLeft,
+  select: List,
+  checkbox: CheckSquare,
+  radio: CircleDot,
+  date: Calendar,
+  file: Paperclip,
+  hidden: EyeOff,
+  gdpr_consent: ShieldCheck,
+};
 
 interface FieldRowProps {
   field: any;
@@ -22,6 +56,7 @@ interface FieldRowProps {
   allFields?: any[];
 }
 
+/** One form field, drawn exactly like a page-builder block card. */
 export default function FieldRow({
   field,
   index,
@@ -37,111 +72,109 @@ export default function FieldRow({
   updateField,
   allFields = [],
 }: FieldRowProps) {
-  const dragRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-
-  const normalizedOpts = normalizeOptions(field.options);
-  const optCount = normalizedOpts.length;
-  const hasOptions =
-    (field.type === "select" || field.type === "radio") && optCount > 0;
-
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("text/plain", String(index));
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = () => setIsDragOver(false);
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const from = parseInt(e.dataTransfer.getData("text/plain"), 10);
-    if (!isNaN(from) && from !== index) onReorder(from, index);
-  };
-
-  const handleDragEnd = () => setIsDragOver(false);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowUp") { e.preventDefault(); onMoveUp(); }
-    if (e.key === "ArrowDown") { e.preventDefault(); onMoveDown(); }
-  };
-
-  const headerLeft = (
-    <div
-      ref={dragRef}
-      draggable
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      onDragEnd={handleDragEnd}
-      className={`flex items-center gap-2 flex-1 min-w-0 ${isDragOver ? "opacity-50" : ""}`}
-    >
-      <button
-        type="button"
-        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded flex-shrink-0 border-0 bg-transparent p-0"
-        aria-label="Drag to reorder"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        disabled={isFirst && isLast}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <span className="text-[13px] font-medium text-foreground truncate">
-        {field.label || "Untitled Field"}
-      </span>
-      <span className="text-[11px] text-muted-foreground font-mono shrink-0">{field.id}</span>
-      <Chip>{typeLabelMap[field.type] || field.type}</Chip>
-      {field.required && (
-        <span className="text-[9px] text-rose-500 font-bold shrink-0">REQ</span>
-      )}
-      {field.display_when &&
-        (field.display_when.all?.length || field.display_when.any?.length) ? (
-        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">
-          COND
-        </span>
-      ) : null}
-    </div>
-  );
-
-  const headerRight = (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 text-muted-foreground hover:text-muted-foreground"
-        onClick={onDuplicate}
-        title="Duplicate field"
-      >
-        <Copy className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 text-rose-400 hover:text-rose-600"
-        onClick={onRemove}
-        title="Remove field"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
-    </>
-  );
+  const Icon = TYPE_ICONS[field.type] || Type;
+  const conditional = !!(field.display_when && (field.display_when.all?.length || field.display_when.any?.length));
+  const typeLabel = typeLabelMap[field.type] || field.type;
 
   return (
-    <AccordionRow
-      headerLeft={headerLeft}
-      headerRight={headerRight}
-      open={isEditing}
-      onToggle={onToggleEdit}
+    <div
+      data-slot="block-card"
+      data-state={isEditing ? "open" : "closed"}
+      draggable={!isEditing}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", String(index));
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setIsDragOver(true);
+      }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const from = parseInt(e.dataTransfer.getData("text/plain"), 10);
+        if (!isNaN(from) && from !== index) onReorder(from, index);
+      }}
+      onDragEnd={() => setIsDragOver(false)}
+      style={isDragOver ? { borderColor: "var(--accent)", boxShadow: "0 0 0 3px var(--accent-weak)" } : undefined}
     >
-      <FieldEditor field={field} updateField={updateField} allFields={allFields} />
-    </AccordionRow>
+      <div data-slot="block-card-header" onClick={onToggleEdit}>
+        <button
+          type="button"
+          className="flex flex-1 items-center min-w-0 text-left"
+          style={{ gap: 10, background: "transparent", border: 0, padding: 0 }}
+          aria-expanded={isEditing}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleEdit();
+          }}
+        >
+          <span data-slot="item-index">{index + 1}</span>
+          <span data-slot="block-icon" aria-hidden="true">
+            <Icon size={15} />
+          </span>
+          <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
+            <span className="flex items-center min-w-0" style={{ gap: 8 }}>
+              <span data-slot="block-card-title">
+                {field.label || "Untitled field"}
+                {field.required && <span className="fm-req" aria-hidden="true"> *</span>}
+              </span>
+              {field.required && (
+                <span className="fm-tag shrink-0" data-tone="danger">
+                  Required
+                </span>
+              )}
+              {conditional && (
+                <span className="fm-tag shrink-0" data-tone="warn">
+                  Conditional
+                </span>
+              )}
+            </span>
+            <span data-slot="block-card-meta" className="truncate" style={{ fontSize: 12.5, color: "var(--fg-muted)" }}>
+              {typeLabel}
+              {field.id ? (
+                <>
+                  {" · "}
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{field.id}</span>
+                </>
+              ) : null}
+            </span>
+          </span>
+        </button>
+        <div data-slot="block-card-actions" onClick={(e) => e.stopPropagation()}>
+          <button type="button" data-slot="icon-button" onClick={onMoveUp} disabled={isFirst} title="Move up" aria-label="Move field up">
+            <ArrowUp size={15} />
+          </button>
+          <button type="button" data-slot="icon-button" onClick={onMoveDown} disabled={isLast} title="Move down" aria-label="Move field down">
+            <ArrowDown size={15} />
+          </button>
+          <button type="button" data-slot="icon-button" data-narrow-hide onClick={onDuplicate} title="Duplicate field" aria-label="Duplicate field">
+            <Copy size={15} />
+          </button>
+          <button type="button" data-slot="icon-button" data-tone="danger" onClick={onRemove} title="Remove field" aria-label="Remove field">
+            <Trash2 size={15} />
+          </button>
+          <span data-slot="block-card-divider" aria-hidden />
+          <button
+            type="button"
+            data-slot="icon-button"
+            onClick={onToggleEdit}
+            title={isEditing ? "Collapse" : "Expand"}
+            aria-label={isEditing ? "Collapse field" : "Expand field"}
+          >
+            <ChevronDown size={17} className="transition-transform" style={{ transform: isEditing ? "none" : "rotate(-90deg)" }} />
+          </button>
+        </div>
+      </div>
+
+      {isEditing && (
+        <div data-slot="block-card-body">
+          <FieldEditor field={field} updateField={updateField} allFields={allFields} />
+        </div>
+      )}
+    </div>
   );
 }

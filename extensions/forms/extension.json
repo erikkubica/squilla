@@ -59,7 +59,11 @@
       "icon": "FormInput",
       "section": "content",
       "position": "4",
-      "required_capability": "manage_forms"
+      "required_capability": "manage_forms",
+      "children": [
+        { "label": "All forms", "route": "/admin/ext/forms" },
+        { "label": "Submissions", "route": "/admin/ext/forms/submissions" }
+      ]
     },
     "field_types": [
       {

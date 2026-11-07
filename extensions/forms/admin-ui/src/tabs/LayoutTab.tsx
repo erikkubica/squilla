@@ -59,30 +59,15 @@ export default function LayoutTab({ form, setForm }: any) {
   );
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3
-            className="font-semibold"
-            style={{ fontSize: 13, color: "var(--fg)", margin: 0 }}
-          >
-            Form Layout
-          </h3>
-          <p
-            style={{
-              fontSize: 11,
-              color: "var(--fg-muted)",
-              margin: 0,
-              marginTop: 2,
-            }}
-          >
-            HTML + Go templates
-          </p>
-        </div>
+    <div className="fm-ed" style={{ gap: 14 }}>
+      <div className="fm-sec-head" style={{ alignItems: "center", flexWrap: "wrap" }}>
+        <p className="fm-hint">
+          The HTML around the fields, written with Go templates. Start from a ready layout or write your own.
+        </p>
         <div className="flex items-center gap-2">
           <div className="w-48">
             <Select value={starterStyle} onValueChange={handleStarterChange}>
-              <SelectTrigger className="h-7 text-[12px]">
+              <SelectTrigger>
                 <SelectValue placeholder="Starter template…" />
               </SelectTrigger>
               <SelectContent>
@@ -94,14 +79,9 @@ export default function LayoutTab({ form, setForm }: any) {
               </SelectContent>
             </Select>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleReset}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset
-          </Button>
+          <button type="button" data-slot="text-action" onClick={handleReset}>
+            <RotateCcw size={14} /> Reset
+          </button>
         </div>
       </div>
       <CodeWindow
@@ -111,23 +91,14 @@ export default function LayoutTab({ form, setForm }: any) {
         height="500px"
       />
 
-      <div className="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs border border-blue-100">
-        <p className="font-semibold mb-2">Template Variables</p>
-        <div className="grid gap-1 sm:grid-cols-3 font-mono text-[11px]">
-          <p>
-            <span className="bg-blue-100 px-1 rounded">{"{{.form.name}}"}</span>{" "}
-            Form metadata (id, name, slug)
-          </p>
-          <p>
-            <span className="bg-blue-100 px-1 rounded">{"{{.fields.email.label}}"}</span>{" "}
-            Field by id
-          </p>
-          <p>
-            <span className="bg-blue-100 px-1 rounded">{"{{range .fields_list}}"}</span>{" "}
-            Iterate fields in order
-          </p>
-        </div>
-      </div>
+      <dl className="fm-ref">
+        <dt>{"{{.form.name}}"}</dt>
+        <dd>Form details: id, name, slug</dd>
+        <dt>{"{{.fields.email.label}}"}</dt>
+        <dd>One field by its key</dd>
+        <dt>{"{{range .fields_list}}"}</dt>
+        <dd>Every field, in order</dd>
+      </dl>
     </div>
   );
 }

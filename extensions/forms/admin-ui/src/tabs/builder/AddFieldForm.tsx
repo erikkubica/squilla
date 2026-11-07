@@ -5,9 +5,6 @@ import { keyify } from "./key-utils";
 
 const {
   Button,
-  Card,
-  CardContent,
-  SectionHeader,
   Input,
   Label,
   Select,
@@ -108,11 +105,16 @@ export default function AddFieldForm({
   };
 
   return (
-    <Card className="rounded-xl border border-border shadow-sm">
-      <SectionHeader title="Add New Field" />
-      <CardContent className="p-4 space-y-4">
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Field Label</Label>
+    <div data-slot="block-card" data-state="open">
+      <div data-slot="block-card-header" style={{ cursor: "default" }}>
+        <span data-slot="block-icon" aria-hidden="true">
+          <Plus size={15} />
+        </span>
+        <span data-slot="block-card-title">New field</span>
+      </div>
+      <div data-slot="block-card-body" className="fm-ed" style={{ gap: 20 }}>
+        <div className="fm-field">
+          <Label>Label</Label>
           <Input
             placeholder="e.g. Your Email"
             value={newFieldLabel}
@@ -120,10 +122,10 @@ export default function AddFieldForm({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">
-            Field Key{" "}
-            <span className="font-normal text-muted-foreground">(used in templates)</span>
+        <div className="fm-field">
+          <Label>
+            Key{" "}
+            <span className="font-normal text-muted-foreground">(used in emails and exports)</span>
           </Label>
           <Input
             placeholder="e.g. user_email"
@@ -136,8 +138,8 @@ export default function AddFieldForm({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Field Type</Label>
+        <div className="fm-field">
+          <Label>Type</Label>
           <Select value={newFieldType} onValueChange={(val: string) => setNewFieldType(val)}>
             <SelectTrigger className="bg-card">
               <SelectValue />
@@ -154,15 +156,15 @@ export default function AddFieldForm({
 
         {(newFieldType === "select" || newFieldType === "radio") && (
           <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">Options</Label>
+            <Label>Options</Label>
             {newFieldOptions.length > 0 && (
-              <div className="grid grid-cols-[1fr_1fr_auto] gap-1 text-[9px] text-muted-foreground uppercase px-0.5">
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-1 text-[12px] text-muted-foreground px-0.5">
                 <span>Label</span>
                 <span>Value</span>
                 <span className="w-6" />
               </div>
             )}
-            <div className="space-y-1.5">
+            <div className="fm-field">
               {newFieldOptions.map((opt: OptionPair, optIdx: number) => (
                 <div key={optIdx} className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
                   <Input
@@ -182,7 +184,7 @@ export default function AddFieldForm({
                     className="text-xs font-mono"
                     placeholder="value"
                   />
-                  <Button
+                  <Button type="button"
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
@@ -196,7 +198,7 @@ export default function AddFieldForm({
             <button
               type="button"
               onClick={addNewOption}
-              className="text-[11px] text-foreground hover:text-foreground font-medium flex items-center gap-1"
+              className="text-[13px] text-foreground hover:text-foreground font-medium flex items-center gap-1"
             >
               <Plus className="h-3 w-3" /> Add option
             </button>
@@ -204,8 +206,8 @@ export default function AddFieldForm({
         )}
 
         {newFieldType !== "hidden" && newFieldType !== "gdpr_consent" && (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Placeholder</Label>
+          <div className="fm-field">
+            <Label>Placeholder</Label>
             <Input
               placeholder="Optional placeholder text"
               value={newFieldPlaceholder}
@@ -215,8 +217,8 @@ export default function AddFieldForm({
         )}
 
         {newFieldType === "gdpr_consent" ? (
-          <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-xs border border-amber-100">
-            <p className="font-semibold">GDPR Consent Field</p>
+          <div className="fm-hint" style={{ padding: "10px 12px", borderRadius: 8, background: "var(--sub-bg)" }}>
+            <p className="font-semibold" style={{ color: "var(--fg)" }}>Consent checkbox</p>
             <p className="opacity-80 mt-1">
               This field will be automatically marked as required. You can customize
               the consent text after adding the field.
@@ -224,7 +226,7 @@ export default function AddFieldForm({
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-muted-foreground">Required</Label>
+            <Label>Required</Label>
             <Switch
               checked={newFieldRequired}
               onCheckedChange={(checked: boolean) => setNewFieldRequired(checked)}
@@ -232,15 +234,15 @@ export default function AddFieldForm({
           </div>
         )}
 
-        <div className="flex gap-2 pt-2">
-          <Button size="sm" className="flex-1" onClick={handleAddField}>
-            Add Field
+        <div className="flex gap-2">
+          <Button type="button" onClick={handleAddField}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" /> Add field
           </Button>
-          <Button size="sm" variant="outline" className="flex-1" onClick={onCancel}>
+          <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

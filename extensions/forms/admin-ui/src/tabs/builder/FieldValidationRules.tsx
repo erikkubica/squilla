@@ -18,10 +18,10 @@ export default function FieldValidationRules({
 
   if (isText) {
     return (
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase">
-            Min Length
+      <div className="fm-grid2">
+        <div className="fm-field">
+          <Label>
+            Min length
           </Label>
           <Input
             type="number"
@@ -34,13 +34,13 @@ export default function FieldValidationRules({
                   : undefined,
               })
             }
-            className="h-8 text-sm"
+           
             placeholder="No minimum"
           />
         </div>
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase">
-            Max Length
+        <div className="fm-field">
+          <Label>
+            Max length
           </Label>
           <Input
             type="number"
@@ -53,7 +53,7 @@ export default function FieldValidationRules({
                   : undefined,
               })
             }
-            className="h-8 text-sm"
+           
             placeholder="No maximum"
           />
         </div>
@@ -64,8 +64,8 @@ export default function FieldValidationRules({
   if (isNumeric) {
     return (
       <div className="grid gap-2 sm:grid-cols-3">
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase">Min</Label>
+        <div className="fm-field">
+          <Label>Min</Label>
           <Input
             type="number"
             value={field.min ?? ""}
@@ -74,12 +74,12 @@ export default function FieldValidationRules({
                 min: e.target.value ? Number(e.target.value) : undefined,
               })
             }
-            className="h-8 text-sm"
+           
             placeholder="No min"
           />
         </div>
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase">Max</Label>
+        <div className="fm-field">
+          <Label>Max</Label>
           <Input
             type="number"
             value={field.max ?? ""}
@@ -88,12 +88,12 @@ export default function FieldValidationRules({
                 max: e.target.value ? Number(e.target.value) : undefined,
               })
             }
-            className="h-8 text-sm"
+           
             placeholder="No max"
           />
         </div>
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase">Step</Label>
+        <div className="fm-field">
+          <Label>Step</Label>
           <Input
             type="number"
             min={0.01}
@@ -102,7 +102,7 @@ export default function FieldValidationRules({
             onChange={(e: any) =>
               updateField({ step: e.target.value ? Number(e.target.value) : 1 })
             }
-            className="h-8 text-sm"
+           
             placeholder="1"
           />
         </div>

@@ -10,7 +10,7 @@ import {
   Sun,
 } from "@squilla/icons";
 
-const { Button, Card, CardContent, SectionHeader } =
+const { Button } =
   (window as any).__SQUILLA_SHARED__.ui;
 
 type DeviceMode = "desktop" | "tablet" | "phone";
@@ -168,11 +168,11 @@ export default function PreviewTab({ form }: any) {
   );
 
   return (
-    <Card className="rounded-xl border border-border shadow-sm">
-      <SectionHeader
-        title={`Live Preview${debouncing && !loading ? " — Auto-updating…" : ""}`}
-        icon={<Eye className="h-4 w-4 text-foreground" />}
-        actions={
+    <div className="fm-ed" style={{ gap: 14 }}>
+      <div className="fm-sec-head" style={{ alignItems: "center", flexWrap: "wrap" }}>
+        <p className="fm-hint">
+          How the form looks on a page, filled with sample answers. Sending is switched off here.
+        </p>
           <div className="flex items-center gap-2">
             {deviceToggle}
             <button
@@ -187,16 +187,13 @@ export default function PreviewTab({ form }: any) {
             >
               {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={loading}>
-              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
+            <button type="button" data-slot="text-action" onClick={handleManualRefresh} disabled={loading}>
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
+            </button>
           </div>
-        }
-      />
+      </div>
 
-      <CardContent className="p-0">
-        <div className="min-h-[500px] bg-muted">
+        <div className="min-h-[500px] bg-muted overflow-hidden" style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
           {loading && !previewHtml && (
             <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
               <RefreshCw className="h-8 w-8 animate-spin mb-2" />
@@ -209,7 +206,7 @@ export default function PreviewTab({ form }: any) {
               <AlertCircle className="h-10 w-10 mb-2" />
               <p className="font-semibold">Template Error</p>
               <p className="text-sm opacity-80 max-w-md mt-2">{error}</p>
-              <Button
+              <Button type="button"
                 variant="outline"
                 className="mt-4 border-red-200 text-red-600 hover:bg-muted"
                 onClick={handleManualRefresh}
@@ -253,19 +250,6 @@ export default function PreviewTab({ form }: any) {
           )}
         </div>
 
-        <div className="p-4 border-t border-border">
-          <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-xs border border-amber-100 flex gap-3">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold mb-0.5">Simulated Preview Data</p>
-              <p>
-                This preview uses generated fake values. Interactive features like form
-                submission are disabled.
-              </p>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

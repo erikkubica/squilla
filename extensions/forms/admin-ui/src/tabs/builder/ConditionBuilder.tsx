@@ -72,13 +72,13 @@ export default function ConditionBuilder({
     <div className={`space-y-2 ${indentClass}`}>
       {/* Mode toggle (+ remove-group button when nested) */}
       <div className="flex items-center gap-1">
-        <span className="text-[10px] text-muted-foreground uppercase font-medium mr-1">Match</span>
+        <span className="text-[12.5px] text-muted-foreground font-medium mr-1">Match</span>
         {(["all", "any"] as const).map((m) => (
           <button
             key={m}
             type="button"
             onClick={() => setMode(m)}
-            className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-[12.5px] font-semibold border transition-colors cursor-pointer ${
               mode === m
                 ? "bg-primary text-white border-primary"
                 : "bg-card text-muted-foreground border-border hover:border-border"
@@ -91,7 +91,7 @@ export default function ConditionBuilder({
           <button
             type="button"
             onClick={onRemoveGroup}
-            className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
+            className="ml-auto flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
             aria-label="Remove group"
           >
             <X className="h-3 w-3" />
@@ -129,7 +129,7 @@ export default function ConditionBuilder({
         <button
           type="button"
           onClick={addCondition}
-          className="flex items-center gap-1 text-[10px] text-foreground hover:text-foreground font-medium cursor-pointer"
+          className="flex items-center gap-1 text-[12.5px] text-foreground hover:text-foreground font-medium cursor-pointer"
         >
           <Plus className="h-3 w-3" />
           Add condition
@@ -138,7 +138,7 @@ export default function ConditionBuilder({
           <button
             type="button"
             onClick={addGroup}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
+            className="flex items-center gap-1 text-[12.5px] text-muted-foreground hover:text-foreground font-medium cursor-pointer"
           >
             <PlusSquare className="h-3 w-3" />
             Add group

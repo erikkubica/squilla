@@ -41,7 +41,7 @@ export default function ConditionValueInput({
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-accent text-foreground border border-border"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[12.5px] bg-accent text-foreground border border-border"
             >
               {tag}
               <button
@@ -74,7 +74,7 @@ export default function ConditionValueInput({
             }}
           />
         </div>
-        <p className="text-[9px] text-muted-foreground mt-0.5">Press Enter or comma to add a value</p>
+        <p className="fm-hint">Press Enter or comma to add a value</p>
       </div>
     );
   }

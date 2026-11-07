@@ -3,7 +3,7 @@ import { Plus, ListPlus } from "@squilla/icons";
 import FieldList from "./builder/FieldList";
 import AddFieldForm from "./builder/AddFieldForm";
 
-const { Button, EmptyState } =
+const { EmptyState } =
   (window as any).__SQUILLA_SHARED__.ui;
 
 export default function BuilderTab({ form, setForm }: any) {
@@ -87,32 +87,30 @@ export default function BuilderTab({ form, setForm }: any) {
   };
 
   return (
-    <div className="space-y-2 min-w-0">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--fg-muted)" }}>
-          Fields ({fields.length})
-        </h3>
-      </div>
+    <div className="fm-ed">
+      <p className="fm-hint" style={{ marginTop: -4 }}>
+        The questions people answer, in the order they see them. Drag a field or use the arrows to move it.
+      </p>
 
       {fields.length === 0 && !addingField && (
-        <EmptyState
-          icon={ListPlus}
-          title="No fields yet"
-          description="Add your first field below"
-        />
+        <EmptyState icon={ListPlus} title="No fields yet" description="Add the first question people should answer." />
       )}
 
-      <FieldList
-        fields={fields}
-        editingFieldIndex={editingFieldIndex}
-        onToggleEdit={handleToggleEdit}
-        onRemove={handleRemoveField}
-        onMoveUp={(index) => handleMoveField(index, "up")}
-        onMoveDown={(index) => handleMoveField(index, "down")}
-        onReorder={handleReorderField}
-        onDuplicate={handleDuplicateField}
-        updateField={updateField}
-      />
+      {fields.length > 0 && (
+        <div data-slot="block-list">
+          <FieldList
+            fields={fields}
+            editingFieldIndex={editingFieldIndex}
+            onToggleEdit={handleToggleEdit}
+            onRemove={handleRemoveField}
+            onMoveUp={(index) => handleMoveField(index, "up")}
+            onMoveDown={(index) => handleMoveField(index, "down")}
+            onReorder={handleReorderField}
+            onDuplicate={handleDuplicateField}
+            updateField={updateField}
+          />
+        </div>
+      )}
 
       {addingField ? (
         <AddFieldForm
@@ -121,13 +119,9 @@ export default function BuilderTab({ form, setForm }: any) {
           onCancel={() => setAddingField(false)}
         />
       ) : (
-        <Button
-          variant="outline"
-          className="w-full border-dashed border-border text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent/50 cursor-pointer"
-          onClick={() => setAddingField(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Field
-        </Button>
+        <button type="button" data-slot="add-button" onClick={() => setAddingField(true)}>
+          <Plus size={16} /> Add field
+        </button>
       )}
     </div>
   );

@@ -3,7 +3,7 @@ import { Plus, Mail } from "@squilla/icons";
 import NotificationVariablesPanel from "../notifications/NotificationVariablesPanel";
 import NotificationCard from "../notifications/NotificationCard";
 
-const { Button, Card, CardContent, SectionHeader, EmptyState } =
+const { EmptyState } =
   (window as any).__SQUILLA_SHARED__.ui;
 
 function getEmailFields(fields: any[]): any[] {
@@ -15,7 +15,7 @@ export default function NotificationsTab({ form, setForm }: any) {
 
   const addNotification = () => {
     const newNotif = {
-      name: "New Notification",
+      name: "New email",
       type: "admin",
       enabled: true,
       recipients: "{{.site_email}}",
@@ -57,47 +57,39 @@ export default function NotificationsTab({ form, setForm }: any) {
     setForm({ ...form, notifications: newNotifs });
   };
 
-  return (
-    <div className="space-y-6">
-      <NotificationVariablesPanel />
+  const notifications = form.notifications || [];
 
-      <Card className="rounded-xl border border-border shadow-sm">
-        <SectionHeader
-          title={`Email Notifications (${(form.notifications || []).length})`}
-          icon={<Mail className="h-4 w-4 text-foreground" />}
-          actions={
-            <Button variant="outline" size="sm" onClick={addNotification}>
-              <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Notification
-            </Button>
-          }
-        />
-        <CardContent className="p-4 space-y-4">
-          {(form.notifications || []).length === 0 ? (
-            <EmptyState
-              icon={Mail}
-              title="No notifications configured"
-              description="You won't be alerted of new submissions"
-              action={
-                <Button variant="outline" size="sm" onClick={addNotification}>
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Notification
-                </Button>
-              }
+  return (
+    <div className="fm-ed">
+      <div className="fm-sec-head">
+        <p className="fm-hint" style={{ marginTop: -4 }}>
+          Emails sent after each submission: one to you, and optionally a reply to the person who filled it in.
+        </p>
+        <NotificationVariablesPanel />
+      </div>
+
+      {notifications.length === 0 ? (
+        <EmptyState icon={Mail} title="No emails yet" description="Nobody is told when someone fills in this form." />
+      ) : (
+        <div data-slot="block-list">
+          {notifications.map((notif: any, index: number) => (
+            <NotificationCard
+              key={index}
+              notif={notif}
+              index={index}
+              formId={form.id}
+              emailFields={emailFields}
+              formFields={form.fields || []}
+              onUpdate={updateNotification}
+              onRemove={removeNotification}
             />
-          ) : (
-            (form.notifications || []).map((notif: any, index: number) => (
-              <NotificationCard
-                key={index}
-                notif={notif}
-                index={index}
-                formId={form.id}
-                emailFields={emailFields}
-                onUpdate={updateNotification}
-                onRemove={removeNotification}
-              />
-            ))
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
+
+      <button type="button" data-slot="add-button" onClick={addNotification}>
+        <Plus size={16} /> Add email
+      </button>
     </div>
   );
 }

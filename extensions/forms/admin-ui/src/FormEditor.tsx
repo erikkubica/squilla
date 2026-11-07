@@ -1,34 +1,40 @@
-import React, { useEffect, useRef, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Save,
-  Layout,
-  Settings,
-  Mail,
-  ListPlus,
-  Eye,
-  Webhook,
+  AlertTriangle,
+  Copy,
   Download,
+  Eye,
+  Inbox,
+  Layout,
+  ListPlus,
+  Loader2,
+  Mail,
+  Save,
+  Settings,
   Trash2,
+  Webhook,
 } from "@squilla/icons";
+import { BASE } from "./shell/FormsShell";
+import { copyText, formatDate, relativeTime } from "./shell/format";
 
 const {
   Button,
-  LoadingRow,
+  Card,
+  CardContent,
+  SectionHeader,
+  Titlebar,
+  TabsCard,
+  PublishActions,
+  MetaList,
+  MetaRow,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Titlebar,
-  TabsCard,
-  SidebarCard,
-  PublishActions,
-  MetaRow,
-  MetaList,
 } = (window as any).__SQUILLA_SHARED__.ui;
-const { useParams, useNavigate } = (window as any).__SQUILLA_SHARED__
-  .ReactRouterDOM;
+const { Link, useParams, useNavigate, useSearchParams } = (window as any).__SQUILLA_SHARED__.ReactRouterDOM;
 const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 import BuilderTab from "./tabs/BuilderTab";
@@ -47,13 +53,46 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+type TabKey = "builder" | "layout" | "preview" | "notifications" | "settings" | "webhooks";
+
+const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "builder", label: "Fields", icon: ListPlus },
+  { key: "layout", label: "Layout", icon: Layout },
+  { key: "preview", label: "Preview", icon: Eye },
+  { key: "notifications", label: "Emails", icon: Mail },
+  { key: "settings", label: "Settings", icon: Settings },
+  { key: "webhooks", label: "Webhooks", icon: Webhook },
+];
+
+interface Stats {
+  all: number;
+  unread: number;
+  latest: string | null;
+}
+
 export default function FormEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(id ? true : false);
+  const [sp, setSp] = useSearchParams();
+  const isEdit = !!(id && id !== "new");
+  const tabParam = sp.get("tab") as TabKey | null;
+  const tab: TabKey = TABS.some((t) => t.key === tabParam) ? (tabParam as TabKey) : "builder";
+  const setTab = (t: TabKey) =>
+    setSp(
+      (prev: URLSearchParams) => {
+        const next = new URLSearchParams(prev);
+        if (t === "builder") next.delete("tab");
+        else next.set("tab", t);
+        return next;
+      },
+      { replace: true },
+    );
+
+  const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -79,7 +118,7 @@ export default function FormEditor() {
   });
 
   const initialFormRef = useRef<any>(null);
-  const [autoSlug, setAutoSlug] = useState(!id || id === "new");
+  const [autoSlug, setAutoSlug] = useState(!isEdit);
 
   const isDirty = useMemo(() => {
     if (!initialFormRef.current) return false;
@@ -98,7 +137,7 @@ export default function FormEditor() {
   }, [isDirty]);
 
   useEffect(() => {
-    if (id && id !== "new") {
+    if (isEdit) {
       fetch(`/admin/api/ext/forms/${id}`, { credentials: "include" })
         .then((res) => res.json())
         .then((data) => {
@@ -115,8 +154,18 @@ export default function FormEditor() {
         })
         .catch(() => {
           toast.error("Failed to load form");
-          navigate("/admin/ext/forms");
+          navigate(BASE);
         });
+      fetch(`/admin/api/ext/forms/submissions?per_page=1&form_id=${id}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((b) =>
+          setStats({
+            all: b.status_counts?.all ?? b.total ?? 0,
+            unread: b.status_counts?.unread ?? 0,
+            latest: b.rows?.[0]?.created_at ?? null,
+          }),
+        )
+        .catch(() => {});
     } else {
       fetch("/admin/api/ext/forms/defaults/layout", { credentials: "include" })
         .then((res) => res.json())
@@ -131,6 +180,7 @@ export default function FormEditor() {
           initialFormRef.current = JSON.parse(JSON.stringify(form));
         });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -139,10 +189,9 @@ export default function FormEditor() {
     const errs: Record<string, string> = {};
     const name = (form.name || "").trim();
     const slug = (form.slug || "").trim();
-    if (!name) errs.name = "Name is required";
-    if (!slug) errs.slug = "Slug is required";
-    else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
-      errs.slug = "Lowercase letters, numbers, and hyphens only";
+    if (!name) errs.name = "Give the form a name";
+    if (!slug) errs.slug = "The slug is required";
+    else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) errs.slug = "Use lowercase letters, numbers and hyphens only";
     return errs;
   };
 
@@ -156,7 +205,7 @@ export default function FormEditor() {
     if (autoSlug && fieldErrors.slug) setFieldErrors((p) => ({ ...p, slug: "" }));
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const local = validateLocally();
     if (Object.keys(local).length > 0) {
       setFieldErrors(local);
@@ -165,13 +214,8 @@ export default function FormEditor() {
     }
     setFieldErrors({});
     setSaving(true);
-
-    const method = id && id !== "new" ? "PUT" : "POST";
-    const url =
-      id && id !== "new"
-        ? `/admin/api/ext/forms/${id}`
-        : "/admin/api/ext/forms/";
-
+    const method = isEdit ? "PUT" : "POST";
+    const url = isEdit ? `/admin/api/ext/forms/${id}` : "/admin/api/ext/forms/";
     try {
       const res = await fetch(url, {
         method,
@@ -180,16 +224,16 @@ export default function FormEditor() {
         credentials: "include",
       });
       if (res.ok) {
-        toast.success("Form saved successfully");
+        toast.success("Form saved");
+        initialFormRef.current = JSON.parse(JSON.stringify(form));
         if (method === "POST") {
           const data = await res.json();
-          initialFormRef.current = JSON.parse(JSON.stringify(form));
-          navigate(`/admin/ext/forms/edit/${data.id}`);
+          navigate(`${BASE}/edit/${data.id}`);
         } else {
-          initialFormRef.current = JSON.parse(JSON.stringify(form));
+          setForm((f) => ({ ...f }));
         }
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         if (err.fields && typeof err.fields === "object") {
           setFieldErrors(err.fields);
           const first = Object.values(err.fields)[0];
@@ -203,27 +247,36 @@ export default function FormEditor() {
     } finally {
       setSaving(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, id, isEdit]);
 
-  const handleCancel = () => {
+  // Cmd/Ctrl+S saves.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (!saving) handleSave();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleSave, saving]);
+
+  const handleBack = () => {
     if (isDirty && !window.confirm("Discard unsaved changes?")) return;
-    navigate("/admin/ext/forms");
+    navigate(BASE);
   };
 
   const handleDelete = async () => {
-    if (!id || id === "new") return;
+    if (!isEdit) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/admin/api/ext/forms/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const res = await fetch(`/admin/api/ext/forms/${id}`, { method: "DELETE", credentials: "include" });
       if (res.ok) {
         toast.success("Form deleted");
-        navigate("/admin/ext/forms");
-      } else {
-        toast.error("Failed to delete form");
-      }
+        initialFormRef.current = form;
+        navigate(BASE);
+      } else toast.error("Failed to delete form");
     } catch {
       toast.error("Failed to delete form");
     } finally {
@@ -232,215 +285,229 @@ export default function FormEditor() {
     }
   };
 
+  const fieldsCount = form.fields?.length || 0;
+  const notificationsCount = (form.notifications || []).filter((n: any) => n?.enabled !== false).length;
+  const shortcode = `[form slug="${form.slug || "your-form"}"]`;
+  const savedSlug: string = initialFormRef.current?.slug || "";
+  const slugChanged = isEdit && !!savedSlug && form.slug !== savedSlug;
+  const errorText = [fieldErrors.name, fieldErrors.slug].filter(Boolean).join(" · ");
+
+  const toggleAutoSlug = () => {
+    if (autoSlug) {
+      setAutoSlug(false);
+    } else {
+      setAutoSlug(true);
+      setForm((p: any) => ({ ...p, slug: slugify(p.name) }));
+    }
+  };
+
   if (loading)
     return (
-      <div className="w-full pb-8">
-        <LoadingRow />
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-strong)" }} />
       </div>
     );
 
-  const isEdit = !!(id && id !== "new");
-  const fieldsCount = form.fields?.length || 0;
-  const notificationsCount = form.notifications?.length || 0;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSave();
-  };
+  const tabLabel = (Icon: React.ComponentType<{ className?: string }>, text: string) => (
+    <>
+      <Icon className="mr-2 h-4 w-4" /> {text}
+    </>
+  );
 
   return (
     <>
       <form
-        onSubmit={handleSubmit}
-        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSave();
+        }}
+        className="fm-root grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
       >
-        {/* Main column */}
         <div className="space-y-4 min-w-0">
           <Titlebar
             title={form.name}
-            onTitleChange={(v: string) => handleNameChange(v)}
+            onTitleChange={handleNameChange}
             titleLabel="Form name"
-            titlePlaceholder="Contact Us"
+            titlePlaceholder="e.g. Contact us"
             slug={form.slug}
             onSlugChange={(v: string) => {
               setAutoSlug(false);
-              setForm((prev: any) => ({
-                ...prev,
-                slug: v.replace(/\s+/g, "-").toLowerCase(),
-              }));
+              setForm((prev: any) => ({ ...prev, slug: v.replace(/\s+/g, "-").toLowerCase() }));
               if (fieldErrors.slug) setFieldErrors((p) => ({ ...p, slug: "" }));
             }}
             slugPrefix="/"
             autoSlug={autoSlug}
-            onAutoSlugToggle={() => setAutoSlug(!autoSlug)}
-            id={(form as any).id ? Number((form as any).id) : undefined}
-            onBack={handleCancel}
+            onAutoSlugToggle={toggleAutoSlug}
+            onBack={handleBack}
+            actions={
+              isEdit ? (
+                <Link
+                  to={`${BASE}/submissions?form_id=${id}`}
+                  className="inline-flex items-center"
+                  style={{
+                    height: 32,
+                    padding: "0 12px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "var(--fg)",
+                    background: "var(--card-bg)",
+                    borderRadius: "var(--radius-md)",
+                    gap: 6,
+                    boxShadow: "0 0 0 1px var(--border-input), 0 1px 2px rgba(15,23,42,0.05)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <Inbox size={14} /> Submissions
+                  {stats && stats.unread > 0 ? <span data-slot="count">{stats.unread}</span> : null}
+                </Link>
+              ) : undefined
+            }
           />
 
-          {/* Field errors below pill */}
-          {(fieldErrors.name || fieldErrors.slug) && (
-            <div className="flex gap-6 px-2 -mt-1">
-              {fieldErrors.name && (
-                <p className="text-xs text-rose-600">{fieldErrors.name}</p>
+          {(errorText || slugChanged) && (
+            <div className="space-y-1.5" style={{ padding: "0 4px" }}>
+              {errorText && (
+                <p className="fm-ed-note" data-tone="danger" role="alert">
+                  <AlertTriangle aria-hidden="true" /> {errorText}
+                </p>
               )}
-              {fieldErrors.slug && (
-                <p className="text-xs text-rose-600">{fieldErrors.slug}</p>
+              {slugChanged && (
+                <p className="fm-ed-note">
+                  <AlertTriangle aria-hidden="true" />
+                  <span>
+                    Pages that use <code>[form slug="{savedSlug}"]</code> stop showing this form until you update them.
+                  </span>
+                </p>
               )}
             </div>
           )}
 
           <TabsCard
+            value={tab}
+            onValueChange={(v: string) => setTab(v as TabKey)}
             tabs={[
-              {
-                value: "builder",
-                label: (
-                  <span className="inline-flex items-center">
-                    <ListPlus className="mr-1.5 h-3.5 w-3.5" /> Builder
-                  </span>
-                ),
-                badge: fieldsCount || undefined,
-                content: <BuilderTab form={form} setForm={setForm} />,
-              },
-              {
-                value: "layout",
-                label: (
-                  <span className="inline-flex items-center">
-                    <Layout className="mr-1.5 h-3.5 w-3.5" /> Layout
-                  </span>
-                ),
-                content: <LayoutTab form={form} setForm={setForm} />,
-              },
-              {
-                value: "preview",
-                label: (
-                  <span className="inline-flex items-center">
-                    <Eye className="mr-1.5 h-3.5 w-3.5" /> Preview
-                  </span>
-                ),
-                content: <PreviewTab form={form} />,
-              },
+              { value: "builder", label: tabLabel(ListPlus, "Fields"), badge: fieldsCount, content: <BuilderTab form={form} setForm={setForm} /> },
+              { value: "layout", label: tabLabel(Layout, "Layout"), content: <LayoutTab form={form} setForm={setForm} /> },
+              { value: "preview", label: tabLabel(Eye, "Preview"), content: <PreviewTab form={form} /> },
               {
                 value: "notifications",
-                label: (
-                  <span className="inline-flex items-center">
-                    <Mail className="mr-1.5 h-3.5 w-3.5" /> Notifications
-                  </span>
-                ),
+                label: tabLabel(Mail, "Emails"),
                 badge: notificationsCount || undefined,
                 content: <NotificationsTab form={form} setForm={setForm} />,
               },
-              {
-                value: "settings",
-                label: (
-                  <span className="inline-flex items-center">
-                    <Settings className="mr-1.5 h-3.5 w-3.5" /> Settings
-                  </span>
-                ),
-                content: <SettingsTab form={form} setForm={setForm} />,
-              },
-              {
-                value: "webhooks",
-                label: (
-                  <span className="inline-flex items-center">
-                    <Webhook className="mr-1.5 h-3.5 w-3.5" /> Webhooks
-                  </span>
-                ),
-                content: <WebhooksTab form={form} setForm={setForm} />,
-              },
+              { value: "settings", label: tabLabel(Settings, "Settings"), content: <SettingsTab form={form} setForm={setForm} /> },
+              { value: "webhooks", label: tabLabel(Webhook, "Webhooks"), content: <WebhooksTab form={form} setForm={setForm} /> },
             ]}
           />
         </div>
 
-        {/* Sidebar */}
-        <aside className="lg:sticky lg:top-4 lg:self-start">
-          <SidebarCard title="Publish">
-            <PublishActions>
-              <div className="relative w-full">
-                {isDirty && (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400 border border-white z-10" />
-                )}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={saving}
-                >
+        <div className="space-y-4">
+          <Card>
+            <SectionHeader title="Publish" />
+            <CardContent className="space-y-4">
+              <p className="fm-ed-status" data-state={!isEdit ? "new" : isDirty ? "dirty" : "clean"}>
+                {!isEdit ? "Not created yet" : isDirty ? "Unsaved changes" : "All changes saved"}
+              </p>
+              <PublishActions>
+                <Button type="submit" className="w-full" disabled={saving} title="Save (⌘S)">
                   <Save className="mr-1.5 h-3.5 w-3.5" />
-                  {saving ? "Saving…" : "Save"}
+                  {saving ? "Saving…" : isEdit ? "Save" : "Create form"}
                 </Button>
-              </div>
+                {isEdit && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    style={{ color: "var(--danger)" }}
+                    onClick={() => setShowDelete(true)}
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                )}
+              </PublishActions>
               {isEdit && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  style={{ color: "var(--danger)" }}
-                  onClick={() => setShowDelete(true)}
-                >
-                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                  Delete
-                </Button>
+                <MetaList>
+                  <MetaRow label="Fields" value={fieldsCount} />
+                  <MetaRow label="Emails on" value={notificationsCount} />
+                  {form.created_at && <MetaRow label="Created" value={formatDate(form.created_at)} />}
+                  {form.updated_at && <MetaRow label="Updated" value={formatDate(form.updated_at)} />}
+                </MetaList>
               )}
-              {isEdit && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    window.location.href = `/admin/api/ext/forms/${id}/export`;
-                  }}
-                >
-                  <Download className="mr-1.5 h-3.5 w-3.5" /> Export JSON
-                </Button>
-              )}
-            </PublishActions>
+            </CardContent>
+          </Card>
 
-            {isEdit && (
-              <MetaList>
-                <MetaRow label="Fields" value={String(fieldsCount)} />
-                {form.created_at && (
+          <Card>
+            <SectionHeader title="Put it on a page" />
+            <CardContent className="space-y-3">
+              <div className="fm-shortcode">
+                <code>{shortcode}</code>
+                <button
+                  type="button"
+                  data-slot="icon-button"
+                  onClick={() => copyText(shortcode, toast, "Shortcode copied")}
+                  aria-label="Copy shortcode"
+                  title="Copy shortcode"
+                  disabled={!form.slug}
+                >
+                  <Copy size={15} />
+                </button>
+              </div>
+              <p className="fm-hint">Paste the shortcode into a page, or add the Form block and pick this form.</p>
+            </CardContent>
+          </Card>
+
+          {isEdit && (
+            <Card>
+              <SectionHeader
+                title="Submissions"
+                count={stats ? stats.all : undefined}
+              />
+              <CardContent className="space-y-4">
+                <MetaList>
+                  <MetaRow label="Unread" value={stats ? stats.unread : "–"} />
                   <MetaRow
-                    label="Created"
-                    value={new Date(form.created_at).toLocaleDateString("en-GB")}
+                    label="Latest"
+                    value={stats?.latest ? relativeTime(stats.latest) : "None yet"}
                   />
-                )}
-                {form.updated_at && (
-                  <MetaRow
-                    label="Updated"
-                    value={new Date(form.updated_at).toLocaleDateString("en-GB")}
-                  />
-                )}
-              </MetaList>
-            )}
-          </SidebarCard>
-        </aside>
+                </MetaList>
+                <PublishActions>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to={`${BASE}/submissions?form_id=${id}`}>
+                      <Inbox className="mr-1.5 h-3.5 w-3.5" /> Open
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <a href={`/admin/api/ext/forms/submissions/export?form_id=${id}`} download={`${form.slug || "form"}-submissions.csv`}>
+                      <Download className="mr-1.5 h-3.5 w-3.5" /> CSV
+                    </a>
+                  </Button>
+                </PublishActions>
+                <Button asChild variant="ghost" className="w-full">
+                  <a href={`/admin/api/ext/forms/${id}/export`}>
+                    <Download className="mr-1.5 h-3.5 w-3.5" /> Export form as JSON
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </form>
 
-      {/* Delete dialog */}
       <Dialog open={showDelete} onOpenChange={setShowDelete}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Form</DialogTitle>
+            <DialogTitle>Delete “{form.name}”?</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{form.name}&quot;? This will
-              also delete all submissions for this form. This action cannot be
-              undone.
+              The form and {stats?.all ? `all ${stats.all} of its submissions` : "its submissions"} are deleted for good. Pages that use its shortcode will show nothing.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDelete(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setShowDelete(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting..." : "Delete"}
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting…" : "Delete form"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
+import { ChevronDown } from "@squilla/icons";
 import ConditionBuilder, { ConditionGroup } from "../tabs/builder/ConditionBuilder";
 
-const { AccordionRow } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface NotificationDisplayWhenProps {
   routeWhen: ConditionGroup;
@@ -20,42 +20,27 @@ export default function NotificationDisplayWhen({
   const [expanded, setExpanded] = useState(hasConditions);
 
   return (
-    <div className="border-t border-border pt-3">
-      <AccordionRow
-        open={expanded}
-        onToggle={() => setExpanded(!expanded)}
-        headerLeft={
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium" style={{ color: "var(--fg)" }}>Send only when…</span>
-            {hasConditions && (
-              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                Active
-              </span>
-            )}
-          </div>
-        }
-      >
-        <div className="space-y-2">
-          <p className="text-[10px] text-muted-foreground">
-            This notification will only be sent when all selected conditions are met.
-            Leave empty to always send.
-          </p>
-          <ConditionBuilder
-            group={routeWhen}
-            onChange={onChange}
-            fields={formFields}
-          />
+    <div className="fm-sec" style={{ paddingTop: 18, borderTop: "1px solid var(--divider)", gap: 12 }}>
+      <button type="button" className="fm-disclosure" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+        <ChevronDown aria-hidden="true" />
+        <span>Send only when…</span>
+        {hasConditions && (
+          <span className="fm-tag" data-tone="warn">
+            Active
+          </span>
+        )}
+      </button>
+      {expanded && (
+        <div className="fm-indent space-y-2">
+          <p className="fm-hint">Sent only when every condition matches. Leave empty to always send.</p>
+          <ConditionBuilder group={routeWhen} onChange={onChange} fields={formFields} />
           {hasConditions && (
-            <button
-              type="button"
-              className="text-[10px] text-muted-foreground hover:text-foreground"
-              onClick={() => onChange({})}
-            >
+            <button type="button" className="text-[12.5px] text-muted-foreground hover:text-foreground" onClick={() => onChange({})}>
               Clear all conditions
             </button>
           )}
         </div>
-      </AccordionRow>
+      )}
     </div>
   );
 }

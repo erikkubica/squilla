@@ -11,9 +11,6 @@ import NotificationDisplayWhen from "./NotificationDisplayWhen";
 
 const {
   Button,
-  Card,
-  CardContent,
-  SectionHeader,
   Input,
   Label,
   Select,
@@ -26,7 +23,6 @@ const {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  AccordionRow,
 } = (window as any).__SQUILLA_SHARED__.ui;
 const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
@@ -88,130 +84,108 @@ export default function NotificationCard({
   const notifType = notif.type || "admin";
   const isAutoResponder = notifType === "auto-responder";
 
+  const sendTestButton = (
+    <button type="button" data-slot="icon-button" title="Send a test email" aria-label="Send a test email" onClick={Popover ? undefined : handleSendTest}>
+      <Send size={15} />
+    </button>
+  );
+
   const headerActions = (
-    <div className="flex items-center gap-1">
-      <Switch
-        checked={notif.enabled !== false}
-        onCheckedChange={(checked: boolean) => onUpdate(index, "enabled", checked)}
-        className="scale-75"
-      />
+    <div data-slot="block-card-actions" onClick={(e) => e.stopPropagation()}>
+      <span className="inline-flex items-center" style={{ padding: "0 6px" }} title={notif.enabled !== false ? "On" : "Off"}>
+        <Switch
+          checked={notif.enabled !== false}
+          onCheckedChange={(checked: boolean) => onUpdate(index, "enabled", checked)}
+          aria-label="Send this email"
+        />
+      </span>
       {Popover ? (
         <Popover open={testPopoverOpen} onOpenChange={setTestPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              title="Send test email"
-            >
-              <Send className="h-3.5 w-3.5" />
-            </Button>
-          </PopoverTrigger>
+          <PopoverTrigger asChild>{sendTestButton}</PopoverTrigger>
           <PopoverContent className="w-72 p-3 space-y-3" align="end">
-            <p className="text-sm font-medium text-foreground">Send Test Email</p>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">
-                Recipient (leave blank for your account email)
-              </Label>
+            <p className="text-sm font-medium text-foreground">Send a test email</p>
+            <div className="fm-field">
+              <Label>Send to</Label>
               <Input
                 value={testRecipient}
                 onChange={(e: any) => setTestRecipient(e.target.value)}
                 placeholder="admin@example.com"
-                className="h-8 text-sm"
               />
+              <p className="fm-hint">Leave empty to use your account email.</p>
             </div>
-            <Button className="w-full" size="sm" onClick={handleSendTest} disabled={testSending}>
+            <Button type="button" className="w-full" size="sm" onClick={handleSendTest} disabled={testSending}>
               <Send className="mr-2 h-3.5 w-3.5" />
               {testSending ? "Sending…" : "Send Test"}
             </Button>
           </PopoverContent>
         </Popover>
       ) : (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-          title="Send test email"
-          onClick={handleSendTest}
-        >
-          <Send className="h-3.5 w-3.5" />
-        </Button>
+        sendTestButton
       )}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onRemove(index)}
-        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+      <button type="button" data-slot="icon-button" data-tone="danger" onClick={() => onRemove(index)} title="Remove email" aria-label="Remove email">
+        <Trash2 size={15} />
+      </button>
+      <span data-slot="block-card-divider" aria-hidden />
+      <button
+        type="button"
+        data-slot="icon-button"
+        onClick={() => setCollapsed(!collapsed)}
+        aria-label={collapsed ? "Expand email" : "Collapse email"}
       >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+        <ChevronDown size={17} className="transition-transform" style={{ transform: collapsed ? "rotate(-90deg)" : "none" }} />
+      </button>
     </div>
   );
 
-  const notifLabel = (
-    <div className="flex items-center gap-2 flex-1 min-w-0">
-      {isAutoResponder ? (
-        <User className="h-4 w-4 text-blue-400 shrink-0" />
-      ) : (
-        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-      )}
-      <span className="font-medium text-[13px] text-foreground truncate">
-        {notif.name}
-      </span>
-      <span
-        className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${
-          isAutoResponder ? "bg-blue-100 text-blue-600" : "bg-border text-muted-foreground"
-        }`}
-      >
-        {isAutoResponder ? "Auto-Responder" : "Admin"}
-      </span>
-      {notif.enabled === false && (
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-          Disabled
-        </span>
-      )}
-    </div>
-  );
+  const summary = isAutoResponder
+    ? `To the person who filled it in${notif.recipient_field ? ` (${notif.recipient_field})` : ""}`
+    : `To ${notif.recipients || "nobody yet"}`;
 
   return (
-    <Card
-      className={`rounded-xl border border-border shadow-sm overflow-hidden ${
-        !notif.enabled ? "opacity-60" : ""
-      }`}
-    >
-      {/* Custom header to match SectionHeader look but with label + actions */}
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer select-none"
-        style={{
-          background: "var(--sub-bg)",
-          borderBottom: collapsed ? "none" : "1px solid var(--border)",
-        }}
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <ChevronDown
-            className={`h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0 ${
-              collapsed ? "-rotate-90" : ""
-            }`}
-          />
-          {notifLabel}
-        </div>
-        <div onClick={(e) => e.stopPropagation()}>{headerActions}</div>
+    <div data-slot="block-card" data-state={collapsed ? "closed" : "open"} data-muted={notif.enabled === false ? "" : undefined}>
+      <div data-slot="block-card-header" onClick={() => setCollapsed(!collapsed)}>
+        <button
+          type="button"
+          className="flex flex-1 items-center min-w-0 text-left"
+          style={{ gap: 10, background: "transparent", border: 0, padding: 0 }}
+          aria-expanded={!collapsed}
+          onClick={(e) => {
+            e.stopPropagation();
+            setCollapsed(!collapsed);
+          }}
+        >
+          <span data-slot="block-icon" aria-hidden="true">
+            {isAutoResponder ? <User size={15} /> : <Mail size={15} />}
+          </span>
+          <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
+            <span className="flex items-center min-w-0" style={{ gap: 8 }}>
+              <span data-slot="block-card-title">{notif.name || "Untitled email"}</span>
+              <span className="fm-tag shrink-0" data-tone={isAutoResponder ? "accent" : undefined}>
+                {isAutoResponder ? "Auto-Responder" : "Admin"}
+              </span>
+              {notif.enabled === false && <span className="fm-tag shrink-0">Off</span>}
+            </span>
+            <span data-slot="block-card-meta" className="truncate" style={{ fontSize: 12.5, color: "var(--fg-muted)" }}>
+              {summary}
+            </span>
+          </span>
+        </button>
+        {headerActions}
       </div>
 
       {!collapsed && (
-      <CardContent className="p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Notification Name</Label>
+      <div data-slot="block-card-body" className="fm-ed" style={{ gap: 20 }}>
+        <div className="fm-grid2">
+          <div className="fm-field">
+            <Label>Name</Label>
             <Input
               value={notif.name}
               onChange={(e: any) => onUpdate(index, "name", e.target.value)}
               placeholder="e.g. Admin Email"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Notification Type</Label>
+          <div className="fm-field">
+            <Label>Who gets it</Label>
             <Select value={notifType} onValueChange={(val: string) => onUpdate(index, "type", val)}>
               <SelectTrigger>
                 <SelectValue />
@@ -231,7 +205,7 @@ export default function NotificationCard({
                 </SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="fm-hint">
               {isAutoResponder
                 ? "Sends to the submitter's email address."
                 : "Sends to the configured recipient addresses."}
@@ -240,8 +214,8 @@ export default function NotificationCard({
         </div>
 
         {isAutoResponder ? (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Recipient Field</Label>
+          <div className="fm-field">
+            <Label>Email field</Label>
             {emailFields.length > 0 ? (
               <Select
                 value={notif.recipient_field || ""}
@@ -265,26 +239,26 @@ export default function NotificationCard({
                 placeholder="Enter email field ID"
               />
             )}
-            <p className="text-[10px] text-muted-foreground">
+            <p className="fm-hint">
               Select which field contains the submitter's email address.
             </p>
           </div>
         ) : (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Recipient(s)</Label>
+          <div className="fm-field">
+            <Label>Recipient(s)</Label>
             <Input
               value={notif.recipients}
               onChange={(e: any) => onUpdate(index, "recipients", e.target.value)}
               placeholder="admin@example.com"
             />
-            <p className="text-[10px] text-muted-foreground">
+            <p className="fm-hint">
               Comma separated. Supports templates like <code>{"{{.site_email}}"}</code>
             </p>
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Subject</Label>
+        <div className="fm-field">
+          <Label>Subject</Label>
           <Input
             value={notif.subject}
             onChange={(e: any) => onUpdate(index, "subject", e.target.value)}
@@ -292,8 +266,8 @@ export default function NotificationCard({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Email Body (Plain Text or HTML)</Label>
+        <div className="fm-field">
+          <Label>Body <span className="font-normal text-muted-foreground">(plain text or HTML)</span></Label>
           <Textarea
             value={notif.body}
             onChange={(e: any) => onUpdate(index, "body", e.target.value)}
@@ -302,8 +276,8 @@ export default function NotificationCard({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Reply-To Address</Label>
+        <div className="fm-field">
+          <Label>Reply-to</Label>
           {emailFields.length > 0 ? (
             <Select
               value={notif.reply_to ? notif.reply_to : "__none__"}
@@ -333,35 +307,34 @@ export default function NotificationCard({
         </div>
 
         {/* CC / BCC */}
-        <div className="border-t border-border pt-3">
-          <AccordionRow
-            open={expandedCC}
-            onToggle={() => setExpandedCC(!expandedCC)}
-            headerLeft={
-              <span className="text-xs font-medium" style={{ color: "var(--fg)" }}>CC / BCC</span>
-            }
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">CC</Label>
+        <div className="fm-sec" style={{ paddingTop: 18, borderTop: "1px solid var(--divider)", gap: 12 }}>
+          <button type="button" className="fm-disclosure" aria-expanded={expandedCC} onClick={() => setExpandedCC(!expandedCC)}>
+            <ChevronDown aria-hidden="true" />
+            <span>CC / BCC</span>
+            {notif.cc || notif.bcc ? <span className="fm-tag">Set</span> : null}
+          </button>
+          {expandedCC && (
+            <div className="fm-grid2">
+              <div className="fm-field">
+                <Label>CC</Label>
                 <Input
                   value={notif.cc || ""}
                   onChange={(e: any) => onUpdate(index, "cc", e.target.value)}
                   placeholder="cc@example.com"
                 />
-                <p className="text-[10px] text-muted-foreground">Comma separated email addresses.</p>
+                <p className="fm-hint">Comma separated email addresses.</p>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">BCC</Label>
+              <div className="fm-field">
+                <Label>BCC</Label>
                 <Input
                   value={notif.bcc || ""}
                   onChange={(e: any) => onUpdate(index, "bcc", e.target.value)}
                   placeholder="bcc@example.com"
                 />
-                <p className="text-[10px] text-muted-foreground">Comma separated email addresses.</p>
+                <p className="fm-hint">Comma separated email addresses.</p>
               </div>
             </div>
-          </AccordionRow>
+          )}
         </div>
 
         <NotificationDisplayWhen
@@ -369,8 +342,8 @@ export default function NotificationCard({
           onChange={(next) => onUpdate(index, "route_when", next)}
           formFields={formFields}
         />
-      </CardContent>
+      </div>
       )}
-    </Card>
+    </div>
   );
 }

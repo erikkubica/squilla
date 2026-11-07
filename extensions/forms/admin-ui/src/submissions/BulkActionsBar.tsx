@@ -1,7 +1,6 @@
 import React from "react";
-import { Trash2, Archive, CheckCircle, Circle } from "@squilla/icons";
+import { Trash2, Archive, CheckCircle, Circle, X } from "@squilla/icons";
 
-const { Button } = (window as any).__SQUILLA_SHARED__.ui;
 const { toast } = (window as any).__SQUILLA_SHARED__.Sonner;
 
 type BulkAction = "mark_read" | "mark_unread" | "archive" | "delete";
@@ -12,11 +11,8 @@ interface BulkActionsBarProps {
   onBulkComplete: () => void;
 }
 
-export default function BulkActionsBar({
-  selectedIds,
-  onClearSelection,
-  onBulkComplete,
-}: BulkActionsBarProps) {
+/** Replaces the inbox toolbar while rows are selected. */
+export default function BulkActionsBar({ selectedIds, onClearSelection, onBulkComplete }: BulkActionsBarProps) {
   const count = selectedIds.size;
 
   async function executeBulk(action: BulkAction) {
@@ -46,57 +42,28 @@ export default function BulkActionsBar({
   }
 
   return (
-    <div className="flex items-center gap-2 mb-2.5 flex-wrap px-2.5 h-[30px] rounded border border-border bg-accent/70">
-      <span className="text-[12px] font-medium text-foreground">
-        {count} selected
-      </span>
-      <div className="h-3 w-px bg-accent" />
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-foreground hover:bg-accent text-xs gap-1.5"
-        onClick={() => executeBulk("mark_read")}
-      >
-        <CheckCircle className="h-3.5 w-3.5" />
+    <div className="fm-selection" role="toolbar" aria-label="Selected submissions">
+      <span className="fm-selection-count">{count} selected</span>
+      <button type="button" className="fm-btn fm-focus" data-variant="outline" data-size="sm" onClick={() => executeBulk("mark_read")}>
+        <CheckCircle aria-hidden="true" />
         Mark Read
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-foreground hover:bg-accent text-xs gap-1.5"
-        onClick={() => executeBulk("mark_unread")}
-      >
-        <Circle className="h-3.5 w-3.5" />
+      </button>
+      <button type="button" className="fm-btn fm-focus" data-variant="outline" data-size="sm" onClick={() => executeBulk("mark_unread")}>
+        <Circle aria-hidden="true" />
         Mark Unread
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-foreground hover:bg-accent text-xs gap-1.5"
-        onClick={() => executeBulk("archive")}
-      >
-        <Archive className="h-3.5 w-3.5" />
+      </button>
+      <button type="button" className="fm-btn fm-focus" data-variant="outline" data-size="sm" onClick={() => executeBulk("archive")}>
+        <Archive aria-hidden="true" />
         Archive
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-red-600 hover:bg-muted text-xs gap-1.5"
-        onClick={() => executeBulk("delete")}
-      >
-        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+      <button type="button" className="fm-btn fm-focus" data-variant="danger" data-size="sm" onClick={() => executeBulk("delete")}>
+        <Trash2 aria-hidden="true" />
         Delete
-      </Button>
-      <div className="ml-auto">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground text-xs"
-          onClick={onClearSelection}
-        >
-          Clear selection
-        </Button>
-      </div>
+      </button>
+      <button type="button" className="fm-btn fm-focus ml-auto" data-variant="ghost" data-size="sm" onClick={onClearSelection}>
+        <X aria-hidden="true" />
+        Clear selection
+      </button>
     </div>
   );
 }

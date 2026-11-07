@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ChevronDown } from "@squilla/icons";
 import { FIELD_TYPES } from "./types";
 import { normalizeOptions, keyify } from "./key-utils";
 import FieldValidationRules from "./FieldValidationRules";
@@ -16,7 +17,6 @@ const {
   SelectTrigger,
   SelectValue,
   Switch,
-  AccordionRow,
 } = (window as any).__SQUILLA_SHARED__.ui;
 
 interface FieldEditorProps {
@@ -64,34 +64,34 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
   };
 
   return (
-    <div className="space-y-4">
+    <div className="fm-ed" style={{ gap: 20 }}>
       {/* Basic fields */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label className="text-[10px] text-muted-foreground uppercase">Label</Label>
+      <div className="fm-grid2">
+        <div className="fm-field">
+          <Label>Label</Label>
           <Input
             value={field.label}
             onChange={(e: any) => updateField({ label: e.target.value })}
-            className="h-8 text-sm"
+           
             placeholder="e.g. Your Email"
           />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-[10px] text-muted-foreground uppercase">Key</Label>
+        <div className="fm-field">
+          <Label>Key</Label>
           <Input
             value={field.id}
             onChange={(e: any) =>
               updateField({ id: e.target.value.replace(/[^a-z0-9_]/g, "") })
             }
-            className="h-8 text-sm font-mono"
+            className="font-mono"
             placeholder="e.g. user_email"
           />
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label className="text-[10px] text-muted-foreground uppercase">Type</Label>
+      <div className="fm-grid2">
+        <div className="fm-field">
+          <Label>Type</Label>
           <Select
             value={field.type}
             onValueChange={(val: string) => {
@@ -114,7 +114,7 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
               updateField(updates);
             }}
           >
-            <SelectTrigger className="h-8 text-sm bg-card">
+            <SelectTrigger >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -127,12 +127,12 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
           </Select>
         </div>
         {!isGDPR && field.type !== "hidden" && (
-          <div className="space-y-1.5">
-            <Label className="text-[10px] text-muted-foreground uppercase">Placeholder</Label>
+          <div className="fm-field">
+            <Label>Placeholder</Label>
             <Input
               value={field.placeholder || ""}
               onChange={(e: any) => updateField({ placeholder: e.target.value })}
-              className="h-8 text-sm"
+             
               placeholder="Optional placeholder text"
             />
           </div>
@@ -140,22 +140,22 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
       </div>
 
       {field.type !== "hidden" && !isGDPR && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-[10px] text-muted-foreground uppercase">Default Value</Label>
+        <div className="fm-grid2">
+          <div className="fm-field">
+            <Label>Default value</Label>
             <Input
               value={field.default_value || ""}
               onChange={(e: any) => updateField({ default_value: e.target.value })}
-              className="h-8 text-sm"
+             
               placeholder="Optional default value"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-[10px] text-muted-foreground uppercase">Help Text</Label>
+          <div className="fm-field">
+            <Label>Help text</Label>
             <Input
               value={field.help || ""}
               onChange={(e: any) => updateField({ help: e.target.value })}
-              className="h-8 text-sm"
+             
               placeholder="Shown below the field"
             />
           </div>
@@ -163,13 +163,13 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
       )}
 
       {field.type === "hidden" && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-[10px] text-muted-foreground uppercase">Default Value</Label>
+        <div className="fm-grid2">
+          <div className="fm-field">
+            <Label>Default value</Label>
             <Input
               value={field.default_value || ""}
               onChange={(e: any) => updateField({ default_value: e.target.value })}
-              className="h-8 text-sm"
+             
               placeholder="Hidden field value"
             />
           </div>
@@ -194,76 +194,70 @@ export default function FieldEditor({ field, updateField, allFields = [] }: Fiel
         />
       )}
 
-      {/* Width selector */}
-      <div className="space-y-1.5">
-        <Label className="text-[10px] text-muted-foreground uppercase">Width</Label>
-        <div className="flex gap-1">
-          {(["full", "half", "third"] as const).map((w) => (
-            <button
-              key={w}
-              type="button"
-              onClick={() => updateField({ width: w })}
-              className={`flex-1 py-1 text-xs rounded border transition-colors ${
-                (field.width || "full") === w
-                  ? "border-border bg-accent text-foreground font-semibold"
-                  : "border-border text-muted-foreground hover:border-border"
-              }`}
-            >
-              {w === "full" ? "Full" : w === "half" ? "1/2" : "1/3"}
-            </button>
-          ))}
+      <div className="fm-grid2" style={{ alignItems: "end" }}>
+        <div className="fm-field">
+          <Label>Width</Label>
+          <div className="fm-seg fm-seg-full" role="group" aria-label="Field width">
+            {(["full", "half", "third"] as const).map((w) => (
+              <button
+                key={w}
+                type="button"
+                aria-pressed={(field.width || "full") === w}
+                onClick={() => updateField({ width: w })}
+              >
+                {w === "full" ? "Full" : w === "half" ? "1/2" : "1/3"}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Required toggle */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Label className="text-[10px] text-muted-foreground uppercase">Required</Label>
-          {isGDPR && (
-            <p className="text-[9px] text-muted-foreground">GDPR consent fields are always required.</p>
-          )}
+        <div className="fm-switch-row" style={{ minHeight: 32 }}>
+          <div>
+            <Label>Required</Label>
+            {isGDPR && <p className="fm-hint">Consent fields are always required.</p>}
+          </div>
+          <Switch
+            checked={!!field.required}
+            onCheckedChange={(checked: boolean) => updateField({ required: checked })}
+            disabled={isGDPR}
+          />
         </div>
-        <Switch
-          checked={!!field.required}
-          onCheckedChange={(checked: boolean) => updateField({ required: checked })}
-          disabled={isGDPR}
-        />
       </div>
 
       {/* Conditional visibility */}
-      <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 4 }}>
-        <AccordionRow
-          open={showConditions}
-          onToggle={() => setShowConditions(!showConditions)}
-          headerLeft={
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium" style={{ color: "var(--fg)" }}>Show this field when…</span>
-              {(displayWhenGroup.all?.length || displayWhenGroup.any?.length) ? (
-                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-accent text-foreground">
-                  Active
-                </span>
-              ) : null}
-            </div>
-          }
+      <div className="fm-sec" style={{ paddingTop: 18, borderTop: "1px solid var(--divider)", gap: 12 }}>
+        <button
+          type="button"
+          className="fm-disclosure"
+          aria-expanded={showConditions}
+          onClick={() => setShowConditions(!showConditions)}
         >
-          <div>
+          <ChevronDown aria-hidden="true" />
+          <span>Show this field when…</span>
+          {displayWhenGroup.all?.length || displayWhenGroup.any?.length ? (
+            <span className="fm-tag" data-tone="warn">
+              Active
+            </span>
+          ) : null}
+        </button>
+        {showConditions && (
+          <div className="fm-indent space-y-2">
             <ConditionBuilder
               group={displayWhenGroup}
               onChange={(next) => updateField({ display_when: next })}
               fields={allFields}
               excludeFieldId={field.id}
             />
-            {(displayWhenGroup.all?.length || displayWhenGroup.any?.length) ? (
+            {displayWhenGroup.all?.length || displayWhenGroup.any?.length ? (
               <button
                 type="button"
-                className="mt-2 text-[10px] text-muted-foreground hover:text-foreground"
+                className="text-[12.5px] text-muted-foreground hover:text-foreground"
                 onClick={() => updateField({ display_when: {} })}
               >
                 Clear all conditions
               </button>
             ) : null}
           </div>
-        </AccordionRow>
+        )}
       </div>
     </div>
   );

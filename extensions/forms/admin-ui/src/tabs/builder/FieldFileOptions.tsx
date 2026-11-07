@@ -13,26 +13,26 @@ export default function FieldFileOptions({
 }: FieldFileOptionsProps) {
   return (
     <>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase">
-            Allowed Types
+      <div className="fm-grid2">
+        <div className="fm-field">
+          <Label>
+            Allowed file types
           </Label>
           <Input
             value={field.allowed_types || ""}
             onChange={(e: any) =>
               updateField({ allowed_types: e.target.value })
             }
-            className="h-8 text-sm"
+           
             placeholder="pdf, doc, jpg, png"
           />
-          <p className="text-[9px] text-muted-foreground">
+          <p className="fm-hint">
             Comma-separated file extensions
           </p>
         </div>
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase">
-            Max Size (MB)
+        <div className="fm-field">
+          <Label>
+            Max size (MB)
           </Label>
           <Input
             type="number"
@@ -44,15 +44,15 @@ export default function FieldFileOptions({
                 max_size: e.target.value ? Number(e.target.value) : 5,
               })
             }
-            className="h-8 text-sm"
+           
             placeholder="5"
           />
         </div>
       </div>
       <div className="flex items-center justify-between pt-1">
         <div>
-          <Label className="text-[10px] text-muted-foreground uppercase">
-            Allow Multiple Files
+          <Label>
+            Allow multiple files
           </Label>
         </div>
         <Switch
