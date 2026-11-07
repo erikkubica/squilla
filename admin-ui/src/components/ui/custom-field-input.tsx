@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { SearchDropdown } from "@/components/ui/search-dropdown";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -14,8 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import { EmojiFieldInput } from "@/components/ui/emoji-picker";
 import { IconFieldInput } from "@/components/ui/icon-picker";
+import { NodeReferenceInput } from "@/components/ui/node-reference-input";
 import {
-  X,
   Plus,
   ChevronDown,
   ChevronsUpDown,
@@ -25,10 +24,8 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  searchNodes,
   getNodeTypes,
   type NodeTypeField,
-  type NodeSearchResult,
   type NodeType,
   listTerms,
   type TaxonomyTerm,
@@ -509,165 +506,6 @@ function TermSelectorInput({
   );
 }
 
-// Node selector: search and select content nodes
-function NodeSelectorInput({
-  field,
-  value,
-  onChange,
-}: {
-  field: NodeTypeField;
-  value: unknown;
-  onChange: (val: unknown) => void;
-}) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [results, setResults] = useState<NodeSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-
-  const isMultiple = !!field.multiple;
-  const selected: NodeSearchResult[] = isMultiple
-    ? (Array.isArray(value) ? value as NodeSearchResult[] : [])
-    : (value && typeof value === "object" && "id" in (value as Record<string, unknown>))
-      ? [value as NodeSearchResult]
-      : [];
-
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await searchNodes({
-          q: searchQuery,
-          node_type: field.node_type_filter || undefined,
-          limit: 10,
-        });
-        // Filter out already selected
-        const selectedIds = new Set(selected.map((s) => s.id));
-        setResults(res.filter((r) => !selectedIds.has(r.id)));
-      } catch {
-        setResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, field.node_type_filter]);
-
-  function handleSelect(node: NodeSearchResult) {
-    if (isMultiple) {
-      onChange([...selected, node]);
-    } else {
-      onChange(node);
-    }
-    setSearchQuery("");
-    setResults([]);
-    setShowResults(false);
-  }
-
-  function handleRemove(id: number) {
-    if (isMultiple) {
-      onChange(selected.filter((s) => s.id !== id));
-    } else {
-      onChange(null);
-    }
-  }
-
-  return (
-    <div className="space-y-2">
-      {/* Selected nodes */}
-      {selected.length > 0 && (
-        <div className="space-y-1.5">
-          {selected.map((node) => (
-            <div
-              key={node.id}
-              className="flex items-center gap-2 rounded-lg"
-              style={{ padding: "5px 5px 5px 12px", background: "var(--sub-bg)", border: "1px solid var(--border)" }}
-            >
-              <span className="flex-1 min-w-0 truncate text-sm font-medium text-foreground">{node.title}</span>
-              <span
-                className="shrink-0"
-                style={{ fontSize: 11.5, fontWeight: 500, padding: "1px 7px", borderRadius: 999, background: "var(--card-bg)", border: "1px solid var(--border)", color: "var(--fg-muted)" }}
-              >
-                {node.node_type}
-              </span>
-              <button
-                type="button"
-                data-slot="icon-button"
-                data-size="sm"
-                data-tone="danger"
-                onClick={() => handleRemove(node.id)}
-                title="Remove"
-                aria-label={`Remove ${node.title}`}
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Search input */}
-      {(isMultiple || selected.length === 0) && (
-        <SearchDropdown
-          open={showResults && (!!searchQuery.trim() || searching)}
-          onOpenChange={setShowResults}
-          content={
-            searching ? (
-              <div data-slot="search-empty">Searching…</div>
-            ) : results.length === 0 ? (
-              <div data-slot="search-empty">
-                {searchQuery.trim() ? "No results found" : "Type to search…"}
-              </div>
-            ) : (
-              results.map((node) => (
-                <button
-                  key={node.id}
-                  type="button"
-                  data-slot="search-option"
-                  onClick={() => handleSelect(node)}
-                >
-                  <span className="truncate" style={{ fontWeight: 500 }}>{node.title}</span>
-                  <span className="ml-auto shrink-0" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--fg-subtle)" }}>
-                    {node.node_type}
-                  </span>
-                  <span
-                    className="shrink-0"
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 500,
-                      padding: "1px 7px",
-                      borderRadius: 999,
-                      ...(node.status === "published"
-                        ? { background: "var(--success-bg)", color: "var(--success)" }
-                        : { background: "var(--warning-bg)", color: "var(--warning)" }),
-                    }}
-                  >
-                    {node.status}
-                  </span>
-                </button>
-              ))
-            )
-          }
-        >
-          <Input
-            placeholder={`Search ${field.node_type_filter || "content"}...`}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setShowResults(true);
-            }}
-            onFocus={() => setShowResults(true)}
-            className="rounded-lg"
-          />
-        </SearchDropdown>
-      )}
-    </div>
-  );
-}
-
 // Node type selector: fetches registered node types and renders a select dropdown
 function NodeTypeSelectInput({
   value,
@@ -873,7 +711,7 @@ function CustomFieldInput({
       return <TermSelectorInput field={field} value={value} onChange={onChange} languageCode={languageCode} />;
     case "reference":
     case "node":
-      return <NodeSelectorInput field={field} value={value} onChange={onChange} />;
+      return <NodeReferenceInput field={field} value={value} onChange={onChange} />;
     case "richtext":
       return (
         <RichTextEditor

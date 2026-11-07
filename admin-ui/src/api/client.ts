@@ -415,6 +415,9 @@ export interface NodeSearchResult {
   node_type: string;
   status: string;
   language_code: string;
+  full_url?: string;
+  /** Raw featured_image JSON: an {url, alt} object or a bare URL string. */
+  featured_image?: unknown;
 }
 
 export async function searchNodes(params: {
