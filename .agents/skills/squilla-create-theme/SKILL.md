@@ -127,6 +127,8 @@ For in-depth block development, schema mechanics, and editor controls, consult t
 | `select` | Dropdown picker | `string` | `"primary"` | `<div class="btn-{{ .style }}">` |
 | `radio` | Radio button group | `string` | `"left"` | `<div class="text-{{ .align }}">` |
 | `color` | Color picker | hex `string` | `"#0F172A"` | `<div style="background-color: {{ .bg_color }};">` |
+| `emoji` | Native emoji picker (max 4 emoji) | `string` | `"🍜"` | `{{ with .badge }}<span aria-hidden="true">{{ . }}</span>{{ end }}` |
+| `icon` | SVG icon picker — Lucide + Material Symbols (`providers: ["lucide"]` restricts) | `"provider:name"` `string` (bare name = `material:`) | `"lucide:map-pin"` | `{{ with .feature_icon }}{{ icon . "w-6 h-6" }}{{ end }}` → inline `<svg aria-hidden>` in `currentColor`; unknown/empty renders nothing |
 | `link` | Text + URL + Target picker | `map[string]any` | `{"text": "Explore", "url": "/trips", "target": "_self"}` | `{{ with .cta }}<a href="{{ .url }}" target="{{ .target }}">{{ .text }}</a>{{ end }}` |
 | `image` | Media asset picker | `map[string]any` | `{"url": "theme-asset:hero", "alt": "Hero banner"}` | `{{ with .image }}{{ with .url }}<img src="{{ image_url . "large" }}" alt="{{ $.image.alt }}">{{ end }}{{ end }}` |
 | `gallery` | Multi-image selector | `[]map[string]any` | `[{"url": "theme-asset:g1", "alt": "A"}, {"url": "theme-asset:g2", "alt": "B"}]` | `{{ range .gallery }}<img src="{{ .url }}" alt="{{ .alt }}">{{ end }}` |

@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import RichTextEditor from "@/components/ui/rich-text-editor";
+import { EmojiFieldInput } from "@/components/ui/emoji-picker";
+import { IconFieldInput } from "@/components/ui/icon-picker";
 import {
   X,
   Plus,
@@ -939,6 +941,28 @@ function CustomFieldInput({
               style={{ backgroundColor: strVal }}
             />
           )}
+        </div>
+      );
+    case "emoji":
+      return (
+        <div data-slug={field.name}>
+          <EmojiFieldInput
+            name={fieldName}
+            value={strVal}
+            onChange={(v) => onChange(v)}
+            placeholder={field.placeholder}
+          />
+        </div>
+      );
+    case "icon":
+      return (
+        <div data-slug={field.name}>
+          <IconFieldInput
+            name={fieldName}
+            value={strVal}
+            onChange={(v) => onChange(v)}
+            providers={Array.isArray(field.providers) ? field.providers : undefined}
+          />
         </div>
       );
     case "range":

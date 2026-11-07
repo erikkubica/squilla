@@ -10,6 +10,8 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { SidebarCard } from "@/components/ui/sidebar-card";
 import { LanguageSelect } from "@/components/ui/language-select";
 import { Switch } from "@/components/ui/switch";
+import { EmojiFieldInput } from "@/components/ui/emoji-picker";
+import { IconFieldInput } from "@/components/ui/icon-picker";
 import {
   Select,
   SelectContent,
@@ -37,7 +39,7 @@ import { iconMap } from "./sdui-components";
 export interface SettingsFieldDef {
   key: string;
   label: string;
-  type: "text" | "textarea" | "node_select" | "toggle" | "role_select";
+  type: "text" | "textarea" | "node_select" | "toggle" | "role_select" | "emoji" | "icon";
   placeholder?: string;
   help?: string;
   /** Inline warning rendered in an amber callout below the help line. Use
@@ -55,6 +57,8 @@ export interface SettingsFieldDef {
   true_value?: string;
   false_value?: string;
   default?: string;
+  // icon-specific: allowed icon sets (empty = all)
+  providers?: string[];
 }
 
 export interface SettingsSectionDef {
@@ -380,6 +384,12 @@ function SettingsField({
             ))}
           </SelectContent>
         </Select>
+      )}
+      {field.type === "emoji" && (
+        <EmojiFieldInput value={value} onChange={onChange} placeholder={field.placeholder} />
+      )}
+      {field.type === "icon" && (
+        <IconFieldInput value={value} onChange={onChange} providers={field.providers} />
       )}
       {field.help && <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>{field.help}</p>}
       {field.warning && (

@@ -438,6 +438,36 @@ JSON-encodes any value with indentation. Useful for debugging template data or e
 </script>
 ```
 
+### `icon`
+
+```
+{{icon value}}
+{{icon value "class names" ...}}
+```
+
+Renders an `icon` field value as an inline SVG. `value` is `"provider:name"` — `lucide:map-pin`, `material:restaurant` — or a bare name, which is read as Material Symbols (so values from older text fields keep working). Optional string arguments are joined with spaces and HTML-escaped into the `class` attribute.
+
+The output is `<svg xmlns=… viewBox=… aria-hidden="true" focusable="false">…</svg>` with no width/height, so size it with CSS. Colors come from `currentColor`: Lucide icons are stroked (`fill="none" stroke="currentColor" stroke-width="2"`), Material Symbols are filled (`fill="currentColor"`). An empty or unknown value renders **nothing** — there is no fallback icon — so wrap surrounding markup in `{{with}}`.
+
+Available in layouts, partials, block views and the block preview. Tengo scripts get the same markup from `helpers.icon_svg(value, class)` in `core/helpers`.
+
+**Example:**
+```html
+{{with .fields.contact_icon}}
+  <span class="contact-icon">{{icon . "w-5 h-5 text-sky-600"}}</span>
+{{end}}
+<a class="btn" href="/tours">See tours {{icon "lucide:arrow-right" "btn-icon"}}</a>
+```
+
+**Bundled icon sets** (embedded in the binary, no CDN or icon font):
+
+| Provider | Set | License | Style |
+|---|---|---|---|
+| `lucide` | [Lucide](https://lucide.dev/icons) (`lucide-static`) | ISC | 24×24 stroke |
+| `material` | [Material Symbols](https://fonts.google.com/icons) Outlined, weight 400 (`@material-symbols/svg-400`) | Apache-2.0 | filled paths, names use underscores (`arrow_forward`) |
+
+The data lives in `internal/icons/data/<provider>.json.gz`. To update a set, bump its version in `internal/icons/generate/package.json`, then run `npm install && npm run generate` in that directory and commit the regenerated `.json.gz` files with the lockfile.
+
 ### Standard Go Template Functions
 
 All built-in Go template functions are also available:
@@ -593,6 +623,11 @@ The `block.json` file defines the block's metadata and field schema:
 | `repeater` | Repeating group of sub-fields. Requires `sub_fields` array. |
 | `group` | Nested group of sub-fields. Requires `sub_fields` array. |
 | `node_selector` | Reference to another content node. Hydrated at render time with full node data. |
+| `color` | Color picker. Stores a hex string (`"#0F172A"`). |
+| `emoji` | Native emoji picker (search, categories, recently used). Stores the emoji string itself, at most 4 emoji, no text/HTML: `{{ with .badge }}<span aria-hidden="true">{{ . }}</span>{{ end }}`. |
+| `icon` | SVG icon picker over the bundled icon sets (Lucide, Material Symbols). Stores `"provider:name"` (`"lucide:map-pin"`); a bare name is read as `material:`. Optional `providers: ["lucide"]` restricts the sets offered. Render with `{{ icon .feature_icon "w-6 h-6" }}` (see [`icon`](#icon)). |
+
+The full, authoritative list (with authoring guidance) is served by `GET /admin/api/field-types` and the MCP `core.field_types.list` tool; `.agents/skills/squilla-create-block/SKILL.md` §7 has schema/test-data/template examples for every type.
 
 ### view.html Templates
 
@@ -1560,6 +1595,7 @@ if res.total == 0 {
 | `split sep s` | Split into a slice. |
 | `image_url url size` | Cached/optimized image URL. |
 | `image_srcset url size1 size2 ...` | Responsive `srcset`. |
+| `icon value "class" ...` | Inline `<svg aria-hidden>` for an icon field value (`lucide:map-pin`, `material:restaurant`, bare name = material). Empty/unknown → nothing. |
 | `filter name value` | Run a registered Tengo filter (2 args required). |
 | `event name ctx ...` | Fire an event; collect HTML responses. |
 | `deref v` | Dereference `*string`/`*int` → bare value. |

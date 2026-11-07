@@ -60,6 +60,9 @@ type Field struct {
 	EmptyLabel string `json:"empty_label,omitempty"`
 	// Type-specific (select with static options)
 	Options []Option `json:"options,omitempty"`
+	// Type-specific (icon): restricts the icon sets offered, e.g.
+	// ["lucide"]. Empty = every bundled set.
+	Providers []string `json:"providers,omitempty"`
 }
 
 // Option is one entry in a select field's static option list.

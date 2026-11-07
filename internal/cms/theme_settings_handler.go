@@ -11,6 +11,7 @@ import (
 
 	"squilla/internal/api"
 	"squilla/internal/auth"
+	"squilla/internal/cms/field_types"
 	"squilla/internal/events"
 	"squilla/internal/models"
 	"squilla/internal/secrets"
@@ -254,6 +255,19 @@ func (h *ThemeSettingsHandler) Save(c *fiber.Ctx) error {
 		_ = h.db.Table("languages").Select("code").Where("is_default = ?", true).Limit(1).Scan(&def).Error
 		fieldLoc = def
 	}
+	// Validate strict-shape values (emoji, icon) for every submitted
+	// field before writing any of them, so a bad value can't leave the
+	// page half-saved.
+	for _, field := range page.Fields {
+		raw, present := body.Values[field.Name]
+		if !present || (field.Type != "emoji" && field.Type != "icon") {
+			continue
+		}
+		if err := validateThemeSettingValue(field, raw); err != nil {
+			return api.Error(c, fiber.StatusUnprocessableEntity, "INVALID_FIELD_VALUE", field.Name+": "+err.Error())
+		}
+	}
+
 	for _, field := range page.Fields {
 		raw, present := body.Values[field.Name]
 		if !present {
@@ -347,6 +361,21 @@ var textFamilyTypes = map[string]struct{}{
 	"date":     {},
 	"select":   {},
 	"radio":    {},
+	"emoji":    {},
+	"icon":     {},
+}
+
+// validateThemeSettingValue checks an emoji/icon setting value. The icon
+// field's `providers` option arrives through field.Config.
+func validateThemeSettingValue(field ThemeSettingsField, raw json.RawMessage) error {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+	var v any
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return err
+	}
+	return field_types.ValidateValue(field.Type, v, field.Config)
 }
 
 // encodeForStorage turns an incoming JSON value into the string that goes

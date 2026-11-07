@@ -138,6 +138,7 @@ Squilla enforces strict, structured field typing. Avoid legacy flat CMS patterns
 | **Composite Objects**| **ALWAYS** use `type: "group"` (canonical: `object`) with child `fields`. | **NEVER** flatten into `author_name`, `author_role`, `author_avatar`. |
 | **Relations & Existing Entities** | **ALWAYS** use `type: "reference"` with `node_type_filter` (and `multiple: true/false`). | **NEVER** create a `type: "repeater"` with manual fields (`title`, `image`, `price`, `url`) when referencing existing node types ("Related Experiences", "Featured Posts"). Duplicating database entities inside a repeater is strictly forbidden! |
 | **Colors** | **ALWAYS** use `type: "color"`, or `type: "select"` for a curated design system palette. | **NEVER** use generic text fields for hex codes. |
+| **Icons & Emoji** | **ALWAYS** use `type: "icon"` (SVG sets, rendered with `{{ icon .x "class" }}`) or `type: "emoji"` (native emoji). | **NEVER** make editors type icon names or paste emoji into a `string` field, and never hardcode icon `<svg>`/icon-font ligatures for editable content. |
 
 ---
 
@@ -908,6 +909,49 @@ Taxonomy term reference (categories, tags, regions).
   <span class="badge">{{ .name }}</span>
 {{ end }}
 ```
+
+---
+
+### 7.22 `emoji`
+Native system emoji picker (search, categories, recently used; typing/pasting also works). Stores the emoji itself — at most 4 emoji, no text or HTML (validated on save).
+- **Schema**:
+```json
+{
+  "name": "badge",
+  "title": "Badge Emoji",
+  "type": "emoji",
+  "description": "Shown before the card title"
+}
+```
+- **Test Data**: `"🍜"`
+- **Template** (decorative, so hide it from screen readers):
+```html
+{{ with .badge }}
+  <span class="card-badge" aria-hidden="true">{{ . }}</span>
+{{ end }}
+```
+
+---
+
+### 7.23 `icon`
+SVG icon picker over the icon sets bundled with the kernel: **Lucide** (`lucide`, ISC, stroke icons) and **Material Symbols Outlined** (`material`, Apache-2.0, filled paths). Stores `"provider:name"`. A bare name without a prefix (e.g. `"restaurant"` from an old text field) is read as `material:`. Values are validated on save: the provider must exist (and be allowed) and the icon must exist in it.
+- **Schema** (`providers` is optional — omit it to offer every set):
+```json
+{
+  "name": "feature_icon",
+  "title": "Icon",
+  "type": "icon",
+  "providers": ["lucide"]
+}
+```
+- **Test Data**: `"lucide:map-pin"` (or `"material:restaurant"`)
+- **Template** — the `icon` helper renders an inline `<svg aria-hidden="true" focusable="false">` that inherits `currentColor` (`stroke` for Lucide, `fill` for Material). Size and color it with CSS. Extra arguments are joined into an escaped `class` attribute. Empty or unknown values render nothing (no fallback icon):
+```html
+{{ with .feature_icon }}
+  <span class="feature-icon">{{ icon . "w-6 h-6" }}</span>
+{{ end }}
+```
+- Literal names work too: `{{ icon "lucide:arrow-right" "btn-icon" }}`. Browse names at lucide.dev/icons and fonts.google.com/icons (Material uses underscores: `arrow_forward`).
 
 ---
 

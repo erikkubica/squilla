@@ -8,8 +8,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"squilla/internal/cms/field_types"
+	"squilla/internal/icons"
 	"squilla/internal/models"
 
 	"gorm.io/gorm"
@@ -312,6 +314,12 @@ func validateBlockFieldsRecursive(blockSlug, parentPath string, fields []map[str
 						return fmt.Errorf("block %q field %q: type=%q options must be plain strings, not {value,label} objects (admin will crash with React error #31)",
 							blockSlug, path, typ)
 					}
+				}
+			}
+		case "icon":
+			for _, p := range field_types.ProvidersOf(f) {
+				if !icons.HasProvider(p) {
+					log.Printf("WARN: block %q field %q is type=icon with unknown provider %q (available: %s)", blockSlug, path, p, strings.Join(icons.ProviderIDs(), ", "))
 				}
 			}
 		case "term":

@@ -16,6 +16,8 @@ import (
 	"unicode"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+
+	"squilla/internal/icons"
 )
 
 // lookupSetting reads a settings map by literal key. Settings are stored
@@ -403,6 +405,13 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 		"image_srcset": func(originalURL string, sizeNames ...string) string {
 			return imageSrcset(r.imagePrefixSnapshot(), originalURL, sizeNames)
 		},
+		// icon renders an icon field value ("lucide:map-pin",
+		// "material:restaurant", or a bare legacy Material name) as an
+		// inline <svg aria-hidden="true"> using currentColor. Optional
+		// class arguments are joined and escaped into class="".
+		// Empty/unknown values render nothing:
+		//   {{ icon .fields.feature_icon "w-6 h-6" }}
+		"icon": icons.TemplateFunc,
 	}
 	return r
 }

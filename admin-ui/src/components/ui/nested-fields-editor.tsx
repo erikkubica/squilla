@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import FieldTypePicker from "@/components/ui/field-type-picker";
+import { IconProvidersOption } from "@/components/ui/icon-picker";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,6 +43,9 @@ function fieldTypeBadgeClass(type: string): string {
     case "link":
       return "bg-cyan-100 text-cyan-700 hover:bg-cyan-100";
     case "color":
+      return "bg-rose-100 text-rose-700 hover:bg-rose-100";
+    case "emoji":
+    case "icon":
       return "bg-rose-100 text-rose-700 hover:bg-rose-100";
     case "email":
       return "bg-blue-100 text-blue-700 hover:bg-blue-100";
@@ -218,6 +222,15 @@ function TypeSpecificOptions({ field, updateField, size = "normal" }: { field: N
             </label>
           </div>
         </div>
+      )}
+
+      {/* Icon sets */}
+      {field.type === "icon" && (
+        <IconProvidersOption
+          value={field.providers}
+          onChange={(providers) => updateField({ providers })}
+          labelClassName={labelClass}
+        />
       )}
 
       {/* Node options */}
