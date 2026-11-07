@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { blockBoundingRect, findBlockForNode, indexBlockMarkers } from "./blockIndex";
 import { requestInsertAt } from "./insertBus";
 import { SidePanel } from "./SidePanel";
-import type { BlockEntry, BootstrapConfig } from "./types";
+import { getAdminBar, type AdminBarAPI, type BlockEntry, type BootstrapConfig } from "./types";
 
 interface EditorRootProps {
   config: BootstrapConfig;
@@ -19,6 +19,41 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
   const [hidden, setHidden] = useState(false);
   const live = active && !hidden;
   const [entries, setEntries] = useState<BlockEntry[]>([]);
+
+  // Kernel admin bar: when present, the editor toggle is a "Customize"
+  // item in the bar instead of the floating button (kept as fallback).
+  const [adminBar, setAdminBar] = useState<AdminBarAPI | null>(() => getAdminBar());
+  useEffect(() => {
+    if (adminBar) return;
+    const onReady = () => setAdminBar(getAdminBar());
+    document.addEventListener("squilla:adminbar-ready", onReady);
+    return () => document.removeEventListener("squilla:adminbar-ready", onReady);
+  }, [adminBar]);
+
+  const toggleRef = useRef<() => void>(() => {});
+  toggleRef.current = () => {
+    if (live) {
+      setHidden(true);
+    } else {
+      setActive(true);
+      setHidden(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!adminBar) return;
+    const handle = adminBar.add({
+      id: "visual-editor",
+      label: "Customize",
+      title: "Edit this page's blocks in place",
+      onClick: () => toggleRef.current(),
+    });
+    return () => handle?.remove();
+  }, [adminBar]);
+
+  useEffect(() => {
+    adminBar?.update("visual-editor", { label: live ? "Close editor" : "Customize", active: live });
+  }, [adminBar, live]);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -112,7 +147,7 @@ export function EditorRoot({ config }: EditorRootProps): React.JSX.Element {
 
   return (
     <>
-      {!live && (
+      {!live && !adminBar && (
         <button
           type="button"
           className="vedit-toggle"

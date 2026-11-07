@@ -200,14 +200,14 @@ func wrapBlocksWithTransformMarkers(rendered []string, blocks []map[string]inter
 	return out
 }
 
-// finishPublicHTML runs the transform chain over a finished page and
-// strips the kernel's markers. Cheap no-op when no transformer is active.
+// finishPublicHTML runs the transform chain over a finished page, strips
+// the kernel's markers and adds the admin bar for signed-in admins. Cheap no-op when no transformer is active.
 func (h *PublicHandler) finishPublicHTML(c *fiber.Ctx, html string, node *models.ContentNode, user *models.User, is404 bool) string {
 	if h.renderCtx != nil {
 		html = h.renderCtx.themeAssets.VersionThemeAssetRefs(html)
 	}
 	if !h.transformActive() {
-		return stripTransformMarkers(html)
+		return h.withAdminBar(c, stripTransformMarkers(html), node, user, is404)
 	}
 	req := TransformRequest{HTML: html, Path: c.Path(), Host: c.Hostname(), Is404: is404, GPC: c.Get("Sec-GPC") == "1"}
 	if node != nil {
@@ -224,5 +224,6 @@ func (h *PublicHandler) finishPublicHTML(c *fiber.Ctx, html string, node *models
 			req.Cookies[name] = v
 		}
 	}
-	return stripTransformMarkers(h.transformer.TransformHTML(req))
+	// The admin bar is added after the chain: transformers never see it.
+	return h.withAdminBar(c, stripTransformMarkers(h.transformer.TransformHTML(req)), node, user, is404)
 }

@@ -198,6 +198,33 @@ Whatever map you pass becomes the plugin's payload (JSON-marshalled). Multiple p
 
 The `forms:upsert` pattern is the canonical way for a theme to ship its own forms — see `themes/hello-vietnam/scripts/theme.tengo` for a working example using `core/assets.read` to pull the layout HTML from a theme file.
 
+### Front-end admin bar (`window.Squilla.adminBar`)
+
+Signed-in users with `admin_access` get a toolbar at the top of every public page (kernel: `internal/cms/admin_bar.go`). It is rendered server-side inside a shadow root, so theme CSS can't touch it. It links to the dashboard, the editor for the current node or term archive, **+ New** for each writable public node type, **Clear cache** (`manage_settings`), and a user menu with *Hide bar this session* (cookie `squilla_hide_admin_bar=1`) and *Log out*. Anonymous HTML never contains it, and every signed-in page is sent `private, no-cache`.
+
+Extensions add items from their own front-end script, usually one injected through `render.body_end`:
+
+```js
+// Queue-safe stub: items pushed before the bar's script runs are kept.
+const S = (window.Squilla = window.Squilla || {});
+S.adminBar = S.adminBar || { _q: [], add(item) { this._q.push(item); } };
+
+const item = S.adminBar.add({
+  id: "my-ext",            // required, unique; adding the same id again replaces the item
+  label: "Translate",
+  href: "/admin/ext/my-ext", // optional, http(s) or relative only; omit for a button
+  onClick: (event, handle) => handle.update({ active: true }), // optional
+  position: "left",        // "left" (default) or "right"
+});
+```
+
+- `window.Squilla.adminBar.ready === true` means the real bar is on the page. A stub or a missing object means it isn't, for example for anonymous visitors or after the user hid it. Keep a fallback UI in that case.
+- The real API has `add(item) → handle | null`, `update(id, patch)`, `remove(id)` and `get(id)`. A handle has `{ id, element, update(patch), remove() }`, and `patch` accepts `label`, `title` and `active` (`active` sets `aria-pressed`).
+- When the bar is ready, `document` dispatches `squilla:adminbar-ready` with the API in `event.detail`. The event bubbles to `window`.
+- Layout: while the bar is shown, `<html>` has the class `squilla-admin-bar` and `margin-top: var(--squilla-admin-bar-h)`. The bar is 32px tall, or 46px at 600px wide and below. Themes and extension overlays offset fixed or sticky UI with `top: var(--squilla-admin-bar-h, 0)`.
+
+The visual-editor extension uses this API for its **Customize** toggle (`extensions/visual-editor/editor-ui/src/EditorRoot.tsx`).
+
 ---
 
 ## 4. Scripting (Tengo)
