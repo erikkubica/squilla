@@ -359,7 +359,11 @@ export interface NodeType {
   taxonomies: TaxonomyDefinition[];
   fields: NodeTypeField[];
   url_prefixes: Record<string, string>;
+  /** language_code → id of the page listing this type's items. */
+  archive_node_ids?: Record<string, number>;
   supports_blocks?: boolean;
+  /** false for library types (reviews, FAQs) that have no public pages. */
+  public?: boolean;
   created_at: string;
   updated_at: string;
 }

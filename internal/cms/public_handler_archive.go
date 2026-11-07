@@ -6,22 +6,30 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"squilla/internal/models"
 )
 
-// This file owns taxonomy-term archives and the per-request context that
-// templates read through `request` (blocks) and `.request` (layouts).
+// This file owns content-type archive pages, taxonomy-term archives and the
+// per-request context that templates read through `request` (blocks) and
+// `.request` (layouts).
 //
-// Archive URLs live under a node type's URL prefix:
+// Each node type has an archive page per language: the page that lists its
+// items. It is the node configured in node_types.archive_node_ids[lang], or,
+// when none is configured (or it isn't published), the published node whose
+// URL is the type's URL prefix (the original convention, kept so existing
+// sites need no data migration).
 //
-//	/<prefix>/<taxonomy>/<term>      e.g. /blog/category/hidden-hanoi-cafes
+// Term archives live under the archive page's URL:
 //
-// They render the published node at /<prefix> (the listing page) with
-// request.archive populated, so the listing block can filter by the term.
-// Nothing resolves unless the prefix belongs to a node type, that node type
-// declares the taxonomy, and the term exists — every other path still 404s.
+//	/<archive page>/<taxonomy>/<term>      e.g. /blog/category/hidden-hanoi-cafes
+//
+// They render the archive page with request.archive populated, so the
+// listing block can filter by the term. Nothing resolves unless the base path
+// is a node type's archive page, that node type declares the taxonomy, and
+// the term exists — every other path still 404s.
 
 const requestLocalsKey = "squilla.request"
 
@@ -49,11 +57,112 @@ func (a *termArchive) toMap() map[string]interface{} {
 	}
 }
 
-// resolveTermArchive maps /<prefix>/<taxonomy>/<term> to the listing node at
-// /<prefix> and the matching term.
+// archiveNodeFor returns the published archive page of nt in lang: the
+// configured archive_node_ids[lang] node, else the published node at the
+// type's URL prefix.
+func archiveNodeFor(db *gorm.DB, nt *models.NodeType, lang string) (*models.ContentNode, bool) {
+	if n, ok := configuredArchiveNode(db, nt, lang); ok {
+		return n, true
+	}
+	return prefixArchiveNode(db, nt, lang)
+}
+
+// configuredArchiveNode loads archive_node_ids[lang] when it is published.
+// A node saved for the wrong language resolves to its translation in lang.
+func configuredArchiveNode(db *gorm.DB, nt *models.NodeType, lang string) (*models.ContentNode, bool) {
+	id := nt.ArchiveNodeIDMap()[lang]
+	if id <= 0 {
+		return nil, false
+	}
+	var n models.ContentNode
+	if err := db.Where("id = ? AND deleted_at IS NULL", id).First(&n).Error; err != nil {
+		return nil, false
+	}
+	if n.LanguageCode != lang {
+		if n.TranslationGroupID == nil || *n.TranslationGroupID == "" {
+			return nil, false
+		}
+		var tr models.ContentNode
+		if err := db.Where("translation_group_id = ? AND language_code = ? AND deleted_at IS NULL",
+			*n.TranslationGroupID, lang).First(&tr).Error; err != nil {
+			return nil, false
+		}
+		n = tr
+	}
+	if n.Status != "published" {
+		return nil, false
+	}
+	return &n, true
+}
+
+// prefixArchiveNode is the legacy rule: the published node in lang whose
+// full_url is the type's explicit URL prefix (with or without the language
+// segment). Types without an explicit prefix for lang have none.
+func prefixArchiveNode(db *gorm.DB, nt *models.NodeType, lang string) (*models.ContentNode, bool) {
+	var prefixes map[string]string
+	if json.Unmarshal(nt.URLPrefixes, &prefixes) != nil {
+		return nil, false
+	}
+	prefix := strings.Trim(prefixes[lang], "/")
+	if prefix == "" {
+		return nil, false
+	}
+	candidates := []string{"/" + prefix}
+	if langSlug := resolveLanguageSlug(lang, db); langSlug != "" {
+		candidates = append([]string{"/" + langSlug + "/" + prefix}, candidates...)
+	}
+	var n models.ContentNode
+	err := db.
+		Where("full_url IN ? AND language_code = ? AND status = ? AND deleted_at IS NULL", candidates, lang, "published").
+		Order(clause.OrderBy{Expression: clause.Expr{
+			SQL:  "CASE WHEN full_url = ? THEN 0 ELSE 1 END, id",
+			Vars: []interface{}{candidates[0]},
+		}}).
+		First(&n).Error
+	if err != nil {
+		return nil, false
+	}
+	return &n, true
+}
+
+// typeArchiveURL returns the URL of the archive page listing nodeType's items
+// in lang, or "" when the type has none.
+func typeArchiveURL(db *gorm.DB, nodeType, lang string) string {
+	var nt models.NodeType
+	if err := db.Select("slug, url_prefixes, archive_node_ids").Where("slug = ?", nodeType).First(&nt).Error; err != nil {
+		return ""
+	}
+	return archiveURLForType(db, &nt, lang)
+}
+
+func archiveURLForType(db *gorm.DB, nt *models.NodeType, lang string) string {
+	if n, ok := archiveNodeFor(db, nt, lang); ok {
+		return n.FullURL
+	}
+	return ""
+}
+
+// isArchiveFor reports whether listing (found at base) is nt's archive page in
+// its language. A configured, published archive page is authoritative; types
+// without one keep the legacy rule (base ends with the type's URL prefix).
+func isArchiveFor(db *gorm.DB, nt *models.NodeType, listing *models.ContentNode, base string) bool {
+	if configured, ok := configuredArchiveNode(db, nt, listing.LanguageCode); ok {
+		return configured.ID == listing.ID
+	}
+	var prefixes map[string]string
+	if json.Unmarshal(nt.URLPrefixes, &prefixes) != nil {
+		return false
+	}
+	prefix := strings.Trim(prefixes[listing.LanguageCode], "/")
+	return prefix != "" && strings.HasSuffix(base, "/"+prefix)
+}
+
+// resolveTermArchive maps /<archive page>/<taxonomy>/<term> to the archive
+// page and the matching term.
 func (h *PublicHandler) resolveTermArchive(path string) (*models.ContentNode, *termArchive, bool) {
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) < 3 {
+	// Two segments are enough when the archive page is the homepage ("/").
+	if len(parts) < 2 {
 		return nil, nil, false
 	}
 	taxSlug := parts[len(parts)-2]
@@ -72,13 +181,9 @@ func (h *PublicHandler) resolveTermArchive(path string) (*models.ContentNode, *t
 	if err := h.db.Find(&nodeTypes).Error; err != nil {
 		return nil, nil, false
 	}
-	for _, nt := range nodeTypes {
-		var prefixes map[string]string
-		if json.Unmarshal(nt.URLPrefixes, &prefixes) != nil {
-			continue
-		}
-		prefix := strings.Trim(prefixes[listing.LanguageCode], "/")
-		if prefix == "" || !strings.HasSuffix(base, "/"+prefix) {
+	for i := range nodeTypes {
+		nt := &nodeTypes[i]
+		if !isArchiveFor(h.db, nt, listing, base) {
 			continue
 		}
 		var taxonomies []struct {

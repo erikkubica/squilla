@@ -219,8 +219,8 @@ func (h *PublicHandler) PageByFullURL(c *fiber.Ctx) error {
 		node, found = h.findNodeWithPrefixFallback(path)
 	}
 
-	// Taxonomy-term archive: /<prefix>/<taxonomy>/<term> renders the
-	// listing node at /<prefix> with request.archive set.
+	// Taxonomy-term archive: /<archive page>/<taxonomy>/<term> renders the
+	// type's archive page with request.archive set.
 	var archive *termArchive
 	if !found {
 		node, archive, found = h.resolveTermArchive(path)

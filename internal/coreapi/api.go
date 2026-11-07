@@ -293,6 +293,7 @@ type NodeType struct {
 	Taxonomies     []TaxonomyDefinition `json:"taxonomies,omitempty"`
 	Fields         []NodeTypeField      `json:"fields"`
 	URLPrefixes    map[string]string    `json:"url_prefixes"`
+	ArchiveNodeIDs map[string]int       `json:"archive_node_ids"` // language_code → archive page node id
 	SupportsBlocks bool                 `json:"supports_blocks"`
 	Public         bool                 `json:"public"`
 	CreatedAt      time.Time            `json:"created_at"`
@@ -373,6 +374,7 @@ type NodeTypeInput struct {
 	Taxonomies     []TaxonomyDefinition `json:"taxonomies,omitempty"`
 	Fields         []NodeTypeField      `json:"fields,omitempty"`
 	URLPrefixes    map[string]string    `json:"url_prefixes,omitempty"`
+	ArchiveNodeIDs map[string]int       `json:"archive_node_ids,omitempty"` // nil leaves the stored map untouched; 0 clears a language
 	SupportsBlocks *bool                `json:"supports_blocks,omitempty"`
 	Public         *bool                `json:"public,omitempty"`
 }

@@ -331,7 +331,7 @@ func guideRecipes(topic string) []map[string]any {
 			"goal":  "Add a custom node type (post type)",
 			"topic": "pages",
 			"steps": []string{"core.nodetype.list", "core.nodetype.create", "core.taxonomy.create", "core.node.create"},
-			"notes": "label_plural is required for admin UI. url_prefixes decides public routing.",
+			"notes": "label_plural is required for admin UI. url_prefixes decides public routing. archive_node_ids {lang: page id} picks the page listing the type (falls back to the page at the prefix URL); term archives live at /<archive page>/<taxonomy>/<term>, and templates get node.type_archive_url.",
 		},
 		{
 			"goal":  "Diagnose a broken public page",

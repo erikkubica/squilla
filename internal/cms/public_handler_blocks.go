@@ -372,10 +372,14 @@ func nodeTemplateData(n *models.ContentNode, schema models.JSONB) map[string]int
 func (h *PublicHandler) pageNodeData(n *models.ContentNode) map[string]interface{} {
 	var nt models.NodeType
 	var schema models.JSONB
-	if err := h.db.Select("field_schema").Where("slug = ?", n.NodeType).First(&nt).Error; err == nil {
+	archiveURL := ""
+	if err := h.db.Select("slug, field_schema, url_prefixes, archive_node_ids").Where("slug = ?", n.NodeType).First(&nt).Error; err == nil {
 		schema = nt.Fields
+		archiveURL = archiveURLForType(h.db, &nt, n.LanguageCode)
 	}
-	return nodeTemplateData(n, schema)
+	data := nodeTemplateData(n, schema)
+	data["type_archive_url"] = archiveURL
+	return data
 }
 
 // nodeTypeIsPublic reports whether nodes of this type have public pages.

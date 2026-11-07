@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -182,6 +183,8 @@ func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
 	basePath := basePathForNodeType(nodeTypeSlug)
 
 	// 9. Build rows
+	archiveOf := archiveBadges(e.db, nodes)
+	homepageIDs := homepageNodeIDs(e.db)
 	rows := make([]map[string]interface{}, 0, len(nodes))
 	for _, n := range nodes {
 		// Parse taxonomies JSONB — map of taxonomy_slug → []term_names
@@ -199,6 +202,8 @@ func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
 			"taxonomies":    nodeTax,
 			"updated_at":    n.UpdatedAt.Format("2006-01-02"),
 			"editPath":      fmt.Sprintf("%s/%d/edit", basePath, n.ID),
+			"is_homepage":   homepageIDs[n.ID],
+			"archive_of":    archiveOf[n.ID],
 		})
 	}
 
@@ -438,4 +443,57 @@ func (e *Engine) taxonomyTermsLayout(params map[string]string) *LayoutNode {
 			},
 		},
 	}
+}
+
+// archiveBadges labels the listed nodes that are a content type's archive
+// page ("Blog archive"). Mirrors cms.archiveNodeFor without extra queries:
+// a node configured in archive_node_ids[lang] is the archive; for languages
+// with nothing configured, a published node whose URL ends with the type's
+// URL prefix still serves as the archive (the legacy rule).
+func archiveBadges(db *gorm.DB, nodes []models.ContentNode) map[int][]string {
+	out := map[int][]string{}
+	if len(nodes) == 0 {
+		return out
+	}
+	var types []models.NodeType
+	if err := db.Select("slug, label, label_plural, url_prefixes, archive_node_ids").Order("label ASC").Find(&types).Error; err != nil {
+		return out
+	}
+	for _, nt := range types {
+		label := nt.LabelPlural
+		if label == "" {
+			label = nt.Label
+		}
+		badge := label + " archive"
+		configured := nt.ArchiveNodeIDMap()
+		var prefixes map[string]string
+		_ = json.Unmarshal(nt.URLPrefixes, &prefixes)
+		for _, n := range nodes {
+			if id, ok := configured[n.LanguageCode]; ok {
+				if id == n.ID {
+					out[n.ID] = append(out[n.ID], badge)
+				}
+				continue
+			}
+			prefix := strings.Trim(prefixes[n.LanguageCode], "/")
+			if prefix != "" && n.Status == "published" && strings.HasSuffix(n.FullURL, "/"+prefix) {
+				out[n.ID] = append(out[n.ID], badge)
+			}
+		}
+	}
+	return out
+}
+
+// homepageNodeIDs returns the node ids chosen as homepage in any language
+// (homepage_node_id is a translatable setting).
+func homepageNodeIDs(db *gorm.DB) map[int]bool {
+	var vals []string
+	db.Model(&models.SiteSetting{}).Where("key = ? AND value IS NOT NULL", "homepage_node_id").Pluck("value", &vals)
+	out := make(map[int]bool, len(vals))
+	for _, v := range vals {
+		if id, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && id > 0 {
+			out[id] = true
+		}
+	}
+	return out
 }

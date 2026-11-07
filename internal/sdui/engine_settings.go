@@ -21,7 +21,12 @@ func (e *Engine) siteSettingsLayout() *LayoutNode {
 }
 
 func (e *Engine) siteSettingsGeneralLayout() *LayoutNode {
-	return schemaSettingsNode("site.general", true)
+	n := schemaSettingsNode("site.general", true)
+	// "Reading" overview next to the homepage choice: one archive page
+	// picker per public content type. Values are stored on the node types
+	// (archive_node_ids), not as site settings.
+	n.Props["archive_pages"] = true
+	return n
 }
 
 func (e *Engine) siteSettingsSEOLayout() *LayoutNode {

@@ -445,6 +445,9 @@ message NodeTypeInputMessage {
   repeated NodeTypeFieldMessage field_schema = 5;
   map<string, string> url_prefixes = 6;
   string taxonomies_json = 7; // JSON-encoded []TaxonomyDefinition
+  // language_code → archive page node id. Absent leaves the stored map
+  // untouched; an id of 0 clears that language.
+  map<string, int32> archive_node_ids = 8;
 }
 
 message NodeTypeMessage {
@@ -460,6 +463,7 @@ message NodeTypeMessage {
   string taxonomies_json = 10; // JSON-encoded []TaxonomyDefinition
   // Inverse of NodeType.Public so hosts that predate the field decode as public.
   bool private = 11;
+  map<string, int32> archive_node_ids = 12; // language_code → archive page node id
 }
 
 message NodeTypeResponse {

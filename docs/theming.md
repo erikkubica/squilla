@@ -288,7 +288,19 @@ Every layout receives a flat map with three top-level namespaces: `.app`, `.node
 | `.node.seo` | `map[string]interface{}` | SEO settings: `meta_title`, `meta_description`, `og_image`, etc. |
 | `.node.node_type` | `string` | Content type slug (e.g. `"page"`, `"post"`, `"team-member"`). |
 | `.node.language_code` | `string` | ISO language code (e.g. `"en"`, `"de"`, `"fr"`). |
+| `.node.type_archive_url` | `string` | URL of the archive page that lists this node's content type in its language (e.g. `"/blog"` on a post). Empty when the type has none. Use it for breadcrumbs and "← All posts" links. Also on the block-template `node` func. |
 | `.node.translations` | `[]map` | Translation siblings for language switcher. Each entry: `language_code`, `language_name`, `flag`, `title`, `full_url`, `is_current`. `nil` if no translation group exists. |
+
+#### `.request` -- Visitor Request (`request` in block templates)
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `.request.path` | `string` | Request path. |
+| `.request.page` | `int` | `?page=N` (1 when absent). |
+| `.request.query` | `map[string]string` | Query parameters. |
+| `.request.archive` | `map` or `nil` | Set on taxonomy-term archives, else `nil`. Keys: `node_type`, `taxonomy`, `taxonomy_label`, `term`, `term_name`, `term_description`, `base_url` (the archive page URL), `url`. |
+
+**Archive pages.** Each content type has an archive page per language: the page chosen in the content type editor (or Settings → General → Archive pages), falling back to the page whose URL is the type's URL prefix. Term archives live under it: `/<archive page>/<taxonomy>/<term>` (e.g. `/blog/category/news`) renders the archive page with `request.archive` filled in, so its listing block filters by `request.archive.term`. Nothing resolves unless the type declares the taxonomy and the term exists.
 
 #### `.user` -- Current Visitor/User Data
 

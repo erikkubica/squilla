@@ -44,6 +44,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import FieldSchemaEditor from "@/components/ui/field-schema-editor";
+import { ArchivePagePicker } from "@/components/ui/archive-page-picker";
 import { toast } from "sonner";
 import { usePageMeta } from "@/components/layout/page-meta";
 import {
@@ -109,6 +110,7 @@ export default function NodeTypeEditorPage() {
   const [taxonomies, setTaxonomies] = useState<NodeType["taxonomies"]>([]);
   const [fields, setFields] = useState<NodeTypeField[]>([]);
   const [urlPrefixes, setUrlPrefixes] = useState<Record<string, string>>({});
+  const [archiveNodeIds, setArchiveNodeIds] = useState<Record<string, number>>({});
   const [supportsBlocks, setSupportsBlocks] = useState(true);
   const [originalNodeType, setOriginalNodeType] = useState<NodeType | null>(null);
 
@@ -146,6 +148,7 @@ export default function NodeTypeEditorPage() {
         setTaxonomies(Array.isArray(taxes) ? taxes : []);
         setFields(nt.fields || []);
         setUrlPrefixes(nt.url_prefixes || {});
+        setArchiveNodeIds(nt.archive_node_ids || {});
         setSupportsBlocks(nt.supports_blocks !== false);
         setAutoSlug(false);
       })
@@ -209,6 +212,7 @@ export default function NodeTypeEditorPage() {
       taxonomies,
       fields: fields,
       url_prefixes: urlPrefixes,
+      archive_node_ids: archiveNodeIds,
       supports_blocks: supportsBlocks,
     };
 
@@ -408,9 +412,9 @@ export default function NodeTypeEditorPage() {
                 content: (
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Set the URL prefix per language. Leave empty to use the type slug as prefix.
+                      Set the URL prefix and archive page per language. Leave the prefix empty to use the type slug.
                     </p>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       {languages.map((lang) => (
                         <div key={lang.code} className="space-y-1.5">
                           <Label className="text-xs font-medium text-muted-foreground">{lang.name} ({lang.code})</Label>
@@ -430,6 +434,25 @@ export default function NodeTypeEditorPage() {
                               className="flex-1 bg-transparent px-2 py-2 text-sm outline-none"
                             />
                             <span className="shrink-0 text-sm pr-2" style={{color: "var(--fg-subtle)"}}>/slug</span>
+                          </div>
+                          <div className="space-y-1 pt-1">
+                            <Label className="text-xs font-medium text-muted-foreground">Archive page</Label>
+                            <ArchivePagePicker
+                              languageCode={lang.code}
+                              value={archiveNodeIds[lang.code]}
+                              onChange={(nodeId) =>
+                                setArchiveNodeIds((prev) => {
+                                  const next = { ...prev };
+                                  if (nodeId > 0) next[lang.code] = nodeId;
+                                  else delete next[lang.code];
+                                  return next;
+                                })
+                              }
+                            />
+                            <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
+                              The page that lists all {(labelPlural || label || "items").toLowerCase()}. Category and tag archives live under it.
+                              {!archiveNodeIds[lang.code] && " Not set: the page at the URL prefix is used, if there is one."}
+                            </p>
                           </div>
                         </div>
                       ))}

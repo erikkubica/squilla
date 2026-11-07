@@ -3,6 +3,7 @@ package cms
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -96,6 +97,8 @@ func (s *NodeTypeService) Create(nt *models.NodeType) error {
 		return fmt.Errorf("slug conflict: node type with slug %q already exists", nt.Slug)
 	}
 
+	nt.ArchiveNodeIDs = normalizeArchiveNodeIDs(nt.ArchiveNodeIDs)
+
 	// GORM leaves false booleans that have a column default out of the
 	// INSERT and back-fills the default (true), so write them explicitly.
 	wantBlocks, wantPublic := nt.SupportsBlocks, nt.Public
@@ -154,6 +157,10 @@ func (s *NodeTypeService) Update(id int, updates map[string]interface{}) (*model
 		}
 	}
 
+	if val, ok := updates["archive_node_ids"]; ok {
+		updates["archive_node_ids"] = normalizeArchiveNodeIDs(val)
+	}
+
 	if err := s.db.Model(existing).Updates(updates).Error; err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505") {
 			slug := updates["slug"]
@@ -180,6 +187,58 @@ func (s *NodeTypeService) Update(id int, updates map[string]interface{}) (*model
 
 	s.emit("node_type.updated", updated.ID, updated.Slug)
 	return updated, nil
+}
+
+// normalizeArchiveNodeIDs coerces an archive_node_ids value (parsed JSON,
+// raw JSONB, or a typed map) into canonical {"<lang>": <id>} JSONB.
+// Numeric strings are accepted; empty, zero, and malformed entries are
+// dropped so clearing a picker removes the language's entry. A
+// node_type.updated event (emitted by Update) clears the public render
+// cache and admin layouts, so a changed archive page takes effect at once.
+func normalizeArchiveNodeIDs(val interface{}) models.JSONB {
+	var raw map[string]interface{}
+	switch v := val.(type) {
+	case nil:
+	case models.JSONB:
+		_ = json.Unmarshal(v, &raw)
+	case []byte:
+		_ = json.Unmarshal(v, &raw)
+	case string:
+		_ = json.Unmarshal([]byte(v), &raw)
+	case map[string]interface{}:
+		raw = v
+	case map[string]int:
+		raw = make(map[string]interface{}, len(v))
+		for k, id := range v {
+			raw[k] = id
+		}
+	}
+	out := make(map[string]int, len(raw))
+	for lang, idVal := range raw {
+		lang = strings.TrimSpace(lang)
+		if lang == "" {
+			continue
+		}
+		var id int
+		switch n := idVal.(type) {
+		case float64:
+			id = int(n)
+		case int:
+			id = n
+		case int64:
+			id = int(n)
+		case json.Number:
+			i, _ := n.Int64()
+			id = int(i)
+		case string:
+			id, _ = strconv.Atoi(strings.TrimSpace(n))
+		}
+		if id > 0 {
+			out[lang] = id
+		}
+	}
+	b, _ := json.Marshal(out)
+	return models.JSONB(b)
 }
 
 // rebuildAllURLsForNodeType recomputes full_url for every content node of

@@ -232,6 +232,10 @@ func nodeTypeFromProto(msg *pb.NodeTypeMessage) *NodeType {
 	if nt.URLPrefixes == nil {
 		nt.URLPrefixes = map[string]string{}
 	}
+	nt.ArchiveNodeIDs = make(map[string]int, len(msg.ArchiveNodeIds))
+	for k, v := range msg.ArchiveNodeIds {
+		nt.ArchiveNodeIDs[k] = int(v)
+	}
 	return nt
 }
 
@@ -242,6 +246,12 @@ func nodeTypeInputToProto(input NodeTypeInput) *pb.NodeTypeInputMessage {
 		Icon:        input.Icon,
 		Description: input.Description,
 		UrlPrefixes: input.URLPrefixes,
+	}
+	if input.ArchiveNodeIDs != nil {
+		msg.ArchiveNodeIds = make(map[string]int32, len(input.ArchiveNodeIDs))
+		for k, v := range input.ArchiveNodeIDs {
+			msg.ArchiveNodeIds[k] = int32(v)
+		}
 	}
 	if input.Taxonomies != nil {
 		if b, err := json.Marshal(input.Taxonomies); err == nil {

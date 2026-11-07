@@ -139,6 +139,7 @@ func composeBodyEnd(app AppData, extensionBodyEnd template.HTML) template.HTML {
 //	published_at                                  — RFC3339 string; omitted when unpublished
 //	blocks                                        — []map[string]any parsed from blocks_data (empty slice when none)
 //	layout                                        — layout slug string; omitted when the node has none
+//	type_archive_url                              — URL of the page listing this node's type; omitted when none
 //	author                                        — {"name": string}; omitted unless node.Author is already loaded with a name (no DB query, no email)
 //	structured_data                               — []any of objects from the theme's structured-data templates; omitted when empty
 //
@@ -176,6 +177,9 @@ func buildHookNodePayload(node *models.ContentNode, nodeData NodeData) map[strin
 		payload["updated_at"] = node.UpdatedAt.Format(time.RFC3339)
 	}
 
+	if nodeData.TypeArchiveURL != "" {
+		payload["type_archive_url"] = nodeData.TypeArchiveURL
+	}
 	if len(nodeData.StructuredData) > 0 {
 		payload["structured_data"] = nodeData.StructuredData
 	}

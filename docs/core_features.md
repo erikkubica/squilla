@@ -83,7 +83,9 @@ Sibling nodes share `translation_group_id` (UUID). Endpoint `POST /admin/api/nod
 ### 2.6 Node types (`node_types` table)
 **Status:** ✅ working
 
-Custom content types beyond page/post. Fields: `slug`, `label`, `label_plural`, `icon`, `description`, `taxonomies` (JSONB), `field_schema` (JSONB), `url_prefixes` (per-language JSONB), `supports_blocks`.
+Custom content types beyond page/post. Fields: `slug`, `label`, `label_plural`, `icon`, `description`, `taxonomies` (JSONB), `field_schema` (JSONB), `url_prefixes` (per-language JSONB), `archive_node_ids` (per-language JSONB: archive page node id), `supports_blocks`, `public`.
+
+**Archive pages.** Each type has an archive page per language — the page that lists its items (WordPress's `page_for_posts`, for every type). It is `archive_node_ids[lang]` when set and published, otherwise the published page whose URL is the type's prefix (`/blog` for prefix `blog`). Taxonomy-term archives live under it: `/<archive page>/<taxonomy>/<term>` renders the archive page with `request.archive` set, and only when the type declares the taxonomy and the term exists. Editors pick archive pages in the content type editor (URLs tab) or in Settings → General → Archive pages; the pages list badges them ("Blog archive"). Templates get `.node.type_archive_url`.
 
 CRUD via `/admin/api/node-types`.
 
