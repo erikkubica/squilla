@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Save, Loader2, AlertCircle, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SidebarCard } from "@/components/ui/sidebar-card";
 import { LanguagePicker } from "@/components/ui/language-select";
 import CustomFieldInput from "@/components/ui/custom-field-input";
 import { toast } from "sonner";
+import { resolveLucideIcon } from "@/lib/lucide-icon";
 import {
+  getThemeSettingsPages,
   getThemeSettingsPage,
   saveThemeSettingsPage,
   type NodeTypeField,
@@ -36,8 +40,113 @@ function toNodeTypeField(f: ThemeSettingsField): NodeTypeField {
   } as NodeTypeField;
 }
 
+interface ThemePageLink {
+  slug: string;
+  name: string;
+  icon?: string;
+}
+
+/**
+ * Sub-nav for theme settings. The admin sidebar shows a single "Theme
+ * settings" entry; this lists every settings page the theme declares —
+ * a vertical list beside the form on wide screens, a select above it on
+ * narrower ones.
+ */
+function ThemeSettingsNav({
+  pages,
+  current,
+  confirmLeave,
+}: {
+  pages: ThemePageLink[];
+  current: string;
+  confirmLeave: () => boolean;
+}) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <nav aria-label="Theme settings pages" className="hidden xl:block xl:sticky xl:top-4 xl:self-start">
+        <ul className="space-y-[2px]">
+          {pages.map((p) => {
+            const Icon = resolveLucideIcon(p.icon || "Palette");
+            const active = p.slug === current;
+            return (
+              <li key={p.slug}>
+                <Link
+                  to={`/admin/theme-settings/${p.slug}`}
+                  aria-current={active ? "page" : undefined}
+                  onClick={(e) => {
+                    if (!active && !confirmLeave()) e.preventDefault();
+                  }}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-[7px] text-[13.5px] font-medium transition-colors"
+                  style={{
+                    color: active ? "var(--fg)" : "var(--fg-muted)",
+                    background: active ? "var(--card-bg)" : undefined,
+                    boxShadow: active ? "0 0 0 1px var(--border), 0 1px 2px rgba(15,23,42,0.05)" : undefined,
+                  }}
+                >
+                  {Icon && (
+                    <Icon size={16} strokeWidth={1.75} className="shrink-0" style={{ color: active ? "var(--accent-strong)" : "var(--fg-subtle)" }} />
+                  )}
+                  <span className="truncate">{p.name}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+      <div className="lg:col-span-2 xl:hidden">
+        <Select
+          value={current}
+          onValueChange={(v) => {
+            if (confirmLeave()) navigate(`/admin/theme-settings/${v}`);
+          }}
+        >
+          <SelectTrigger id="theme-settings-page" aria-label="Theme settings page">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {pages.map((p) => (
+              <SelectItem key={p.slug} value={p.slug}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
+}
+
+/** /admin/theme-settings → the theme's first settings page. */
+export function ThemeSettingsIndexPage() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["theme-settings-pages-index"],
+    queryFn: getThemeSettingsPages,
+  });
+  const first = data?.pages?.[0]?.slug;
+  if (first) return <Navigate to={`/admin/theme-settings/${first}`} replace />;
+  return (
+    <SduiAdminShell>
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" style={{ color: "var(--accent-strong)" }} />
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          {error ? (error as Error).message : "The active theme has no settings pages."}
+        </p>
+      )}
+    </SduiAdminShell>
+  );
+}
+
 export function ThemeSettingsPage() {
   const { page: pageSlug } = useParams<{ page: string }>();
+  const { data: pageList } = useQuery({
+    queryKey: ["theme-settings-pages-index"],
+    queryFn: getThemeSettingsPages,
+    staleTime: 60_000,
+  });
   // Header language is the default; per-page selector below can override it.
   const { languages, currentCode } = useAdminLanguage();
   const [pageLocale, setPageLocale] = useState<string>(currentCode);
@@ -108,6 +217,8 @@ export function ThemeSettingsPage() {
   );
 
   const hasChanges = JSON.stringify(values) !== JSON.stringify(original);
+  const confirmLeave = () => !hasChanges || window.confirm("Discard unsaved changes on this page?");
+  const navPages: ThemePageLink[] = pageList?.pages || [];
 
   if (loading && !data) {
     return (
@@ -145,7 +256,10 @@ export function ThemeSettingsPage() {
           )}
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[200px_minmax(0,1fr)_300px]">
+          {navPages.length > 1 && pageSlug && (
+            <ThemeSettingsNav pages={navPages} current={pageSlug} confirmLeave={confirmLeave} />
+          )}
           {/* Main content — fields card */}
           <div className="space-y-4 min-w-0">
             <Card className="rounded-xl border border-border shadow-sm">

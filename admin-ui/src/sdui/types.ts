@@ -30,6 +30,10 @@ export interface NavItem {
   section?: string; // grouping key for extension items
   path?: string;
   children?: NavItem[];
+  /** Section header whose items start hidden until opened (remembered per browser). */
+  default_collapsed?: boolean;
+  /** Leaf is active for every route under its path, e.g. /admin/theme-settings/<page>. */
+  match_prefix?: boolean;
 }
 
 export interface BootNodeType {

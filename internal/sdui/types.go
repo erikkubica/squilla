@@ -35,6 +35,14 @@ type NavItem struct {
 	Section   string    `json:"section,omitempty"`    // content, design, development, settings — for grouping extension items into sections
 	Path      string    `json:"path,omitempty"`
 	Children  []NavItem `json:"children,omitempty"`
+	// DefaultCollapsed marks a section header whose items start hidden
+	// until the operator opens it (the sidebar remembers the choice).
+	// Used for "Build": heavy during site setup, rarely touched after.
+	DefaultCollapsed bool `json:"default_collapsed,omitempty"`
+	// Position orders extension items inside their section (lower first).
+	// Kernel items keep their fixed order; unpositioned extension items
+	// follow positioned ones in manifest-priority order.
+	Position int `json:"-"`
 }
 
 // BootNodeType represents a content type in the boot manifest.

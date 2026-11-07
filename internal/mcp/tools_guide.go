@@ -431,7 +431,7 @@ func guideRecipes(topic string) []map[string]any {
 				"3. core.theme.activate(<slug>) — picks up the new schema.",
 				"4. In templates: {{ .theme_settings.header.logo }}\n   In blocks:    {{ themeSetting \"header\" \"logo\" }}\n   In Tengo:     ts := import(\"core/theme_settings\"); ts.get(\"header\", \"logo\")",
 				"5. Storage: theme:<slug>:header:logo in site_settings (auto-encrypted for\n   secret-shaped keys).",
-				"6. Admin UI: a \"Theme Settings\" sidebar section appears with one entry per\n   declared page.",
+				"6. Admin UI: a \"Theme settings\" entry appears in the sidebar's Site section;\n   its page lists every declared settings page in a sub-nav.",
 			},
 			"notes": "Field shapes = standard field types (text/number/toggle/image/select/repeater/...). Saved-value type mismatches don't mutate the DB — render falls back to declared default; admin shows 'previous value' hint. Tengo callers need theme_settings:read (themes bypass; extensions list in extension.json). Bad pages soft-fail at activation (logged & skipped). Run core.theme.checklist({slug}) to validate before activating.",
 		},
@@ -712,7 +712,7 @@ func themeStandardsCore() map[string]any {
 			"templates/": "Page templates: pre-built block sequences editors can apply with one click. Not seeds — use theme.tengo for seeding.",
 			"scripts/":   "scripts/theme.tengo (entry — runs once on activation) plus scripts/filters/<name>.tengo for template-callable filters.",
 			"forms/":     "Optional. Theme-owned form layouts as Go templates, registered via the forms-extension handshake (events.emit \"forms:upsert\").",
-			"settings/":  "Optional. Per-page JSON schemas referenced from theme.json's settings_pages[]. Each file declares { name, description?, fields: [...] }; field shapes follow the standard field-types reference. Stored under theme:<slug>:<page>:<field> in site_settings (per-theme namespace). Surfaced in admin under a 'Theme Settings' sidebar group; readable from layouts via .theme_settings.<page>.<field>, from blocks via themeSetting/themeSettingsPage helpers, from Tengo via core/theme_settings (capability theme_settings:read).",
+			"settings/":  "Optional. Per-page JSON schemas referenced from theme.json's settings_pages[]. Each file declares { name, description?, fields: [...] }; field shapes follow the standard field-types reference. Stored under theme:<slug>:<page>:<field> in site_settings (per-theme namespace). Surfaced in admin under Site → Theme settings (one sidebar entry, a sub-nav per page); readable from layouts via .theme_settings.<page>.<field>, from blocks via themeSetting/themeSettingsPage helpers, from Tengo via core/theme_settings (capability theme_settings:read).",
 		},
 		"template_functions": []string{
 			"{{ renderLayoutBlock \"slug\" }} — render a partial. LAYOUT/PARTIAL ONLY. There is NO `partial` template function.",

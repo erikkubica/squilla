@@ -2,6 +2,8 @@ package sdui
 
 import (
 	"encoding/json"
+	"sort"
+	"strconv"
 	"strings"
 
 	"squilla/internal/models"
@@ -132,7 +134,7 @@ func extNavPasses(user *models.User, section, declaredCap string) bool {
 		return hasNavCap(user, declaredCap)
 	}
 	switch strings.ToLower(section) {
-	case "settings", "development", "dev":
+	case "settings", "site", "extensions", "development", "dev":
 		return hasNavCap(user, "manage_settings")
 	case "design":
 		return hasNavCap(user, "manage_layouts")
@@ -208,13 +210,13 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 
 	// ── Parse extension manifests once and bucket items by section ──
 	// Extensions declare placement via:
-	//   admin_ui.menu.section      → "content" | "design" | "development" | "settings"
+	//   admin_ui.menu.section      → "top" | "content" | "site" | "settings" | "extensions" (all → Extensions section) | "design" | "development" (→ Build)
 	//   admin_ui.settings_menu[]   → shortcut; always lands in the Settings section
 	// Anything without a section (or an unknown value) is treated as top-level.
-	extContent := []NavItem{}
 	extDesign := []NavItem{}
 	extDev := []NavItem{}
 	extSettings := []NavItem{}
+	extTools := []NavItem{}
 	extTopLevel := []NavItem{}
 	// extSiteSettings folds into the kernel's "Site Settings" group as
 	// children. Extensions like seo-extension contribute SEO and Robots
@@ -233,10 +235,11 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		var manifest struct {
 			AdminUI *struct {
 				Menu *struct {
-					Label              string `json:"label"`
-					Icon               string `json:"icon"`
-					Section            string `json:"section"`
-					RequiredCapability string `json:"required_capability"`
+					Label              string          `json:"label"`
+					Icon               string          `json:"icon"`
+					Section            string          `json:"section"`
+					Position           json.RawMessage `json:"position"`
+					RequiredCapability string          `json:"required_capability"`
 					Children           []struct {
 						Label              string `json:"label"`
 						Route              string `json:"route"`
@@ -315,16 +318,20 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 					Path:  "/admin/ext/" + ext.Slug + "/",
 				}
 			}
+			navItem.Position = parseNavPosition(m.Position)
 			if emit {
+				// An extension's main menu lands in the Extensions section
+				// (Analytics, Media, Forms, Email…) whatever its declared
+				// section; the section still picks the default capability
+				// gate. Design/development tools stay with Build, "top" (or
+				// no section) stays beside Dashboard.
 				switch strings.ToLower(m.Section) {
-				case "content":
-					extContent = append(extContent, navItem)
+				case "content", "site", "settings", "extensions":
+					extTools = append(extTools, navItem)
 				case "design":
 					extDesign = append(extDesign, navItem)
 				case "development", "dev":
 					extDev = append(extDev, navItem)
-				case "settings":
-					extSettings = append(extSettings, navItem)
 				default:
 					extTopLevel = append(extTopLevel, navItem)
 				}
@@ -379,10 +386,12 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		ID: "nav-dashboard", Label: "Dashboard", Icon: "LayoutDashboard",
 		Path: "/admin/dashboard",
 	})
-	nav = append(nav, extTopLevel...)
+	nav = append(nav, sortNavByPosition(extTopLevel)...)
 
 	// ── Content section ──
-	contentItems := []NavItem{}
+	// Built-in types (Pages, Posts) first, then custom types A–Z.
+	builtinItems := []NavItem{}
+	customItems := []NavItem{}
 	for _, nt := range nodeTypes {
 		// Capability gate: skip types the current user has no read access to.
 		// Resolves per-type override first then default_node_access — same
@@ -425,56 +434,34 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		if len(taxChildren) > 1 {
 			item.Children = taxChildren
 		}
-		contentItems = append(contentItems, item)
+		if isBuiltinNodeType(nt.Slug) {
+			builtinItems = append(builtinItems, item)
+		} else {
+			customItems = append(customItems, item)
+		}
 	}
-	contentItems = append(contentItems, extContent...)
+	sort.SliceStable(builtinItems, func(i, j int) bool {
+		return builtinRank(builtinItems[i].ID) < builtinRank(builtinItems[j].ID)
+	})
+	contentItems := append(builtinItems, customItems...)
 	appendSection("section-content", "Content", contentItems)
 
-	// ── Design section ──
-	// Per-item capability mapping mirrors the per-route guards in
-	// internal/cms/{template,layout,block_type,layout_block,menu}_handler.go.
-	// Templates/Layouts/Block Types/Layout Blocks all share manage_layouts
-	// because they're variants of the same "design tokens" capability;
-	// menus have their own manage_menus so editors with menu authority but
-	// no template authority still get the relevant entry.
-	designItems := []NavItem{}
-	if hasNavCap(user, "manage_layouts") {
-		designItems = append(designItems,
-			NavItem{ID: "nav-templates", Label: "Templates", Icon: "FileCode", Path: "/admin/templates"},
-			NavItem{ID: "nav-layouts", Label: "Layouts", Icon: "LayoutPanelTop", Path: "/admin/layouts"},
-			NavItem{ID: "nav-block-types", Label: "Block Types", Icon: "Blocks", Path: "/admin/block-types"},
-			NavItem{ID: "nav-layout-blocks", Label: "Layout Blocks", Icon: "Component", Path: "/admin/layout-blocks"},
-		)
-	}
+	// ── Extensions section ──
+	// Every installed extension's main screen, ordered by manifest position.
+	appendSection("section-extensions", "Extensions", sortNavByPosition(extTools))
+
+	// ── Site section ──
+	// Things an editor keeps changing after launch: menus, the theme's
+	// settings pages (injected client-side as one "Theme settings" entry,
+	// see admin-ui/src/sdui/admin-shell.tsx), site-wide settings and
+	// security. Menus lives here, not with the design tools, because it is
+	// content work gated by its own manage_menus capability.
+	siteItems := []NavItem{}
 	if hasNavCap(user, "manage_menus") {
-		designItems = append(designItems,
+		siteItems = append(siteItems,
 			NavItem{ID: "nav-menus", Label: "Menus", Icon: "ListTree", Path: "/admin/menus"},
 		)
 	}
-	designItems = append(designItems, extDesign...)
-	appendSection("section-design", "Design", designItems)
-
-	// ── Development section ──
-	// All four entries mutate site-wide schema (content types, taxonomies,
-	// themes, extensions) — manage_settings is the right gate. Editors and
-	// authors should not see this section at all.
-	devItems := []NavItem{}
-	if hasNavCap(user, "manage_settings") {
-		devItems = append(devItems,
-			NavItem{ID: "nav-content-types", Label: "Content Types", Icon: "Shapes", Path: "/admin/content-types"},
-			NavItem{ID: "nav-taxonomies", Label: "Taxonomies", Icon: "Tags", Path: "/admin/taxonomies"},
-			NavItem{ID: "nav-themes", Label: "Themes", Icon: "Brush", Path: "/admin/themes"},
-			NavItem{ID: "nav-extensions", Label: "Extensions", Icon: "Puzzle", Path: "/admin/extensions"},
-		)
-	}
-	devItems = append(devItems, extDev...)
-	appendSection("section-dev", "Development", devItems)
-
-	// ── Settings section ──
-	// Two top-level groups (Site Settings, Security) plus extension
-	// contributions. Each group has its own visibility rules so the
-	// section disappears entirely for users with no settings authority.
-	settingsItems := []NavItem{}
 
 	// Site Settings: kernel pages (General/Advanced/Languages) require
 	// manage_settings. Extension-contributed children may set their own
@@ -494,7 +481,7 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 	}
 	if len(siteChildren) > 0 {
 		// First visible child becomes the group's default landing path.
-		settingsItems = append(settingsItems, NavItem{
+		siteItems = append(siteItems, NavItem{
 			ID:       "nav-site-settings",
 			Label:    "Site Settings",
 			Icon:     "Globe",
@@ -524,7 +511,7 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		)
 	}
 	if len(securityChildren) > 0 {
-		settingsItems = append(settingsItems, NavItem{
+		siteItems = append(siteItems, NavItem{
 			ID:       "nav-security",
 			Label:    "Security",
 			Icon:     "Shield",
@@ -533,8 +520,82 @@ func (e *Engine) buildNavigation(user *models.User, nodeTypes []models.NodeType,
 		})
 	}
 
-	settingsItems = append(settingsItems, extSettings...)
-	appendSection("section-settings", "Settings", settingsItems)
+	siteItems = append(siteItems, sortNavByPosition(extSettings)...)
+	appendSection("section-site", "Site", siteItems)
+
+	// ── Build section ──
+	// Design tools (templates, layouts, block types, layout blocks) and
+	// schema/platform work (content types, taxonomies, themes, extensions)
+	// in one group. Busy while a site is being built, rare afterwards, so
+	// it starts collapsed. Per-item capability mapping mirrors the route
+	// guards: manage_layouts for the design tools, manage_settings for the
+	// schema/platform entries.
+	buildItems := []NavItem{}
+	if hasNavCap(user, "manage_layouts") {
+		buildItems = append(buildItems,
+			NavItem{ID: "nav-templates", Label: "Templates", Icon: "FileCode", Path: "/admin/templates"},
+			NavItem{ID: "nav-layouts", Label: "Layouts", Icon: "LayoutPanelTop", Path: "/admin/layouts"},
+			NavItem{ID: "nav-block-types", Label: "Block Types", Icon: "Blocks", Path: "/admin/block-types"},
+			NavItem{ID: "nav-layout-blocks", Label: "Layout Blocks", Icon: "Component", Path: "/admin/layout-blocks"},
+		)
+	}
+	buildItems = append(buildItems, sortNavByPosition(extDesign)...)
+	if hasNavCap(user, "manage_settings") {
+		buildItems = append(buildItems,
+			NavItem{ID: "nav-content-types", Label: "Content Types", Icon: "Shapes", Path: "/admin/content-types"},
+			NavItem{ID: "nav-taxonomies", Label: "Taxonomies", Icon: "Tags", Path: "/admin/taxonomies"},
+			NavItem{ID: "nav-themes", Label: "Themes", Icon: "Brush", Path: "/admin/themes"},
+			NavItem{ID: "nav-extensions", Label: "Extensions", Icon: "Puzzle", Path: "/admin/extensions"},
+		)
+	}
+	buildItems = append(buildItems, sortNavByPosition(extDev)...)
+	if len(buildItems) > 0 {
+		nav = append(nav, NavItem{ID: "section-build", Label: "Build", IsSection: true, DefaultCollapsed: true})
+		nav = append(nav, buildItems...)
+	}
 
 	return nav
+}
+
+// parseNavPosition reads admin_ui.menu.position, which manifests write
+// either as a number (3) or a string ("3"). Missing or unparseable → 0,
+// meaning "no explicit position".
+func parseNavPosition(raw json.RawMessage) int {
+	if len(raw) == 0 {
+		return 0
+	}
+	var n float64
+	if err := json.Unmarshal(raw, &n); err == nil {
+		return int(n)
+	}
+	var str string
+	if err := json.Unmarshal(raw, &str); err == nil {
+		if v, err := strconv.Atoi(strings.TrimSpace(str)); err == nil {
+			return v
+		}
+	}
+	return 0
+}
+
+// sortNavByPosition orders extension items by their manifest position.
+// Positioned items (>0) come first, lowest first; unpositioned items keep
+// their incoming order (extension priority) after them.
+func sortNavByPosition(items []NavItem) []NavItem {
+	out := append([]NavItem(nil), items...)
+	sort.SliceStable(out, func(i, j int) bool {
+		pi, pj := out[i].Position, out[j].Position
+		if pi > 0 && pj > 0 {
+			return pi < pj
+		}
+		return pi > 0 && pj <= 0
+	})
+	return out
+}
+
+// builtinRank keeps Pages above Posts regardless of label sorting.
+func builtinRank(id string) int {
+	if id == "nav-content-page" {
+		return 0
+	}
+	return 1
 }

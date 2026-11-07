@@ -154,6 +154,23 @@ function firstNavigablePath(items: NavItem[] | undefined): string | null {
 // instead of jumping back to the top whenever an item is clicked.
 let sidebarScrollTop = 0;
 
+const SECTION_STATE_KEY = "squilla.sidebar.sections";
+function readSectionState(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(SECTION_STATE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+function writeSectionState(state: Record<string, boolean>) {
+  try {
+    localStorage.setItem(SECTION_STATE_KEY, JSON.stringify(state));
+  } catch {
+    /* private mode / storage blocked: the default state still works */
+  }
+}
+
 function SidebarNav({
   navigation,
   collapsed,
@@ -185,19 +202,63 @@ function SidebarNav({
   const toggleGroup = useCallback((id: string, currentlyOpen: boolean) => {
     setOpenGroups((prev) => ({ ...prev, [id]: !currentlyOpen }));
   }, []);
+  // Manual open/close only lasts until the next navigation: after that,
+  // only the group holding the current page is expanded. Extension pages
+  // share one mounted shell, so without this a group opened earlier
+  // (Analytics → Media) stays expanded with no active page inside.
+  useEffect(() => {
+    setOpenGroups({});
+  }, [location.pathname]);
   // openGroup forces a group open without toggling — used when the parent
   // row navigates so the destination's group is visible after the jump.
   const openGroup = useCallback((id: string) => {
     setOpenGroups((prev) => ({ ...prev, [id]: true }));
   }, []);
 
+  // Section headers collapse everything up to the next header. The choice
+  // is remembered per browser; a section without a stored choice uses its
+  // default_collapsed flag, and a section holding the current page always
+  // shows so the operator never loses their place.
+  const [sectionState, setSectionState] = useState<Record<string, boolean>>(readSectionState);
+  const sections = useMemo(() => {
+    const map: Record<string, { item: NavItem; items: NavItem[] }> = {};
+    let current: string | null = null;
+    for (const item of navigation) {
+      if (item.is_section) {
+        current = item.id;
+        map[item.id] = { item, items: [] };
+      } else if (current) {
+        map[current].items.push(item);
+      }
+    }
+    return map;
+  }, [navigation]);
+  const isSectionOpen = useCallback(
+    (id: string): boolean => {
+      const sec = sections[id];
+      if (!sec) return true;
+      if (hasActiveDescendant(sec.items, location.pathname)) return true;
+      if (id in sectionState) return sectionState[id];
+      return !sec.item.default_collapsed;
+    },
+    [sections, sectionState, location.pathname],
+  );
+  const toggleSection = useCallback((id: string, currentlyOpen: boolean) => {
+    setSectionState((prev) => {
+      const next = { ...prev, [id]: !currentlyOpen };
+      writeSectionState(next);
+      return next;
+    });
+  }, []);
+
   const isActive = useCallback(
-    (path: string | undefined): boolean => {
+    (path: string | undefined, matchPrefix = false): boolean => {
       if (!path) return false;
       const p = location.pathname;
       if (p === path) return true;
       const prefix = path.endsWith("/") ? path : path + "/";
       if (!p.startsWith(prefix)) return false;
+      if (matchPrefix) return true;
       // Only activate via prefix if remaining segments are resource identifiers
       // (numeric IDs, UUIDs, "edit", "new") — not named sub-sections like "taxonomies".
       const remaining = p.slice(prefix.length);
@@ -234,21 +295,30 @@ function SidebarNav({
     const childActive =
       hasChildren && hasActiveDescendant(item.children!, location.pathname);
     // Leaf active: exact match or prefix match (for sub-routes like /edit/1)
-    const active = !hasChildren && isActive(item.path);
+    const active = !hasChildren && isActive(item.path, item.match_prefix);
 
     // Section header — non-clickable separator from boot manifest.
     if (item.is_section) {
       if (collapsed) {
         return <div key={item.id} className="my-2 mx-2 h-px" style={{background: "var(--sb-border)"}} />;
       }
+      const open = isSectionOpen(item.id);
       return (
-        <div
+        <button
           key={item.id}
-          className="px-3 pt-5 pb-1.5 text-[12px] font-semibold"
+          type="button"
+          onClick={() => toggleSection(item.id, open)}
+          aria-expanded={open}
+          data-slot="nav-section"
+          className="group flex w-full items-center gap-1.5 rounded-md px-3 pt-5 pb-1.5 text-left text-[12px] font-semibold"
           style={{color: "var(--sb-fg-muted)", letterSpacing: "-0.003em"}}
         >
-          {item.label}
-        </div>
+          <span className="flex-1">{item.label}</span>
+          <ChevronDown
+            size={12}
+            className={`shrink-0 transition-[transform,opacity] duration-150 ${open ? "rotate-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" : "-rotate-90 opacity-100"}`}
+          />
+        </button>
       );
     }
 
@@ -413,7 +483,16 @@ function SidebarNav({
       {/* Iterate the flat navigation list — is_section items render as
           non-clickable headers, regular items as links, items with children
           as expandable groups. */}
-      {navigation.map((item) => renderItem(item))}
+      {(() => {
+        let sectionOpen = true;
+        return navigation.map((item) => {
+          if (item.is_section) {
+            sectionOpen = collapsed || isSectionOpen(item.id);
+            return renderItem(item);
+          }
+          return sectionOpen ? renderItem(item) : null;
+        });
+      })()}
     </nav>
   );
 }
@@ -485,27 +564,25 @@ export function SduiAdminShell({ children, mainClassName }: SduiAdminShellProps)
     const base = boot?.navigation || [];
     const pages = themePages?.pages || [];
     if (pages.length === 0) return base;
-    const themeSection: NavItem[] = [
-      {
-        id: "theme-settings-section",
-        label: "Theme Settings",
-        is_section: true,
-      },
-      ...pages.map<NavItem>((p) => ({
-        id: `theme-settings-${p.slug}`,
-        label: p.name,
-        icon: p.icon || "Palette",
-        path: `/admin/theme-settings/${p.slug}`,
-      })),
-    ];
-    // Insert immediately before the kernel "Settings" section so theme
-    // settings appear above core settings — they're touched far more often
-    // (theme tweaks vs. one-time site config).
-    const insertAt = base.findIndex((item) => item.id === "section-settings");
-    if (insertAt === -1) {
-      return [...base, ...themeSection];
+    // One sidebar entry for every theme settings page; the page itself has
+    // a sub-nav listing them, so a theme with twenty groups doesn't push
+    // the rest of the sidebar off screen.
+    const themeItem: NavItem = {
+      id: "nav-theme-settings",
+      label: "Theme settings",
+      icon: "Palette",
+      path: "/admin/theme-settings",
+      match_prefix: true,
+    };
+    const siteAt = base.findIndex((item) => item.id === "section-site");
+    if (siteAt === -1) {
+      // No Site section for this user (no menus/settings rights): add one.
+      const buildAt = base.findIndex((item) => item.id === "section-build");
+      const section: NavItem[] = [{ id: "section-site", label: "Site", is_section: true }, themeItem];
+      if (buildAt === -1) return [...base, ...section];
+      return [...base.slice(0, buildAt), ...section, ...base.slice(buildAt)];
     }
-    return [...base.slice(0, insertAt), ...themeSection, ...base.slice(insertAt)];
+    return [...base.slice(0, siteAt + 1), themeItem, ...base.slice(siteAt + 1)];
   }, [boot?.navigation, themePages?.pages]);
 
   const sidebarWidth = collapsed ? 56 : 256;

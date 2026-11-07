@@ -29,7 +29,7 @@ import { SduiRoleEditorPage } from "@/pages/sdui-role-editor";
 import { SduiTermEditorPage } from "@/pages/sdui-term-editor";
 import { SduiTaxonomyEditorPage } from "@/pages/sdui-taxonomy-editor";
 import { SduiSiteSettingsPage } from "@/pages/sdui-site-settings";
-import { ThemeSettingsPage } from "@/pages/theme-settings";
+import { ThemeSettingsIndexPage, ThemeSettingsPage } from "@/pages/theme-settings";
 import { SduiLanguagesPage } from "@/pages/sdui-languages";
 import { SduiUsersPage } from "@/pages/sdui-users";
 import { SduiRolesPage } from "@/pages/sdui-roles";
@@ -246,6 +246,7 @@ function AppRoutes() {
       <Route path="/admin/sdui/:page" element={<ProtectedRoute><SduiAdminShell><SduiPage /></SduiAdminShell></ProtectedRoute>} />
 
       {/* Theme settings */}
+      <Route path="/admin/theme-settings" element={<ProtectedRoute><ThemeSettingsIndexPage /></ProtectedRoute>} />
       <Route path="/admin/theme-settings/:page" element={<ProtectedRoute><ThemeSettingsPage /></ProtectedRoute>} />
 
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

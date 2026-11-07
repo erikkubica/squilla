@@ -1,6 +1,8 @@
 package sdui
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"squilla/internal/models"
@@ -225,7 +227,7 @@ func TestBuildNavigation_AdminSeesEverySection(t *testing.T) {
 	user := userWithCaps(adminCaps)
 	nav := e.buildNavigation(user, nil, nil, nil)
 
-	for _, id := range []string{"section-design", "section-dev", "section-settings"} {
+	for _, id := range []string{"section-site", "section-build"} {
 		if !hasSection(nav, id) {
 			t.Errorf("admin missing section %q", id)
 		}
@@ -258,9 +260,9 @@ func TestBuildNavigation_EditorHidesAdminOnlyItems(t *testing.T) {
 		}
 	}
 
-	// No manage_settings → Development section disappears entirely.
-	if hasSection(nav, "section-dev") {
-		t.Error("editor without manage_settings should not see Development section")
+	// No manage_layouts and no manage_settings → Build disappears entirely.
+	if hasSection(nav, "section-build") {
+		t.Error("editor without manage_layouts/manage_settings should not see Build section")
 	}
 	for _, id := range []string{"nav-content-types", "nav-taxonomies", "nav-themes", "nav-extensions"} {
 		if hasItem(nav, id) {
@@ -275,8 +277,9 @@ func TestBuildNavigation_EditorHidesAdminOnlyItems(t *testing.T) {
 			t.Errorf("editor should NOT see %q", id)
 		}
 	}
-	if hasSection(nav, "section-settings") {
-		t.Error("editor with no settings caps should not see Settings section")
+	// Menus keeps the Site section alive for an editor with manage_menus.
+	if !hasSection(nav, "section-site") {
+		t.Error("editor with manage_menus should see the Site section")
 	}
 }
 
@@ -314,7 +317,7 @@ func TestBuildNavigation_MemberSeesNoAdminItems(t *testing.T) {
 	nav := e.buildNavigation(user, nil, nil, nil)
 
 	for _, id := range []string{
-		"section-design", "section-dev", "section-settings",
+		"section-site", "section-build",
 		"nav-templates", "nav-layouts", "nav-menus",
 		"nav-content-types", "nav-themes", "nav-extensions",
 		"nav-site-settings", "nav-security",
@@ -389,8 +392,8 @@ func TestBuildNavigation_ExtensionDefaultsBySection(t *testing.T) {
 		if hasItem(nav, "nav-site-settings") {
 			t.Error("Site Settings group should be hidden when no child is visible")
 		}
-		if hasSection(nav, "section-settings") {
-			t.Error("Settings section header should be suppressed when empty")
+		if hasSection(nav, "section-site") {
+			t.Error("Site section header should be suppressed when empty")
 		}
 	})
 
@@ -483,4 +486,90 @@ func TestBuildNavigation_ExtensionItemHonorsRequiredCapability(t *testing.T) {
 			t.Error("manage_settings user should see Secret Tool")
 		}
 	})
+}
+
+func TestBuildNavigation_BuildSectionStartsCollapsed(t *testing.T) {
+	e := &Engine{}
+	nav := e.buildNavigation(userWithCaps(adminCaps), nil, nil, nil)
+	for _, item := range nav {
+		if item.ID == "section-build" {
+			if !item.DefaultCollapsed {
+				t.Error("Build section should start collapsed")
+			}
+			return
+		}
+	}
+	t.Fatal("admin should see the Build section")
+}
+
+func TestSortNavByPosition(t *testing.T) {
+	in := []NavItem{
+		{ID: "a"},
+		{ID: "b", Position: 4},
+		{ID: "c"},
+		{ID: "d", Position: 1},
+	}
+	got := sortNavByPosition(in)
+	want := []string{"d", "b", "a", "c"}
+	for i, id := range want {
+		if got[i].ID != id {
+			t.Fatalf("order = %v, want %v", []string{got[0].ID, got[1].ID, got[2].ID, got[3].ID}, want)
+		}
+	}
+}
+
+func TestParseNavPosition(t *testing.T) {
+	cases := map[string]int{`3`: 3, `"4"`: 4, `" 7 "`: 7, `"x"`: 0, ``: 0, `null`: 0}
+	for raw, want := range cases {
+		if got := parseNavPosition(json.RawMessage(raw)); got != want {
+			t.Errorf("parseNavPosition(%q) = %d, want %d", raw, got, want)
+		}
+	}
+}
+
+func TestBuildNavigation_ExtensionsSection(t *testing.T) {
+	e := &Engine{}
+	ext := models.Extension{Slug: "analytics", Manifest: []byte(`{"admin_ui":{"menu":{"label":"Analytics","section":"site"}}}`)}
+	nav := e.buildNavigation(userWithCaps(adminCaps), nil, nil, []models.Extension{ext})
+	inSite := false
+	for _, item := range nav {
+		if item.IsSection {
+			inSite = item.ID == "section-extensions"
+			continue
+		}
+		if item.ID == "nav-ext-analytics" {
+			if !inSite {
+				t.Fatal("analytics should render inside the Extensions section")
+			}
+			return
+		}
+	}
+	t.Fatal("analytics missing from nav")
+}
+
+func TestBuildNavigation_ContentGroupsBuiltinsFirst(t *testing.T) {
+	e := &Engine{}
+	types := []models.NodeType{
+		{Slug: "destination", Label: "Destination", LabelPlural: "Destinations"},
+		{Slug: "page", Label: "Page", LabelPlural: "Pages"},
+		{Slug: "post", Label: "Post", LabelPlural: "Posts"},
+		{Slug: "spot", Label: "Spot", LabelPlural: "Spots"},
+	}
+	nav := e.buildNavigation(userWithCaps(adminCaps), types, nil, nil)
+	var got []string
+	in := false
+	for _, item := range nav {
+		if item.IsSection {
+			in = item.ID == "section-content"
+			continue
+		}
+		if !in {
+			continue
+		}
+		got = append(got, item.Label)
+	}
+	want := "Pages Posts Destinations Spots"
+	if strings.Join(got, " ") != want {
+		t.Fatalf("content = %q, want %q", strings.Join(got, " "), want)
+	}
 }

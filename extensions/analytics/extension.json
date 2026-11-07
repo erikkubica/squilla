@@ -101,7 +101,7 @@
     "menu": {
       "label": "Analytics",
       "icon": "ChartNoAxesCombined",
-      "section": "content",
+      "section": "extensions",
       "position": "1",
       "required_capability": "view_analytics",
       "children": [
