@@ -403,6 +403,7 @@ func main() {
 
 	renderCtx := cms.NewRenderContext(database, layoutSvc, layoutBlockSvc, menuSvc, themeAssets)
 	publicHandler := cms.NewPublicHandler(database, renderer, sessionSvc, layoutSvc, layoutBlockSvc, menuSvc, renderCtx, eventBus, themeLoader.SettingsRegistry, coreAPI)
+	blockTypeHandler.SetPreviewFuncs(publicHandler.PreviewTemplateFuncs)
 
 	// --- Public HTML pages ---
 	pageAuthHandler.RegisterRoutes(app)

@@ -272,6 +272,11 @@ func isDefaultRequest(req map[string]interface{}) bool {
 	if req["archive"] != nil {
 		return false
 	}
+	// Editor previews render unsaved field values; keep them out of the
+	// shared block output cache.
+	if preview, _ := req["preview"].(bool); preview {
+		return false
+	}
 	page, _ := req["page"].(int)
 	return page <= 1
 }

@@ -58,10 +58,11 @@ func (h *BlockTypeHandler) activeThemeChrome() (head, bodyClass string) {
 
 // BlockTypeHandler provides HTTP handlers for block type CRUD operations.
 type BlockTypeHandler struct {
-	svc         *BlockTypeService
-	db          *gorm.DB
-	themeAssets *ThemeAssetRegistry
-	renderer    *rendering.TemplateRenderer
+	svc          *BlockTypeService
+	db           *gorm.DB
+	themeAssets  *ThemeAssetRegistry
+	renderer     *rendering.TemplateRenderer
+	previewFuncs func() template.FuncMap
 }
 
 // NewBlockTypeHandler creates a new BlockTypeHandler with the given BlockTypeService.
@@ -81,6 +82,15 @@ func (h *BlockTypeHandler) SetThemeAssets(r *ThemeAssetRegistry) {
 // any helper fail in the preview iframe with "function not defined".
 func (h *BlockTypeHandler) SetRenderer(r *rendering.TemplateRenderer) {
 	h.renderer = r
+}
+
+// SetPreviewFuncs wires the per-render helpers the public renderer adds to
+// block templates (themeSetting, themeSettingsPage, request, node). The
+// static FuncMap from SetRenderer doesn't carry them, so without this a
+// theme block that reads a theme setting fails to preview with
+// `function "themeSetting" not defined`.
+func (h *BlockTypeHandler) SetPreviewFuncs(fn func() template.FuncMap) {
+	h.previewFuncs = fn
 }
 
 // resolveTestDataSlice replaces any "theme-asset:<key>" or
@@ -311,6 +321,13 @@ func (h *BlockTypeHandler) PreviewBlockTemplate(c *fiber.Ctx) error {
 	// above stay (safeHTML/raw/safeURL are preview-specific).
 	if h.renderer != nil {
 		for name, fn := range h.renderer.FuncMap() {
+			if _, taken := funcs[name]; !taken {
+				funcs[name] = fn
+			}
+		}
+	}
+	if h.previewFuncs != nil {
+		for name, fn := range h.previewFuncs() {
 			if _, taken := funcs[name]; !taken {
 				funcs[name] = fn
 			}

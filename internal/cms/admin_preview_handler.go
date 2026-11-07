@@ -23,12 +23,17 @@ import (
 //        editor has unsaved changes and the operator wants to see the
 //        page exactly as it will look — without committing.
 //
+//   POST /admin/api/nodes/:id/render-blocks
+//        Render unsaved blocks for the visual editor's live preview and
+//        return one HTML string per block (see admin_render_blocks.go).
+//
 // Both endpoints return text/html (the rendered page) on success and an
 // inline HTML error page on failure. JSON envelopes don't render well in
 // fresh browser tabs.
 func (h *PublicHandler) RegisterAdminPreviewRoutes(router fiber.Router) {
 	router.Get("/nodes/:id/preview", h.AdminNodePreview)
 	router.Post("/nodes/:id/preview", h.AdminNodePreviewWithDraft)
+	router.Post("/nodes/:id/render-blocks", h.AdminRenderBlocks)
 }
 
 // AdminNodePreview renders the persisted row. No DB writes, no events.
