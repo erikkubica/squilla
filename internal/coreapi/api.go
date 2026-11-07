@@ -42,6 +42,12 @@ type CoreAPI interface {
 
 	// Events
 	Emit(ctx context.Context, action string, payload map[string]any) error
+	// EmitCollect runs the result handlers for action synchronously and
+	// returns their non-empty answers in registration order — the same
+	// request/response channel templates use through {{event "..."}} and
+	// Tengo through events.run. It lets one extension ask another for
+	// something (e.g. email:wrap_layout) without reading its tables.
+	EmitCollect(ctx context.Context, action string, payload map[string]any) ([]string, error)
 	Subscribe(ctx context.Context, action string, handler EventHandler) (UnsubscribeFunc, error)
 
 	// Email
@@ -209,6 +215,11 @@ type EmailRequest struct {
 	To      []string `json:"to"`
 	Subject string   `json:"subject"`
 	HTML    string   `json:"html"`
+	// Optional. Cc recipients see each other and the To list; Bcc
+	// recipients are delivered silently. ReplyTo sets the Reply-To header.
+	CC      []string `json:"cc,omitempty"`
+	BCC     []string `json:"bcc,omitempty"`
+	ReplyTo string   `json:"reply_to,omitempty"`
 }
 
 type RouteMeta struct {

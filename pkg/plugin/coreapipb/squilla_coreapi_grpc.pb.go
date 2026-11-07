@@ -39,6 +39,7 @@ const (
 	SquillaHost_SetSetting_FullMethodName        = "/squilla.coreapi.SquillaHost/SetSetting"
 	SquillaHost_GetSettings_FullMethodName       = "/squilla.coreapi.SquillaHost/GetSettings"
 	SquillaHost_EmitEvent_FullMethodName         = "/squilla.coreapi.SquillaHost/EmitEvent"
+	SquillaHost_EmitCollect_FullMethodName       = "/squilla.coreapi.SquillaHost/EmitCollect"
 	SquillaHost_SendEmail_FullMethodName         = "/squilla.coreapi.SquillaHost/SendEmail"
 	SquillaHost_GetMenu_FullMethodName           = "/squilla.coreapi.SquillaHost/GetMenu"
 	SquillaHost_GetMenus_FullMethodName          = "/squilla.coreapi.SquillaHost/GetMenus"
@@ -88,6 +89,7 @@ type SquillaHostClient interface {
 	SetSetting(ctx context.Context, in *SetSettingRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetSettings(ctx context.Context, in *GetSettingsRequest, opts ...grpc.CallOption) (*SettingsResponse, error)
 	EmitEvent(ctx context.Context, in *EmitEventRequest, opts ...grpc.CallOption) (*Empty, error)
+	EmitCollect(ctx context.Context, in *EmitEventRequest, opts ...grpc.CallOption) (*EmitCollectResponse, error)
 	SendEmail(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetMenu(ctx context.Context, in *GetMenuRequest, opts ...grpc.CallOption) (*MenuResponse, error)
 	GetMenus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*MenuListResponse, error)
@@ -313,6 +315,16 @@ func (c *squillaHostClient) EmitEvent(ctx context.Context, in *EmitEventRequest,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, SquillaHost_EmitEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *squillaHostClient) EmitCollect(ctx context.Context, in *EmitEventRequest, opts ...grpc.CallOption) (*EmitCollectResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmitCollectResponse)
+	err := c.cc.Invoke(ctx, SquillaHost_EmitCollect_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -555,6 +567,7 @@ type SquillaHostServer interface {
 	SetSetting(context.Context, *SetSettingRequest) (*Empty, error)
 	GetSettings(context.Context, *GetSettingsRequest) (*SettingsResponse, error)
 	EmitEvent(context.Context, *EmitEventRequest) (*Empty, error)
+	EmitCollect(context.Context, *EmitEventRequest) (*EmitCollectResponse, error)
 	SendEmail(context.Context, *SendEmailRequest) (*Empty, error)
 	GetMenu(context.Context, *GetMenuRequest) (*MenuResponse, error)
 	GetMenus(context.Context, *Empty) (*MenuListResponse, error)
@@ -645,6 +658,9 @@ func (UnimplementedSquillaHostServer) GetSettings(context.Context, *GetSettingsR
 }
 func (UnimplementedSquillaHostServer) EmitEvent(context.Context, *EmitEventRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method EmitEvent not implemented")
+}
+func (UnimplementedSquillaHostServer) EmitCollect(context.Context, *EmitEventRequest) (*EmitCollectResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmitCollect not implemented")
 }
 func (UnimplementedSquillaHostServer) SendEmail(context.Context, *SendEmailRequest) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendEmail not implemented")
@@ -1086,6 +1102,24 @@ func _SquillaHost_EmitEvent_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SquillaHostServer).EmitEvent(ctx, req.(*EmitEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SquillaHost_EmitCollect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmitEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SquillaHostServer).EmitCollect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SquillaHost_EmitCollect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SquillaHostServer).EmitCollect(ctx, req.(*EmitEventRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1554,6 +1588,10 @@ var SquillaHost_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EmitEvent",
 			Handler:    _SquillaHost_EmitEvent_Handler,
+		},
+		{
+			MethodName: "EmitCollect",
+			Handler:    _SquillaHost_EmitCollect_Handler,
 		},
 		{
 			MethodName: "SendEmail",

@@ -22,6 +22,8 @@ type FakeHost struct {
 	Sent        []coreapi.EmailRequest
 	FetchStub   func(req coreapi.FetchRequest) (*coreapi.FetchResponse, error)
 	UserStub    map[uint]*coreapi.User
+	// CollectStub answers EmitCollect (request/response events).
+	CollectStub func(action string, payload map[string]any) []string
 }
 
 type EmittedEvent struct {
@@ -157,6 +159,13 @@ func (h *FakeHost) Emit(_ context.Context, action string, payload map[string]any
 	defer h.mu.Unlock()
 	h.Emitted = append(h.Emitted, EmittedEvent{action, cloneMap(payload)})
 	return nil
+}
+
+func (h *FakeHost) EmitCollect(_ context.Context, action string, payload map[string]any) ([]string, error) {
+	if h.CollectStub != nil {
+		return h.CollectStub(action, payload), nil
+	}
+	return nil, nil
 }
 
 func (h *FakeHost) Subscribe(_ context.Context, _ string, _ coreapi.EventHandler) (coreapi.UnsubscribeFunc, error) {

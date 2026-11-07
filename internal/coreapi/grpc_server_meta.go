@@ -98,6 +98,20 @@ func (s *GRPCHostServer) EmitEvent(ctx context.Context, req *pb.EmitEventRequest
 	return &pb.Empty{}, nil
 }
 
+func (s *GRPCHostServer) EmitCollect(ctx context.Context, req *pb.EmitEventRequest) (*pb.EmitCollectResponse, error) {
+	var payload map[string]any
+	if req.PayloadJson != "" {
+		if err := json.Unmarshal([]byte(req.PayloadJson), &payload); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid payload JSON: %v", err)
+		}
+	}
+	results, err := s.api.EmitCollect(s.ctx(ctx), req.Action, payload)
+	if err != nil {
+		return nil, grpcError(err)
+	}
+	return &pb.EmitCollectResponse{Results: results}, nil
+}
+
 // --- Email RPCs ---
 
 func (s *GRPCHostServer) SendEmail(ctx context.Context, req *pb.SendEmailRequest) (*pb.Empty, error) {
@@ -105,6 +119,9 @@ func (s *GRPCHostServer) SendEmail(ctx context.Context, req *pb.SendEmailRequest
 		To:      req.To,
 		Subject: req.Subject,
 		HTML:    req.Html,
+		CC:      req.Cc,
+		BCC:     req.Bcc,
+		ReplyTo: req.ReplyTo,
 	}
 	if err := s.api.SendEmail(s.ctx(ctx), emailReq); err != nil {
 		return nil, grpcError(err)

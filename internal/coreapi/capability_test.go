@@ -117,6 +117,11 @@ func (s *stubCoreAPI) GetSettingsLoc(_ context.Context, _, _ string) (map[string
 }
 
 // --- Events ---
+func (s *stubCoreAPI) EmitCollect(_ context.Context, _ string, _ map[string]any) ([]string, error) {
+	s.record("EmitCollect")
+	return nil, nil
+}
+
 func (s *stubCoreAPI) Emit(_ context.Context, _ string, _ map[string]any) error {
 	s.record("Emit")
 	return nil
@@ -333,6 +338,7 @@ func guardCases() []guardCase {
 
 		// Events.
 		{"Emit", "events:emit", func(ctx context.Context, a CoreAPI) error { return a.Emit(ctx, "", nil) }},
+		{"EmitCollect", "events:emit", func(ctx context.Context, a CoreAPI) error { _, err := a.EmitCollect(ctx, "", nil); return err }},
 		{"Subscribe", "events:subscribe", func(ctx context.Context, a CoreAPI) error { _, e := a.Subscribe(ctx, "", nil); return e }},
 
 		// Email.

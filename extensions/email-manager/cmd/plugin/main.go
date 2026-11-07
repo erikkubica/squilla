@@ -28,7 +28,10 @@ func (p *EmailManagerPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
 	// possible action in the manifest. The runtime cost of the extra
 	// dispatch is negligible because dispatcher.go short-circuits
 	// before any DB lookups when no rule matches.
-	return []*pb.Subscription{{EventName: "*", Priority: 50}}, nil
+	// wrapLayoutEvent is subscribed explicitly as well: the wildcard is
+	// fire-and-forget, and only named subscriptions can answer a
+	// request/response (EmitCollect) call.
+	return []*pb.Subscription{{EventName: "*", Priority: 50}, {EventName: wrapLayoutEvent, Priority: 50}}, nil
 }
 
 // HandleEvent runs the email-rules dispatcher for every kernel event.
@@ -39,6 +42,9 @@ func (p *EmailManagerPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
 // kernel logs them under [plugins] uniformly with other extensions.
 func (p *EmailManagerPlugin) HandleEvent(action string, payload []byte) (*pb.EventResponse, error) {
 	ctx := context.Background()
+	if action == wrapLayoutEvent {
+		return p.handleWrapLayout(ctx, payload), nil
+	}
 	if err := p.dispatchEvent(ctx, action, payload); err != nil {
 		return &pb.EventResponse{Handled: false, Error: err.Error()}, nil
 	}

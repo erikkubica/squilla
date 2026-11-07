@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	htmltemplate "html/template"
 	"math"
 	"strconv"
 	"strings"
@@ -218,4 +220,42 @@ func (p *EmailManagerPlugin) deleteLayout(ctx context.Context, id uint) (*pb.Plu
 var maskedKeys = map[string]bool{
 	"email_smtp_password":  true,
 	"email_resend_api_key": true,
+}
+
+// wrapLayoutEvent lets other extensions put their own emails in the site's
+// email layout (Email → Layouts) without reading email_layouts:
+//
+//	results, _ := host.EmitCollect(ctx, "email:wrap_layout", map[string]any{
+//		"html": body,          // required: the message body
+//		"data": templateData,  // optional: extra keys for the layout ({{.site}} is added)
+//	})
+//
+// The answer is the wrapped document, or nothing when no layout exists.
+const wrapLayoutEvent = "email:wrap_layout"
+
+func (p *EmailManagerPlugin) handleWrapLayout(ctx context.Context, raw []byte) *pb.EventResponse {
+	var req struct {
+		HTML string         `json:"html"`
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &req); err != nil || strings.TrimSpace(req.HTML) == "" {
+		return &pb.EventResponse{Handled: false}
+	}
+	layout := p.resolveLayoutForLang(ctx, nil)
+	if layout == "" {
+		return &pb.EventResponse{Handled: false}
+	}
+	data := make(map[string]any, len(req.Data)+2)
+	for k, v := range req.Data {
+		data[k] = v
+	}
+	if site, _, err := p.loadSiteContext(ctx); err == nil {
+		data["site"] = site
+	}
+	data["email_body"] = htmltemplate.HTML(req.HTML)
+	out, err := renderEmailTemplate("layout", layout, data)
+	if err != nil || out == "" {
+		return &pb.EventResponse{Handled: false, Error: fmt.Sprintf("render layout: %v", err)}
+	}
+	return &pb.EventResponse{Handled: true, Result: []byte(out)}
 }

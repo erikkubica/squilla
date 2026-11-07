@@ -34,6 +34,14 @@ func (c *coreImpl) SendEmail(ctx context.Context, req EmailRequest) error {
 	if req.Subject == "" {
 		return NewValidation("subject is required")
 	}
+	// Header injection guard for every address the provider will put in a header.
+	for _, list := range [][]string{req.To, req.CC, req.BCC, {req.ReplyTo}} {
+		for _, a := range list {
+			if strings.ContainsAny(a, "\r\n") {
+				return NewValidation("invalid characters in email address")
+			}
+		}
+	}
 
 	if !c.eventBus.HasHandlers("email.send") {
 		return NewValidation("no email provider configured — install an email provider extension (e.g. smtp-provider or resend-provider) and set email_provider in site settings")
@@ -75,6 +83,9 @@ func (c *coreImpl) SendEmail(ctx context.Context, req EmailRequest) error {
 		"to":       req.To,
 		"subject":  req.Subject,
 		"html":     req.HTML,
+		"cc":       req.CC,
+		"bcc":      req.BCC,
+		"reply_to": req.ReplyTo,
 		"settings": providerSettings,
 	}); err != nil {
 		return NewInternal("email provider rejected message: " + err.Error())

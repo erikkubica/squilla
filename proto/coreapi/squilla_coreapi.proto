@@ -28,6 +28,7 @@ service SquillaHost {
   rpc SetSetting(SetSettingRequest) returns (Empty);
   rpc GetSettings(GetSettingsRequest) returns (SettingsResponse);
   rpc EmitEvent(EmitEventRequest) returns (Empty);
+  rpc EmitCollect(EmitEventRequest) returns (EmitCollectResponse);
   rpc SendEmail(SendEmailRequest) returns (Empty);
   rpc GetMenu(GetMenuRequest) returns (MenuResponse);
   rpc GetMenus(Empty) returns (MenuListResponse);
@@ -262,12 +263,19 @@ message EmitEventRequest {
   string payload_json = 2; // JSON-encoded map[string]any
 }
 
+message EmitCollectResponse {
+  repeated string results = 1; // non-empty answers, in handler order
+}
+
 // --- Email messages ---
 
 message SendEmailRequest {
   repeated string to = 1;
   string subject = 2;
   string html = 3;
+  repeated string cc = 4;
+  repeated string bcc = 5;
+  string reply_to = 6;
 }
 
 // --- Menu messages ---

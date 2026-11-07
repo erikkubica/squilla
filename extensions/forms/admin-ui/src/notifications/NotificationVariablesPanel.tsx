@@ -8,6 +8,9 @@ const TEMPLATE_VARS = [
   { syntax: "{{.form.slug}}", desc: "Form URL slug" },
   { syntax: "{{.form.id}}", desc: "Form database ID" },
   { syntax: "{{.submitted_at}}", desc: "Submission timestamp" },
+  { syntax: "{{.site_email}}", desc: "Site email (Settings → General)" },
+  { syntax: "{{.site.name}}", desc: "Site name" },
+  { syntax: "{{.site.url}}", desc: "Site URL" },
   {
     syntax: "{{range .data}}",
     desc: "Loop all submitted fields",

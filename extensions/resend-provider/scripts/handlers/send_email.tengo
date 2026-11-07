@@ -16,13 +16,17 @@ if from_name != "" {
     from = from_name + " <" + from_email + ">"
 }
 
-// Build request body
-body := json.encode({
+// Build request body (cc, bcc and reply_to only when set: Resend rejects empty values)
+msg := {
     from: from,
     to: payload.to,
     subject: payload.subject,
     html: payload.html
-})
+}
+if is_array(payload.cc) && len(payload.cc) > 0 { msg.cc = payload.cc }
+if is_array(payload.bcc) && len(payload.bcc) > 0 { msg.bcc = payload.bcc }
+if is_string(payload.reply_to) && payload.reply_to != "" { msg.reply_to = payload.reply_to }
+body := json.encode(msg)
 
 // Send via Resend API
 result := http.post("https://api.resend.com/emails", {

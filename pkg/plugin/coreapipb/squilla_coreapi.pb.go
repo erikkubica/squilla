@@ -2033,18 +2033,65 @@ func (x *EmitEventRequest) GetPayloadJson() string {
 	return ""
 }
 
+type EmitCollectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []string               `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"` // non-empty answers, in handler order
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EmitCollectResponse) Reset() {
+	*x = EmitCollectResponse{}
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmitCollectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmitCollectResponse) ProtoMessage() {}
+
+func (x *EmitCollectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmitCollectResponse.ProtoReflect.Descriptor instead.
+func (*EmitCollectResponse) Descriptor() ([]byte, []int) {
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *EmitCollectResponse) GetResults() []string {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
 type SendEmailRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	To            []string               `protobuf:"bytes,1,rep,name=to,proto3" json:"to,omitempty"`
 	Subject       string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
 	Html          string                 `protobuf:"bytes,3,opt,name=html,proto3" json:"html,omitempty"`
+	Cc            []string               `protobuf:"bytes,4,rep,name=cc,proto3" json:"cc,omitempty"`
+	Bcc           []string               `protobuf:"bytes,5,rep,name=bcc,proto3" json:"bcc,omitempty"`
+	ReplyTo       string                 `protobuf:"bytes,6,opt,name=reply_to,json=replyTo,proto3" json:"reply_to,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendEmailRequest) Reset() {
 	*x = SendEmailRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[33]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2056,7 +2103,7 @@ func (x *SendEmailRequest) String() string {
 func (*SendEmailRequest) ProtoMessage() {}
 
 func (x *SendEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[33]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2069,7 +2116,7 @@ func (x *SendEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailRequest.ProtoReflect.Descriptor instead.
 func (*SendEmailRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{33}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SendEmailRequest) GetTo() []string {
@@ -2093,6 +2140,27 @@ func (x *SendEmailRequest) GetHtml() string {
 	return ""
 }
 
+func (x *SendEmailRequest) GetCc() []string {
+	if x != nil {
+		return x.Cc
+	}
+	return nil
+}
+
+func (x *SendEmailRequest) GetBcc() []string {
+	if x != nil {
+		return x.Bcc
+	}
+	return nil
+}
+
+func (x *SendEmailRequest) GetReplyTo() string {
+	if x != nil {
+		return x.ReplyTo
+	}
+	return ""
+}
+
 type GetMenuRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
@@ -2102,7 +2170,7 @@ type GetMenuRequest struct {
 
 func (x *GetMenuRequest) Reset() {
 	*x = GetMenuRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[34]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2114,7 +2182,7 @@ func (x *GetMenuRequest) String() string {
 func (*GetMenuRequest) ProtoMessage() {}
 
 func (x *GetMenuRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[34]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2127,7 +2195,7 @@ func (x *GetMenuRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMenuRequest.ProtoReflect.Descriptor instead.
 func (*GetMenuRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{34}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetMenuRequest) GetSlug() string {
@@ -2146,7 +2214,7 @@ type MenuResponse struct {
 
 func (x *MenuResponse) Reset() {
 	*x = MenuResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[35]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2158,7 +2226,7 @@ func (x *MenuResponse) String() string {
 func (*MenuResponse) ProtoMessage() {}
 
 func (x *MenuResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[35]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2171,7 +2239,7 @@ func (x *MenuResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuResponse.ProtoReflect.Descriptor instead.
 func (*MenuResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{35}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *MenuResponse) GetMenu() *MenuMessage {
@@ -2190,7 +2258,7 @@ type MenuListResponse struct {
 
 func (x *MenuListResponse) Reset() {
 	*x = MenuListResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[36]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2202,7 +2270,7 @@ func (x *MenuListResponse) String() string {
 func (*MenuListResponse) ProtoMessage() {}
 
 func (x *MenuListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[36]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2215,7 +2283,7 @@ func (x *MenuListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuListResponse.ProtoReflect.Descriptor instead.
 func (*MenuListResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{36}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *MenuListResponse) GetMenus() []*MenuMessage {
@@ -2239,7 +2307,7 @@ type MenuMessage struct {
 
 func (x *MenuMessage) Reset() {
 	*x = MenuMessage{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[37]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2251,7 +2319,7 @@ func (x *MenuMessage) String() string {
 func (*MenuMessage) ProtoMessage() {}
 
 func (x *MenuMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[37]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2264,7 +2332,7 @@ func (x *MenuMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuMessage.ProtoReflect.Descriptor instead.
 func (*MenuMessage) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{37}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *MenuMessage) GetId() uint32 {
@@ -2325,7 +2393,7 @@ type MenuItemMessage struct {
 
 func (x *MenuItemMessage) Reset() {
 	*x = MenuItemMessage{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[38]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2337,7 +2405,7 @@ func (x *MenuItemMessage) String() string {
 func (*MenuItemMessage) ProtoMessage() {}
 
 func (x *MenuItemMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[38]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2350,7 +2418,7 @@ func (x *MenuItemMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MenuItemMessage.ProtoReflect.Descriptor instead.
 func (*MenuItemMessage) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{38}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *MenuItemMessage) GetId() uint32 {
@@ -2418,7 +2486,7 @@ type GetUserRequest struct {
 
 func (x *GetUserRequest) Reset() {
 	*x = GetUserRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[39]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2430,7 +2498,7 @@ func (x *GetUserRequest) String() string {
 func (*GetUserRequest) ProtoMessage() {}
 
 func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[39]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2443,7 +2511,7 @@ func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{39}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetUserRequest) GetId() uint32 {
@@ -2465,7 +2533,7 @@ type QueryUsersRequest struct {
 
 func (x *QueryUsersRequest) Reset() {
 	*x = QueryUsersRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[40]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2477,7 +2545,7 @@ func (x *QueryUsersRequest) String() string {
 func (*QueryUsersRequest) ProtoMessage() {}
 
 func (x *QueryUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[40]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2490,7 +2558,7 @@ func (x *QueryUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryUsersRequest.ProtoReflect.Descriptor instead.
 func (*QueryUsersRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{40}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *QueryUsersRequest) GetRoleSlug() string {
@@ -2530,7 +2598,7 @@ type UserResponse struct {
 
 func (x *UserResponse) Reset() {
 	*x = UserResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[41]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2542,7 +2610,7 @@ func (x *UserResponse) String() string {
 func (*UserResponse) ProtoMessage() {}
 
 func (x *UserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[41]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2555,7 +2623,7 @@ func (x *UserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserResponse.ProtoReflect.Descriptor instead.
 func (*UserResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{41}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *UserResponse) GetUser() *UserMessage {
@@ -2574,7 +2642,7 @@ type UserListResponse struct {
 
 func (x *UserListResponse) Reset() {
 	*x = UserListResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[42]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2586,7 +2654,7 @@ func (x *UserListResponse) String() string {
 func (*UserListResponse) ProtoMessage() {}
 
 func (x *UserListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[42]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2599,7 +2667,7 @@ func (x *UserListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserListResponse.ProtoReflect.Descriptor instead.
 func (*UserListResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{42}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *UserListResponse) GetUsers() []*UserMessage {
@@ -2625,7 +2693,7 @@ type UserMessage struct {
 
 func (x *UserMessage) Reset() {
 	*x = UserMessage{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[43]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2637,7 +2705,7 @@ func (x *UserMessage) String() string {
 func (*UserMessage) ProtoMessage() {}
 
 func (x *UserMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[43]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2650,7 +2718,7 @@ func (x *UserMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserMessage.ProtoReflect.Descriptor instead.
 func (*UserMessage) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{43}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *UserMessage) GetId() uint32 {
@@ -2722,7 +2790,7 @@ type FetchRequest struct {
 
 func (x *FetchRequest) Reset() {
 	*x = FetchRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[44]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2734,7 +2802,7 @@ func (x *FetchRequest) String() string {
 func (*FetchRequest) ProtoMessage() {}
 
 func (x *FetchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[44]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2747,7 +2815,7 @@ func (x *FetchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchRequest.ProtoReflect.Descriptor instead.
 func (*FetchRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{44}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *FetchRequest) GetMethod() string {
@@ -2796,7 +2864,7 @@ type FetchResponse struct {
 
 func (x *FetchResponse) Reset() {
 	*x = FetchResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[45]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2808,7 +2876,7 @@ func (x *FetchResponse) String() string {
 func (*FetchResponse) ProtoMessage() {}
 
 func (x *FetchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[45]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2821,7 +2889,7 @@ func (x *FetchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchResponse.ProtoReflect.Descriptor instead.
 func (*FetchResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{45}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *FetchResponse) GetStatusCode() int32 {
@@ -2856,7 +2924,7 @@ type LogRequest struct {
 
 func (x *LogRequest) Reset() {
 	*x = LogRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[46]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2868,7 +2936,7 @@ func (x *LogRequest) String() string {
 func (*LogRequest) ProtoMessage() {}
 
 func (x *LogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[46]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2881,7 +2949,7 @@ func (x *LogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogRequest.ProtoReflect.Descriptor instead.
 func (*LogRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{46}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *LogRequest) GetLevel() string {
@@ -2915,7 +2983,7 @@ type DataGetRequest struct {
 
 func (x *DataGetRequest) Reset() {
 	*x = DataGetRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[47]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2927,7 +2995,7 @@ func (x *DataGetRequest) String() string {
 func (*DataGetRequest) ProtoMessage() {}
 
 func (x *DataGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[47]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2940,7 +3008,7 @@ func (x *DataGetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataGetRequest.ProtoReflect.Descriptor instead.
 func (*DataGetRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{47}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *DataGetRequest) GetTable() string {
@@ -2966,7 +3034,7 @@ type DataRowResponse struct {
 
 func (x *DataRowResponse) Reset() {
 	*x = DataRowResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[48]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2978,7 +3046,7 @@ func (x *DataRowResponse) String() string {
 func (*DataRowResponse) ProtoMessage() {}
 
 func (x *DataRowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[48]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2991,7 +3059,7 @@ func (x *DataRowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataRowResponse.ProtoReflect.Descriptor instead.
 func (*DataRowResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{48}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *DataRowResponse) GetRowJson() []byte {
@@ -3017,7 +3085,7 @@ type DataQueryRequest struct {
 
 func (x *DataQueryRequest) Reset() {
 	*x = DataQueryRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[49]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3029,7 +3097,7 @@ func (x *DataQueryRequest) String() string {
 func (*DataQueryRequest) ProtoMessage() {}
 
 func (x *DataQueryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[49]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3042,7 +3110,7 @@ func (x *DataQueryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataQueryRequest.ProtoReflect.Descriptor instead.
 func (*DataQueryRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{49}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *DataQueryRequest) GetTable() string {
@@ -3111,7 +3179,7 @@ type DataQueryResponse struct {
 
 func (x *DataQueryResponse) Reset() {
 	*x = DataQueryResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[50]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3123,7 +3191,7 @@ func (x *DataQueryResponse) String() string {
 func (*DataQueryResponse) ProtoMessage() {}
 
 func (x *DataQueryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[50]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3136,7 +3204,7 @@ func (x *DataQueryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataQueryResponse.ProtoReflect.Descriptor instead.
 func (*DataQueryResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{50}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *DataQueryResponse) GetRowsJson() [][]byte {
@@ -3163,7 +3231,7 @@ type DataCreateRequest struct {
 
 func (x *DataCreateRequest) Reset() {
 	*x = DataCreateRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[51]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3175,7 +3243,7 @@ func (x *DataCreateRequest) String() string {
 func (*DataCreateRequest) ProtoMessage() {}
 
 func (x *DataCreateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[51]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3188,7 +3256,7 @@ func (x *DataCreateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataCreateRequest.ProtoReflect.Descriptor instead.
 func (*DataCreateRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{51}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *DataCreateRequest) GetTable() string {
@@ -3216,7 +3284,7 @@ type DataUpdateRequest struct {
 
 func (x *DataUpdateRequest) Reset() {
 	*x = DataUpdateRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[52]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3228,7 +3296,7 @@ func (x *DataUpdateRequest) String() string {
 func (*DataUpdateRequest) ProtoMessage() {}
 
 func (x *DataUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[52]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3241,7 +3309,7 @@ func (x *DataUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataUpdateRequest.ProtoReflect.Descriptor instead.
 func (*DataUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{52}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *DataUpdateRequest) GetTable() string {
@@ -3275,7 +3343,7 @@ type DataDeleteRequest struct {
 
 func (x *DataDeleteRequest) Reset() {
 	*x = DataDeleteRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[53]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3287,7 +3355,7 @@ func (x *DataDeleteRequest) String() string {
 func (*DataDeleteRequest) ProtoMessage() {}
 
 func (x *DataDeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[53]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3300,7 +3368,7 @@ func (x *DataDeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataDeleteRequest.ProtoReflect.Descriptor instead.
 func (*DataDeleteRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{53}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *DataDeleteRequest) GetTable() string {
@@ -3327,7 +3395,7 @@ type DataExecRequest struct {
 
 func (x *DataExecRequest) Reset() {
 	*x = DataExecRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[54]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3339,7 +3407,7 @@ func (x *DataExecRequest) String() string {
 func (*DataExecRequest) ProtoMessage() {}
 
 func (x *DataExecRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[54]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3352,7 +3420,7 @@ func (x *DataExecRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataExecRequest.ProtoReflect.Descriptor instead.
 func (*DataExecRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{54}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *DataExecRequest) GetSql() string {
@@ -3378,7 +3446,7 @@ type DataExecResponse struct {
 
 func (x *DataExecResponse) Reset() {
 	*x = DataExecResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[55]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3390,7 +3458,7 @@ func (x *DataExecResponse) String() string {
 func (*DataExecResponse) ProtoMessage() {}
 
 func (x *DataExecResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[55]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3403,7 +3471,7 @@ func (x *DataExecResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataExecResponse.ProtoReflect.Descriptor instead.
 func (*DataExecResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{55}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *DataExecResponse) GetRowsAffected() int64 {
@@ -3423,7 +3491,7 @@ type StoreFileRequest struct {
 
 func (x *StoreFileRequest) Reset() {
 	*x = StoreFileRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[56]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3435,7 +3503,7 @@ func (x *StoreFileRequest) String() string {
 func (*StoreFileRequest) ProtoMessage() {}
 
 func (x *StoreFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[56]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3448,7 +3516,7 @@ func (x *StoreFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoreFileRequest.ProtoReflect.Descriptor instead.
 func (*StoreFileRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{56}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *StoreFileRequest) GetPath() string {
@@ -3474,7 +3542,7 @@ type StoreFileResponse struct {
 
 func (x *StoreFileResponse) Reset() {
 	*x = StoreFileResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[57]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3486,7 +3554,7 @@ func (x *StoreFileResponse) String() string {
 func (*StoreFileResponse) ProtoMessage() {}
 
 func (x *StoreFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[57]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3499,7 +3567,7 @@ func (x *StoreFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoreFileResponse.ProtoReflect.Descriptor instead.
 func (*StoreFileResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{57}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *StoreFileResponse) GetUrl() string {
@@ -3518,7 +3586,7 @@ type DeleteFileRequest struct {
 
 func (x *DeleteFileRequest) Reset() {
 	*x = DeleteFileRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[58]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3530,7 +3598,7 @@ func (x *DeleteFileRequest) String() string {
 func (*DeleteFileRequest) ProtoMessage() {}
 
 func (x *DeleteFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[58]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3543,7 +3611,7 @@ func (x *DeleteFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFileRequest.ProtoReflect.Descriptor instead.
 func (*DeleteFileRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{58}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *DeleteFileRequest) GetPath() string {
@@ -3566,7 +3634,7 @@ type NodeTypeFieldMessage struct {
 
 func (x *NodeTypeFieldMessage) Reset() {
 	*x = NodeTypeFieldMessage{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[59]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3578,7 +3646,7 @@ func (x *NodeTypeFieldMessage) String() string {
 func (*NodeTypeFieldMessage) ProtoMessage() {}
 
 func (x *NodeTypeFieldMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[59]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3591,7 +3659,7 @@ func (x *NodeTypeFieldMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeTypeFieldMessage.ProtoReflect.Descriptor instead.
 func (*NodeTypeFieldMessage) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{59}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *NodeTypeFieldMessage) GetName() string {
@@ -3647,7 +3715,7 @@ type NodeTypeInputMessage struct {
 
 func (x *NodeTypeInputMessage) Reset() {
 	*x = NodeTypeInputMessage{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[60]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3659,7 +3727,7 @@ func (x *NodeTypeInputMessage) String() string {
 func (*NodeTypeInputMessage) ProtoMessage() {}
 
 func (x *NodeTypeInputMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[60]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3672,7 +3740,7 @@ func (x *NodeTypeInputMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeTypeInputMessage.ProtoReflect.Descriptor instead.
 func (*NodeTypeInputMessage) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{60}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *NodeTypeInputMessage) GetSlug() string {
@@ -3752,7 +3820,7 @@ type NodeTypeMessage struct {
 
 func (x *NodeTypeMessage) Reset() {
 	*x = NodeTypeMessage{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[61]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3764,7 +3832,7 @@ func (x *NodeTypeMessage) String() string {
 func (*NodeTypeMessage) ProtoMessage() {}
 
 func (x *NodeTypeMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[61]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3777,7 +3845,7 @@ func (x *NodeTypeMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeTypeMessage.ProtoReflect.Descriptor instead.
 func (*NodeTypeMessage) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{61}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *NodeTypeMessage) GetId() int32 {
@@ -3873,7 +3941,7 @@ type NodeTypeResponse struct {
 
 func (x *NodeTypeResponse) Reset() {
 	*x = NodeTypeResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[62]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3885,7 +3953,7 @@ func (x *NodeTypeResponse) String() string {
 func (*NodeTypeResponse) ProtoMessage() {}
 
 func (x *NodeTypeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[62]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3898,7 +3966,7 @@ func (x *NodeTypeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeTypeResponse.ProtoReflect.Descriptor instead.
 func (*NodeTypeResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{62}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *NodeTypeResponse) GetNodeType() *NodeTypeMessage {
@@ -3917,7 +3985,7 @@ type NodeTypeListResponse struct {
 
 func (x *NodeTypeListResponse) Reset() {
 	*x = NodeTypeListResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[63]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3929,7 +3997,7 @@ func (x *NodeTypeListResponse) String() string {
 func (*NodeTypeListResponse) ProtoMessage() {}
 
 func (x *NodeTypeListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[63]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3942,7 +4010,7 @@ func (x *NodeTypeListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeTypeListResponse.ProtoReflect.Descriptor instead.
 func (*NodeTypeListResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{63}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *NodeTypeListResponse) GetNodeTypes() []*NodeTypeMessage {
@@ -3961,7 +4029,7 @@ type GetNodeTypeRequest struct {
 
 func (x *GetNodeTypeRequest) Reset() {
 	*x = GetNodeTypeRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[64]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3973,7 +4041,7 @@ func (x *GetNodeTypeRequest) String() string {
 func (*GetNodeTypeRequest) ProtoMessage() {}
 
 func (x *GetNodeTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[64]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3986,7 +4054,7 @@ func (x *GetNodeTypeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeTypeRequest.ProtoReflect.Descriptor instead.
 func (*GetNodeTypeRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{64}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetNodeTypeRequest) GetSlug() string {
@@ -4006,7 +4074,7 @@ type UpdateNodeTypeRequest struct {
 
 func (x *UpdateNodeTypeRequest) Reset() {
 	*x = UpdateNodeTypeRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[65]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4018,7 +4086,7 @@ func (x *UpdateNodeTypeRequest) String() string {
 func (*UpdateNodeTypeRequest) ProtoMessage() {}
 
 func (x *UpdateNodeTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[65]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4031,7 +4099,7 @@ func (x *UpdateNodeTypeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateNodeTypeRequest.ProtoReflect.Descriptor instead.
 func (*UpdateNodeTypeRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{65}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *UpdateNodeTypeRequest) GetSlug() string {
@@ -4057,7 +4125,7 @@ type DeleteNodeTypeRequest struct {
 
 func (x *DeleteNodeTypeRequest) Reset() {
 	*x = DeleteNodeTypeRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[66]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4069,7 +4137,7 @@ func (x *DeleteNodeTypeRequest) String() string {
 func (*DeleteNodeTypeRequest) ProtoMessage() {}
 
 func (x *DeleteNodeTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[66]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4082,7 +4150,7 @@ func (x *DeleteNodeTypeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteNodeTypeRequest.ProtoReflect.Descriptor instead.
 func (*DeleteNodeTypeRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{66}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *DeleteNodeTypeRequest) GetSlug() string {
@@ -4104,7 +4172,7 @@ type DataCallRequest struct {
 
 func (x *DataCallRequest) Reset() {
 	*x = DataCallRequest{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[67]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4116,7 +4184,7 @@ func (x *DataCallRequest) String() string {
 func (*DataCallRequest) ProtoMessage() {}
 
 func (x *DataCallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[67]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4129,7 +4197,7 @@ func (x *DataCallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataCallRequest.ProtoReflect.Descriptor instead.
 func (*DataCallRequest) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{67}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *DataCallRequest) GetFunction() string {
@@ -4155,7 +4223,7 @@ type DataCallResponse struct {
 
 func (x *DataCallResponse) Reset() {
 	*x = DataCallResponse{}
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[68]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4167,7 +4235,7 @@ func (x *DataCallResponse) String() string {
 func (*DataCallResponse) ProtoMessage() {}
 
 func (x *DataCallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[68]
+	mi := &file_coreapi_squilla_coreapi_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4180,7 +4248,7 @@ func (x *DataCallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataCallResponse.ProtoReflect.Descriptor instead.
 func (*DataCallResponse) Descriptor() ([]byte, []int) {
-	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{68}
+	return file_coreapi_squilla_coreapi_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *DataCallResponse) GetRowsJson() []byte {
@@ -4353,11 +4421,16 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"M\n" +
 	"\x10EmitEventRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12!\n" +
-	"\fpayload_json\x18\x02 \x01(\tR\vpayloadJson\"P\n" +
+	"\fpayload_json\x18\x02 \x01(\tR\vpayloadJson\"/\n" +
+	"\x13EmitCollectResponse\x12\x18\n" +
+	"\aresults\x18\x01 \x03(\tR\aresults\"\x8d\x01\n" +
 	"\x10SendEmailRequest\x12\x0e\n" +
 	"\x02to\x18\x01 \x03(\tR\x02to\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x12\n" +
-	"\x04html\x18\x03 \x01(\tR\x04html\"$\n" +
+	"\x04html\x18\x03 \x01(\tR\x04html\x12\x0e\n" +
+	"\x02cc\x18\x04 \x03(\tR\x02cc\x12\x10\n" +
+	"\x03bcc\x18\x05 \x03(\tR\x03bcc\x12\x19\n" +
+	"\breply_to\x18\x06 \x01(\tR\areplyTo\"$\n" +
 	"\x0eGetMenuRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\"@\n" +
 	"\fMenuResponse\x120\n" +
@@ -4525,7 +4598,7 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\bfunction\x18\x01 \x01(\tR\bfunction\x12\x1b\n" +
 	"\targs_json\x18\x02 \x01(\fR\bargsJson\"/\n" +
 	"\x10DataCallResponse\x12\x1b\n" +
-	"\trows_json\x18\x01 \x01(\fR\browsJson2\x80\x1a\n" +
+	"\trows_json\x18\x01 \x01(\fR\browsJson2\xd8\x1a\n" +
 	"\vSquillaHost\x12I\n" +
 	"\aGetNode\x12\x1f.squilla.coreapi.GetNodeRequest\x1a\x1d.squilla.coreapi.NodeResponse\x12U\n" +
 	"\n" +
@@ -4555,7 +4628,8 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\n" +
 	"SetSetting\x12\".squilla.coreapi.SetSettingRequest\x1a\x16.squilla.coreapi.Empty\x12U\n" +
 	"\vGetSettings\x12#.squilla.coreapi.GetSettingsRequest\x1a!.squilla.coreapi.SettingsResponse\x12F\n" +
-	"\tEmitEvent\x12!.squilla.coreapi.EmitEventRequest\x1a\x16.squilla.coreapi.Empty\x12F\n" +
+	"\tEmitEvent\x12!.squilla.coreapi.EmitEventRequest\x1a\x16.squilla.coreapi.Empty\x12V\n" +
+	"\vEmitCollect\x12!.squilla.coreapi.EmitEventRequest\x1a$.squilla.coreapi.EmitCollectResponse\x12F\n" +
 	"\tSendEmail\x12!.squilla.coreapi.SendEmailRequest\x1a\x16.squilla.coreapi.Empty\x12I\n" +
 	"\aGetMenu\x12\x1f.squilla.coreapi.GetMenuRequest\x1a\x1d.squilla.coreapi.MenuResponse\x12E\n" +
 	"\bGetMenus\x12\x16.squilla.coreapi.Empty\x1a!.squilla.coreapi.MenuListResponse\x12I\n" +
@@ -4595,7 +4669,7 @@ func file_coreapi_squilla_coreapi_proto_rawDescGZIP() []byte {
 	return file_coreapi_squilla_coreapi_proto_rawDescData
 }
 
-var file_coreapi_squilla_coreapi_proto_msgTypes = make([]protoimpl.MessageInfo, 78)
+var file_coreapi_squilla_coreapi_proto_msgTypes = make([]protoimpl.MessageInfo, 79)
 var file_coreapi_squilla_coreapi_proto_goTypes = []any{
 	(*Empty)(nil),                     // 0: squilla.coreapi.Empty
 	(*GetNodeRequest)(nil),            // 1: squilla.coreapi.GetNodeRequest
@@ -4630,85 +4704,86 @@ var file_coreapi_squilla_coreapi_proto_goTypes = []any{
 	(*GetSettingsRequest)(nil),        // 30: squilla.coreapi.GetSettingsRequest
 	(*SettingsResponse)(nil),          // 31: squilla.coreapi.SettingsResponse
 	(*EmitEventRequest)(nil),          // 32: squilla.coreapi.EmitEventRequest
-	(*SendEmailRequest)(nil),          // 33: squilla.coreapi.SendEmailRequest
-	(*GetMenuRequest)(nil),            // 34: squilla.coreapi.GetMenuRequest
-	(*MenuResponse)(nil),              // 35: squilla.coreapi.MenuResponse
-	(*MenuListResponse)(nil),          // 36: squilla.coreapi.MenuListResponse
-	(*MenuMessage)(nil),               // 37: squilla.coreapi.MenuMessage
-	(*MenuItemMessage)(nil),           // 38: squilla.coreapi.MenuItemMessage
-	(*GetUserRequest)(nil),            // 39: squilla.coreapi.GetUserRequest
-	(*QueryUsersRequest)(nil),         // 40: squilla.coreapi.QueryUsersRequest
-	(*UserResponse)(nil),              // 41: squilla.coreapi.UserResponse
-	(*UserListResponse)(nil),          // 42: squilla.coreapi.UserListResponse
-	(*UserMessage)(nil),               // 43: squilla.coreapi.UserMessage
-	(*FetchRequest)(nil),              // 44: squilla.coreapi.FetchRequest
-	(*FetchResponse)(nil),             // 45: squilla.coreapi.FetchResponse
-	(*LogRequest)(nil),                // 46: squilla.coreapi.LogRequest
-	(*DataGetRequest)(nil),            // 47: squilla.coreapi.DataGetRequest
-	(*DataRowResponse)(nil),           // 48: squilla.coreapi.DataRowResponse
-	(*DataQueryRequest)(nil),          // 49: squilla.coreapi.DataQueryRequest
-	(*DataQueryResponse)(nil),         // 50: squilla.coreapi.DataQueryResponse
-	(*DataCreateRequest)(nil),         // 51: squilla.coreapi.DataCreateRequest
-	(*DataUpdateRequest)(nil),         // 52: squilla.coreapi.DataUpdateRequest
-	(*DataDeleteRequest)(nil),         // 53: squilla.coreapi.DataDeleteRequest
-	(*DataExecRequest)(nil),           // 54: squilla.coreapi.DataExecRequest
-	(*DataExecResponse)(nil),          // 55: squilla.coreapi.DataExecResponse
-	(*StoreFileRequest)(nil),          // 56: squilla.coreapi.StoreFileRequest
-	(*StoreFileResponse)(nil),         // 57: squilla.coreapi.StoreFileResponse
-	(*DeleteFileRequest)(nil),         // 58: squilla.coreapi.DeleteFileRequest
-	(*NodeTypeFieldMessage)(nil),      // 59: squilla.coreapi.NodeTypeFieldMessage
-	(*NodeTypeInputMessage)(nil),      // 60: squilla.coreapi.NodeTypeInputMessage
-	(*NodeTypeMessage)(nil),           // 61: squilla.coreapi.NodeTypeMessage
-	(*NodeTypeResponse)(nil),          // 62: squilla.coreapi.NodeTypeResponse
-	(*NodeTypeListResponse)(nil),      // 63: squilla.coreapi.NodeTypeListResponse
-	(*GetNodeTypeRequest)(nil),        // 64: squilla.coreapi.GetNodeTypeRequest
-	(*UpdateNodeTypeRequest)(nil),     // 65: squilla.coreapi.UpdateNodeTypeRequest
-	(*DeleteNodeTypeRequest)(nil),     // 66: squilla.coreapi.DeleteNodeTypeRequest
-	(*DataCallRequest)(nil),           // 67: squilla.coreapi.DataCallRequest
-	(*DataCallResponse)(nil),          // 68: squilla.coreapi.DataCallResponse
-	nil,                               // 69: squilla.coreapi.NodeInput.SeoSettingsEntry
-	nil,                               // 70: squilla.coreapi.NodeMessage.SeoSettingsEntry
-	nil,                               // 71: squilla.coreapi.SettingsResponse.SettingsEntry
-	nil,                               // 72: squilla.coreapi.FetchRequest.HeadersEntry
-	nil,                               // 73: squilla.coreapi.FetchResponse.HeadersEntry
-	nil,                               // 74: squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
-	nil,                               // 75: squilla.coreapi.NodeTypeInputMessage.ArchiveNodeIdsEntry
-	nil,                               // 76: squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
-	nil,                               // 77: squilla.coreapi.NodeTypeMessage.ArchiveNodeIdsEntry
+	(*EmitCollectResponse)(nil),       // 33: squilla.coreapi.EmitCollectResponse
+	(*SendEmailRequest)(nil),          // 34: squilla.coreapi.SendEmailRequest
+	(*GetMenuRequest)(nil),            // 35: squilla.coreapi.GetMenuRequest
+	(*MenuResponse)(nil),              // 36: squilla.coreapi.MenuResponse
+	(*MenuListResponse)(nil),          // 37: squilla.coreapi.MenuListResponse
+	(*MenuMessage)(nil),               // 38: squilla.coreapi.MenuMessage
+	(*MenuItemMessage)(nil),           // 39: squilla.coreapi.MenuItemMessage
+	(*GetUserRequest)(nil),            // 40: squilla.coreapi.GetUserRequest
+	(*QueryUsersRequest)(nil),         // 41: squilla.coreapi.QueryUsersRequest
+	(*UserResponse)(nil),              // 42: squilla.coreapi.UserResponse
+	(*UserListResponse)(nil),          // 43: squilla.coreapi.UserListResponse
+	(*UserMessage)(nil),               // 44: squilla.coreapi.UserMessage
+	(*FetchRequest)(nil),              // 45: squilla.coreapi.FetchRequest
+	(*FetchResponse)(nil),             // 46: squilla.coreapi.FetchResponse
+	(*LogRequest)(nil),                // 47: squilla.coreapi.LogRequest
+	(*DataGetRequest)(nil),            // 48: squilla.coreapi.DataGetRequest
+	(*DataRowResponse)(nil),           // 49: squilla.coreapi.DataRowResponse
+	(*DataQueryRequest)(nil),          // 50: squilla.coreapi.DataQueryRequest
+	(*DataQueryResponse)(nil),         // 51: squilla.coreapi.DataQueryResponse
+	(*DataCreateRequest)(nil),         // 52: squilla.coreapi.DataCreateRequest
+	(*DataUpdateRequest)(nil),         // 53: squilla.coreapi.DataUpdateRequest
+	(*DataDeleteRequest)(nil),         // 54: squilla.coreapi.DataDeleteRequest
+	(*DataExecRequest)(nil),           // 55: squilla.coreapi.DataExecRequest
+	(*DataExecResponse)(nil),          // 56: squilla.coreapi.DataExecResponse
+	(*StoreFileRequest)(nil),          // 57: squilla.coreapi.StoreFileRequest
+	(*StoreFileResponse)(nil),         // 58: squilla.coreapi.StoreFileResponse
+	(*DeleteFileRequest)(nil),         // 59: squilla.coreapi.DeleteFileRequest
+	(*NodeTypeFieldMessage)(nil),      // 60: squilla.coreapi.NodeTypeFieldMessage
+	(*NodeTypeInputMessage)(nil),      // 61: squilla.coreapi.NodeTypeInputMessage
+	(*NodeTypeMessage)(nil),           // 62: squilla.coreapi.NodeTypeMessage
+	(*NodeTypeResponse)(nil),          // 63: squilla.coreapi.NodeTypeResponse
+	(*NodeTypeListResponse)(nil),      // 64: squilla.coreapi.NodeTypeListResponse
+	(*GetNodeTypeRequest)(nil),        // 65: squilla.coreapi.GetNodeTypeRequest
+	(*UpdateNodeTypeRequest)(nil),     // 66: squilla.coreapi.UpdateNodeTypeRequest
+	(*DeleteNodeTypeRequest)(nil),     // 67: squilla.coreapi.DeleteNodeTypeRequest
+	(*DataCallRequest)(nil),           // 68: squilla.coreapi.DataCallRequest
+	(*DataCallResponse)(nil),          // 69: squilla.coreapi.DataCallResponse
+	nil,                               // 70: squilla.coreapi.NodeInput.SeoSettingsEntry
+	nil,                               // 71: squilla.coreapi.NodeMessage.SeoSettingsEntry
+	nil,                               // 72: squilla.coreapi.SettingsResponse.SettingsEntry
+	nil,                               // 73: squilla.coreapi.FetchRequest.HeadersEntry
+	nil,                               // 74: squilla.coreapi.FetchResponse.HeadersEntry
+	nil,                               // 75: squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
+	nil,                               // 76: squilla.coreapi.NodeTypeInputMessage.ArchiveNodeIdsEntry
+	nil,                               // 77: squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
+	nil,                               // 78: squilla.coreapi.NodeTypeMessage.ArchiveNodeIdsEntry
 }
 var file_coreapi_squilla_coreapi_proto_depIdxs = []int32{
 	8,  // 0: squilla.coreapi.CreateNodeRequest.input:type_name -> squilla.coreapi.NodeInput
 	8,  // 1: squilla.coreapi.UpdateNodeRequest.input:type_name -> squilla.coreapi.NodeInput
-	69, // 2: squilla.coreapi.NodeInput.seo_settings:type_name -> squilla.coreapi.NodeInput.SeoSettingsEntry
+	70, // 2: squilla.coreapi.NodeInput.seo_settings:type_name -> squilla.coreapi.NodeInput.SeoSettingsEntry
 	11, // 3: squilla.coreapi.NodeResponse.node:type_name -> squilla.coreapi.NodeMessage
 	11, // 4: squilla.coreapi.QueryNodesResponse.nodes:type_name -> squilla.coreapi.NodeMessage
-	70, // 5: squilla.coreapi.NodeMessage.seo_settings:type_name -> squilla.coreapi.NodeMessage.SeoSettingsEntry
+	71, // 5: squilla.coreapi.NodeMessage.seo_settings:type_name -> squilla.coreapi.NodeMessage.SeoSettingsEntry
 	19, // 6: squilla.coreapi.ListTermsResponse.terms:type_name -> squilla.coreapi.TermMessage
 	19, // 7: squilla.coreapi.CreateTermRequest.term:type_name -> squilla.coreapi.TermMessage
 	19, // 8: squilla.coreapi.TermResponse.term:type_name -> squilla.coreapi.TermMessage
-	59, // 9: squilla.coreapi.TaxonomyInputMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
-	59, // 10: squilla.coreapi.TaxonomyMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
+	60, // 9: squilla.coreapi.TaxonomyInputMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
+	60, // 10: squilla.coreapi.TaxonomyMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
 	21, // 11: squilla.coreapi.TaxonomyResponse.taxonomy:type_name -> squilla.coreapi.TaxonomyMessage
 	21, // 12: squilla.coreapi.TaxonomyListResponse.taxonomies:type_name -> squilla.coreapi.TaxonomyMessage
 	20, // 13: squilla.coreapi.UpdateTaxonomyRequest.input:type_name -> squilla.coreapi.TaxonomyInputMessage
-	71, // 14: squilla.coreapi.SettingsResponse.settings:type_name -> squilla.coreapi.SettingsResponse.SettingsEntry
-	37, // 15: squilla.coreapi.MenuResponse.menu:type_name -> squilla.coreapi.MenuMessage
-	37, // 16: squilla.coreapi.MenuListResponse.menus:type_name -> squilla.coreapi.MenuMessage
-	38, // 17: squilla.coreapi.MenuMessage.items:type_name -> squilla.coreapi.MenuItemMessage
-	38, // 18: squilla.coreapi.MenuItemMessage.children:type_name -> squilla.coreapi.MenuItemMessage
-	43, // 19: squilla.coreapi.UserResponse.user:type_name -> squilla.coreapi.UserMessage
-	43, // 20: squilla.coreapi.UserListResponse.users:type_name -> squilla.coreapi.UserMessage
-	72, // 21: squilla.coreapi.FetchRequest.headers:type_name -> squilla.coreapi.FetchRequest.HeadersEntry
-	73, // 22: squilla.coreapi.FetchResponse.headers:type_name -> squilla.coreapi.FetchResponse.HeadersEntry
-	59, // 23: squilla.coreapi.NodeTypeInputMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
-	74, // 24: squilla.coreapi.NodeTypeInputMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
-	75, // 25: squilla.coreapi.NodeTypeInputMessage.archive_node_ids:type_name -> squilla.coreapi.NodeTypeInputMessage.ArchiveNodeIdsEntry
-	59, // 26: squilla.coreapi.NodeTypeMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
-	76, // 27: squilla.coreapi.NodeTypeMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
-	77, // 28: squilla.coreapi.NodeTypeMessage.archive_node_ids:type_name -> squilla.coreapi.NodeTypeMessage.ArchiveNodeIdsEntry
-	61, // 29: squilla.coreapi.NodeTypeResponse.node_type:type_name -> squilla.coreapi.NodeTypeMessage
-	61, // 30: squilla.coreapi.NodeTypeListResponse.node_types:type_name -> squilla.coreapi.NodeTypeMessage
-	60, // 31: squilla.coreapi.UpdateNodeTypeRequest.input:type_name -> squilla.coreapi.NodeTypeInputMessage
+	72, // 14: squilla.coreapi.SettingsResponse.settings:type_name -> squilla.coreapi.SettingsResponse.SettingsEntry
+	38, // 15: squilla.coreapi.MenuResponse.menu:type_name -> squilla.coreapi.MenuMessage
+	38, // 16: squilla.coreapi.MenuListResponse.menus:type_name -> squilla.coreapi.MenuMessage
+	39, // 17: squilla.coreapi.MenuMessage.items:type_name -> squilla.coreapi.MenuItemMessage
+	39, // 18: squilla.coreapi.MenuItemMessage.children:type_name -> squilla.coreapi.MenuItemMessage
+	44, // 19: squilla.coreapi.UserResponse.user:type_name -> squilla.coreapi.UserMessage
+	44, // 20: squilla.coreapi.UserListResponse.users:type_name -> squilla.coreapi.UserMessage
+	73, // 21: squilla.coreapi.FetchRequest.headers:type_name -> squilla.coreapi.FetchRequest.HeadersEntry
+	74, // 22: squilla.coreapi.FetchResponse.headers:type_name -> squilla.coreapi.FetchResponse.HeadersEntry
+	60, // 23: squilla.coreapi.NodeTypeInputMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
+	75, // 24: squilla.coreapi.NodeTypeInputMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntry
+	76, // 25: squilla.coreapi.NodeTypeInputMessage.archive_node_ids:type_name -> squilla.coreapi.NodeTypeInputMessage.ArchiveNodeIdsEntry
+	60, // 26: squilla.coreapi.NodeTypeMessage.field_schema:type_name -> squilla.coreapi.NodeTypeFieldMessage
+	77, // 27: squilla.coreapi.NodeTypeMessage.url_prefixes:type_name -> squilla.coreapi.NodeTypeMessage.UrlPrefixesEntry
+	78, // 28: squilla.coreapi.NodeTypeMessage.archive_node_ids:type_name -> squilla.coreapi.NodeTypeMessage.ArchiveNodeIdsEntry
+	62, // 29: squilla.coreapi.NodeTypeResponse.node_type:type_name -> squilla.coreapi.NodeTypeMessage
+	62, // 30: squilla.coreapi.NodeTypeListResponse.node_types:type_name -> squilla.coreapi.NodeTypeMessage
+	61, // 31: squilla.coreapi.UpdateNodeTypeRequest.input:type_name -> squilla.coreapi.NodeTypeInputMessage
 	1,  // 32: squilla.coreapi.SquillaHost.GetNode:input_type -> squilla.coreapi.GetNodeRequest
 	2,  // 33: squilla.coreapi.SquillaHost.QueryNodes:input_type -> squilla.coreapi.QueryNodesRequest
 	6,  // 34: squilla.coreapi.SquillaHost.ListTaxonomyTerms:input_type -> squilla.coreapi.ListTaxonomyTermsRequest
@@ -4729,70 +4804,72 @@ var file_coreapi_squilla_coreapi_proto_depIdxs = []int32{
 	29, // 49: squilla.coreapi.SquillaHost.SetSetting:input_type -> squilla.coreapi.SetSettingRequest
 	30, // 50: squilla.coreapi.SquillaHost.GetSettings:input_type -> squilla.coreapi.GetSettingsRequest
 	32, // 51: squilla.coreapi.SquillaHost.EmitEvent:input_type -> squilla.coreapi.EmitEventRequest
-	33, // 52: squilla.coreapi.SquillaHost.SendEmail:input_type -> squilla.coreapi.SendEmailRequest
-	34, // 53: squilla.coreapi.SquillaHost.GetMenu:input_type -> squilla.coreapi.GetMenuRequest
-	0,  // 54: squilla.coreapi.SquillaHost.GetMenus:input_type -> squilla.coreapi.Empty
-	39, // 55: squilla.coreapi.SquillaHost.GetUser:input_type -> squilla.coreapi.GetUserRequest
-	40, // 56: squilla.coreapi.SquillaHost.QueryUsers:input_type -> squilla.coreapi.QueryUsersRequest
-	44, // 57: squilla.coreapi.SquillaHost.Fetch:input_type -> squilla.coreapi.FetchRequest
-	46, // 58: squilla.coreapi.SquillaHost.Log:input_type -> squilla.coreapi.LogRequest
-	47, // 59: squilla.coreapi.SquillaHost.DataGet:input_type -> squilla.coreapi.DataGetRequest
-	49, // 60: squilla.coreapi.SquillaHost.DataQuery:input_type -> squilla.coreapi.DataQueryRequest
-	51, // 61: squilla.coreapi.SquillaHost.DataCreate:input_type -> squilla.coreapi.DataCreateRequest
-	52, // 62: squilla.coreapi.SquillaHost.DataUpdate:input_type -> squilla.coreapi.DataUpdateRequest
-	53, // 63: squilla.coreapi.SquillaHost.DataDelete:input_type -> squilla.coreapi.DataDeleteRequest
-	54, // 64: squilla.coreapi.SquillaHost.DataExec:input_type -> squilla.coreapi.DataExecRequest
-	56, // 65: squilla.coreapi.SquillaHost.StoreFile:input_type -> squilla.coreapi.StoreFileRequest
-	58, // 66: squilla.coreapi.SquillaHost.DeleteFile:input_type -> squilla.coreapi.DeleteFileRequest
-	60, // 67: squilla.coreapi.SquillaHost.RegisterNodeType:input_type -> squilla.coreapi.NodeTypeInputMessage
-	64, // 68: squilla.coreapi.SquillaHost.GetNodeType:input_type -> squilla.coreapi.GetNodeTypeRequest
-	0,  // 69: squilla.coreapi.SquillaHost.ListNodeTypes:input_type -> squilla.coreapi.Empty
-	65, // 70: squilla.coreapi.SquillaHost.UpdateNodeType:input_type -> squilla.coreapi.UpdateNodeTypeRequest
-	66, // 71: squilla.coreapi.SquillaHost.DeleteNodeType:input_type -> squilla.coreapi.DeleteNodeTypeRequest
-	67, // 72: squilla.coreapi.SquillaHost.DataCall:input_type -> squilla.coreapi.DataCallRequest
-	9,  // 73: squilla.coreapi.SquillaHost.GetNode:output_type -> squilla.coreapi.NodeResponse
-	10, // 74: squilla.coreapi.SquillaHost.QueryNodes:output_type -> squilla.coreapi.QueryNodesResponse
-	7,  // 75: squilla.coreapi.SquillaHost.ListTaxonomyTerms:output_type -> squilla.coreapi.ListTaxonomyTermsResponse
-	9,  // 76: squilla.coreapi.SquillaHost.CreateNode:output_type -> squilla.coreapi.NodeResponse
-	9,  // 77: squilla.coreapi.SquillaHost.UpdateNode:output_type -> squilla.coreapi.NodeResponse
-	0,  // 78: squilla.coreapi.SquillaHost.DeleteNode:output_type -> squilla.coreapi.Empty
-	13, // 79: squilla.coreapi.SquillaHost.ListTerms:output_type -> squilla.coreapi.ListTermsResponse
-	18, // 80: squilla.coreapi.SquillaHost.GetTerm:output_type -> squilla.coreapi.TermResponse
-	18, // 81: squilla.coreapi.SquillaHost.CreateTerm:output_type -> squilla.coreapi.TermResponse
-	18, // 82: squilla.coreapi.SquillaHost.UpdateTerm:output_type -> squilla.coreapi.TermResponse
-	0,  // 83: squilla.coreapi.SquillaHost.DeleteTerm:output_type -> squilla.coreapi.Empty
-	22, // 84: squilla.coreapi.SquillaHost.RegisterTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
-	22, // 85: squilla.coreapi.SquillaHost.GetTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
-	23, // 86: squilla.coreapi.SquillaHost.ListTaxonomies:output_type -> squilla.coreapi.TaxonomyListResponse
-	22, // 87: squilla.coreapi.SquillaHost.UpdateTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
-	0,  // 88: squilla.coreapi.SquillaHost.DeleteTaxonomy:output_type -> squilla.coreapi.Empty
-	28, // 89: squilla.coreapi.SquillaHost.GetSetting:output_type -> squilla.coreapi.SettingResponse
-	0,  // 90: squilla.coreapi.SquillaHost.SetSetting:output_type -> squilla.coreapi.Empty
-	31, // 91: squilla.coreapi.SquillaHost.GetSettings:output_type -> squilla.coreapi.SettingsResponse
-	0,  // 92: squilla.coreapi.SquillaHost.EmitEvent:output_type -> squilla.coreapi.Empty
-	0,  // 93: squilla.coreapi.SquillaHost.SendEmail:output_type -> squilla.coreapi.Empty
-	35, // 94: squilla.coreapi.SquillaHost.GetMenu:output_type -> squilla.coreapi.MenuResponse
-	36, // 95: squilla.coreapi.SquillaHost.GetMenus:output_type -> squilla.coreapi.MenuListResponse
-	41, // 96: squilla.coreapi.SquillaHost.GetUser:output_type -> squilla.coreapi.UserResponse
-	42, // 97: squilla.coreapi.SquillaHost.QueryUsers:output_type -> squilla.coreapi.UserListResponse
-	45, // 98: squilla.coreapi.SquillaHost.Fetch:output_type -> squilla.coreapi.FetchResponse
-	0,  // 99: squilla.coreapi.SquillaHost.Log:output_type -> squilla.coreapi.Empty
-	48, // 100: squilla.coreapi.SquillaHost.DataGet:output_type -> squilla.coreapi.DataRowResponse
-	50, // 101: squilla.coreapi.SquillaHost.DataQuery:output_type -> squilla.coreapi.DataQueryResponse
-	48, // 102: squilla.coreapi.SquillaHost.DataCreate:output_type -> squilla.coreapi.DataRowResponse
-	0,  // 103: squilla.coreapi.SquillaHost.DataUpdate:output_type -> squilla.coreapi.Empty
-	0,  // 104: squilla.coreapi.SquillaHost.DataDelete:output_type -> squilla.coreapi.Empty
-	55, // 105: squilla.coreapi.SquillaHost.DataExec:output_type -> squilla.coreapi.DataExecResponse
-	57, // 106: squilla.coreapi.SquillaHost.StoreFile:output_type -> squilla.coreapi.StoreFileResponse
-	0,  // 107: squilla.coreapi.SquillaHost.DeleteFile:output_type -> squilla.coreapi.Empty
-	62, // 108: squilla.coreapi.SquillaHost.RegisterNodeType:output_type -> squilla.coreapi.NodeTypeResponse
-	62, // 109: squilla.coreapi.SquillaHost.GetNodeType:output_type -> squilla.coreapi.NodeTypeResponse
-	63, // 110: squilla.coreapi.SquillaHost.ListNodeTypes:output_type -> squilla.coreapi.NodeTypeListResponse
-	62, // 111: squilla.coreapi.SquillaHost.UpdateNodeType:output_type -> squilla.coreapi.NodeTypeResponse
-	0,  // 112: squilla.coreapi.SquillaHost.DeleteNodeType:output_type -> squilla.coreapi.Empty
-	68, // 113: squilla.coreapi.SquillaHost.DataCall:output_type -> squilla.coreapi.DataCallResponse
-	73, // [73:114] is the sub-list for method output_type
-	32, // [32:73] is the sub-list for method input_type
+	32, // 52: squilla.coreapi.SquillaHost.EmitCollect:input_type -> squilla.coreapi.EmitEventRequest
+	34, // 53: squilla.coreapi.SquillaHost.SendEmail:input_type -> squilla.coreapi.SendEmailRequest
+	35, // 54: squilla.coreapi.SquillaHost.GetMenu:input_type -> squilla.coreapi.GetMenuRequest
+	0,  // 55: squilla.coreapi.SquillaHost.GetMenus:input_type -> squilla.coreapi.Empty
+	40, // 56: squilla.coreapi.SquillaHost.GetUser:input_type -> squilla.coreapi.GetUserRequest
+	41, // 57: squilla.coreapi.SquillaHost.QueryUsers:input_type -> squilla.coreapi.QueryUsersRequest
+	45, // 58: squilla.coreapi.SquillaHost.Fetch:input_type -> squilla.coreapi.FetchRequest
+	47, // 59: squilla.coreapi.SquillaHost.Log:input_type -> squilla.coreapi.LogRequest
+	48, // 60: squilla.coreapi.SquillaHost.DataGet:input_type -> squilla.coreapi.DataGetRequest
+	50, // 61: squilla.coreapi.SquillaHost.DataQuery:input_type -> squilla.coreapi.DataQueryRequest
+	52, // 62: squilla.coreapi.SquillaHost.DataCreate:input_type -> squilla.coreapi.DataCreateRequest
+	53, // 63: squilla.coreapi.SquillaHost.DataUpdate:input_type -> squilla.coreapi.DataUpdateRequest
+	54, // 64: squilla.coreapi.SquillaHost.DataDelete:input_type -> squilla.coreapi.DataDeleteRequest
+	55, // 65: squilla.coreapi.SquillaHost.DataExec:input_type -> squilla.coreapi.DataExecRequest
+	57, // 66: squilla.coreapi.SquillaHost.StoreFile:input_type -> squilla.coreapi.StoreFileRequest
+	59, // 67: squilla.coreapi.SquillaHost.DeleteFile:input_type -> squilla.coreapi.DeleteFileRequest
+	61, // 68: squilla.coreapi.SquillaHost.RegisterNodeType:input_type -> squilla.coreapi.NodeTypeInputMessage
+	65, // 69: squilla.coreapi.SquillaHost.GetNodeType:input_type -> squilla.coreapi.GetNodeTypeRequest
+	0,  // 70: squilla.coreapi.SquillaHost.ListNodeTypes:input_type -> squilla.coreapi.Empty
+	66, // 71: squilla.coreapi.SquillaHost.UpdateNodeType:input_type -> squilla.coreapi.UpdateNodeTypeRequest
+	67, // 72: squilla.coreapi.SquillaHost.DeleteNodeType:input_type -> squilla.coreapi.DeleteNodeTypeRequest
+	68, // 73: squilla.coreapi.SquillaHost.DataCall:input_type -> squilla.coreapi.DataCallRequest
+	9,  // 74: squilla.coreapi.SquillaHost.GetNode:output_type -> squilla.coreapi.NodeResponse
+	10, // 75: squilla.coreapi.SquillaHost.QueryNodes:output_type -> squilla.coreapi.QueryNodesResponse
+	7,  // 76: squilla.coreapi.SquillaHost.ListTaxonomyTerms:output_type -> squilla.coreapi.ListTaxonomyTermsResponse
+	9,  // 77: squilla.coreapi.SquillaHost.CreateNode:output_type -> squilla.coreapi.NodeResponse
+	9,  // 78: squilla.coreapi.SquillaHost.UpdateNode:output_type -> squilla.coreapi.NodeResponse
+	0,  // 79: squilla.coreapi.SquillaHost.DeleteNode:output_type -> squilla.coreapi.Empty
+	13, // 80: squilla.coreapi.SquillaHost.ListTerms:output_type -> squilla.coreapi.ListTermsResponse
+	18, // 81: squilla.coreapi.SquillaHost.GetTerm:output_type -> squilla.coreapi.TermResponse
+	18, // 82: squilla.coreapi.SquillaHost.CreateTerm:output_type -> squilla.coreapi.TermResponse
+	18, // 83: squilla.coreapi.SquillaHost.UpdateTerm:output_type -> squilla.coreapi.TermResponse
+	0,  // 84: squilla.coreapi.SquillaHost.DeleteTerm:output_type -> squilla.coreapi.Empty
+	22, // 85: squilla.coreapi.SquillaHost.RegisterTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
+	22, // 86: squilla.coreapi.SquillaHost.GetTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
+	23, // 87: squilla.coreapi.SquillaHost.ListTaxonomies:output_type -> squilla.coreapi.TaxonomyListResponse
+	22, // 88: squilla.coreapi.SquillaHost.UpdateTaxonomy:output_type -> squilla.coreapi.TaxonomyResponse
+	0,  // 89: squilla.coreapi.SquillaHost.DeleteTaxonomy:output_type -> squilla.coreapi.Empty
+	28, // 90: squilla.coreapi.SquillaHost.GetSetting:output_type -> squilla.coreapi.SettingResponse
+	0,  // 91: squilla.coreapi.SquillaHost.SetSetting:output_type -> squilla.coreapi.Empty
+	31, // 92: squilla.coreapi.SquillaHost.GetSettings:output_type -> squilla.coreapi.SettingsResponse
+	0,  // 93: squilla.coreapi.SquillaHost.EmitEvent:output_type -> squilla.coreapi.Empty
+	33, // 94: squilla.coreapi.SquillaHost.EmitCollect:output_type -> squilla.coreapi.EmitCollectResponse
+	0,  // 95: squilla.coreapi.SquillaHost.SendEmail:output_type -> squilla.coreapi.Empty
+	36, // 96: squilla.coreapi.SquillaHost.GetMenu:output_type -> squilla.coreapi.MenuResponse
+	37, // 97: squilla.coreapi.SquillaHost.GetMenus:output_type -> squilla.coreapi.MenuListResponse
+	42, // 98: squilla.coreapi.SquillaHost.GetUser:output_type -> squilla.coreapi.UserResponse
+	43, // 99: squilla.coreapi.SquillaHost.QueryUsers:output_type -> squilla.coreapi.UserListResponse
+	46, // 100: squilla.coreapi.SquillaHost.Fetch:output_type -> squilla.coreapi.FetchResponse
+	0,  // 101: squilla.coreapi.SquillaHost.Log:output_type -> squilla.coreapi.Empty
+	49, // 102: squilla.coreapi.SquillaHost.DataGet:output_type -> squilla.coreapi.DataRowResponse
+	51, // 103: squilla.coreapi.SquillaHost.DataQuery:output_type -> squilla.coreapi.DataQueryResponse
+	49, // 104: squilla.coreapi.SquillaHost.DataCreate:output_type -> squilla.coreapi.DataRowResponse
+	0,  // 105: squilla.coreapi.SquillaHost.DataUpdate:output_type -> squilla.coreapi.Empty
+	0,  // 106: squilla.coreapi.SquillaHost.DataDelete:output_type -> squilla.coreapi.Empty
+	56, // 107: squilla.coreapi.SquillaHost.DataExec:output_type -> squilla.coreapi.DataExecResponse
+	58, // 108: squilla.coreapi.SquillaHost.StoreFile:output_type -> squilla.coreapi.StoreFileResponse
+	0,  // 109: squilla.coreapi.SquillaHost.DeleteFile:output_type -> squilla.coreapi.Empty
+	63, // 110: squilla.coreapi.SquillaHost.RegisterNodeType:output_type -> squilla.coreapi.NodeTypeResponse
+	63, // 111: squilla.coreapi.SquillaHost.GetNodeType:output_type -> squilla.coreapi.NodeTypeResponse
+	64, // 112: squilla.coreapi.SquillaHost.ListNodeTypes:output_type -> squilla.coreapi.NodeTypeListResponse
+	63, // 113: squilla.coreapi.SquillaHost.UpdateNodeType:output_type -> squilla.coreapi.NodeTypeResponse
+	0,  // 114: squilla.coreapi.SquillaHost.DeleteNodeType:output_type -> squilla.coreapi.Empty
+	69, // 115: squilla.coreapi.SquillaHost.DataCall:output_type -> squilla.coreapi.DataCallResponse
+	74, // [74:116] is the sub-list for method output_type
+	32, // [32:74] is the sub-list for method input_type
 	32, // [32:32] is the sub-list for extension type_name
 	32, // [32:32] is the sub-list for extension extendee
 	0,  // [0:32] is the sub-list for field type_name
@@ -4809,7 +4886,7 @@ func file_coreapi_squilla_coreapi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_coreapi_squilla_coreapi_proto_rawDesc), len(file_coreapi_squilla_coreapi_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   78,
+			NumMessages:   79,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

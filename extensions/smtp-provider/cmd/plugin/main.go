@@ -74,6 +74,9 @@ func (p *SMTPPlugin) HandleEvent(action string, payload []byte) (*pb.EventRespon
 		To       []string          `json:"to"`
 		Subject  string            `json:"subject"`
 		HTML     string            `json:"html"`
+		CC       []string          `json:"cc"`
+		BCC      []string          `json:"bcc"`
+		ReplyTo  string            `json:"reply_to"`
 		Settings map[string]string `json:"settings"`
 	}
 	if err := json.Unmarshal(payload, &req); err != nil {
@@ -101,9 +104,11 @@ func (p *SMTPPlugin) HandleEvent(action string, payload []byte) (*pb.EventRespon
 			return &pb.EventResponse{Handled: true, Error: "invalid characters in email fields"}, nil
 		}
 	}
-	for _, to := range req.To {
-		if strings.ContainsAny(to, "\r\n") {
-			return &pb.EventResponse{Handled: true, Error: "invalid characters in recipient address"}, nil
+	for _, list := range [][]string{req.To, req.CC, req.BCC, {req.ReplyTo}} {
+		for _, a := range list {
+			if strings.ContainsAny(a, "\r\n") {
+				return &pb.EventResponse{Handled: true, Error: "invalid characters in recipient address"}, nil
+			}
 		}
 	}
 
@@ -134,21 +139,21 @@ func (p *SMTPPlugin) HandleEvent(action string, payload []byte) (*pb.EventRespon
 
 	addr := net.JoinHostPort(host, port)
 
-	for _, to := range req.To {
-		msg := buildMessage(from, to, req.Subject, req.HTML)
-
-		var err error
-		switch encryption {
-		case "tls":
-			err = sendImplicitTLS(addr, host, username, password, fromEmail, to, msg)
-		case "starttls":
-			err = sendSTARTTLS(addr, host, username, password, fromEmail, to, msg)
-		default: // "none" or empty
-			err = sendPlain(addr, host, username, password, fromEmail, to, msg)
-		}
-
-		if err != nil {
-			return &pb.EventResponse{Handled: true, Error: fmt.Sprintf("SMTP send failed: %v", err)}, nil
+	for _, d := range planDeliveries(req.To, req.CC, req.BCC) {
+		msg := buildMessage(from, d.toHeader, d.ccHeader, req.ReplyTo, req.Subject, req.HTML)
+		for _, rcpt := range d.rcpts {
+			var err error
+			switch encryption {
+			case "tls":
+				err = sendImplicitTLS(addr, host, username, password, fromEmail, rcpt, msg)
+			case "starttls":
+				err = sendSTARTTLS(addr, host, username, password, fromEmail, rcpt, msg)
+			default: // "none" or empty
+				err = sendPlain(addr, host, username, password, fromEmail, rcpt, msg)
+			}
+			if err != nil {
+				return &pb.EventResponse{Handled: true, Error: fmt.Sprintf("SMTP send failed: %v", err)}, nil
+			}
 		}
 	}
 
@@ -170,13 +175,57 @@ func (p *SMTPPlugin) Initialize(hostConn *grpc.ClientConn) error {
 
 // ---------- Message building ----------
 
-func buildMessage(from, to, subject, html string) string {
+// delivery is one message (its visible To/Cc headers) and the envelope
+// recipients it is sent to.
+type delivery struct {
+	toHeader, ccHeader string
+	rcpts              []string
+}
+
+// planDeliveries keeps the long-standing behaviour for plain sends — one
+// private message per To address, so two admins never see each other —
+// and switches to a single shared message when Cc or Bcc is set, because
+// Cc only means something when everyone gets the same message. Bcc
+// addresses get that message without appearing in any header.
+func planDeliveries(to, cc, bcc []string) []delivery {
+	to, cc, bcc = nonEmpty(to), nonEmpty(cc), nonEmpty(bcc)
+	if len(cc) == 0 && len(bcc) == 0 {
+		out := make([]delivery, 0, len(to))
+		for _, t := range to {
+			out = append(out, delivery{toHeader: t, rcpts: []string{t}})
+		}
+		return out
+	}
+	rcpts := append(append(append([]string{}, to...), cc...), bcc...)
+	return []delivery{{toHeader: strings.Join(to, ", "), ccHeader: strings.Join(cc, ", "), rcpts: rcpts}}
+}
+
+func nonEmpty(in []string) []string {
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+func buildMessage(from, to, cc, replyTo, subject, html string) string {
 	// Encode subject using RFC 2047 Q-encoding to handle special characters safely.
 	encodedSubject := mime.QEncoding.Encode("utf-8", subject)
-	return fmt.Sprintf(
-		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
-		from, to, encodedSubject, html,
-	)
+	var h strings.Builder
+	fmt.Fprintf(&h, "From: %s\r\n", from)
+	if to != "" {
+		fmt.Fprintf(&h, "To: %s\r\n", to)
+	}
+	if cc != "" {
+		fmt.Fprintf(&h, "Cc: %s\r\n", cc)
+	}
+	if replyTo = strings.TrimSpace(replyTo); replyTo != "" {
+		fmt.Fprintf(&h, "Reply-To: %s\r\n", replyTo)
+	}
+	fmt.Fprintf(&h, "Subject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", encodedSubject, html)
+	return h.String()
 }
 
 // ---------- Implicit TLS (port 465) ----------

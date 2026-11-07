@@ -14,6 +14,14 @@ func (c *coreImpl) Emit(ctx context.Context, action string, payload map[string]a
 	return nil
 }
 
+func (c *coreImpl) EmitCollect(ctx context.Context, action string, payload map[string]any) ([]string, error) {
+	p := make(events.Payload, len(payload))
+	for k, v := range payload {
+		p[k] = v
+	}
+	return c.eventBus.PublishCollect(action, p), nil
+}
+
 func (c *coreImpl) Subscribe(ctx context.Context, action string, handler EventHandler) (UnsubscribeFunc, error) {
 	wrapped := func(a string, p events.Payload) {
 		m := make(map[string]any, len(p))

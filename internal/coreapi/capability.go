@@ -207,6 +207,16 @@ func (g *capabilityGuard) Emit(ctx context.Context, action string, payload map[s
 	return g.inner.Emit(ctx, action, payload)
 }
 
+func (g *capabilityGuard) EmitCollect(ctx context.Context, action string, payload map[string]any) ([]string, error) {
+	if err := checkCapability(ctx, "events:emit"); err != nil {
+		return nil, err
+	}
+	if action == httpObserveEvent && CallerFromContext(ctx).Type != "internal" {
+		return nil, NewCapabilityDenied("events:emit " + action + " (kernel-reserved event)")
+	}
+	return g.inner.EmitCollect(ctx, action, payload)
+}
+
 func (g *capabilityGuard) Subscribe(ctx context.Context, action string, handler EventHandler) (UnsubscribeFunc, error) {
 	if err := checkCapability(ctx, "events:subscribe"); err != nil {
 		return nil, err

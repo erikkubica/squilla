@@ -45,16 +45,9 @@ func (p *FormsPlugin) handleNotificationTest(ctx context.Context, formID uint, i
 		}
 	}
 
-	// 4. Resolve recipient: override > notification recipients > current user email
+	// 4. Recipient: override > the admin running the test > the
+	//    notification's own recipients rendered with the sample data.
 	recipient := strings.TrimSpace(body.OverrideRecipient)
-	if recipient == "" {
-		// Try notification recipients (skip template variables)
-		notifRecipients, _ := config["recipients"].(string)
-		if notifRecipients != "" && !strings.Contains(notifRecipients, "{{") {
-			recipient = strings.Split(notifRecipients, ",")[0]
-			recipient = strings.TrimSpace(recipient)
-		}
-	}
 	if recipient == "" {
 		// Fall back to current admin user's email
 		userID := req.GetUserId()
@@ -65,15 +58,6 @@ func (p *FormsPlugin) handleNotificationTest(ctx context.Context, formID uint, i
 			}
 		}
 	}
-	if recipient == "" {
-		return jsonError(400, "NO_RECIPIENT", "Could not determine a recipient — provide override_recipient"), nil
-	}
-
-	// Validate recipient email address
-	if _, err := mail.ParseAddress(recipient); err != nil {
-		return jsonError(400, "INVALID_EMAIL", fmt.Sprintf("Invalid recipient email: %s", recipient)), nil
-	}
-
 	// 5. Build sample template data
 	fields := getFormFields(form)
 	formName, _ := form["name"].(string)
@@ -114,33 +98,28 @@ func (p *FormsPlugin) handleNotificationTest(ctx context.Context, formID uint, i
 
 	tplData := buildNotificationTemplateData(form, sampleData)
 
-	// 6. Render subject and body
-	subjectTmpl, _ := config["subject"].(string)
-	bodyTmpl, _ := config["body"].(string)
-
-	renderedSubject, err := renderNotificationTemplate("subject", subjectTmpl, tplData)
-	if err != nil {
-		renderedSubject = subjectTmpl
+	// 6. Render it exactly like a real submission would be.
+	p.addSiteData(ctx, tplData)
+	composed := p.composeNotification(ctx, config, tplData)
+	if recipient == "" && len(composed.To) > 0 {
+		recipient = composed.To[0]
 	}
-	if renderedSubject == "" {
-		renderedSubject = fmt.Sprintf("[Test] New submission: %s", formName)
+	if recipient == "" {
+		return jsonError(400, "NO_RECIPIENT", "Could not determine a recipient — provide override_recipient"), nil
 	}
-
-	var renderedBody string
-	if bodyTmpl != "" {
-		renderedBody, err = renderNotificationTemplate("body", bodyTmpl, tplData)
-		if err != nil {
-			renderedBody = bodyTmpl
-		}
-	} else {
-		renderedBody = defaultNotificationHTML(tplData)
+	if _, err := mail.ParseAddress(recipient); err != nil {
+		return jsonError(400, "INVALID_EMAIL", fmt.Sprintf("Invalid recipient email: %s", recipient)), nil
+	}
+	if composed.Subject == "" {
+		composed.Subject = fmt.Sprintf("New submission: %s", formName)
 	}
 
-	// 7. Send email
+	// 7. Send email (only to the test recipient: no cc/bcc on a test).
 	if err := p.host.SendEmail(ctx, coreapi.EmailRequest{
 		To:      []string{recipient},
-		Subject: fmt.Sprintf("[Test] %s", renderedSubject),
-		HTML:    renderedBody,
+		Subject: fmt.Sprintf("[Test] %s", composed.Subject),
+		HTML:    composed.HTML,
+		ReplyTo: composed.ReplyTo,
 	}); err != nil {
 		return jsonError(500, "SEND_FAILED", fmt.Sprintf("Failed to send test email: %v", err)), nil
 	}

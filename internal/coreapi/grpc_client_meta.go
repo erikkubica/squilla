@@ -125,6 +125,22 @@ func (c *GRPCHostClient) Subscribe(_ context.Context, _ string, _ EventHandler) 
 	return nil, NewInternal("not supported via gRPC")
 }
 
+func (c *GRPCHostClient) EmitCollect(ctx context.Context, action string, payload map[string]any) ([]string, error) {
+	var payloadJSON string
+	if payload != nil {
+		b, err := json.Marshal(payload)
+		if err != nil {
+			return nil, NewInternal("failed to marshal payload: " + err.Error())
+		}
+		payloadJSON = string(b)
+	}
+	resp, err := c.client.EmitCollect(ctx, &pb.EmitEventRequest{Action: action, PayloadJson: payloadJSON})
+	if err != nil {
+		return nil, fromGRPCError(err)
+	}
+	return resp.GetResults(), nil
+}
+
 // --- Email ---
 
 func (c *GRPCHostClient) SendEmail(ctx context.Context, req EmailRequest) error {
@@ -132,6 +148,9 @@ func (c *GRPCHostClient) SendEmail(ctx context.Context, req EmailRequest) error 
 		To:      req.To,
 		Subject: req.Subject,
 		Html:    req.HTML,
+		Cc:      req.CC,
+		Bcc:     req.BCC,
+		ReplyTo: req.ReplyTo,
 	})
 	if err != nil {
 		return fromGRPCError(err)
