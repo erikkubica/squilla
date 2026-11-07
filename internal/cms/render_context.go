@@ -63,6 +63,9 @@ type NodeData struct {
 	SEO          map[string]interface{}
 	NodeType     string
 	LanguageCode string
+	// TypeArchiveURL is the URL of the page listing this node's type in its
+	// language (see archiveNodeFor), "" when the type has none.
+	TypeArchiveURL string
 	Translations []map[string]interface{}
 	// StructuredData holds what the theme's structured-data templates
 	// produced for this page (see structured_data.go). Forwarded to
@@ -128,6 +131,7 @@ func (td TemplateData) ToMap() map[string]interface{} {
 			"seo":           td.Node.SEO,
 			"node_type":     td.Node.NodeType,
 			"language_code": td.Node.LanguageCode,
+			"type_archive_url": td.Node.TypeArchiveURL,
 			"translations":  td.Node.Translations,
 		},
 		"user": map[string]interface{}{
@@ -261,8 +265,18 @@ func (rc *RenderContext) BuildNodeData(node *models.ContentNode, blocksHTML stri
 		SEO:          seo,
 		NodeType:     node.NodeType,
 		LanguageCode: node.LanguageCode,
+		TypeArchiveURL: rc.typeArchiveURL(node),
 		Translations: translations,
 	}
+}
+
+// typeArchiveURL resolves NodeData.TypeArchiveURL. Synthetic nodes (404)
+// have no type and skip the lookup.
+func (rc *RenderContext) typeArchiveURL(node *models.ContentNode) string {
+	if node.NodeType == "" || rc.db == nil {
+		return ""
+	}
+	return typeArchiveURL(rc.db, node.NodeType, node.LanguageCode)
 }
 
 // loadTranslations returns translation siblings for a node, including the current node.

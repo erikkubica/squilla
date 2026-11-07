@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Save, Loader2, RefreshCw } from "lucide-react";
+import { Save, Loader2, RefreshCw, LayoutList } from "lucide-react";
 import { useAdminLanguage } from "@/hooks/use-admin-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ArchivePagePicker } from "@/components/ui/archive-page-picker";
 import {
   clearCache,
   getNodes,
+  getNodeTypes,
   getRoles,
   getSettingsSchema,
   saveSettingsSchema,
+  updateNodeType,
   type ContentNode,
+  type NodeType,
   type Role,
   type SettingsSchema,
   type SettingsSchemaField,
@@ -61,11 +65,20 @@ function renderIcon(name: string | undefined) {
 export interface SchemaSettingsProps {
   schema_id: string;
   show_clear_cache?: boolean;
+  /** Show the "Reading → Archive pages" card (site.general only). */
+  archive_pages?: boolean;
+}
+
+// Content types that can have an archive page: public, and not plain
+// pages (a page type listing pages isn't a thing editors want).
+function archivableTypes(types: NodeType[]): NodeType[] {
+  return types.filter((t) => t.public !== false && t.slug !== "page");
 }
 
 export function SchemaSettings({
   schema_id,
   show_clear_cache = false,
+  archive_pages = false,
 }: SchemaSettingsProps) {
   const { languages, currentCode } = useAdminLanguage();
   const [schema, setSchema] = useState<SettingsSchema | null>(null);
@@ -76,6 +89,11 @@ export function SchemaSettings({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
+  // Archive pages live on node types (archive_node_ids[locale]); the card
+  // edits the current locale's entry for each type, saved with the form.
+  const [archiveTypes, setArchiveTypes] = useState<NodeType[]>([]);
+  const [archiveValues, setArchiveValues] = useState<Record<string, number>>({});
+  const [archiveOriginal, setArchiveOriginal] = useState<Record<string, number>>({});
   // pageLocale only matters when at least one field is translatable.
   // For all-global schemas the picker is hidden and saves omit the
   // locale header (server falls back to '' for non-translatable rows
@@ -103,11 +121,22 @@ export function SchemaSettings({
       }
       if (needsRoles) sidePromises.push(getRoles());
       else sidePromises.push(Promise.resolve(undefined));
+      if (archive_pages) sidePromises.push(getNodeTypes());
+      else sidePromises.push(Promise.resolve(undefined));
 
-      const [pagesRes, rolesRes] = (await Promise.all(sidePromises)) as [
+      const [pagesRes, rolesRes, typesRes] = (await Promise.all(sidePromises)) as [
         { data: ContentNode[] } | undefined,
         Role[] | undefined,
+        NodeType[] | undefined,
       ];
+      if (typesRes) {
+        const types = archivableTypes(typesRes);
+        const vals: Record<string, number> = {};
+        for (const t of types) vals[t.slug] = t.archive_node_ids?.[pageLocale] ?? 0;
+        setArchiveTypes(types);
+        setArchiveValues(vals);
+        setArchiveOriginal(vals);
+      }
 
       // Initialise every key the schema declares so onChange handlers
       // never produce undefined → controlled-input warnings.
@@ -128,7 +157,7 @@ export function SchemaSettings({
     } finally {
       setLoading(false);
     }
-  }, [schema_id, pageLocale]);
+  }, [schema_id, pageLocale, archive_pages]);
 
   useEffect(() => {
     fetchAll();
@@ -146,17 +175,38 @@ export function SchemaSettings({
       for (const key of Object.keys(values)) {
         if (values[key] !== original[key]) diff[key] = values[key];
       }
-      if (Object.keys(diff).length === 0) {
+      const archiveChanged = archiveTypes.filter(
+        (t) => (archiveValues[t.slug] ?? 0) !== (archiveOriginal[t.slug] ?? 0),
+      );
+      if (Object.keys(diff).length === 0 && archiveChanged.length === 0) {
         toast.info("No changes to save");
         return;
       }
-      // Only forward the locale when the schema actually has
-      // translatable fields. For all-global schemas the server doesn't
-      // need it and forwarding it would tie an unrelated header to
-      // the request.
-      const localeArg = hasTranslatable ? pageLocale : undefined;
-      await saveSettingsSchema(schema.id, diff, localeArg);
-      setOriginal({ ...values });
+      if (Object.keys(diff).length > 0) {
+        // Only forward the locale when the schema actually has
+        // translatable fields. For all-global schemas the server doesn't
+        // need it and forwarding it would tie an unrelated header to
+        // the request.
+        const localeArg = hasTranslatable ? pageLocale : undefined;
+        await saveSettingsSchema(schema.id, diff, localeArg);
+        setOriginal({ ...values });
+      }
+      if (archiveChanged.length > 0) {
+        // Each node type stores the whole map; change only this locale.
+        const updated = await Promise.all(
+          archiveChanged.map((t) => {
+            const next = { ...(t.archive_node_ids ?? {}) };
+            const id = archiveValues[t.slug] ?? 0;
+            if (id > 0) next[pageLocale] = id;
+            else delete next[pageLocale];
+            return updateNodeType(t.id, { archive_node_ids: next });
+          }),
+        );
+        setArchiveTypes((prev) =>
+          prev.map((t) => updated.find((u) => u.id === t.id) ?? t),
+        );
+        setArchiveOriginal({ ...archiveValues });
+      }
       toast.success("Settings saved");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to save settings";
@@ -186,7 +236,9 @@ export function SchemaSettings({
     );
   }
 
-  const hasChanges = JSON.stringify(values) !== JSON.stringify(original);
+  const hasChanges =
+    JSON.stringify(values) !== JSON.stringify(original) ||
+    JSON.stringify(archiveValues) !== JSON.stringify(archiveOriginal);
 
   return (
     <div className="space-y-4">
@@ -226,6 +278,44 @@ export function SchemaSettings({
               </CardContent>
             </Card>
           ))}
+          {archive_pages && archiveTypes.length > 0 && (
+            <Card className="rounded-xl border border-border shadow-sm">
+              <SectionHeader
+                title="Archive pages"
+                icon={<LayoutList className="h-4 w-4" style={{color: "var(--accent-strong)"}} />}
+              />
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground -mt-1">
+                  The page that lists each content type. Category and tag archives live under it
+                  (for example /blog/category/news). Set per language; this is the{" "}
+                  {pageLocale.toUpperCase()} version.
+                </p>
+                <div className="space-y-4">
+                  {archiveTypes.map((t) => (
+                    <div key={t.slug} className="space-y-1.5">
+                      <Label className="text-sm font-medium text-foreground">
+                        {t.label_plural || t.label}
+                      </Label>
+                      <ArchivePagePicker
+                        languageCode={pageLocale}
+                        value={archiveValues[t.slug]}
+                        onChange={(id) =>
+                          setArchiveValues((prev) => ({ ...prev, [t.slug]: id }))
+                        }
+                      />
+                      <p className="text-[11px]" style={{color: "var(--fg-subtle)"}}>
+                        The page that lists all {(t.label_plural || t.label).toLowerCase()}.
+                        {!archiveValues[t.slug] &&
+                          (t.url_prefixes?.[pageLocale]
+                            ? ` Not set: the page at /${t.url_prefixes[pageLocale].replace(/^\/+|\/+$/g, "")} is used, if there is one.`
+                            : " Not set.")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <aside className="lg:sticky lg:top-4 lg:self-start" style={{ display: "flex", flexDirection: "column", gap: 12 }}>

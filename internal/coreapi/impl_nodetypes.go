@@ -46,6 +46,14 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		nt.Icon = "file-text"
 	}
 
+	if input.ArchiveNodeIDs != nil {
+		b, err := json.Marshal(input.ArchiveNodeIDs)
+		if err != nil {
+			return nil, NewInternal("failed to marshal archive_node_ids: " + err.Error())
+		}
+		nt.ArchiveNodeIDs = models.JSONB(b)
+	}
+
 	if input.Taxonomies != nil {
 		b, err := json.Marshal(input.Taxonomies)
 		if err != nil {
@@ -80,6 +88,12 @@ func (c *coreImpl) RegisterNodeType(ctx context.Context, input NodeTypeInput) (*
 		}
 		if input.URLPrefixes != nil {
 			updates["url_prefixes"] = nt.URLPrefixes
+		}
+		// Same rule for archive pages: they're operator choices, so a seed
+		// that doesn't mention them keeps what's stored. A seed that does
+		// is merged per language rather than replacing the whole map.
+		if input.ArchiveNodeIDs != nil {
+			updates["archive_node_ids"] = mergeArchiveNodeIDs(existing, input.ArchiveNodeIDs)
 		}
 		if input.SupportsBlocks != nil {
 			updates["supports_blocks"] = *input.SupportsBlocks
@@ -154,6 +168,9 @@ func (c *coreImpl) UpdateNodeType(ctx context.Context, slug string, input NodeTy
 	}
 	if input.URLPrefixes != nil {
 		updates["url_prefixes"] = input.URLPrefixes
+	}
+	if input.ArchiveNodeIDs != nil {
+		updates["archive_node_ids"] = mergeArchiveNodeIDs(existing, input.ArchiveNodeIDs)
 	}
 	if input.SupportsBlocks != nil {
 		updates["supports_blocks"] = *input.SupportsBlocks
@@ -231,6 +248,21 @@ func nodeTypeFromModel(nt *models.NodeType) *NodeType {
 	if result.URLPrefixes == nil {
 		result.URLPrefixes = map[string]string{}
 	}
+	result.ArchiveNodeIDs = nt.ArchiveNodeIDMap()
 
 	return result
+}
+
+// mergeArchiveNodeIDs overlays per-language archive page ids onto the
+// stored map. An id ≤ 0 removes that language's entry.
+func mergeArchiveNodeIDs(existing *models.NodeType, in map[string]int) map[string]int {
+	out := existing.ArchiveNodeIDMap()
+	for lang, id := range in {
+		if id > 0 {
+			out[lang] = id
+		} else {
+			delete(out, lang)
+		}
+	}
+	return out
 }

@@ -229,6 +229,7 @@ Custom content types beyond `page`/`post`.
 | `taxonomies` | JSONB NOT NULL DEFAULT '[]' | Allowed taxonomy slugs |
 | `field_schema` | JSONB NOT NULL DEFAULT '[]' | Array of field definitions |
 | `url_prefixes` | JSONB NOT NULL DEFAULT '{}' | `{ "en": "blog", "fr": "journal" }` |
+| `archive_node_ids` | JSONB NOT NULL DEFAULT '{}' | Archive page per language: `{ "en": 12, "fr": 34 }` (content node ids). Unset languages fall back to the page at the URL prefix. |
 | `supports_blocks` | BOOL NOT NULL DEFAULT true | False = node has only fields_data, no block tree |
 
 ### `taxonomies`

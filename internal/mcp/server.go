@@ -206,7 +206,9 @@ discovery calls and primes you with what exists before you mutate anything.
 4. ADD/EDIT A CUSTOM NODE TYPE ("post type")
    core.nodetype.list / .get to inspect existing schemas first
    core.nodetype.create { slug, label, label_plural, url_prefixes,
-                          field_schema }
+                          field_schema, archive_node_ids? }
+   archive_node_ids { "<lang>": <page node id> } picks the page that lists
+   the type; term archives live at /<archive page>/<taxonomy>/<term>.
    core.taxonomy.create if the type needs tagging/categories
    Then core.node.create with the new node_type slug.
 

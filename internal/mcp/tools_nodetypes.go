@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/mark3labs/mcp-go/mcp"
 
@@ -13,7 +14,7 @@ func (s *Server) registerNodeTypeTools() {
 	api := s.deps.CoreAPI
 
 	s.addTool(mcp.NewTool("core.nodetype.list",
-		mcp.WithDescription("List all registered node types (post types). Each includes slug, label, icon, description, taxonomies, fields, and url_prefixes."),
+		mcp.WithDescription("List all registered node types (post types). Each includes slug, label, icon, description, taxonomies, fields, url_prefixes, and archive_node_ids (language_code → id of the page that lists this type's items)."),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		return api.ListNodeTypes(ctx)
 	})
@@ -34,6 +35,7 @@ func (s *Server) registerNodeTypeTools() {
 		mcp.WithString("description"),
 		mcp.WithArray("fields", mcp.Description("Array of field definitions. Each field is {name, title, type, required?, options?, fields?, initialValue?, description?}.")),
 		mcp.WithObject("url_prefixes"),
+		mcp.WithObject("archive_node_ids", mcp.Description("Archive page per language: {\"en\": <page node id>}. That page lists this type's items and term archives live under its URL (/<archive page>/<taxonomy>/<term>). Languages left out keep their current value; 0 clears one. Unset languages fall back to the page whose URL equals the type's url_prefix.")),
 		mcp.WithObject("taxonomies"),
 	), "content", func(ctx context.Context, args map[string]any) (any, error) {
 		input := nodeTypeInputFromArgs(args)
@@ -49,6 +51,7 @@ func (s *Server) registerNodeTypeTools() {
 		mcp.WithString("description"),
 		mcp.WithArray("fields"),
 		mcp.WithObject("url_prefixes"),
+		mcp.WithObject("archive_node_ids", mcp.Description("Archive page per language: {\"en\": <page node id>}. That page lists this type's items and term archives live under its URL (/<archive page>/<taxonomy>/<term>). Languages left out keep their current value; 0 clears one. Unset languages fall back to the page whose URL equals the type's url_prefix.")),
 		mcp.WithObject("taxonomies"),
 	), "content", func(ctx context.Context, args map[string]any) (any, error) {
 		return api.UpdateNodeType(ctx, stringArg(args, "slug"), nodeTypeInputFromArgs(args))
@@ -82,6 +85,20 @@ func nodeTypeInputFromArgs(args map[string]any) coreapi.NodeTypeInput {
 		var up map[string]string
 		_ = json.Unmarshal(b, &up)
 		input.URLPrefixes = up
+	}
+	if raw, ok := args["archive_node_ids"].(map[string]any); ok {
+		input.ArchiveNodeIDs = make(map[string]int, len(raw))
+		for lang, v := range raw {
+			switch n := v.(type) {
+			case float64:
+				input.ArchiveNodeIDs[lang] = int(n)
+			case string:
+				id, _ := strconv.Atoi(n)
+				input.ArchiveNodeIDs[lang] = id
+			case nil:
+				input.ArchiveNodeIDs[lang] = 0
+			}
+		}
 	}
 	if raw, ok := args["taxonomies"]; ok {
 		b, _ := json.Marshal(raw)

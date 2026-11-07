@@ -1275,6 +1275,7 @@ Register and inspect custom content types from a theme/extension script. The sam
 | `taxonomies` | []string | Allowed taxonomy slugs |
 | `fields` | []map | Field definitions consumed by the editor (legacy alias `field_schema` still accepted) |
 | `url_prefixes` | map[string]string | Per-language URL prefix override |
+| `archive_node_ids` | map[string]int | Per-language archive page (node id of the page listing this type). Merged per language on upsert; `0` clears a language. Omit to keep what the operator chose. |
 | `supports_blocks` | bool | If false, node has only `fields_data`, no block tree |
 
 Each field entry: `{ name, title, type, required?, options?, fields?, initialValue?, description? }`.

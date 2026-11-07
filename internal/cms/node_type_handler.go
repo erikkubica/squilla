@@ -143,6 +143,7 @@ type createNodeTypeRequest struct {
 	Taxonomies     models.JSONB `json:"taxonomies"`
 	Fields         models.JSONB `json:"fields"`
 	URLPrefixes    models.JSONB `json:"url_prefixes"`
+	ArchiveNodeIDs models.JSONB `json:"archive_node_ids"`
 	SupportsBlocks *bool        `json:"supports_blocks"`
 }
 
@@ -173,6 +174,7 @@ func (h *NodeTypeHandler) Create(c *fiber.Ctx) error {
 		Taxonomies:     req.Taxonomies,
 		Fields:         req.Fields,
 		URLPrefixes:    req.URLPrefixes,
+		ArchiveNodeIDs: req.ArchiveNodeIDs,
 		SupportsBlocks: true,
 	}
 	if req.SupportsBlocks != nil {

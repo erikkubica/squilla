@@ -44,6 +44,7 @@ import {
   FileText,
   Globe,
   Home,
+  LayoutList,
   Plus,
   Tag,
   X,
@@ -82,6 +83,8 @@ interface ContentNodeRow {
   updated_at: string;
   editPath: string;
   is_homepage?: boolean;
+  /** Content types this node is the archive page of, e.g. ["Blog archive"]. */
+  archive_of?: string[] | null;
 }
 
 /** A single taxonomy term row passed from the Go backend via SDUI layout tree. */
@@ -507,11 +510,26 @@ export function ContentNodeTable({
                     title={row.title}
                     slug={row.slug}
                     extra={
-                      row.is_homepage ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-px text-[10px] font-medium border rounded-[2px]" style={{color: "var(--success)", background: "var(--success-bg)", borderColor: "var(--success)"}}>
-                          <Home className="w-2.5 h-2.5" />
-                          Home
-                        </span>
+                      row.is_homepage || row.archive_of?.length ? (
+                        <>
+                          {row.is_homepage && (
+                            <span className="inline-flex shrink-0 items-center gap-1 px-1.5 py-px text-[10px] font-medium border rounded-[2px]" style={{color: "var(--success)", background: "var(--success-bg)", borderColor: "var(--success)"}}>
+                              <Home className="w-2.5 h-2.5" />
+                              Home
+                            </span>
+                          )}
+                          {row.archive_of?.map((label) => (
+                            <span
+                              key={label}
+                              className="inline-flex shrink-0 items-center gap-1 px-1.5 py-px text-[10px] font-medium border rounded-[2px] whitespace-nowrap"
+                              style={{color: "var(--accent-strong)", background: "var(--accent-weak)", borderColor: "var(--accent-mid)"}}
+                              title={`Lists all ${label.replace(/ archive$/, "")}. Category and tag archives live under this page.`}
+                            >
+                              <LayoutList className="w-2.5 h-2.5" />
+                              {label}
+                            </span>
+                          ))}
+                        </>
                       ) : undefined
                     }
                   />

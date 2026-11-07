@@ -19,11 +19,16 @@ func (j *JSONB) Scan(value interface{}) error {
 		*j = JSONB("null")
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
+	switch v := value.(type) {
+	case []byte:
+		*j = JSONB(append([]byte{}, v...))
+	case string:
+		// Column defaults come back as text from some drivers (SQLite's
+		// INSERT ... RETURNING for an omitted JSONB column).
+		*j = JSONB(v)
+	default:
 		return errors.New("JSONB.Scan: expected []byte")
 	}
-	*j = JSONB(append([]byte{}, bytes...))
 	return nil
 }
 

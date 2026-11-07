@@ -79,6 +79,10 @@ func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
 	for k, v := range nt.URLPrefixes {
 		prefixes[k] = &tengo.String{Value: v}
 	}
+	archives := make(map[string]tengo.Object, len(nt.ArchiveNodeIDs))
+	for k, v := range nt.ArchiveNodeIDs {
+		archives[k] = &tengo.Int{Value: int64(v)}
+	}
 	taxes := make([]tengo.Object, len(nt.Taxonomies))
 	for i, t := range nt.Taxonomies {
 		taxes[i] = &tengo.ImmutableMap{Value: map[string]tengo.Object{
@@ -88,14 +92,15 @@ func nodeTypeToTengoObj(nt *NodeType) tengo.Object {
 		}}
 	}
 	return &tengo.ImmutableMap{Value: map[string]tengo.Object{
-		"id":           &tengo.Int{Value: int64(nt.ID)},
-		"slug":         &tengo.String{Value: nt.Slug},
-		"label":        &tengo.String{Value: nt.Label},
-		"icon":         &tengo.String{Value: nt.Icon},
-		"description":  &tengo.String{Value: nt.Description},
-		"taxonomies":   &tengo.ImmutableArray{Value: taxes},
-		"fields":       &tengo.ImmutableArray{Value: fields},
-		"url_prefixes": &tengo.ImmutableMap{Value: prefixes},
+		"id":               &tengo.Int{Value: int64(nt.ID)},
+		"slug":             &tengo.String{Value: nt.Slug},
+		"label":            &tengo.String{Value: nt.Label},
+		"icon":             &tengo.String{Value: nt.Icon},
+		"description":      &tengo.String{Value: nt.Description},
+		"taxonomies":       &tengo.ImmutableArray{Value: taxes},
+		"fields":           &tengo.ImmutableArray{Value: fields},
+		"url_prefixes":     &tengo.ImmutableMap{Value: prefixes},
+		"archive_node_ids": &tengo.ImmutableMap{Value: archives},
 	}}
 }
 
@@ -157,6 +162,15 @@ func nodeTypeInputFromMap(m map[string]tengo.Object) NodeTypeInput {
 			input.URLPrefixes = make(map[string]string, len(pm))
 			for k, pv := range pm {
 				input.URLPrefixes[k] = tengoToString(pv)
+			}
+		}
+	}
+	if v, ok := m["archive_node_ids"]; ok {
+		if am := getTengoMap(v); am != nil {
+			input.ArchiveNodeIDs = make(map[string]int, len(am))
+			for k, av := range am {
+				id, _ := tengo.ToInt(av)
+				input.ArchiveNodeIDs[k] = id
 			}
 		}
 	}

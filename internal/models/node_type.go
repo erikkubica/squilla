@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // NodeType represents a custom content type definition in the CMS.
 type NodeType struct {
@@ -13,6 +16,7 @@ type NodeType struct {
 	Taxonomies     JSONB  `gorm:"column:taxonomies;type:jsonb;not null;default:'[]'" json:"taxonomies"`
 	Fields         JSONB  `gorm:"column:field_schema;type:jsonb;not null;default:'[]'" json:"fields"`
 	URLPrefixes    JSONB  `gorm:"column:url_prefixes;type:jsonb;not null;default:'{}'" json:"url_prefixes"`
+	ArchiveNodeIDs JSONB  `gorm:"column:archive_node_ids;type:jsonb;not null;default:'{}'" json:"archive_node_ids"`
 	SupportsBlocks bool   `gorm:"column:supports_blocks;type:boolean;not null;default:true" json:"supports_blocks"`
 	// Public is false for types whose nodes have no page of their own
 	// (reviews, FAQs, team members): the router 404s them and the sitemap
@@ -25,4 +29,26 @@ type NodeType struct {
 // TableName overrides the default GORM table name.
 func (NodeType) TableName() string {
 	return "node_types"
+}
+
+// ArchiveNodeIDMap decodes ArchiveNodeIDs, dropping unset (≤0) entries.
+// ArchiveNodeIDs maps language_code → id of the content node that lists
+// this type's items (its archive page): {"en": 12}. Term archives live under
+// that node's URL; unset languages fall back to the node at the URL prefix.
+// Malformed JSON yields an empty map.
+func (nt NodeType) ArchiveNodeIDMap() map[string]int {
+	out := map[string]int{}
+	if len(nt.ArchiveNodeIDs) == 0 {
+		return out
+	}
+	var raw map[string]int
+	if json.Unmarshal(nt.ArchiveNodeIDs, &raw) != nil {
+		return out
+	}
+	for lang, id := range raw {
+		if lang != "" && id > 0 {
+			out[lang] = id
+		}
+	}
+	return out
 }

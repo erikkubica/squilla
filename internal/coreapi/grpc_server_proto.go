@@ -197,6 +197,12 @@ func nodeTypeToProto(nt *NodeType) *pb.NodeTypeMessage {
 		UpdatedAt:   nt.UpdatedAt.Format(time.RFC3339),
 		Private:     !nt.Public,
 	}
+	if len(nt.ArchiveNodeIDs) > 0 {
+		msg.ArchiveNodeIds = make(map[string]int32, len(nt.ArchiveNodeIDs))
+		for k, v := range nt.ArchiveNodeIDs {
+			msg.ArchiveNodeIds[k] = int32(v)
+		}
+	}
 	if nt.Taxonomies != nil {
 		if b, err := json.Marshal(nt.Taxonomies); err == nil {
 			msg.TaxonomiesJson = string(b)
@@ -226,6 +232,12 @@ func nodeTypeInputFromProto(inp *pb.NodeTypeInputMessage) NodeTypeInput {
 		Description: inp.Description,
 		Fields:      fields,
 		URLPrefixes: inp.UrlPrefixes,
+	}
+	if inp.ArchiveNodeIds != nil {
+		ni.ArchiveNodeIDs = make(map[string]int, len(inp.ArchiveNodeIds))
+		for k, v := range inp.ArchiveNodeIds {
+			ni.ArchiveNodeIDs[k] = int(v)
+		}
 	}
 	if inp.TaxonomiesJson != "" {
 		var taxes []TaxonomyDefinition
