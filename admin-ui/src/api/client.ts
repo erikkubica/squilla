@@ -1623,6 +1623,18 @@ export async function sendTestEmail(): Promise<void> {
 
 // --- Themes ---
 
+/** Image-bundled copy hidden by an operator-installed (data/) copy. */
+export interface BundledShadow {
+  version: string;
+  path: string;
+  installed_version: string;
+  /** installed vs bundled: -1 older, 0 same, 1 newer */
+  version_cmp: number;
+  differs: boolean;
+  differences?: string[];
+  update_available: boolean;
+}
+
 export interface Theme {
   id: number;
   slug: string;
@@ -1639,6 +1651,7 @@ export interface Theme {
   thumbnail: string | null;
   created_at: string;
   updated_at: string;
+  shadowed_bundled?: BundledShadow | null;
 }
 
 export async function getThemes(): Promise<Theme[]> {
@@ -1691,6 +1704,11 @@ export async function deactivateTheme(id: number): Promise<void> {
   await api<void>(`/admin/api/themes/${id}/deactivate`, { method: "POST" });
 }
 
+/** Replace the installed copy with the theme bundled in this build. */
+export async function adoptBundledTheme(id: number): Promise<void> {
+  await api<void>(`/admin/api/themes/${id}/adopt-bundled`, { method: "POST" });
+}
+
 export async function pullTheme(id: number): Promise<Theme> {
   const res = await api<ApiResponse<Theme>>(`/admin/api/themes/${id}/pull`, {
     method: "POST",
@@ -1727,6 +1745,7 @@ export interface Extension {
   settings: Record<string, unknown>;
   installed_at: string;
   updated_at: string;
+  shadowed_bundled?: BundledShadow | null;
 }
 
 export async function getExtensions(): Promise<Extension[]> {
@@ -1740,6 +1759,11 @@ export async function activateExtension(slug: string): Promise<void> {
 
 export async function deactivateExtension(slug: string): Promise<void> {
   await api<void>(`/admin/api/extensions/${slug}/deactivate`, { method: "POST" });
+}
+
+/** Replace the installed copy with the extension bundled in this build. */
+export async function adoptBundledExtension(slug: string): Promise<void> {
+  await api<void>(`/admin/api/extensions/${slug}/adopt-bundled`, { method: "POST" });
 }
 
 export async function uploadExtension(file: File): Promise<void> {

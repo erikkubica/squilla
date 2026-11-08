@@ -34,9 +34,11 @@ import {
   pullTheme,
   deleteTheme,
   updateThemeGitConfig,
+  adoptBundledTheme,
   type Theme,
 } from "@/api/client";
 import { queryClient } from "./query-client";
+import { BundledUpdateNotice } from "./bundled-update";
 
 function refetch() {
   queryClient.invalidateQueries({ queryKey: ["layout"] });
@@ -281,6 +283,22 @@ export function ThemesGrid({ themes = [] }: { themes?: Theme[] }) {
                 {theme.description && (
                   <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{theme.description}</p>
                 )}
+
+                <BundledUpdateNotice
+                  kind="theme"
+                  name={theme.name}
+                  shadow={theme.shadowed_bundled}
+                  onAdopt={async () => {
+                    try {
+                      await adoptBundledTheme(theme.id);
+                      toast.success(`"${theme.name}" now runs the bundled version`);
+                      refetch();
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Failed to switch to the bundled version");
+                      throw e;
+                    }
+                  }}
+                />
 
                 <div className="mt-auto flex items-center gap-1.5 pt-2">
                   <Button

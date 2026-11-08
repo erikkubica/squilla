@@ -341,6 +341,22 @@ func main() {
 	extLoader := cms.NewExtensionLoader(database, "extensions", "data/extensions")
 	extLoader.ScanAndRegister()
 	extLoader.LoadBlocksForActiveExtensions(themeAssets)
+	// Extensions/Themes grids flag operator-installed copies that hide a
+	// different copy bundled in this build ("update available").
+	sduiEngine.SetBundledShadowFuncs(
+		func(e models.Extension) any {
+			if sh := extLoader.BundledShadow(e); sh != nil {
+				return sh
+			}
+			return nil
+		},
+		func(t models.Theme) any {
+			if sh := themeMgmtSvc.BundledShadow(t); sh != nil {
+				return sh
+			}
+			return nil
+		},
+	)
 
 	// Wire extension settings schemas into the registry. Subscribe before
 	// ReplayActive so any in-flight activations during boot are caught;
@@ -591,17 +607,17 @@ func main() {
 	}
 
 	// --- Public extension route proxy (before static routes) ---
-	// Mount the routes of every installed extension, not only the active
-	// ones: Fiber can't add routes once serving, so an extension activated
-	// later would otherwise get no public routes until a restart. The
-	// handler steps aside while the extension's plugin isn't running.
+	// One dispatcher middleware matches requests against the public_routes
+	// of the active extensions, looked up at request time. Fiber can't add
+	// routes once serving, so the table is swapped on every activation /
+	// deactivation instead — an extension activated (or updated) at
+	// runtime serves its routes without a restart.
 	publicProxy := cms.NewPublicExtensionProxy(pluginManager)
-	installedExts, err := extLoader.List()
-	if err != nil {
-		log.Printf("[public-proxy] listing extensions failed, mounting active ones only: %v", err)
-		installedExts = activeExts
-	}
-	publicProxy.RegisterPublicRoutes(app, installedExts)
+	publicProxy.SetSource(extLoader.GetActive)
+	publicProxy.Mount(app)
+	publicProxy.Refresh()
+	eventBus.Subscribe("extension.activated", func(string, events.Payload) { publicProxy.Refresh() })
+	eventBus.Subscribe("extension.deactivated", func(string, events.Payload) { publicProxy.Refresh() })
 
 	// Media files served by media-manager extension via public_routes proxy.
 	// Fallback static handler for when extension is not active.

@@ -95,13 +95,14 @@ func (h *ExtensionHandler) RegisterRoutes(router fiber.Router) {
 	g.Get("/:slug", h.Get)
 	g.Post("/:slug/activate", h.Activate)
 	g.Post("/:slug/deactivate", h.Deactivate)
+	g.Post("/:slug/adopt-bundled", h.AdoptBundledHandler)
 	g.Post("/upload", h.Upload)
 	g.Delete("/:slug", h.Delete)
 }
 
 // List handles GET /extensions — returns all extensions.
 func (h *ExtensionHandler) List(c *fiber.Ctx) error {
-	exts, err := h.loader.List()
+	exts, err := h.loader.ListViews()
 	if err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "LIST_FAILED", "Failed to list extensions")
 	}
@@ -118,7 +119,7 @@ func (h *ExtensionHandler) Get(c *fiber.Ctx) error {
 		}
 		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch extension")
 	}
-	return api.Success(c, ext)
+	return api.Success(c, h.loader.View(*ext))
 }
 
 // Manifests handles GET /extensions/manifests — returns admin_ui manifests
@@ -534,6 +535,78 @@ func (h *ExtensionHandler) DeleteBySlug(slug string) error {
 
 	h.db.Where("slug = ?", slug).Delete(&models.Extension{})
 	return nil
+}
+
+// AdoptBundledResult reports what AdoptBundled changed.
+type AdoptBundledResult struct {
+	Slug            string `json:"slug"`
+	PreviousVersion string `json:"previous_version"`
+	Version         string `json:"version"`
+	Path            string `json:"path"`
+	Activated       bool   `json:"activated"`
+}
+
+// AdoptBundled replaces an operator-installed copy of slug (data dir) with
+// the copy bundled in this Squilla build: deactivate (if active) → delete the
+// data override → register the bundled copy → re-activate. Settings and the
+// extension's own tables are kept (they're keyed by slug, not by path).
+//
+// Sentinel errors: "NOT_FOUND", "NOT_SHADOWED" (the extension isn't a data
+// override of a bundled extension).
+func (h *ExtensionHandler) AdoptBundled(slug string) (*AdoptBundledResult, error) {
+	ext, err := h.loader.GetBySlug(slug)
+	if err != nil {
+		return nil, fmt.Errorf("NOT_FOUND")
+	}
+	if !isUnderDir(ext.Path, h.loader.dataDir) || h.loader.BundledDirFor(slug) == "" {
+		return nil, fmt.Errorf("NOT_SHADOWED")
+	}
+	wasActive := ext.IsActive
+	res := &AdoptBundledResult{Slug: slug, PreviousVersion: ext.Version}
+
+	if wasActive {
+		if err := h.HotDeactivate(slug); err != nil {
+			return nil, fmt.Errorf("deactivate %s: %w", slug, err)
+		}
+	}
+	// isUnderDir above guarantees we only ever remove inside the data dir.
+	if err := os.RemoveAll(ext.Path); err != nil {
+		if wasActive {
+			_ = h.HotActivate(slug)
+		}
+		return nil, fmt.Errorf("remove installed copy %s: %w", ext.Path, err)
+	}
+	if err := h.loader.RegisterBundled(slug); err != nil {
+		return nil, err
+	}
+	if wasActive {
+		if err := h.HotActivate(slug); err != nil {
+			return nil, fmt.Errorf("re-activate %s: %w", slug, err)
+		}
+		res.Activated = true
+	}
+	if updated, err := h.loader.GetBySlug(slug); err == nil {
+		res.Version = updated.Version
+		res.Path = updated.Path
+	}
+	log.Printf("[extensions] %s: replaced installed copy %s with bundled %s (%s)", slug, res.PreviousVersion, res.Version, res.Path)
+	return res, nil
+}
+
+// AdoptBundledHandler handles POST /extensions/:slug/adopt-bundled.
+func (h *ExtensionHandler) AdoptBundledHandler(c *fiber.Ctx) error {
+	slug := strings.Clone(c.Params("slug"))
+	res, err := h.AdoptBundled(slug)
+	if err != nil {
+		switch err.Error() {
+		case "NOT_FOUND":
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
+		case "NOT_SHADOWED":
+			return api.Error(c, fiber.StatusBadRequest, "NOT_SHADOWED", "This extension has no bundled copy to switch to")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "ADOPT_FAILED", err.Error())
+	}
+	return api.Success(c, res)
 }
 
 // isValidSettingsKey checks that a settings key contains only safe characters.

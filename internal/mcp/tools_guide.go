@@ -606,7 +606,7 @@ func guideGotchas() []map[string]any {
 		},
 		{
 			"topic":   "themes_persistent_data_dir",
-			"summary": "Two parallel dirs: image-bundled (themes/, extensions/, read-only) + operator-installed (data/themes/, data/extensions/, persistent volume). Both scanned at boot; data/ wins on slug collision. All writes (theme.deploy, extension.deploy, git install, zip) target data/. Delete refuses rmdir under bundled root. docker-compose: ./data:/app/data; coolify: squilla-data named volume. Missing volume → theme.deploy gets wiped on container restart.",
+			"summary": "Two parallel dirs: image-bundled (themes/, extensions/, read-only) + operator-installed (data/themes/, data/extensions/, persistent volume). Both scanned at boot; data/ wins on slug collision. A data/ copy that hides a different bundled copy (compared by version, manifest and runtime files — versions alone lie) shows shadowed_bundled.update_available in core.extension.list / core.theme.list; core.extension.adopt_bundled / core.theme.adopt_bundled switch to the bundled copy without a restart. All writes (theme.deploy, extension.deploy, git install, zip) target data/. Delete refuses rmdir under bundled root. docker-compose: ./data:/app/data; coolify: squilla-data named volume. Missing volume → theme.deploy gets wiped on container restart.",
 		},
 		{
 			"topic":   "theme_activate_pre_flight",

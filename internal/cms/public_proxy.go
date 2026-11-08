@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+	"sync/atomic"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -16,6 +17,19 @@ import (
 // and proxies them to the corresponding gRPC plugin's HandleHTTPRequest.
 type PublicExtensionProxy struct {
 	pluginMgr *PluginManager
+	source    func() ([]models.Extension, error)
+	routes    atomic.Pointer[[]publicRoute]
+
+	// Test seams; nil uses the plugin manager.
+	running    func(slug string) bool
+	newHandler func(slug, path string) fiber.Handler
+}
+
+func (pp *PublicExtensionProxy) isRunning(slug string) bool {
+	if pp.running != nil {
+		return pp.running(slug)
+	}
+	return pp.pluginMgr != nil && pp.pluginMgr.GetClient(slug) != nil
 }
 
 // NewPublicExtensionProxy creates a new PublicExtensionProxy.
@@ -69,50 +83,176 @@ func isReservedPublicPath(path string) bool {
 	return false
 }
 
-// RegisterPublicRoutes reads the manifest for each given extension, and for
-// every entry in public_routes registers the declared Fiber route that proxies
-// to the extension plugin — without any auth middleware. Reserved kernel
-// paths (login, admin, auth flows, …) are refused with a warning so a
-// hostile or careless manifest can't shadow auth-critical routes.
-func (pp *PublicExtensionProxy) RegisterPublicRoutes(app *fiber.App, activeExts []models.Extension) {
-	for _, ext := range activeExts {
+// publicRoute is one compiled public_routes entry.
+type publicRoute struct {
+	slug    string
+	method  string // upper-case; "" means any method
+	pattern string
+	match   func(path string) (wildcard string, ok bool)
+	handler fiber.Handler
+}
+
+// RegisterPublicRoutes mounts the public-route dispatcher on app and loads
+// the route table from exts. Kept for callers that only need a one-shot
+// mount (tests, tools); the server uses Mount + Refresh so routes from an
+// extension activated at runtime are served without a restart.
+func (pp *PublicExtensionProxy) RegisterPublicRoutes(app *fiber.App, exts []models.Extension) {
+	pp.Mount(app)
+	pp.SetExtensions(exts)
+}
+
+// Mount installs a single dispatcher middleware at the current position in
+// app's stack. Fiber can't add routes once it is serving, so instead of one
+// Fiber route per manifest entry the dispatcher matches the request against
+// a route table it looks up at request time. SetExtensions/Refresh swap that
+// table atomically, which is what makes hot activation mount new routes.
+func (pp *PublicExtensionProxy) Mount(app *fiber.App) {
+	app.Use(pp.dispatch)
+}
+
+// SetSource sets the function Refresh uses to list the extensions whose
+// routes should be live (normally ExtensionLoader.GetActive).
+func (pp *PublicExtensionProxy) SetSource(fn func() ([]models.Extension, error)) {
+	pp.source = fn
+}
+
+// Refresh reloads the route table from the source set with SetSource.
+// Called on extension.activated / extension.deactivated so a manifest that
+// gained or lost public routes takes effect immediately.
+func (pp *PublicExtensionProxy) Refresh() {
+	if pp.source == nil {
+		return
+	}
+	exts, err := pp.source()
+	if err != nil {
+		log.Printf("[public-proxy] refresh failed: %v", err)
+		return
+	}
+	pp.SetExtensions(exts)
+}
+
+// SetExtensions compiles the public_routes of exts (in order — callers pass
+// them sorted by priority) and swaps them in as the live route table.
+// Reserved kernel paths are refused with a warning so a hostile or careless
+// manifest can't shadow auth-critical routes.
+func (pp *PublicExtensionProxy) SetExtensions(exts []models.Extension) {
+	routes := make([]publicRoute, 0)
+	for _, ext := range exts {
 		var manifest ExtensionManifest
 		if err := json.Unmarshal([]byte(ext.Manifest), &manifest); err != nil {
 			continue
 		}
-		if len(manifest.PublicRoutes) == 0 {
-			continue
-		}
-
 		slug := ext.Slug
 		for _, route := range manifest.PublicRoutes {
-			method := strings.ToUpper(route.Method)
+			method := strings.ToUpper(strings.TrimSpace(route.Method))
+			switch method {
+			case "GET", "POST", "PUT", "DELETE", "PATCH":
+			default:
+				method = ""
+			}
 			path := route.Path
-
 			if isReservedPublicPath(path) {
-				log.Printf("[public-proxy] REFUSING %s %s for extension %s — path is kernel-reserved", method, path, slug)
+				log.Printf("[public-proxy] REFUSING %s %s for extension %s — path is kernel-reserved", route.Method, path, slug)
 				continue
 			}
+			routes = append(routes, publicRoute{
+				slug:    slug,
+				method:  method,
+				pattern: path,
+				match:   compilePublicRoutePattern(path),
+				handler: pp.handlerFor(slug, path),
+			})
+		}
+	}
+	pp.routes.Store(&routes)
+	log.Printf("[public-proxy] %d public routes live", len(routes))
+}
 
-			log.Printf("[public-proxy] %s %s -> extension %s", method, path, slug)
+// dispatch finds the first route matching the request and runs its handler.
+// When nothing matches — or the matched extension's plugin isn't running and
+// the handler steps aside — the request continues down the Fiber stack.
+func (pp *PublicExtensionProxy) dispatch(c *fiber.Ctx) error {
+	table := pp.routes.Load()
+	if table == nil || len(*table) == 0 {
+		return c.Next()
+	}
+	method := c.Method()
+	path := c.Path()
+	for i := range *table {
+		r := &(*table)[i]
+		if r.method != "" && r.method != method && !(r.method == "GET" && method == "HEAD") {
+			continue
+		}
+		wildcard, ok := r.match(path)
+		if !ok {
+			continue
+		}
+		if !pp.isRunning(r.slug) {
+			continue
+		}
+		c.Locals(publicRouteWildcardKey, wildcard)
+		return r.handler(c)
+	}
+	return c.Next()
+}
 
-			handler := pp.makeHandler(slug, path)
+func (pp *PublicExtensionProxy) handlerFor(slug, path string) fiber.Handler {
+	if pp.newHandler != nil {
+		return pp.newHandler(slug, path)
+	}
+	return pp.makeHandler(slug, path)
+}
 
-			switch method {
-			case "GET":
-				app.Get(path, handler)
-			case "POST":
-				app.Post(path, handler)
-			case "PUT":
-				app.Put(path, handler)
-			case "DELETE":
-				app.Delete(path, handler)
-			case "PATCH":
-				app.Patch(path, handler)
-			default:
-				app.All(path, handler)
+const publicRouteWildcardKey = "squilla.public_route.wildcard"
+
+// compilePublicRoutePattern turns a Fiber-style route path into a matcher
+// with Fiber's default semantics (case-insensitive, trailing slash optional):
+//
+//	/robots.txt       literal
+//	/forms/:id        one segment; ":id?" makes it optional
+//	/media/*          greedy rest, may be empty ("/media" matches too)
+//	/media/+          greedy rest, must be non-empty
+//
+// The wildcard value ("*" or "+") is returned so the plugin receives it as
+// path_params.path, as it did when each entry was a Fiber route.
+func compilePublicRoutePattern(pattern string) func(string) (string, bool) {
+	pat := strings.Trim(strings.ToLower(pattern), "/")
+	var segs []string
+	if pat != "" {
+		segs = strings.Split(pat, "/")
+	}
+	return func(path string) (string, bool) {
+		p := strings.Trim(path, "/")
+		var parts []string
+		if p != "" {
+			parts = strings.Split(p, "/")
+		}
+		for i, seg := range segs {
+			if seg == "*" || seg == "+" {
+				if i != len(segs)-1 {
+					return "", false // mid-pattern wildcards aren't used by any manifest
+				}
+				rest := strings.Join(parts[min(i, len(parts)):], "/")
+				if seg == "+" && rest == "" {
+					return "", false
+				}
+				return rest, true
+			}
+			if i >= len(parts) {
+				// Only a trailing optional param may be absent.
+				if strings.HasPrefix(seg, ":") && strings.HasSuffix(seg, "?") && i == len(segs)-1 {
+					return "", true
+				}
+				return "", false
+			}
+			if strings.HasPrefix(seg, ":") {
+				continue
+			}
+			if seg != strings.ToLower(parts[i]) {
+				return "", false
 			}
 		}
+		return "", len(parts) == len(segs)
 	}
 }
 
@@ -120,10 +260,13 @@ func (pp *PublicExtensionProxy) RegisterPublicRoutes(app *fiber.App, activeExts 
 // given extension slug's gRPC plugin.
 func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		if pp.pluginMgr == nil {
+			return c.Next()
+		}
 		client := pp.pluginMgr.GetClient(slug)
 		if client == nil {
-			// Not active (routes are mounted for every installed extension):
-			// let the next route — a fallback or the page router — answer.
+			// Plugin stopped between dispatch and here: let the next
+			// route — a fallback or the page router — answer.
 			return c.Next()
 		}
 
@@ -165,7 +308,7 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 
 		// Path params.
 		pathParams := make(map[string]string)
-		wildcard := c.Params("*")
+		wildcard, _ := c.Locals(publicRouteWildcardKey).(string)
 		if wildcard != "" {
 			pathParams["path"] = wildcard
 		}

@@ -27,9 +27,11 @@ import {
   deactivateExtension,
   uploadExtension,
   deleteExtension,
+  adoptBundledExtension,
   type Extension,
 } from "@/api/client";
 import { queryClient } from "./query-client";
+import { BundledUpdateNotice } from "./bundled-update";
 
 function refetch() {
   queryClient.invalidateQueries({ queryKey: ["layout"] });
@@ -192,6 +194,22 @@ export function ExtensionsGrid({
                 {ext.description && (
                   <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{ext.description}</p>
                 )}
+
+                <BundledUpdateNotice
+                  kind="extension"
+                  name={ext.name}
+                  shadow={ext.shadowed_bundled}
+                  onAdopt={async () => {
+                    try {
+                      await adoptBundledExtension(ext.slug);
+                      toast.success(`"${ext.name}" now runs the bundled version`);
+                      refetch();
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Failed to switch to the bundled version");
+                      throw e;
+                    }
+                  }}
+                />
 
                 <div className="mt-auto flex items-center gap-1.5 pt-2">
                   <Button

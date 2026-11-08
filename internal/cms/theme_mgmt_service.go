@@ -146,13 +146,7 @@ func (s *ThemeMgmtService) scanDir(root string, isData bool) int {
 		if err != nil {
 			continue
 		}
-		if manifest.Slug == "" {
-			if manifest.Name != "" {
-				manifest.Slug = strings.ToLower(strings.ReplaceAll(manifest.Name, " ", "-"))
-			} else {
-				manifest.Slug = entry.Name()
-			}
-		}
+		manifest.Slug = themeSlugFor(manifest, entry.Name())
 
 		// Look up by path first (stable identifier) then by slug.
 		var existing models.Theme
@@ -164,8 +158,12 @@ func (s *ThemeMgmtService) scanDir(root string, isData bool) int {
 			// Bundled scan must NOT overwrite a data-backed registration —
 			// the operator's override wins. Detect by comparing the
 			// existing path against the dataDir prefix.
-			if !isData && s.dataDir != "" && strings.HasPrefix(existing.Path, s.dataDir+string(os.PathSeparator)) {
-				continue
+			// A row whose data copy has vanished from disk falls back to
+			// the bundled copy instead of pointing at a missing dir forever.
+			if !isData && s.dataDir != "" && isUnderDir(existing.Path, s.dataDir) {
+				if _, _, statErr := findAndParseManifest(existing.Path); statErr == nil {
+					continue
+				}
 			}
 			existing.Name = manifest.Name
 			existing.Description = manifest.Description
@@ -200,6 +198,139 @@ func (s *ThemeMgmtService) scanDir(root string, isData bool) int {
 		registered++
 	}
 	return registered
+}
+
+// themeSlugFor derives a theme's slug the way the scanner does: the manifest
+// slug, else the lower-cased dashed name, else the directory name.
+func themeSlugFor(m *themeMgmtManifest, dirName string) string {
+	if m.Slug != "" {
+		return m.Slug
+	}
+	if m.Name != "" {
+		return strings.ToLower(strings.ReplaceAll(m.Name, " ", "-"))
+	}
+	return dirName
+}
+
+// BundledDirFor returns the image-bundled theme directory for slug, or "".
+func (s *ThemeMgmtService) BundledDirFor(slug string) string {
+	if s.bundledDir == "" || slug == "" {
+		return ""
+	}
+	entries, err := os.ReadDir(s.bundledDir)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		dir := filepath.Join(s.bundledDir, e.Name())
+		m, _, err := findAndParseManifest(dir)
+		if err != nil {
+			continue
+		}
+		if themeSlugFor(m, e.Name()) == slug {
+			return dir
+		}
+	}
+	return ""
+}
+
+// BundledShadow reports the bundled copy hidden by theme's operator-installed
+// copy, or nil when theme isn't a data-dir override of a bundled theme.
+func (s *ThemeMgmtService) BundledShadow(theme models.Theme) *BundledShadow {
+	if !isUnderDir(theme.Path, s.dataDir) {
+		return nil
+	}
+	bundled := s.BundledDirFor(theme.Slug)
+	if bundled == "" {
+		return nil
+	}
+	_, instRoot, err := findAndParseManifest(theme.Path)
+	if err != nil {
+		return nil
+	}
+	_, bundRoot, err := findAndParseManifest(bundled)
+	if err != nil {
+		return nil
+	}
+	shadow, err := compareShadow(instRoot, bundRoot, "theme.json", themeRuntimeFile)
+	if err != nil {
+		log.Printf("[themes] compare %s with bundled copy: %v", theme.Slug, err)
+		return nil
+	}
+	return shadow
+}
+
+// AdoptBundled replaces an operator-installed theme (data dir) with the copy
+// bundled in this Squilla build. The row (id, settings, git config) is kept
+// and re-pointed at the bundled directory; an active theme is reloaded from
+// the bundled files BEFORE the override is deleted so the site never runs
+// without templates. Sentinel error "NOT_SHADOWED" when there's nothing to
+// adopt.
+func (s *ThemeMgmtService) AdoptBundled(id int) (*AdoptBundledResult, error) {
+	theme, err := s.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	bundled := s.BundledDirFor(theme.Slug)
+	if !isUnderDir(theme.Path, s.dataDir) || bundled == "" {
+		return nil, fmt.Errorf("NOT_SHADOWED")
+	}
+	m, _, err := findAndParseManifest(bundled)
+	if err != nil {
+		return nil, fmt.Errorf("bundled theme %s: %w", theme.Slug, err)
+	}
+	oldPath, oldName := theme.Path, theme.Name
+	res := &AdoptBundledResult{Slug: theme.Slug, PreviousVersion: theme.Version, Version: m.Version, Path: bundled}
+
+	theme.Name = m.Name
+	theme.Description = m.Description
+	theme.Version = m.Version
+	theme.Author = m.Author
+	theme.Path = bundled
+	theme.Source = "local"
+	if err := s.db.Save(theme).Error; err != nil {
+		return nil, fmt.Errorf("update theme %s: %w", theme.Slug, err)
+	}
+	if theme.IsActive {
+		// Activate deregisters the active theme by its (now updated) name;
+		// clear records registered under a previous name first.
+		if oldName != theme.Name {
+			if err := s.themeLoader.DeregisterTheme(oldName); err != nil {
+				log.Printf("WARN: [themes] deregister %q: %v", oldName, err)
+			}
+		}
+		if err := s.Activate(theme.ID); err != nil {
+			return nil, fmt.Errorf("reload theme %s from bundled copy: %w", theme.Slug, err)
+		}
+		res.Activated = true
+	}
+	if err := os.RemoveAll(oldPath); err != nil {
+		log.Printf("WARN: [themes] %s: switched to bundled copy but could not remove %s: %v", theme.Slug, oldPath, err)
+	}
+	log.Printf("[themes] %s: replaced installed copy %s with bundled %s (%s)", theme.Slug, res.PreviousVersion, res.Version, bundled)
+	return res, nil
+}
+
+// ThemeView is a theme row plus whether it shadows a bundled copy.
+type ThemeView struct {
+	models.Theme
+	ShadowedBundled *BundledShadow `json:"shadowed_bundled,omitempty"`
+}
+
+// ListViews is List with each row's shadowed-bundled state.
+func (s *ThemeMgmtService) ListViews() ([]ThemeView, error) {
+	themes, err := s.List()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ThemeView, len(themes))
+	for i := range themes {
+		out[i] = ThemeView{Theme: themes[i], ShadowedBundled: s.BundledShadow(themes[i])}
+	}
+	return out, nil
 }
 
 // List returns all installed themes ordered by name.

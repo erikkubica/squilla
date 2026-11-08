@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"squilla/internal/models"
 
@@ -248,64 +247,175 @@ func (l *ExtensionLoader) scanDir(root string, isData bool) int {
 		if !entry.IsDir() {
 			continue
 		}
-
-		extDir := filepath.Join(root, entry.Name())
-		manifestPath := filepath.Join(extDir, "extension.json")
-
-		data, err := os.ReadFile(manifestPath)
-		if err != nil {
-			continue
+		if l.registerDir(filepath.Join(root, entry.Name()), isData, false) {
+			registered++
 		}
+	}
+	return registered
+}
 
-		var manifest ExtensionManifest
-		if err := json.Unmarshal(data, &manifest); err != nil {
-			log.Printf("[extensions] invalid extension.json in %s: %v", entry.Name(), err)
-			continue
-		}
+// registerDir upserts the extension whose manifest lives in extDir. A
+// bundled registration never replaces a data-backed one unless force is set
+// (AdoptBundled) or the data copy has vanished from disk — otherwise a row
+// pointing at a deleted override would never fall back to the bundled copy.
+func (l *ExtensionLoader) registerDir(extDir string, isData, force bool) bool {
+	manifestPath := filepath.Join(extDir, "extension.json")
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return false
+	}
 
-		if manifest.Slug == "" {
-			manifest.Slug = entry.Name()
-		}
-		if manifest.Priority == 0 {
-			manifest.Priority = 50
-		}
+	var manifest ExtensionManifest
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		log.Printf("[extensions] invalid extension.json in %s: %v", filepath.Base(extDir), err)
+		return false
+	}
 
-		// Bundled scan must not overwrite a data-backed registration.
-		if !isData && l.dataDir != "" {
-			var existing models.Extension
-			if err := l.db.Where("slug = ?", manifest.Slug).First(&existing).Error; err == nil {
-				if strings.HasPrefix(existing.Path, l.dataDir+string(os.PathSeparator)) {
-					continue
+	if manifest.Slug == "" {
+		manifest.Slug = filepath.Base(extDir)
+	}
+	if manifest.Priority == 0 {
+		manifest.Priority = 50
+	}
+
+	// Bundled scan must not overwrite a data-backed registration.
+	if !isData && !force && l.dataDir != "" {
+		var existing models.Extension
+		if err := l.db.Where("slug = ?", manifest.Slug).First(&existing).Error; err == nil {
+			if isUnderDir(existing.Path, l.dataDir) {
+				if _, statErr := os.Stat(filepath.Join(existing.Path, "extension.json")); statErr == nil {
+					return false
 				}
 			}
 		}
+	}
 
-		ext := models.Extension{
-			Slug:        manifest.Slug,
-			Name:        manifest.Name,
-			Version:     manifest.Version,
-			Description: manifest.Description,
-			Author:      manifest.Author,
-			Path:        extDir,
-			Priority:    manifest.Priority,
-			Manifest:    models.JSONB(data),
-			IsActive:    manifest.AutoActivate,
-		}
+	ext := models.Extension{
+		Slug:        manifest.Slug,
+		Name:        manifest.Name,
+		Version:     manifest.Version,
+		Description: manifest.Description,
+		Author:      manifest.Author,
+		Path:        extDir,
+		Priority:    manifest.Priority,
+		Manifest:    models.JSONB(data),
+		IsActive:    manifest.AutoActivate,
+	}
 
-		result := l.db.Clauses(clause.OnConflict{
-			Columns: []clause.Column{{Name: "slug"}},
-			DoUpdates: clause.AssignmentColumns([]string{
-				"name", "version", "description", "author", "path", "priority", "manifest",
-			}),
-		}).Create(&ext)
+	result := l.db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "slug"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"name", "version", "description", "author", "path", "priority", "manifest",
+		}),
+	}).Create(&ext)
 
-		if result.Error != nil {
-			log.Printf("[extensions] error registering %s: %v", manifest.Slug, result.Error)
+	if result.Error != nil {
+		log.Printf("[extensions] error registering %s: %v", manifest.Slug, result.Error)
+		return false
+	}
+	return true
+}
+
+// BundledDirFor returns the image-bundled directory that ships slug, or ""
+// when the image has no extension with that slug. Matches on the manifest's
+// slug (falling back to the directory name) like the scanner does.
+func (l *ExtensionLoader) BundledDirFor(slug string) string {
+	if l.extensionsDir == "" || slug == "" {
+		return ""
+	}
+	direct := filepath.Join(l.extensionsDir, slug)
+	if manifestSlug(filepath.Join(direct, "extension.json"), slug) == slug {
+		return direct
+	}
+	entries, err := os.ReadDir(l.extensionsDir)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
 			continue
 		}
-		registered++
+		dir := filepath.Join(l.extensionsDir, e.Name())
+		if manifestSlug(filepath.Join(dir, "extension.json"), e.Name()) == slug {
+			return dir
+		}
 	}
-	return registered
+	return ""
+}
+
+// manifestSlug reads the "slug" of a manifest file, defaulting to fallback
+// when the manifest omits it. Returns "" when the file is missing/invalid.
+func manifestSlug(path, fallback string) string {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	var m struct {
+		Slug string `json:"slug"`
+	}
+	if json.Unmarshal(raw, &m) != nil {
+		return ""
+	}
+	if m.Slug == "" {
+		return fallback
+	}
+	return m.Slug
+}
+
+// BundledShadow reports the bundled copy hidden by ext's operator-installed
+// copy, or nil when ext isn't a data-dir override of a bundled extension.
+func (l *ExtensionLoader) BundledShadow(ext models.Extension) *BundledShadow {
+	if !isUnderDir(ext.Path, l.dataDir) {
+		return nil
+	}
+	bundled := l.BundledDirFor(ext.Slug)
+	if bundled == "" {
+		return nil
+	}
+	shadow, err := compareShadow(ext.Path, bundled, "extension.json", extensionRuntimeFile)
+	if err != nil {
+		log.Printf("[extensions] compare %s with bundled copy: %v", ext.Slug, err)
+		return nil
+	}
+	return shadow
+}
+
+// ExtensionView is an extension row plus kernel-computed state that isn't
+// stored: whether an operator-installed copy shadows a bundled one.
+type ExtensionView struct {
+	models.Extension
+	ShadowedBundled *BundledShadow `json:"shadowed_bundled,omitempty"`
+}
+
+// View wraps ext with its shadowed-bundled state.
+func (l *ExtensionLoader) View(ext models.Extension) ExtensionView {
+	return ExtensionView{Extension: ext, ShadowedBundled: l.BundledShadow(ext)}
+}
+
+// ListViews is List with each row's shadowed-bundled state.
+func (l *ExtensionLoader) ListViews() ([]ExtensionView, error) {
+	exts, err := l.List()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ExtensionView, len(exts))
+	for i := range exts {
+		out[i] = l.View(exts[i])
+	}
+	return out, nil
+}
+
+// RegisterBundled re-registers slug from its bundled directory, replacing a
+// data-backed registration. Used by AdoptBundled after the override is gone.
+func (l *ExtensionLoader) RegisterBundled(slug string) error {
+	dir := l.BundledDirFor(slug)
+	if dir == "" {
+		return fmt.Errorf("no bundled copy of extension %q", slug)
+	}
+	if !l.registerDir(dir, false, true) {
+		return fmt.Errorf("failed to register bundled extension %q from %s", slug, dir)
+	}
+	return nil
 }
 
 // GetActive returns all active extensions sorted by priority (ascending).

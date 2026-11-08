@@ -21,6 +21,19 @@ type Engine struct {
 	eventBus *events.EventBus
 	mu       sync.RWMutex
 	cache    map[string]cachedLayout
+
+	// Optional: report the image-bundled copy an operator-installed
+	// extension/theme shadows (nil = not shadowed). Injected from main to
+	// keep sdui free of a cms import.
+	extShadow   func(models.Extension) any
+	themeShadow func(models.Theme) any
+}
+
+// SetBundledShadowFuncs wires the shadowed-bundled lookups the Extensions
+// and Themes grids use to show "update available".
+func (e *Engine) SetBundledShadowFuncs(ext func(models.Extension) any, theme func(models.Theme) any) {
+	e.extShadow = ext
+	e.themeShadow = theme
 }
 
 type cachedLayout struct {
@@ -570,7 +583,7 @@ func (e *Engine) themesLayout() *LayoutNode {
 		if t.Thumbnail != nil {
 			thumbnail = *t.Thumbnail
 		}
-		themeList = append(themeList, map[string]interface{}{
+		item := map[string]interface{}{
 			"id":            t.ID,
 			"slug":          t.Slug,
 			"name":          t.Name,
@@ -583,7 +596,13 @@ func (e *Engine) themesLayout() *LayoutNode {
 			"has_git_token": t.GitToken != nil && *t.GitToken != "",
 			"is_active":     t.IsActive,
 			"thumbnail":     thumbnail,
-		})
+		}
+		if e.themeShadow != nil {
+			if sh := e.themeShadow(t); sh != nil {
+				item["shadowed_bundled"] = sh
+			}
+		}
+		themeList = append(themeList, item)
 	}
 
 	return &LayoutNode{
@@ -602,7 +621,7 @@ func (e *Engine) extensionsLayout() *LayoutNode {
 
 	extList := make([]interface{}, 0, len(exts))
 	for _, ext := range exts {
-		extList = append(extList, map[string]interface{}{
+		item := map[string]interface{}{
 			"id":           ext.ID,
 			"slug":         ext.Slug,
 			"name":         ext.Name,
@@ -613,7 +632,13 @@ func (e *Engine) extensionsLayout() *LayoutNode {
 			"priority":     ext.Priority,
 			"installed_at": ext.InstalledAt.Format("2006-01-02"),
 			"updated_at":   ext.UpdatedAt.Format("2006-01-02"),
-		})
+		}
+		if e.extShadow != nil {
+			if sh := e.extShadow(ext); sh != nil {
+				item["shadowed_bundled"] = sh
+			}
+		}
+		extList = append(extList, item)
 	}
 
 	return &LayoutNode{

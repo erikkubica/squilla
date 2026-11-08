@@ -34,6 +34,9 @@ type themeResponse struct {
 	Thumbnail   *string   `json:"thumbnail"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+	// ShadowedBundled is set when this operator-installed theme hides a
+	// copy bundled in the image (see BundledShadow).
+	ShadowedBundled *BundledShadow `json:"shadowed_bundled,omitempty"`
 }
 
 // toThemeResponse converts a Theme model to a themeResponse, hiding the git token.
@@ -84,6 +87,7 @@ func (h *ThemeHandler) RegisterRoutes(router fiber.Router) {
 	g.Post("/git", h.InstallFromGit)
 	g.Post("/:id/activate", h.Activate)
 	g.Post("/:id/deactivate", h.Deactivate)
+	g.Post("/:id/adopt-bundled", h.AdoptBundled)
 	g.Post("/:id/pull", h.Pull)
 	g.Delete("/:id", h.Delete)
 	g.Post("/:id/git-config", h.UpdateGitConfig)
@@ -104,6 +108,9 @@ func (h *ThemeHandler) List(c *fiber.Ctx) error {
 	resp := make([]themeResponse, len(themes))
 	for i := range themes {
 		resp[i] = toThemeResponse(&themes[i])
+		if h.mgmtSvc != nil {
+			resp[i].ShadowedBundled = h.mgmtSvc.BundledShadow(themes[i])
+		}
 	}
 	return api.Success(c, resp)
 }
@@ -123,7 +130,31 @@ func (h *ThemeHandler) Get(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch theme")
 	}
 
-	return api.Success(c, toThemeResponse(&theme))
+	resp := toThemeResponse(&theme)
+	if h.mgmtSvc != nil {
+		resp.ShadowedBundled = h.mgmtSvc.BundledShadow(theme)
+	}
+	return api.Success(c, resp)
+}
+
+// AdoptBundled handles POST /themes/:id/adopt-bundled — replaces the
+// operator-installed copy with the theme bundled in this Squilla build.
+func (h *ThemeHandler) AdoptBundled(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Theme ID must be a valid integer")
+	}
+	res, err := h.mgmtSvc.AdoptBundled(id)
+	if err != nil {
+		switch {
+		case err == gorm.ErrRecordNotFound:
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Theme not found")
+		case err.Error() == "NOT_SHADOWED":
+			return api.Error(c, fiber.StatusBadRequest, "NOT_SHADOWED", "This theme has no bundled copy to switch to")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "ADOPT_FAILED", err.Error())
+	}
+	return api.Success(c, res)
 }
 
 // BrowseFiles handles GET /themes/:id/files?path= — browse theme files.

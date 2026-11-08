@@ -6,6 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
+	"squilla/internal/cms"
 	"squilla/internal/models"
 )
 
@@ -20,12 +21,12 @@ func (s *Server) registerThemeTools() {
 	mgmt := s.deps.ThemeMgmtSvc
 
 	s.addTool(mcp.NewTool("core.theme.list",
-		mcp.WithDescription("List all installed themes with their metadata (name, version, is_active, etc.)."),
+		mcp.WithDescription("List all installed themes with their metadata (name, version, is_active, etc.). A theme installed under data/themes that hides a same-slug theme bundled in this Squilla build carries shadowed_bundled {version, installed_version, differs, differences, update_available}; when update_available is true, core.theme.adopt_bundled switches to the bundled copy."),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		if mgmt == nil {
 			return nil, fmt.Errorf("theme management service not wired")
 		}
-		return mgmt.List()
+		return mgmt.ListViews()
 	})
 
 	s.addTool(mcp.NewTool("core.theme.active",
@@ -44,7 +45,28 @@ func (s *Server) registerThemeTools() {
 		if mgmt == nil {
 			return nil, fmt.Errorf("theme management service not wired")
 		}
-		return mgmt.GetByID(intArg(args, "id"))
+		t, err := mgmt.GetByID(intArg(args, "id"))
+		if err != nil {
+			return nil, err
+		}
+		return cms.ThemeView{Theme: *t, ShadowedBundled: mgmt.BundledShadow(*t)}, nil
+	})
+
+	s.addTool(mcp.NewTool("core.theme.adopt_bundled",
+		mcp.WithDescription("Replace an operator-installed theme (data/themes/<slug>) with the same-slug theme bundled in this Squilla build. Keeps the theme row, its settings and git config; an active theme is reloaded from the bundled files before the installed copy is deleted. Use when core.theme.list shows shadowed_bundled.update_available. Destructive: the installed copy's files are removed."),
+		mcp.WithNumber("id", mcp.Required()),
+	), "full", func(ctx context.Context, args map[string]any) (any, error) {
+		if mgmt == nil {
+			return nil, fmt.Errorf("theme management service not wired")
+		}
+		res, err := mgmt.AdoptBundled(intArg(args, "id"))
+		if err != nil {
+			if err.Error() == "NOT_SHADOWED" {
+				return nil, fmt.Errorf("theme is not an installed override of a bundled theme")
+			}
+			return nil, err
+		}
+		return map[string]any{"ok": true, "result": res, "restart_required": false}, nil
 	})
 
 	s.addTool(mcp.NewTool("core.theme.activate",
@@ -92,12 +114,12 @@ func (s *Server) registerExtensionTools() {
 	loader := s.deps.ExtensionLoader
 
 	s.addTool(mcp.NewTool("core.extension.list",
-		mcp.WithDescription("List all installed extensions (active and inactive)."),
+		mcp.WithDescription("List all installed extensions (active and inactive). An extension installed under data/extensions that hides a same-slug extension bundled in this Squilla build carries shadowed_bundled {version, installed_version, differs, differences, update_available} — versions alone are unreliable, so manifests and runtime files are compared too. When update_available is true, call core.extension.adopt_bundled to switch to the bundled copy."),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		if loader == nil {
 			return nil, fmt.Errorf("extension loader not wired")
 		}
-		return loader.List()
+		return loader.ListViews()
 	})
 
 	s.addTool(mcp.NewTool("core.extension.get",
@@ -107,7 +129,31 @@ func (s *Server) registerExtensionTools() {
 		if loader == nil {
 			return nil, fmt.Errorf("extension loader not wired")
 		}
-		return loader.GetBySlug(stringArg(args, "slug"))
+		ext, err := loader.GetBySlug(stringArg(args, "slug"))
+		if err != nil {
+			return nil, err
+		}
+		return loader.View(*ext), nil
+	})
+
+	s.addTool(mcp.NewTool("core.extension.adopt_bundled",
+		mcp.WithDescription("Replace an operator-installed extension (data/extensions/<slug>) with the same-slug extension bundled in this Squilla build: deactivate (if active) → delete the installed copy → register the bundled copy → re-activate. Settings and the extension's tables are kept; new public routes are served immediately. Use when core.extension.list shows shadowed_bundled.update_available. Destructive: the installed copy's files are removed."),
+		mcp.WithString("slug", mcp.Required()),
+	), "full", func(ctx context.Context, args map[string]any) (any, error) {
+		if s.deps.ExtensionHandler == nil {
+			return nil, fmt.Errorf("extension handler not wired")
+		}
+		res, err := s.deps.ExtensionHandler.AdoptBundled(stringArg(args, "slug"))
+		if err != nil {
+			switch err.Error() {
+			case "NOT_FOUND":
+				return nil, fmt.Errorf("extension %q not found", stringArg(args, "slug"))
+			case "NOT_SHADOWED":
+				return nil, fmt.Errorf("extension %q is not an installed override of a bundled extension", stringArg(args, "slug"))
+			}
+			return nil, err
+		}
+		return map[string]any{"ok": true, "result": res, "restart_required": false}, nil
 	})
 
 	s.addTool(mcp.NewTool("core.extension.activate",
