@@ -132,7 +132,20 @@ func buildHeadMeta(
 	if canonical != "" {
 		tag(`<meta property="og:url" content="%s">`, escape(canonical))
 	}
-	tag(`<meta property="og:type" content="article">`)
+	// Blog posts are articles (matching the BlogPosting JSON-LD); every
+	// other page — homepage, landing pages, products — is a website.
+	isArticle := stringFromMap(node, "node_type") == "post"
+	if isArticle {
+		tag(`<meta property="og:type" content="article">`)
+		if v := stringFromMap(node, "published_at"); v != "" {
+			tag(`<meta property="article:published_time" content="%s">`, escape(v))
+		}
+		if v := stringFromMap(node, "updated_at"); v != "" {
+			tag(`<meta property="article:modified_time" content="%s">`, escape(v))
+		}
+	} else {
+		tag(`<meta property="og:type" content="website">`)
+	}
 	if siteName != "" {
 		tag(`<meta property="og:site_name" content="%s">`, escape(siteName))
 	}
@@ -146,8 +159,20 @@ func buildHeadMeta(
 			tag(`<meta property="og:image:alt" content="%s">`, escape(img.Alt))
 		}
 	}
-	if nodeLang != "" {
-		tag(`<meta property="og:locale" content="%s">`, escape(nodeLang))
+	// Facebook rejects the whole object when og:locale isn't one of its
+	// ll_CC enum values ("en" fails, "en_US" passes), so map the language
+	// code and leave the tag out when there is no valid mapping.
+	if locale := ogLocale(nodeLang); locale != "" {
+		tag(`<meta property="og:locale" content="%s">`, locale)
+		seen := map[string]bool{locale: true}
+		for _, tr := range translations {
+			alt := ogLocale(stringFromMap(tr, "language_code"))
+			if alt == "" || seen[alt] {
+				continue
+			}
+			seen[alt] = true
+			tag(`<meta property="og:locale:alternate" content="%s">`, alt)
+		}
 	}
 
 	cardType := "summary"
