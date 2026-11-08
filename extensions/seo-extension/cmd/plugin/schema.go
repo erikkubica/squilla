@@ -331,12 +331,10 @@ func schemaHumanize(seg string) string {
 }
 
 func schemaImageURL(node map[string]any, siteURL string) string {
-	if fi, ok := node["featured_image"].(map[string]any); ok {
-		if u := absoluteURL(siteURL, pickString(fi, "url")); u != "" {
-			return u
-		}
+	if img := imageFrom(node["featured_image"]); img.URL != "" {
+		return absoluteURL(siteURL, img.URL)
 	}
-	return absoluteURL(siteURL, pickString(node, "featured_image_url"))
+	return absoluteURL(siteURL, imageFrom(node["featured_image_url"]).URL)
 }
 
 // schemaNodeID renders a node id the same way regardless of whether it

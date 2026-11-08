@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"strconv"
 	"strings"
 
 	pb "squilla/pkg/plugin/proto"
@@ -70,7 +71,6 @@ func buildHeadMeta(
 	nodeExcerpt := stringFromMap(node, "excerpt")
 	nodeFullURL := stringFromMap(node, "full_url")
 	nodeLang := stringFromMap(node, "language_code")
-	featuredURL := stringFromMap(node, "featured_image_url")
 
 	title := pickString(seo, "meta_title")
 	if title == "" {
@@ -88,14 +88,8 @@ func buildHeadMeta(
 		desc = settings["site_description"]
 	}
 
-	ogImage := pickString(seo, "og_image")
-	if ogImage == "" {
-		ogImage = featuredURL
-	}
-	if ogImage == "" {
-		ogImage = settings["seo_default_og_image"]
-	}
-	ogImage = absoluteURL(siteURL, ogImage)
+	img := pickShareImage(node, seo, settings)
+	ogImage := absoluteURL(siteURL, img.URL)
 
 	canonical := absoluteURL(siteURL, nodeFullURL)
 	// Per-node canonical override (seo_settings.canonical_url or .canonical).
@@ -144,6 +138,13 @@ func buildHeadMeta(
 	}
 	if ogImage != "" {
 		tag(`<meta property="og:image" content="%s">`, escape(ogImage))
+		if img.Width > 0 && img.Height > 0 {
+			tag(`<meta property="og:image:width" content="%d">`, img.Width)
+			tag(`<meta property="og:image:height" content="%d">`, img.Height)
+		}
+		if img.Alt != "" {
+			tag(`<meta property="og:image:alt" content="%s">`, escape(img.Alt))
+		}
 	}
 	if nodeLang != "" {
 		tag(`<meta property="og:locale" content="%s">`, escape(nodeLang))
@@ -165,6 +166,9 @@ func buildHeadMeta(
 	}
 	if ogImage != "" {
 		tag(`<meta name="twitter:image" content="%s">`, escape(ogImage))
+		if img.Alt != "" {
+			tag(`<meta name="twitter:image:alt" content="%s">`, escape(img.Alt))
+		}
 	}
 
 	if len(translations) > 0 && siteURL != "" {
@@ -184,6 +188,83 @@ func buildHeadMeta(
 	}
 
 	return b.String()
+}
+
+// shareImage is the image a social preview uses, with whatever metadata
+// the source carried (media objects have alt and dimensions).
+type shareImage struct {
+	URL           string
+	Alt           string
+	Width, Height int
+}
+
+// pickShareImage resolves og:image in priority order: the node's own
+// seo.og_image, then its featured_image (the media object the kernel
+// passes through), then the legacy featured_image_url string, then the
+// site-wide seo_default_og_image. Each source may be a plain path or a
+// {url, alt, width, height} media object.
+func pickShareImage(node, seo map[string]any, settings map[string]string) shareImage {
+	var seoImage any
+	if seo != nil {
+		seoImage = seo["og_image"]
+	}
+	var featured, featuredURL any
+	if node != nil {
+		featured = node["featured_image"]
+		featuredURL = node["featured_image_url"]
+	}
+	for _, candidate := range []any{seoImage, featured, featuredURL, settings["seo_default_og_image"]} {
+		if img := imageFrom(candidate); img.URL != "" {
+			return img
+		}
+	}
+	return shareImage{}
+}
+
+func imageFrom(v any) shareImage {
+	switch x := v.(type) {
+	case string:
+		return shareImage{URL: usableImagePath(x)}
+	case map[string]any:
+		img := shareImage{URL: usableImagePath(pickString(x, "url"))}
+		if img.URL == "" {
+			return shareImage{}
+		}
+		img.Alt = pickString(x, "alt")
+		img.Width = intFrom(x["width"])
+		img.Height = intFrom(x["height"])
+		return img
+	}
+	return shareImage{}
+}
+
+// usableImagePath drops unresolved asset refs ("theme-asset:<key>",
+// "extension-asset:<slug>:<key>"): absoluteURL would turn them into a
+// broken https://site/theme-asset:… URL that crawlers then fail on.
+func usableImagePath(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "theme-asset:") || strings.HasPrefix(s, "extension-asset:") {
+		return ""
+	}
+	return s
+}
+
+func intFrom(v any) int {
+	switch n := v.(type) {
+	case float64:
+		return int(n)
+	case int:
+		return n
+	case int64:
+		return int(n)
+	case json.Number:
+		i, _ := n.Int64()
+		return int(i)
+	case string:
+		i, _ := strconv.Atoi(strings.TrimSpace(n))
+		return i
+	}
+	return 0
 }
 
 func robotsDirective(settings map[string]string) string {

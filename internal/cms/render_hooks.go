@@ -1,6 +1,8 @@
 package cms
 
 import (
+	"bytes"
+	"encoding/json"
 	"html/template"
 	"strings"
 	"time"
@@ -39,9 +41,12 @@ func (h *PublicHandler) renderHook(
 		return ""
 	}
 
+	nodePayload := buildHookNodePayload(node, nodeData)
+	nodePayload["featured_image"] = h.hookFeaturedImage(nodeData.FeaturedImage)
+
 	payload := events.Payload{
 		"action":       action,
-		"node":         buildHookNodePayload(node, nodeData),
+		"node":         nodePayload,
 		"settings":     settings,
 		"translations": nodeData.Translations,
 		"user":         buildHookUserPayload(user),
@@ -52,6 +57,34 @@ func (h *PublicHandler) renderHook(
 		return ""
 	}
 	return template.HTML(strings.Join(results, "\n"))
+}
+
+// hookFeaturedImage returns the node's featured image with any
+// theme-asset:/extension-asset: ref resolved to its real media URL, so
+// extensions (og:image, JSON-LD) never receive an opaque scheme string.
+// Node fields are resolved the same way in BuildNodeData; featured_image
+// is left raw there because templates resolve it with image_url.
+//
+// Works on a deep copy (nodeData is shared with the template pass), and
+// only loads the asset lookup when a ref is actually present, so the
+// common case costs one small json.Marshal and no queries.
+func (h *PublicHandler) hookFeaturedImage(fi any) any {
+	if fi == nil || h.db == nil {
+		return fi
+	}
+	raw, err := json.Marshal(fi)
+	if err != nil || !bytes.Contains(raw, []byte("-asset:")) {
+		return fi
+	}
+	lookup := loadActiveAssetLookup(h.db)
+	if !lookup.hasAny() {
+		return fi
+	}
+	var clone any
+	if err := json.Unmarshal(raw, &clone); err != nil {
+		return fi
+	}
+	return ResolveThemeAssetRefs(clone, lookup)
 }
 
 // renderHead, renderBodyStart, renderBodyEnd, renderFooter are tiny
