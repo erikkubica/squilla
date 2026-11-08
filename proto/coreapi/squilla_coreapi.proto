@@ -456,6 +456,7 @@ message NodeTypeInputMessage {
   // language_code → archive page node id. Absent leaves the stored map
   // untouched; an id of 0 clears that language.
   map<string, int32> archive_node_ids = 8;
+  string label_plural = 9;
 }
 
 message NodeTypeMessage {
@@ -472,6 +473,7 @@ message NodeTypeMessage {
   // Inverse of NodeType.Public so hosts that predate the field decode as public.
   bool private = 11;
   map<string, int32> archive_node_ids = 12; // language_code → archive page node id
+  string label_plural = 13;
 }
 
 message NodeTypeResponse {

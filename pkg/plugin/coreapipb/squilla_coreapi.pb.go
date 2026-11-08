@@ -3709,6 +3709,7 @@ type NodeTypeInputMessage struct {
 	// language_code → archive page node id. Absent leaves the stored map
 	// untouched; an id of 0 clears that language.
 	ArchiveNodeIds map[string]int32 `protobuf:"bytes,8,rep,name=archive_node_ids,json=archiveNodeIds,proto3" json:"archive_node_ids,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	LabelPlural    string           `protobuf:"bytes,9,opt,name=label_plural,json=labelPlural,proto3" json:"label_plural,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -3799,6 +3800,13 @@ func (x *NodeTypeInputMessage) GetArchiveNodeIds() map[string]int32 {
 	return nil
 }
 
+func (x *NodeTypeInputMessage) GetLabelPlural() string {
+	if x != nil {
+		return x.LabelPlural
+	}
+	return ""
+}
+
 type NodeTypeMessage struct {
 	state          protoimpl.MessageState  `protogen:"open.v1"`
 	Id             int32                   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -3814,6 +3822,7 @@ type NodeTypeMessage struct {
 	// Inverse of NodeType.Public so hosts that predate the field decode as public.
 	Private        bool             `protobuf:"varint,11,opt,name=private,proto3" json:"private,omitempty"`
 	ArchiveNodeIds map[string]int32 `protobuf:"bytes,12,rep,name=archive_node_ids,json=archiveNodeIds,proto3" json:"archive_node_ids,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // language_code → archive page node id
+	LabelPlural    string           `protobuf:"bytes,13,opt,name=label_plural,json=labelPlural,proto3" json:"label_plural,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -3930,6 +3939,13 @@ func (x *NodeTypeMessage) GetArchiveNodeIds() map[string]int32 {
 		return x.ArchiveNodeIds
 	}
 	return nil
+}
+
+func (x *NodeTypeMessage) GetLabelPlural() string {
+	if x != nil {
+		return x.LabelPlural
+	}
+	return ""
 }
 
 type NodeTypeResponse struct {
@@ -4544,7 +4560,7 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x1a\n" +
 	"\brequired\x18\x04 \x01(\bR\brequired\x12\x18\n" +
-	"\aoptions\x18\x05 \x03(\tR\aoptions\"\xac\x04\n" +
+	"\aoptions\x18\x05 \x03(\tR\aoptions\"\xcf\x04\n" +
 	"\x14NodeTypeInputMessage\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
@@ -4553,13 +4569,14 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\ffield_schema\x18\x05 \x03(\v2%.squilla.coreapi.NodeTypeFieldMessageR\vfieldSchema\x12Y\n" +
 	"\furl_prefixes\x18\x06 \x03(\v26.squilla.coreapi.NodeTypeInputMessage.UrlPrefixesEntryR\vurlPrefixes\x12'\n" +
 	"\x0ftaxonomies_json\x18\a \x01(\tR\x0etaxonomiesJson\x12c\n" +
-	"\x10archive_node_ids\x18\b \x03(\v29.squilla.coreapi.NodeTypeInputMessage.ArchiveNodeIdsEntryR\x0earchiveNodeIds\x1a>\n" +
+	"\x10archive_node_ids\x18\b \x03(\v29.squilla.coreapi.NodeTypeInputMessage.ArchiveNodeIdsEntryR\x0earchiveNodeIds\x12!\n" +
+	"\flabel_plural\x18\t \x01(\tR\vlabelPlural\x1a>\n" +
 	"\x10UrlPrefixesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aA\n" +
 	"\x13ArchiveNodeIdsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\x85\x05\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\xa8\x05\n" +
 	"\x0fNodeTypeMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x14\n" +
@@ -4575,7 +4592,8 @@ const file_coreapi_squilla_coreapi_proto_rawDesc = "" +
 	"\x0ftaxonomies_json\x18\n" +
 	" \x01(\tR\x0etaxonomiesJson\x12\x18\n" +
 	"\aprivate\x18\v \x01(\bR\aprivate\x12^\n" +
-	"\x10archive_node_ids\x18\f \x03(\v24.squilla.coreapi.NodeTypeMessage.ArchiveNodeIdsEntryR\x0earchiveNodeIds\x1a>\n" +
+	"\x10archive_node_ids\x18\f \x03(\v24.squilla.coreapi.NodeTypeMessage.ArchiveNodeIdsEntryR\x0earchiveNodeIds\x12!\n" +
+	"\flabel_plural\x18\r \x01(\tR\vlabelPlural\x1a>\n" +
 	"\x10UrlPrefixesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aA\n" +

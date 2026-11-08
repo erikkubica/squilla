@@ -198,6 +198,7 @@ func nodeTypeFromProto(msg *pb.NodeTypeMessage) *NodeType {
 		ID:          int(msg.Id),
 		Slug:        msg.Slug,
 		Label:       msg.Label,
+		LabelPlural: msg.LabelPlural,
 		Icon:        msg.Icon,
 		Description: msg.Description,
 		URLPrefixes: msg.UrlPrefixes,
@@ -243,6 +244,7 @@ func nodeTypeInputToProto(input NodeTypeInput) *pb.NodeTypeInputMessage {
 	msg := &pb.NodeTypeInputMessage{
 		Slug:        input.Slug,
 		Label:       input.Label,
+		LabelPlural: input.LabelPlural,
 		Icon:        input.Icon,
 		Description: input.Description,
 		UrlPrefixes: input.URLPrefixes,

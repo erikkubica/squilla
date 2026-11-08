@@ -189,6 +189,7 @@ func nodeTypeToProto(nt *NodeType) *pb.NodeTypeMessage {
 		Id:          int32(nt.ID),
 		Slug:        nt.Slug,
 		Label:       nt.Label,
+		LabelPlural: nt.LabelPlural,
 		Icon:        nt.Icon,
 		Description: nt.Description,
 		FieldSchema: fields,
@@ -228,6 +229,7 @@ func nodeTypeInputFromProto(inp *pb.NodeTypeInputMessage) NodeTypeInput {
 	ni := NodeTypeInput{
 		Slug:        inp.Slug,
 		Label:       inp.Label,
+		LabelPlural: inp.LabelPlural,
 		Icon:        inp.Icon,
 		Description: inp.Description,
 		Fields:      fields,
