@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 	"time"
 )
@@ -543,5 +544,21 @@ func TestCapabilityGuard_HTTPObserveEvent(t *testing.T) {
 	})
 	if _, err := g.Subscribe(obs, "http.requests", func(string, map[string]any) {}); err != nil {
 		t.Fatalf("Subscribe with http:observe denied: %v", err)
+	}
+}
+
+// The denial names the extension and where to declare the capability, so
+// an admin doesn't go looking for it under Roles.
+func TestCapabilityDenied_NamesExtensionManifest(t *testing.T) {
+	guard := NewCapabilityGuard(&stubCoreAPI{})
+	ctx := WithCaller(context.Background(), CallerInfo{Slug: "email-manager", Type: "grpc", Capabilities: map[string]bool{}})
+	err := guard.SendEmail(ctx, EmailRequest{})
+	if !errors.Is(err, ErrCapabilityDenied) {
+		t.Fatalf("want capability denied, got %v", err)
+	}
+	for _, want := range []string{"email:send", `"email-manager"`, "extension.json"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q missing %q", err, want)
+		}
 	}
 }

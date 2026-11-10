@@ -1,6 +1,9 @@
 package coreapi
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // compile-time check
 var _ CoreAPI = (*capabilityGuard)(nil)
@@ -21,6 +24,11 @@ func checkCapability(ctx context.Context, cap string) error {
 	}
 	if caller.Capabilities[cap] {
 		return nil
+	}
+	// Extension capabilities come from the manifest, not from roles, so
+	// say which manifest to fix — admins otherwise go looking in Roles.
+	if caller.Slug != "" {
+		return NewCapabilityDenied(fmt.Sprintf("%s (extension %q must declare it in its extension.json capabilities)", cap, caller.Slug))
 	}
 	return NewCapabilityDenied(cap)
 }
