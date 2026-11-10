@@ -6,41 +6,51 @@ payload := event.payload
 
 // Extract settings
 settings := payload.settings
-api_key := settings.api_key
-from_email := settings.from_email
-from_name := settings.from_name
 
-// Build from address
-from := from_email
-if from_name != "" {
-    from = from_name + " <" + from_email + ">"
-}
+// Several providers can be active at once; the kernel names the selected
+// one (site setting email_provider) in settings.provider. Leave `response`
+// unset for any other provider so the send counts as "not handled" here.
+// An empty name (a kernel that predates provider routing) counts as ours.
+provider := settings.provider
+if is_undefined(provider) || provider == "" || provider == "resend-provider" {
+    api_key := settings.api_key
+    from_email := settings.from_email
+    from_name := settings.from_name
 
-// Build request body (cc, bcc and reply_to only when set: Resend rejects empty values)
-msg := {
-    from: from,
-    to: payload.to,
-    subject: payload.subject,
-    html: payload.html
-}
-if is_array(payload.cc) && len(payload.cc) > 0 { msg.cc = payload.cc }
-if is_array(payload.bcc) && len(payload.bcc) > 0 { msg.bcc = payload.bcc }
-if is_string(payload.reply_to) && payload.reply_to != "" { msg.reply_to = payload.reply_to }
-body := json.encode(msg)
+    // Build from address
+    from := from_email
+    if is_string(from_name) && from_name != "" {
+        from = from_name + " <" + from_email + ">"
+    }
 
-// Send via Resend API
-result := http.post("https://api.resend.com/emails", {
-    headers: {
-        "Authorization": "Bearer " + api_key,
-        "Content-Type": "application/json"
-    },
-    body: body
-})
+    // Build request body (cc, bcc and reply_to only when set: Resend rejects empty values)
+    msg := {
+        from: from,
+        to: payload.to,
+        subject: payload.subject,
+        html: payload.html
+    }
+    if is_array(payload.cc) && len(payload.cc) > 0 { msg.cc = payload.cc }
+    if is_array(payload.bcc) && len(payload.bcc) > 0 { msg.bcc = payload.bcc }
+    if is_string(payload.reply_to) && payload.reply_to != "" { msg.reply_to = payload.reply_to }
+    body := string(json.encode(msg))
 
-if result.error != "" {
-    response = "error: " + result.error
-} else if result.status_code < 200 || result.status_code >= 300 {
-    response = "error: Resend API returned status " + string(result.status_code) + ": " + result.body
-} else {
-    response = "ok"
+    // Send via Resend API
+    result := http.post("https://api.resend.com/emails", {
+        headers: {
+            "Authorization": "Bearer " + api_key,
+            "Content-Type": "application/json"
+        },
+        body: body
+    })
+
+    if is_error(result) {
+        response = "error: " + string(result)
+    } else if result["error"] != "" {
+        response = "error: " + result["error"]
+    } else if result.status_code < 200 || result.status_code >= 300 {
+        response = "error: Resend API returned status " + string(result.status_code) + ": " + result.body
+    } else {
+        response = "ok"
+    }
 }

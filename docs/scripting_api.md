@@ -302,6 +302,22 @@ widget_type := args[0]
 count := args[1]
 ```
 
+### Request Events (answering the kernel)
+
+Some events are requests the kernel waits on, published through
+`PublishRequest` — today `email.send`, sent by `CoreAPI.SendEmail` to every
+active email provider. A handler answers through `response`:
+
+| `response` | Meaning |
+|---|---|
+| unset / `nil` | Not handled — this handler declines (e.g. it is not the selected `email_provider`) |
+| `"error: <message>"` | Handled and failed; `<message>` is returned to the caller |
+| anything else (e.g. `"ok"`) | Handled successfully |
+
+Several providers can be active at once, so an `email.send` handler must
+check `event.payload.settings.provider` against its own slug and leave
+`response` unset otherwise. See `extensions/resend-provider/scripts/handlers/send_email.tengo`.
+
 ### Lifecycle Events
 
 Lifecycle events are fired by the CMS core when actions occur. Handler scripts receive an `event` variable:

@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"squilla/internal/events"
 	"squilla/internal/models"
 	"strings"
@@ -43,7 +44,7 @@ func (c *coreImpl) SendEmail(ctx context.Context, req EmailRequest) error {
 		}
 	}
 
-	if !c.eventBus.HasHandlers("email.send") {
+	if !c.eventBus.HasRequestHandlers("email.send") {
 		return NewValidation("no email provider configured — install an email provider extension (e.g. smtp-provider or resend-provider) and set email_provider in site settings")
 	}
 
@@ -75,11 +76,13 @@ func (c *coreImpl) SendEmail(ctx context.Context, req EmailRequest) error {
 		}
 	}
 
-	// PublishRequest hits the provider plugin's SubscribeErr handler
-	// (registered automatically by the plugin manager when a plugin
-	// declares `events: ["email.send"]`). The first non-nil error wins
-	// — typically the only provider answering for a given install.
-	if err := c.eventBus.PublishRequest("email.send", events.Payload{
+	// PublishRequest reaches every active provider: gRPC plugins that
+	// declare `events: ["email.send"]` and Tengo scripts that call
+	// events.on("email.send", …). Each provider answers only when
+	// settings.provider is its own slug and declines (ErrNotHandled)
+	// otherwise, so with several providers installed exactly the selected
+	// one sends, and its error is the one returned.
+	err := c.eventBus.PublishRequest("email.send", events.Payload{
 		"to":       req.To,
 		"subject":  req.Subject,
 		"html":     req.HTML,
@@ -87,7 +90,11 @@ func (c *coreImpl) SendEmail(ctx context.Context, req EmailRequest) error {
 		"bcc":      req.BCC,
 		"reply_to": req.ReplyTo,
 		"settings": providerSettings,
-	}); err != nil {
+	})
+	if errors.Is(err, events.ErrNotHandled) {
+		return NewValidation("email provider \"" + providerName + "\" did not handle the message — is that extension active? Check email_provider in Email Settings")
+	}
+	if err != nil {
 		return NewInternal("email provider rejected message: " + err.Error())
 	}
 	return nil

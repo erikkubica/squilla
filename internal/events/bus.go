@@ -1,6 +1,7 @@
 package events
 
 import (
+	"errors"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -24,6 +25,12 @@ type ResultHandler func(action string, payload Payload) string
 // email-provider plugin reporting that SMTP refused the message, so the
 // caller of CoreAPI.SendEmail can propagate that to the user.
 type ErrHandler func(action string, payload Payload) error
+
+// ErrNotHandled is returned by an ErrHandler that saw the request but
+// decided it is not the one to answer it — e.g. an email provider that is
+// installed but not the selected email_provider. PublishRequest skips such
+// answers and returns ErrNotHandled itself only when every handler declined.
+var ErrNotHandled = errors.New("not handled")
 
 // UnsubscribeFunc removes the corresponding subscription. Calling it more
 // than once is safe and a no-op.
@@ -256,18 +263,41 @@ func (b *EventBus) PublishSync(action string, payload Payload) {
 // should check HasHandlers first; CoreAPI.SendEmail does exactly that to
 // surface a clear "no email provider configured" error instead of silently
 // dropping the request.
+//
+// A handler returning ErrNotHandled is "no answer": it neither fails the
+// request nor counts as handling it. When at least one handler ran and all
+// of them declined, PublishRequest returns ErrNotHandled so the caller can
+// tell "delivered" from "nobody took it".
 func (b *EventBus) PublishRequest(action string, payload Payload) error {
 	b.mu.RLock()
 	entries := make([]errEntry, len(b.errHandlers[action]))
 	copy(entries, b.errHandlers[action])
 	b.mu.RUnlock()
 
+	handled := false
 	for _, e := range entries {
-		if err := safeCallErr(e.fn, action, payload); err != nil {
+		err := safeCallErr(e.fn, action, payload)
+		if errors.Is(err, ErrNotHandled) {
+			continue
+		}
+		if err != nil {
 			return err
 		}
+		handled = true
+	}
+	if len(entries) > 0 && !handled {
+		return ErrNotHandled
 	}
 	return nil
+}
+
+// HasRequestHandlers reports whether any ErrHandler is registered for the
+// action, i.e. whether PublishRequest would reach anyone. Unlike
+// HasHandlers it ignores wildcard and fire-and-forget subscribers.
+func (b *EventBus) HasRequestHandlers(action string) bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return len(b.errHandlers[action]) > 0
 }
 
 // PublishCollect runs all result handlers for an action synchronously and

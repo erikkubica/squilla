@@ -1222,39 +1222,32 @@ log    := import("core/log")
 
 log.info("Resend provider loaded")
 
-events.on("email.send", "handlers/send_via_resend")
+events.on("email.send", "handlers/send_email", 10)
 ```
 
 ```tengo
-// extensions/resend-provider/scripts/handlers/send_via_resend.tengo
-http     := import("core/http")
-settings := import("core/settings")
-log      := import("core/log")
-json     := import("json")
+// extensions/resend-provider/scripts/handlers/send_email.tengo (simplified)
+http := import("core/http")
+json := import("json")
 
-api_key := settings.get("resend_api_key")
-if api_key == "" || is_error(api_key) {
-    log.warn("Resend API key not configured")
-    return
-}
+payload  := event.payload
+settings := payload.settings  // provider config + from_email/from_name, bundled by the kernel
 
-body := json.encode({
-    from:    event.payload.from,
-    to:      event.payload.to,
-    subject: event.payload.subject,
-    html:    event.payload.html
-})
-
-res := http.fetch({
-    method:  "POST",
-    url:     "https://api.resend.com/emails",
-    headers: { "Authorization": "Bearer " + api_key, "Content-Type": "application/json" },
-    body:    body,
-    timeout: 10
-})
-
-if res.status_code >= 400 {
-    log.error("Resend send failed: " + string(res.status_code))
+// Several providers can be active; answer only when this one is selected
+// (site setting email_provider). Leaving `response` unset = "not handled".
+if settings.provider == "resend-provider" {
+    res := http.post("https://api.resend.com/emails", {
+        headers: { "Authorization": "Bearer " + settings.api_key, "Content-Type": "application/json" },
+        body:    json.encode({ from: settings.from_email, to: payload.to, subject: payload.subject, html: payload.html })
+    })
+    // `error` is a Tengo keyword: use res["error"], not res.error.
+    if res["error"] != "" {
+        response = "error: " + res["error"]
+    } else if res.status_code >= 300 {
+        response = "error: Resend returned " + string(res.status_code)
+    } else {
+        response = "ok"
+    }
 }
 ```
 

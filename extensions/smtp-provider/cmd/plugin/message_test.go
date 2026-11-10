@@ -42,3 +42,21 @@ func TestBuildMessage_HeadersAndNoBcc(t *testing.T) {
 		t.Errorf("empty optional headers written: %q", plain)
 	}
 }
+
+func TestHandleEvent_DeclinesOtherProvider(t *testing.T) {
+	// No SMTP host configured: before routing this returned
+	// "SMTP host is required" and failed every Resend send.
+	resp, err := (&SMTPPlugin{}).HandleEvent("email.send",
+		[]byte(`{"to":["a@x.com"],"subject":"Hi","settings":{"provider":"resend-provider"}}`))
+	if err != nil || resp.Handled || resp.Error != "" {
+		t.Fatalf("want not-handled without error, got %+v, %v", resp, err)
+	}
+}
+
+func TestHandleEvent_SelectedProviderValidates(t *testing.T) {
+	resp, _ := (&SMTPPlugin{}).HandleEvent("email.send",
+		[]byte(`{"to":["a@x.com"],"subject":"Hi","settings":{"provider":"smtp-provider"}}`))
+	if !resp.Handled || resp.Error == "" {
+		t.Fatalf("selected SMTP without a host must report an error, got %+v", resp)
+	}
+}

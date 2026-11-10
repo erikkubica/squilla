@@ -198,8 +198,45 @@ func (e *ScriptEngine) subscribeEventHandlers() {
 				}
 			})
 			e.busUnsubs = append(e.busUnsubs, unsub)
+
+			// Request/reply side, so PublishRequest (CoreAPI.SendEmail's
+			// "email.send") reaches Tengo handlers too — not only gRPC
+			// plugins. The script answers through `response`:
+			//   nil / unset          → not handled (events.ErrNotHandled)
+			//   "error: <message>"   → request failed with <message>
+			//   anything else        → handled successfully
+			errUnsub := e.eventBus.SubscribeErr(n, func(act string, payload events.Payload) error {
+				payloadMap := make(map[string]interface{}, len(payload))
+				for k, v := range payload {
+					payloadMap[k] = v
+				}
+				vars := map[string]interface{}{
+					"event": map[string]interface{}{
+						"action":  act,
+						"payload": payloadMap,
+					},
+				}
+				result, err := e.runScript(sp, slug, caps, bd, vars, nil)
+				if err != nil {
+					return fmt.Errorf("%s: %w", slug, err)
+				}
+				return scriptRequestResult(slug, result)
+			})
+			e.busUnsubs = append(e.busUnsubs, errUnsub)
 		}
 	}
+}
+
+// scriptRequestResult maps a Tengo handler's `response` value onto the
+// PublishRequest contract (see subscribeEventHandlers).
+func scriptRequestResult(slug string, result interface{}) error {
+	if result == nil {
+		return events.ErrNotHandled
+	}
+	if s, ok := result.(string); ok && strings.HasPrefix(s, "error:") {
+		return fmt.Errorf("%s: %s", slug, strings.TrimSpace(strings.TrimPrefix(s, "error:")))
+	}
+	return nil
 }
 
 // dropBusSubs releases every event-bus subscription previously installed

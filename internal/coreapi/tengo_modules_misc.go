@@ -206,7 +206,12 @@ func httpFetchModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 						}
 					}
 					if b, ok := m["body"]; ok {
-						req.Body = tengoToString(b)
+						// json.encode returns bytes; accept them as-is.
+						if raw, isBytes := b.(*tengo.Bytes); isBytes {
+							req.Body = string(raw.Value)
+						} else {
+							req.Body = tengoToString(b)
+						}
 					}
 					if t, ok := m["timeout"]; ok {
 						req.Timeout = tengoToInt(t)

@@ -80,7 +80,7 @@ type authConfigResponse struct {
 func (h *AdminAuthHandler) Config(c *fiber.Ctx) error {
 	resp := authConfigResponse{
 		AllowRegistration:    registrationAllowed(h.db),
-		PasswordResetEnabled: h.eventBus != nil && h.eventBus.HasHandlers("email.send"),
+		PasswordResetEnabled: h.eventBus != nil && h.eventBus.HasRequestHandlers("email.send"),
 	}
 	c.Set("Cache-Control", "public, max-age=30")
 	return c.JSON(resp)
@@ -219,7 +219,7 @@ type forgotPasswordRequest struct {
 // whether the email exists. The "no email provider configured" case is
 // global state, not per-account, so surfacing it is not an oracle.
 func (h *AdminAuthHandler) ForgotPassword(c *fiber.Ctx) error {
-	if h.eventBus == nil || !h.eventBus.HasHandlers("email.send") {
+	if h.eventBus == nil || !h.eventBus.HasRequestHandlers("email.send") {
 		return api.Error(c, fiber.StatusServiceUnavailable, "EMAIL_DISABLED",
 			"Password reset is unavailable — no email provider is configured. Contact your administrator (the CLI 'squilla reset-password' command is available for recovery).")
 	}

@@ -602,7 +602,7 @@ func main() {
 	// install IS a valid deployment, but admins shouldn't have to grep
 	// the source to discover that password reset silently won't work
 	// because no email provider is wired.
-	if !eventBus.HasHandlers("email.send") {
+	if !eventBus.HasRequestHandlers("email.send") {
 		log.Printf("[startup] no email provider extension is active — password reset, welcome emails, and other event-driven mail are DISABLED. Install smtp-provider or resend-provider (and the email-manager extension) to enable. Use 'squilla reset-password <email> <new-password>' for admin recovery in the meantime.")
 	}
 

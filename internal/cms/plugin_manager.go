@@ -347,12 +347,15 @@ func (pm *PluginManager) StartPlugins(extPath string, slug string, manifest json
 			// CoreAPI.SendEmail so an SMTP refusal propagates to the
 			// HTTP caller instead of being swallowed in a log line.
 			rp.unsubs = append(rp.unsubs, pm.eventBus.SubscribeErr(eventName, func(action string, payload events.Payload) error {
-				_, _, errStr, callErr := dispatchEvent(action, payload)
+				handled, _, errStr, callErr := dispatchEvent(action, payload)
 				if callErr != nil {
 					return callErr
 				}
 				if errStr != "" {
 					return fmt.Errorf("%s: %s", slug, errStr)
+				}
+				if !handled {
+					return events.ErrNotHandled
 				}
 				return nil
 			}))

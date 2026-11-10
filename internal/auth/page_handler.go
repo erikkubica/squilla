@@ -332,11 +332,11 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 	// Email is an extension-provided feature now — without an active
 	// provider plugin nothing can deliver the reset link, so disable the
 	// endpoint outright instead of pretending it worked. The check is
-	// HasHandlers("email.send") because that's what coreapi.SendEmail
+	// HasRequestHandlers("email.send") because that's what coreapi.SendEmail
 	// requires; the upstream user.password_reset_requested handler
 	// (email-manager dispatcher) is downstream of email.send so checking
 	// here is sufficient.
-	if h.eventBus == nil || !h.eventBus.HasHandlers("email.send") {
+	if h.eventBus == nil || !h.eventBus.HasRequestHandlers("email.send") {
 		setFlash(c, "Password reset is disabled — no email provider is configured. Contact your administrator (the CLI 'squilla reset-password' command is available for recovery).", "error")
 		return c.Redirect("/forgot-password", fiber.StatusFound)
 	}

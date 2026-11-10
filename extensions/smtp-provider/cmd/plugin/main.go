@@ -65,6 +65,15 @@ func (p *SMTPPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
 	}, nil
 }
 
+// providerSlug is this extension's slug, as stored in email_provider.
+const providerSlug = "smtp-provider"
+
+// isSelectedProvider reports whether a send addressed to provider is ours.
+// An empty name (a kernel that predates provider routing) counts as ours.
+func isSelectedProvider(provider string) bool {
+	return provider == "" || provider == providerSlug
+}
+
 func (p *SMTPPlugin) HandleEvent(action string, payload []byte) (*pb.EventResponse, error) {
 	if action != "email.send" {
 		return &pb.EventResponse{Handled: false}, nil
@@ -81,6 +90,14 @@ func (p *SMTPPlugin) HandleEvent(action string, payload []byte) (*pb.EventRespon
 	}
 	if err := json.Unmarshal(payload, &req); err != nil {
 		return &pb.EventResponse{Handled: true, Error: fmt.Sprintf("invalid payload: %v", err)}, nil
+	}
+
+	// Several providers can be active at once; the kernel names the
+	// selected one (site setting email_provider) in settings.provider.
+	// Decline anything meant for another provider so its result, not
+	// ours, is what the sender sees.
+	if !isSelectedProvider(req.Settings["provider"]) {
+		return &pb.EventResponse{Handled: false}, nil
 	}
 
 	host := req.Settings["host"]
