@@ -121,3 +121,38 @@ func TestEditorNotification_NoLayoutKeepsBody(t *testing.T) {
 		t.Fatalf("fallback: %+v", h.Sent)
 	}
 }
+
+// The Reply-to dropdown saves a bare field id, not a template.
+func TestEditorNotification_ReplyToBareFieldID(t *testing.T) {
+	for _, replyTo := range []string{"email", "[email]", "{{ .field.email }}", "fixed@site.test"} {
+		h := NewFakeHost()
+		h.Settings["email"] = "team@site.test"
+		p := newPlugin(h)
+		p.triggerNotifications(editorForm(map[string]any{
+			"enabled": true, "type": "admin", "recipients": "{{.site_email}}",
+			"reply_to": replyTo, "subject": "New", "body": "<p>x</p>",
+		}), map[string]any{"name": "Sarah", "email": "Sarah <sarah@guest.test>"})
+		if len(h.Sent) != 1 {
+			t.Fatalf("%q: want 1 email, got %d", replyTo, len(h.Sent))
+		}
+		want := "sarah@guest.test"
+		if replyTo == "fixed@site.test" {
+			want = replyTo
+		}
+		if h.Sent[0].ReplyTo != want {
+			t.Errorf("reply_to %q → %q, want %q", replyTo, h.Sent[0].ReplyTo, want)
+		}
+	}
+}
+
+// A bare id for a field the guest left empty gives no reply-to, not an error.
+func TestEditorNotification_ReplyToMissingField(t *testing.T) {
+	h := NewFakeHost()
+	p := newPlugin(h)
+	p.triggerNotifications(editorForm(map[string]any{
+		"enabled": true, "type": "admin", "recipients": "team@site.test", "reply_to": "email", "subject": "New",
+	}), map[string]any{"name": "Sarah"})
+	if len(h.Sent) != 1 || h.Sent[0].ReplyTo != "" {
+		t.Fatalf("want one email without reply-to, got %+v", h.Sent)
+	}
+}

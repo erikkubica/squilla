@@ -122,7 +122,8 @@ func (p *FormsPlugin) processNotifications(ctx context.Context, notifications []
 // honours what the admin editor saves: `recipients` (a template, e.g.
 // {{.site_email}} or {{.field.email}} for an auto-responder), falling back
 // to `recipient_field` and then the legacy `to`; plus `cc`, `bcc` and
-// `reply_to`, all templates. Addresses that do not parse are dropped, so
+// `reply_to`, all templates (reply_to may also be a bare field id, which
+// is what the editor's Reply-to dropdown saves). Addresses that do not parse are dropped, so
 // a guest's typo never reaches the provider. The body is wrapped in the
 // site's default email layout when the email-manager publishes one.
 func (p *FormsPlugin) composeNotification(ctx context.Context, config map[string]any, tplData map[string]any) coreapi.EmailRequest {
@@ -155,7 +156,7 @@ func (p *FormsPlugin) composeNotification(ctx context.Context, config map[string
 	cc := without(parseAddresses(field("cc")), to)
 	bcc := without(parseAddresses(field("bcc")), append(append([]string{}, to...), cc...))
 	replyTo := ""
-	if r := parseAddresses(field("reply_to")); len(r) > 0 {
+	if r := parseAddresses(replyToSource(config, tplData, field)); len(r) > 0 {
 		replyTo = r[0]
 	}
 
@@ -312,4 +313,20 @@ func defaultNotificationHTML(data map[string]any) string {
 	}
 	buf.WriteString("</table>")
 	return buf.String()
+}
+
+// replyToSource resolves the notification's reply_to. The editor's
+// dropdown saves a bare field id ("email", or "[email]" when typed), so
+// that is looked up in the submission; anything else (a {{ .field.x }}
+// template or a literal address) is rendered as a template.
+func replyToSource(config map[string]any, tplData map[string]any, render func(string) string) string {
+	raw, _ := config["reply_to"].(string)
+	id := strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(raw), "["), "]")
+	if id != "" && !strings.Contains(id, "{{") && !strings.Contains(id, "@") {
+		if fields, ok := tplData["field"].(map[string]string); ok {
+			return fields[id]
+		}
+		return ""
+	}
+	return render("reply_to")
 }
