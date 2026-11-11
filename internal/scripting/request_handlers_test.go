@@ -121,6 +121,8 @@ func TestResendHandler_SelectedSendsOnce(t *testing.T) {
 
 		err = bus.PublishRequest("email.send", events.Payload{
 			"to":       []string{"a@example.com"},
+			"cc":       []string{"c@example.com"},
+			"bcc":      []string(nil),
 			"subject":  "hi",
 			"html":     "<p>x</p>",
 			"reply_to": "guest@example.com",
@@ -132,8 +134,15 @@ func TestResendHandler_SelectedSendsOnce(t *testing.T) {
 		if len(api.reqs) != 1 || api.reqs[0].URL != "https://api.resend.com/emails" {
 			t.Fatalf("status %d: want one POST to Resend, got %+v", tc.status, api.reqs)
 		}
-		if !strings.Contains(api.reqs[0].Body, `"reply_to":"guest@example.com"`) {
-			t.Errorf("reply_to missing from body: %s", api.reqs[0].Body)
+		// SendEmail passes []string; Resend needs real JSON arrays (a null
+		// "to" was rejected on production with a 422).
+		for _, want := range []string{`"to":["a@example.com"]`, `"cc":["c@example.com"]`, `"reply_to":"guest@example.com"`} {
+			if !strings.Contains(api.reqs[0].Body, want) {
+				t.Errorf("missing %s in body: %s", want, api.reqs[0].Body)
+			}
+		}
+		if strings.Contains(api.reqs[0].Body, `"bcc"`) {
+			t.Errorf("empty bcc must be omitted: %s", api.reqs[0].Body)
 		}
 	}
 }

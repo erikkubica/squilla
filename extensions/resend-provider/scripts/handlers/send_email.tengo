@@ -30,8 +30,10 @@ if is_undefined(provider) || provider == "" || provider == "resend-provider" {
         subject: payload.subject,
         html: payload.html
     }
-    if is_array(payload.cc) && len(payload.cc) > 0 { msg.cc = payload.cc }
-    if is_array(payload.bcc) && len(payload.bcc) > 0 { msg.bcc = payload.bcc }
+    // Kernel payload lists arrive as immutable arrays.
+    has_items := func(v) { return (is_array(v) || is_immutable_array(v)) && len(v) > 0 }
+    if has_items(payload.cc) { msg.cc = payload.cc }
+    if has_items(payload.bcc) { msg.bcc = payload.bcc }
     if is_string(payload.reply_to) && payload.reply_to != "" { msg.reply_to = payload.reply_to }
     body := string(json.encode(msg))
 

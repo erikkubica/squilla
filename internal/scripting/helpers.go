@@ -153,6 +153,14 @@ func normalizeForTengo(v interface{}) interface{} {
 			result[i] = normalizeForTengo(v)
 		}
 		return result
+	case []string:
+		// Event payloads carry []string (e.g. email.send to/cc/bcc);
+		// without this they reach scripts as undefined.
+		result := make([]interface{}, len(val))
+		for i, v := range val {
+			result[i] = v
+		}
+		return result
 	default:
 		return v
 	}
