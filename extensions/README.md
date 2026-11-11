@@ -1251,6 +1251,8 @@ if settings.provider == "resend-provider" {
 }
 ```
 
+`go test ./internal/scripting/` compiles every bundled `.tengo` file (`TestBundledTengoScriptsCompile`), so a syntax error in a Tengo-only extension fails the tests instead of surfacing in production.
+
 No Go binary, no admin UI of its own — just `extension.json` + Tengo. The provider injects its API-key form into the `email-settings` slot via the manifest's `slots` map.
 
 ---
