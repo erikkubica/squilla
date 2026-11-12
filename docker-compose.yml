@@ -2,8 +2,11 @@ services:
   app:
     image: squilla:local
     build: .
+    # LOCAL DEVELOPMENT ONLY — production deploys use coolify-compose.yml
+    # or starter/docker-compose.yml. Bound to loopback so a dev box on a
+    # shared network doesn't expose a development-mode CMS.
     ports:
-      - "8099:8099"
+      - "127.0.0.1:8099:8099"
     environment:
       PORT: "8099"
       APP_ENV: development
@@ -13,16 +16,17 @@ services:
       DB_PASSWORD: squilla_secret
       DB_NAME: squilla
       DB_SSLMODE: disable
-      SESSION_SECRET: change-me-to-a-random-64-char-string
       SESSION_EXPIRY_HOURS: "24"
       MONITOR_BEARER_TOKEN: change-me-to-a-random-token
       STORAGE_DRIVER: local
       STORAGE_PATH: /app/storage
-      # Dev defaults so smoke tests / local login keep working.
-      # In production (coolify-compose.yml) ADMIN_PASSWORD is unset, so
-      # a random one is generated and printed to logs on first boot.
+      # First-boot admin. Leave ADMIN_PASSWORD unset and a random password
+      # is generated and printed to the logs once. The smoke tests in
+      # cmd/squilla expect admin123: run `ADMIN_PASSWORD=admin123 docker
+      # compose up` on a fresh database for them. Never commit a password
+      # here — production config validation rejects admin123.
       ADMIN_EMAIL: admin@squilla.local
-      ADMIN_PASSWORD: admin123
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - ./storage:/app/storage
       # Persistent operator data — themes installed via git/zip/MCP and
@@ -37,8 +41,9 @@ services:
 
   db:
     image: postgres:16-alpine
+    # Loopback only: reachable from host tools (psql, IDE) but not the LAN.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: squilla
       POSTGRES_PASSWORD: squilla_secret

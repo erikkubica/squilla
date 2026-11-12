@@ -103,7 +103,9 @@ func isAllowedMimeType(mimeType string) bool {
 }
 
 // safeExtension returns a file extension derived from the MIME type when possible,
-// falling back to the original filename extension only if it's safe.
+// falling back to the original filename extension only when it is in
+// safeStoredExtensions. Active-content extensions (.html, .xhtml, .xml,
+// .js, …) are never returned; .svg only for image/svg+xml.
 func safeExtension(mimeType, originalName string) string {
 	// Map common MIME types to safe extensions.
 	mimeToExt := map[string]string{
@@ -111,28 +113,25 @@ func safeExtension(mimeType, originalName string) string {
 		"image/png":       ".png",
 		"image/gif":       ".gif",
 		"image/webp":      ".webp",
+		"image/avif":      ".avif",
 		"image/svg+xml":   ".svg",
 		"application/pdf": ".pdf",
 		"application/zip": ".zip",
 		"video/mp4":       ".mp4",
+		"video/webm":      ".webm",
 		"audio/mpeg":      ".mp3",
 		"text/plain":      ".txt",
 		"text/csv":        ".csv",
+		"text/markdown":   ".md",
 	}
-	if ext, ok := mimeToExt[mimeType]; ok {
+	if ext, ok := mimeToExt[baseMime(mimeType)]; ok {
 		return ext
 	}
-	// Fallback: use original extension only if alphanumeric.
 	ext := strings.ToLower(filepath.Ext(originalName))
-	if ext == "" {
-		return ".bin"
+	if safeStoredExtensions[ext] {
+		return ext
 	}
-	for _, ch := range ext[1:] { // skip the dot
-		if !((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')) {
-			return ".bin"
-		}
-	}
-	return ext
+	return ".bin"
 }
 
 // --- Public Image Cache Handler ---

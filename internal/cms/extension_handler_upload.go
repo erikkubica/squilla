@@ -63,6 +63,9 @@ func (h *ExtensionHandler) InstallFromZip(data []byte) (*models.Extension, error
 	if err != nil {
 		return nil, fmt.Errorf("invalid zip archive: %w", err)
 	}
+	if err := checkZipArchive(reader); err != nil {
+		return nil, err
+	}
 
 	manifest, manifestPrefix, err := findExtensionManifestInZip(reader)
 	if err != nil {
@@ -99,11 +102,18 @@ func (h *ExtensionHandler) InstallFromZip(data []byte) (*models.Extension, error
 		if p.Binary == "" {
 			continue
 		}
-		bin := filepath.Join(stagingDir, filepath.FromSlash(p.Binary))
-		if _, statErr := os.Stat(bin); statErr == nil {
-			if chmodErr := os.Chmod(bin, 0o755); chmodErr != nil {
-				log.Printf("[extensions] chmod %s: %v", bin, chmodErr)
+		// Confined: a manifest naming "../../usr/local/bin/x" (or a symlink
+		// in the archive) must not get chmod'd — or, later, exec'd.
+		bin, confErr := confinedFile(stagingDir, p.Binary)
+		if confErr != nil {
+			if !os.IsNotExist(confErr) {
+				_ = os.RemoveAll(stagingDir)
+				return nil, fmt.Errorf("plugin binary %q: %w", p.Binary, confErr)
 			}
+			continue
+		}
+		if chmodErr := os.Chmod(bin, 0o755); chmodErr != nil {
+			log.Printf("[extensions] chmod %s: %v", bin, chmodErr)
 		}
 	}
 
@@ -180,11 +190,12 @@ func findExtensionManifestInZip(r *zip.Reader) (*ExtensionManifest, string, erro
 
 // extractZipToDir writes every entry from r into destDir, stripping the given
 // archive-internal prefix and rejecting zip-slip attempts. Files are limited
-// to 256 MB each (zip-bomb cap shared with the theme installer).
+// to 256 MB each and 500 MB in total (caps shared with the theme installer).
 func extractZipToDir(r *zip.Reader, destDir, prefix string) error {
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return fmt.Errorf("create dest dir: %w", err)
 	}
+	budget := newZipBudget()
 	for _, zf := range r.File {
 		name := zf.Name
 		if prefix != "" {
@@ -214,7 +225,7 @@ func extractZipToDir(r *zip.Reader, destDir, prefix string) error {
 		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 			return fmt.Errorf("mkdir parent %s: %w", destPath, err)
 		}
-		if err := extractZipFile(zf, destPath); err != nil {
+		if err := extractZipFile(zf, destPath, budget); err != nil {
 			return fmt.Errorf("extract %s: %w", zf.Name, err)
 		}
 	}
@@ -248,7 +259,8 @@ func (h *ExtensionHandler) Upload(c *fiber.Ctx) error {
 
 	ext, err := h.InstallFromZip(buf.Bytes())
 	if err != nil {
-		return api.Error(c, fiber.StatusBadRequest, "INSTALL_FAILED", err.Error())
+		log.Printf("[extensions] zip install failed: %v", err)
+		return api.Error(c, fiber.StatusBadRequest, "INSTALL_FAILED", adminSafeError(err))
 	}
 	return api.Success(c, fiber.Map{"message": "Extension uploaded", "slug": ext.Slug, "extension": ext})
 }

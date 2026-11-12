@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	pb "squilla/pkg/plugin/coreapipb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 )
 
 // This file owns the proto<->Go converters used by the gRPC host
@@ -369,5 +371,13 @@ func grpcError(err error) error {
 			return status.Error(codes.Internal, apiErr.Message)
 		}
 	}
-	return status.Error(codes.Internal, err.Error())
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return status.Error(codes.NotFound, "not found")
+	}
+	// Anything else is an unclassified error from the kernel — typically
+	// a wrapped driver/GORM error carrying SQL fragments, table and
+	// column names. Plugins get a generic message; the detail stays in
+	// the server log.
+	log.Printf("[coreapi] grpc: internal error: %v", err)
+	return status.Error(codes.Internal, "internal error")
 }

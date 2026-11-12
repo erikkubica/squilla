@@ -194,7 +194,7 @@ func (e *Engine) GenerateLayout(pageSlug string, params map[string]string, userN
 	case "taxonomies":
 		layout = e.taxonomiesLayout(params)
 	case "node-list":
-		layout = e.nodeListLayout(params)
+		layout = e.nodeListLayout(params, user)
 	case "taxonomy-terms":
 		layout = e.taxonomyTermsLayout(params)
 	case "templates":
@@ -300,7 +300,9 @@ func (e *Engine) dashboardLayout(userName string, user *models.User) *LayoutNode
 			}
 			q = q.Where("node_type IN ?", sliceFromSet(readableTypes))
 		}
-		return q
+		// Types the role reads with scope "own" only count / list the
+		// viewer's own nodes — same rule nodeListLayout applies.
+		return ownScopeFilter(q, user)
 	}
 
 	var totalContent, published, drafts int64

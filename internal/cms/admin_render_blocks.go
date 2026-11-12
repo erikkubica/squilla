@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"squilla/internal/api"
-	"squilla/internal/auth"
 	"squilla/internal/models"
 )
 
@@ -48,12 +47,14 @@ func (h *PublicHandler) AdminRenderBlocks(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusBadRequest, "TOO_MANY_BLOCKS", "Too many blocks in one request")
 	}
 
+	// Same per-type access + "own" scope rules as GET /nodes/:id: the
+	// render exposes the node's fields through the page context.
+	if _, aerr := requireNodeAccess(c, h.db, id, false); aerr != nil {
+		return api.Error(c, aerr.Status, aerr.Code, aerr.Message)
+	}
 	var node models.ContentNode
 	if err := h.db.Where("id = ?", id).First(&node).Error; err != nil {
 		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Node not found")
-	}
-	if !auth.GetNodeAccess(auth.GetCurrentUser(c), node.NodeType).CanRead() {
-		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You cannot view this content")
 	}
 
 	blocks := body.Blocks

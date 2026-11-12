@@ -15,9 +15,9 @@ func TestCanonicalOrigin(t *testing.T) {
 		// Reject anything that isn't a usable absolute URL — caller falls
 		// back to the request-derived origin in those cases.
 		{"", ""},
-		{"example.com", ""},                  // no scheme
-		{"javascript:alert(1)", ""},          // wrong scheme
-		{"file:///etc/passwd", ""},           // wrong scheme
+		{"example.com", ""},         // no scheme
+		{"javascript:alert(1)", ""}, // wrong scheme
+		{"file:///etc/passwd", ""},  // wrong scheme
 		{"not a url", ""},
 	}
 	for _, tc := range cases {

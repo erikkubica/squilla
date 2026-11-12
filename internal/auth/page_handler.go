@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 	"time"
 
@@ -28,11 +29,11 @@ type PageAuthHandler struct {
 	// limiters cap the request volume from any one source; the lockout
 	// tracker freezes individual accounts after repeated failures so an
 	// attacker rotating IPs against one user still hits a wall.
-	loginLimiter   *PerIPLimiter
-	signupLimiter  *PerIPLimiter
-	forgotLimiter  *PerIPLimiter
-	resetLimiter   *PerIPLimiter
-	lockout        *LockoutTracker
+	loginLimiter  *PerIPLimiter
+	signupLimiter *PerIPLimiter
+	forgotLimiter *PerIPLimiter
+	resetLimiter  *PerIPLimiter
+	lockout       *LockoutTracker
 }
 
 // NewPageAuthHandler creates a new PageAuthHandler.
@@ -42,12 +43,30 @@ func NewPageAuthHandler(db *gorm.DB, sessionSvc *SessionService, eventBus *event
 		sessionSvc:    sessionSvc,
 		resetSvc:      NewPasswordResetService(db),
 		eventBus:      eventBus,
-		loginLimiter:  NewPerIPLimiter(10, time.Minute, 10),       // 10/min sustained, burst 10 — covers normal sign-in retries
-		signupLimiter: NewPerIPLimiter(3, time.Hour, 3),            // 3/hr — tight, registration is rare
-		forgotLimiter: NewPerIPLimiter(3, time.Hour, 3),            // 3/hr — even tighter; forgot-password is the leaking oracle
-		resetLimiter:  NewPerIPLimiter(10, time.Hour, 10),          // 10/hr — reset attempts may bounce around mistypes
-		lockout:       NewLockoutTracker(5, 15*time.Minute, 15*time.Minute),
+		loginLimiter:  NewPerIPLimiter(10, time.Minute, 10), // 10/min sustained, burst 10 — covers normal sign-in retries
+		signupLimiter: NewPerIPLimiter(3, time.Hour, 3),     // 3/hr — tight, registration is rare
+		forgotLimiter: NewPerIPLimiter(3, time.Hour, 3),     // 3/hr — even tighter; forgot-password is the leaking oracle
+		resetLimiter:  NewPerIPLimiter(10, time.Hour, 10),   // 10/hr — reset attempts may bounce around mistypes
+		lockout:       NewLoginLockout(),
 	}
+}
+
+// ShareLockout makes this handler count failures in the given tracker
+// (the JSON login's), so /auth/login and /auth/login-page draw from ONE
+// per-account budget.
+func (h *PageAuthHandler) ShareLockout(l *LockoutTracker) {
+	if l != nil {
+		h.lockout = l
+	}
+}
+
+// CleanIdle prunes idle rate-limiter and lockout entries.
+func (h *PageAuthHandler) CleanIdle() {
+	h.loginLimiter.CleanRefilled()
+	h.signupLimiter.CleanRefilled()
+	h.forgotLimiter.CleanRefilled()
+	h.resetLimiter.CleanRefilled()
+	h.lockout.CleanIdle()
 }
 
 // RegisterRoutes registers auth POST handlers and logout on the Fiber app.
@@ -103,7 +122,7 @@ func (h *PageAuthHandler) isLoggedIn(c *fiber.Ctx) bool {
 // registrationAllowed returns true when site_settings.allow_registration
 // is exactly "true". Default is closed: any other value (missing row,
 // "false", "0", "") returns false. Reads the language-agnostic row
-// (language_code='') — registration is a global capability, not a
+// (language_code=”) — registration is a global capability, not a
 // per-locale one.
 func registrationAllowed(db *gorm.DB) bool {
 	var value string
@@ -130,6 +149,45 @@ func defaultRegistrationRoleSlug(db *gorm.DB) string {
 	return "member"
 }
 
+// registrationRole resolves the role assigned to self-registered users.
+// The configured default_registration_role is honoured only when it
+// exists and does NOT grant admin_access (or the "*" wildcard) — a
+// misconfigured or tampered setting must never turn public sign-up into
+// admin enrolment. Anything else falls back to "member".
+func registrationRole(db *gorm.DB) (models.Role, error) {
+	slug := defaultRegistrationRoleSlug(db)
+	var role models.Role
+	if slug != "member" {
+		if err := db.Where("slug = ?", slug).First(&role).Error; err != nil {
+			log.Printf("default_registration_role=%q not found, falling back to member: %v", slug, err)
+		} else if roleGrantsAdmin(role) {
+			log.Printf("default_registration_role=%q grants admin access; refusing it for self-registration, falling back to member", slug)
+		} else {
+			return role, nil
+		}
+	}
+	role = models.Role{}
+	if err := db.Where("slug = ?", "member").First(&role).Error; err != nil {
+		return models.Role{}, err
+	}
+	if roleGrantsAdmin(role) {
+		return models.Role{}, fmt.Errorf("member role grants admin access; refusing self-registration")
+	}
+	return role, nil
+}
+
+// roleGrantsAdmin reports whether role can enter the admin shell or holds
+// the capability wildcard.
+func roleGrantsAdmin(role models.Role) bool {
+	caps := ParseCapabilities(role.Capabilities)
+	for _, k := range []string{"admin_access", "*"} {
+		if b, ok := caps[k].(bool); ok && b {
+			return true
+		}
+	}
+	return false
+}
+
 // --- POST handlers ---
 
 func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
@@ -138,11 +196,15 @@ func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
 		return c.Redirect("/login", fiber.StatusFound)
 	}
 
-	email := strings.TrimSpace(c.FormValue("email"))
+	email := canonicalEmail(c.FormValue("email"))
 	password := c.FormValue("password")
 
 	if email == "" || password == "" {
 		setFlash(c, "Email and password are required.", "error")
+		return c.Redirect("/login", fiber.StatusFound)
+	}
+	if authInputTooLong(email, password) {
+		setFlash(c, "Invalid email or password.", "error")
 		return c.Redirect("/login", fiber.StatusFound)
 	}
 
@@ -153,8 +215,8 @@ func (h *PageAuthHandler) ProcessLogin(c *fiber.Ctx) error {
 		return c.Redirect("/login", fiber.StatusFound)
 	}
 
-	var user models.User
-	if err := h.db.Preload("Role").Where("email = ?", email).First(&user).Error; err != nil {
+	user, err := findUserByEmail(h.db, email, true)
+	if err != nil {
 		// Record the failure even when the email doesn't exist — otherwise
 		// an attacker can probe by timing and lockout signal. Also burn
 		// an equivalent bcrypt comparison so the response time matches
@@ -224,12 +286,24 @@ func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
 	}
 
 	fullName := strings.TrimSpace(c.FormValue("full_name"))
-	email := strings.TrimSpace(c.FormValue("email"))
+	email := canonicalEmail(c.FormValue("email"))
 	password := c.FormValue("password")
 	passwordConfirm := c.FormValue("password_confirm")
 
 	if fullName == "" || email == "" || password == "" || passwordConfirm == "" {
 		setFlash(c, "All fields are required.", "error")
+		return c.Redirect("/register", fiber.StatusFound)
+	}
+	if authInputTooLong(email, password, passwordConfirm) {
+		setFlash(c, "Input too long.", "error")
+		return c.Redirect("/register", fiber.StatusFound)
+	}
+	if _, msg := validateProfileEmail(email); msg != "" {
+		setFlash(c, msg+".", "error")
+		return c.Redirect("/register", fiber.StatusFound)
+	}
+	if msg := validateNewPassword(password); msg != "" {
+		setFlash(c, msg+".", "error")
 		return c.Redirect("/register", fiber.StatusFound)
 	}
 
@@ -238,9 +312,13 @@ func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
 		return c.Redirect("/register", fiber.StatusFound)
 	}
 
-	var existing models.User
-	if err := h.db.Where("email = ?", email).First(&existing).Error; err == nil {
-		setFlash(c, "An account with this email already exists.", "error")
+	if taken, err := emailTaken(h.db, email, 0); err != nil || taken {
+		if err != nil {
+			log.Printf("check email taken: %v", err)
+			setFlash(c, "An unexpected error occurred.", "error")
+		} else {
+			setFlash(c, "An account with this email already exists.", "error")
+		}
 		return c.Redirect("/register", fiber.StatusFound)
 	}
 
@@ -255,21 +333,11 @@ func (h *PageAuthHandler) ProcessRegister(c *fiber.Ctx) error {
 	// site_settings.default_registration_role (Admin → Security → Settings).
 	// Falls back to "member" — minimum-privilege, no admin_access — when
 	// the setting is unset or points at a missing role.
-	roleSlug := defaultRegistrationRoleSlug(h.db)
-	var defaultRole models.Role
-	if err := h.db.Where("slug = ?", roleSlug).First(&defaultRole).Error; err != nil {
-		if roleSlug != "member" {
-			log.Printf("default_registration_role=%q not found, falling back to member: %v", roleSlug, err)
-			if err := h.db.Where("slug = ?", "member").First(&defaultRole).Error; err != nil {
-				log.Printf("failed to find member role: %v", err)
-				setFlash(c, "An unexpected error occurred.", "error")
-				return c.Redirect("/register", fiber.StatusFound)
-			}
-		} else {
-			log.Printf("failed to find member role: %v", err)
-			setFlash(c, "An unexpected error occurred.", "error")
-			return c.Redirect("/register", fiber.StatusFound)
-		}
+	defaultRole, err := registrationRole(h.db)
+	if err != nil {
+		log.Printf("registration role: %v", err)
+		setFlash(c, "An unexpected error occurred.", "error")
+		return c.Redirect("/register", fiber.StatusFound)
 	}
 
 	user := models.User{
@@ -348,7 +416,7 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 		return c.Redirect("/forgot-password", fiber.StatusFound)
 	}
 
-	email := strings.TrimSpace(c.FormValue("email"))
+	email := canonicalEmail(c.FormValue("email"))
 	if email == "" {
 		setFlash(c, "Email is required.", "error")
 		return c.Redirect("/forgot-password", fiber.StatusFound)
@@ -356,37 +424,22 @@ func (h *PageAuthHandler) ProcessForgotPassword(c *fiber.Ctx) error {
 
 	const successMsg = "If an account exists with that email, a reset link has been sent."
 
-	var user models.User
-	err := h.db.Where("email = ?", email).First(&user).Error
-	if err != nil {
-		// Don't leak whether the email exists. Same flash either way.
-		setFlash(c, successMsg, "success")
-		return c.Redirect("/forgot-password", fiber.StatusFound)
+	if !authInputTooLong(email) {
+		origin, _ := siteOriginFor(h.db, c)
+		startPasswordReset(passwordResetRequest{
+			db:        h.db,
+			resetSvc:  h.resetSvc,
+			bus:       h.eventBus,
+			email:     email,
+			origin:    origin,
+			resetPath: "/reset-password",
+			ip:        httpobs.ClientIP(c),
+			userAgent: c.Get("User-Agent"),
+		})
 	}
 
-	rawToken, expires, err := h.resetSvc.IssueToken(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
-	if err != nil {
-		log.Printf("issuing password reset token for user %d: %v", user.ID, err)
-		setFlash(c, successMsg, "success")
-		return c.Redirect("/forgot-password", fiber.StatusFound)
-	}
-
-	resetURL := buildResetURL(h.db, c, rawToken)
-
-	// Sync publish so the email-sending rule chain runs before we
-	// redirect — otherwise the user could refresh the success page
-	// and re-submit before the email is dispatched. Failure to
-	// dispatch isn't surfaced to the user (oracle).
-	h.eventBus.PublishSync("user.password_reset_requested", events.Payload{
-		"user_id":     user.ID,
-		"user_email":  user.Email,
-		"actor_email": user.Email,
-		"reset_url":   resetURL,
-		"reset_token": rawToken, // template variable; persisted in email log if logging is enabled
-		"expires_at":  expires.Format(time.RFC3339),
-		"ip_address":  httpobs.ClientIP(c),
-	})
-
+	// Same flash whether or not the account exists; the lookup, token and
+	// email dispatch run in the background so timing doesn't differ either.
 	setFlash(c, successMsg, "success")
 	return c.Redirect("/forgot-password", fiber.StatusFound)
 }
@@ -407,13 +460,23 @@ func (h *PageAuthHandler) ProcessResetPassword(c *fiber.Ctx) error {
 	password := c.FormValue("password")
 	passwordConfirm := c.FormValue("password_confirm")
 
+	if authInputTooLong("", token, password, passwordConfirm) {
+		setFlash(c, "This password reset link is invalid or has expired.", "error")
+		return c.Redirect("/forgot-password", fiber.StatusFound)
+	}
+	back := "/reset-password?token=" + url.QueryEscape(token)
 	if token == "" || password == "" || passwordConfirm == "" {
 		setFlash(c, "All fields are required.", "error")
-		return c.Redirect("/reset-password?token="+token, fiber.StatusFound)
+		return c.Redirect(back, fiber.StatusFound)
+	}
+	// Validate before consuming so a policy failure doesn't burn the link.
+	if msg := validateNewPassword(password); msg != "" {
+		setFlash(c, msg+".", "error")
+		return c.Redirect(back, fiber.StatusFound)
 	}
 	if password != passwordConfirm {
 		setFlash(c, "Passwords do not match.", "error")
-		return c.Redirect("/reset-password?token="+token, fiber.StatusFound)
+		return c.Redirect(back, fiber.StatusFound)
 	}
 
 	userID, err := h.resetSvc.VerifyAndConsume(token)
@@ -459,14 +522,6 @@ func (h *PageAuthHandler) ProcessResetPassword(c *fiber.Ctx) error {
 
 	setFlash(c, "Password reset successfully. Please log in.", "success")
 	return c.Redirect("/login", fiber.StatusFound)
-}
-
-// buildResetURL composes an absolute reset URL for the public theme
-// page. Origin is resolved by siteOriginFor (site_url setting
-// preferred, request Host as fallback). Falling back via the request
-// preserves dev-time correctness (no env config required).
-func buildResetURL(db *gorm.DB, c *fiber.Ctx, token string) string {
-	return fmt.Sprintf("%s/reset-password?token=%s", siteOriginFor(db, c), token)
 }
 
 func (h *PageAuthHandler) Logout(c *fiber.Ctx) error {

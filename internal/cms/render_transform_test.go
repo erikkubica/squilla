@@ -95,7 +95,12 @@ func TestTransformMarkers(t *testing.T) {
 }
 
 func TestTransformSubscriptionNeedsCapability(t *testing.T) {
-	if subscriptionAllowed(transformEvent, map[string]bool{}) || !subscriptionAllowed(transformEvent, map[string]bool{transformCapability: true}) {
+	sub := map[string]bool{subscribeCapability: true}
+	both := map[string]bool{subscribeCapability: true, transformCapability: true}
+	if ok, _ := subscriptionAllowed(transformEvent, sub); ok {
+		t.Error("render.transform needs the render:transform capability")
+	}
+	if ok, _ := subscriptionAllowed(transformEvent, both); !ok {
 		t.Error("render.transform needs the render:transform capability")
 	}
 	if !explicitOnlyEvent(transformEvent) {

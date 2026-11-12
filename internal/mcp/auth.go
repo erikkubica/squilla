@@ -26,6 +26,8 @@ func (s *Server) authMiddleware() fiber.Handler {
 			})
 		}
 
+		s.deps.TokenSvc.Touch(tok)
+
 		// Propagate via UserContext so it survives the Fiber→http adaptor boundary.
 		ctx := context.WithValue(c.UserContext(), ctxKeyToken, tok)
 		c.SetUserContext(ctx)

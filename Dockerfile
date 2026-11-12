@@ -10,15 +10,18 @@ FROM --platform=$BUILDPLATFORM node:20-alpine AS ext-frontend
 WORKDIR /app
 # Copy all extension admin-ui source at once
 COPY extensions/ /tmp/extensions/
-RUN for dir in /tmp/extensions/*/admin-ui; do \
+# Any failing extension UI build fails the image build — previously
+# `2>/dev/null` plus `;` shipped images with missing extension UIs.
+RUN set -eu; \
+    for dir in /tmp/extensions/*/admin-ui; do \
       [ -f "$dir/package.json" ] || continue; \
-      slug=$(basename $(dirname "$dir")); \
+      slug=$(basename "$(dirname "$dir")"); \
       echo "Building extension admin-ui: $slug"; \
       mkdir -p "/app/extensions/$slug/admin-ui"; \
       cp -r "$dir/." "/app/extensions/$slug/admin-ui/"; \
       cd "/app/extensions/$slug/admin-ui"; \
-      npm install --production=false 2>/dev/null; \
-      npm run build 2>/dev/null; \
+      npm install --production=false; \
+      npm run build || { echo "ERROR: extension admin-ui build failed: $slug" >&2; exit 1; }; \
       rm -rf node_modules src; \
     done
 
@@ -60,4 +63,9 @@ COPY --from=ext-frontend /app/extensions/ ./extensions/
 # at startup and every plugin-routed endpoint will 404.
 RUN ls -la extensions/*/bin/ 2>&1 | head -40
 EXPOSE 8099
+# Runs as root for now: existing deployments mount named volumes / host
+# directories (/app/storage, /app/data) created root-owned by earlier
+# images, and theme git clones, extension installs and plugin binaries all
+# write there at runtime. Switching to a non-root USER needs a migration
+# step (chown of the volumes) — see docs/security.md.
 CMD ["./squilla"]

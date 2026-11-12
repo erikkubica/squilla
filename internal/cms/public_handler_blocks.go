@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"squilla/internal/models"
+	"squilla/internal/rendering"
 )
 
 // This file owns the block-rendering side of the public handler:
@@ -47,91 +48,6 @@ func (h *PublicHandler) getBlockType(slug string) (models.BlockType, bool) {
 
 	bt, ok := blocks[slug]
 	return bt, ok
-}
-
-// renderBlocks renders each block's HTML template with its field values.
-func (h *PublicHandler) renderBlocks(blocks []map[string]interface{}, locale string) []string {
-	// Load theme settings once per call so the GetSettings round-trip
-	// happens exactly once, not once per block.
-	ts := h.loadThemeSettingsForRender(context.Background(), locale)
-
-	var rendered []string
-	for _, block := range blocks {
-		blockType, _ := block["type"].(string)
-		fields, _ := block["fields"].(map[string]interface{})
-		if fields == nil {
-			fields = block // fallback for old format
-		}
-
-		bt, ok := h.getBlockType(blockType)
-		if !ok || bt.HTMLTemplate == "" {
-			// Fallback: render raw JSON debug block
-			jsonBytes, _ := json.MarshalIndent(fields, "", "  ")
-			rendered = append(rendered, fmt.Sprintf(
-				`<div class="mb-8 bg-slate-50 rounded-xl p-6 border border-slate-200">
-					<div class="flex items-center gap-2 mb-3">
-						<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-200 text-slate-700">%s</span>
-						<span class="text-xs text-slate-400">No template defined</span>
-					</div>
-					<pre class="text-sm text-slate-600 overflow-x-auto bg-white rounded-lg p-4 border border-slate-200"><code>%s</code></pre>
-				</div>`, blockType, string(jsonBytes)))
-			continue
-		}
-
-		// Check for theme file override with caching
-		tmplContent := bt.HTMLTemplate
-		themeFile := fmt.Sprintf("themes/default/blocks/%s.html", blockType)
-
-		h.cacheMu.RLock()
-		cachedContent, hasCache := h.themeBlockCache[themeFile]
-		h.cacheMu.RUnlock()
-
-		if hasCache {
-			if cachedContent != "" {
-				tmplContent = cachedContent
-			}
-		} else {
-			if fileContent, err := os.ReadFile(themeFile); err == nil {
-				tmplContent = string(fileContent)
-				h.cacheMu.Lock()
-				h.themeBlockCache[themeFile] = tmplContent
-				h.cacheMu.Unlock()
-			} else {
-				h.cacheMu.Lock()
-				h.themeBlockCache[themeFile] = "" // Cache the miss
-				h.cacheMu.Unlock()
-			}
-		}
-
-		// Hydrate node references — resolve node selector fields to full node data
-		markRichTextFields(fields, bt.Fields)
-		h.hydrateTermFields(fields, bt.Fields)
-
-		// Use the new RenderParsed method for cached template execution
-		cacheKey := "block:" + blockType + ":" + tmplContent
-		var buf bytes.Buffer
-		err := h.renderer.RenderParsed(&buf, cacheKey, tmplContent, fields, mergeFuncMaps(template.FuncMap{
-			"safeHTML": func(s interface{}) template.HTML {
-				return template.HTML(fmt.Sprintf("%v", s))
-			},
-			"safeURL": func(s interface{}) template.URL {
-				return template.URL(fmt.Sprintf("%v", s))
-			},
-		}, themeSettingsFuncs(ts)))
-		if err != nil {
-			// Escape blockType and err — both can carry user input
-			// (slug from a malicious manifest, parser error echoing
-			// raw template source) into the public-facing response.
-			rendered = append(rendered, fmt.Sprintf(`<div class="mb-4 text-red-500 text-sm">Template error in %s: %s</div>`,
-				template.HTMLEscapeString(blockType),
-				template.HTMLEscapeString(err.Error()),
-			))
-			continue
-		}
-
-		rendered = append(rendered, buf.String())
-	}
-	return rendered
 }
 
 // renderBlocksBatch is the optimized version that performs batch node hydration.
@@ -288,16 +204,12 @@ func (h *PublicHandler) renderBlocksCollectTS(blocks []map[string]interface{}, l
 					err = fmt.Errorf("panic: %v", r)
 				}
 			}()
+			// Block views get the sanitising safeHTML/raw/safeURL: field
+			// values come from any role that can edit content.
 			err = h.renderer.RenderParsed(&buf, tmplCacheKey, tmplContent, fields, mergeFuncMaps(template.FuncMap{
 				"request": func() map[string]interface{} { return req },
 				"node":    func() map[string]interface{} { return current },
-				"safeHTML": func(s interface{}) template.HTML {
-					return template.HTML(fmt.Sprintf("%v", s))
-				},
-				"safeURL": func(s interface{}) template.URL {
-					return template.URL(fmt.Sprintf("%v", s))
-				},
-			}, themeSettingsFuncs(ts)))
+			}, rendering.BlockFuncOverrides(), themeSettingsFuncs(ts)))
 		}()
 		if err != nil {
 			// Don't silently drop the block — emit an HTML comment so the
@@ -305,11 +217,12 @@ func (h *PublicHandler) renderBlocksCollectTS(blocks []map[string]interface{}, l
 			// public visitor sees nothing (comments aren't rendered).
 			// Without this, a broken template helper produces a missing
 			// section that's invisible until you compare to the preview path.
+			// The error text (template source, field values) is logged
+			// only; the public page gets a generic marker.
 			log.Printf("WARN: block template render error [%s]: %v", blockType, err)
 			rendered = append(rendered, fmt.Sprintf(
-				"<!-- block error: %s — %s -->",
+				"<!-- block error: %s -->",
 				template.HTMLEscapeString(blockType),
-				template.HTMLEscapeString(err.Error()),
 			))
 			continue
 		}

@@ -49,9 +49,9 @@ func (p *MediaManagerPlugin) handleRestoreOriginal(ctx context.Context, id uint)
 
 	// Get original dimensions.
 	var newW, newH int
-	if img, _, decErr := image.Decode(bytes.NewReader(origData)); decErr == nil {
-		newW = img.Bounds().Dx()
-		newH = img.Bounds().Dy()
+	if cfg, _, decErr := image.DecodeConfig(bytes.NewReader(origData)); decErr == nil {
+		newW = cfg.Width
+		newH = cfg.Height
 	}
 
 	// Update the database record.
@@ -129,9 +129,9 @@ func (p *MediaManagerPlugin) handleReoptimize(ctx context.Context, id uint) (*pb
 
 	// Get original dimensions.
 	var origW, origH int
-	if img, _, decErr := image.Decode(bytes.NewReader(sourceData)); decErr == nil {
-		origW = img.Bounds().Dx()
-		origH = img.Bounds().Dy()
+	if cfg, _, decErr := image.DecodeConfig(bytes.NewReader(sourceData)); decErr == nil {
+		origW = cfg.Width
+		origH = cfg.Height
 	}
 
 	// Apply normalization with current settings.
@@ -163,9 +163,9 @@ func (p *MediaManagerPlugin) handleReoptimize(ctx context.Context, id uint) (*pb
 
 	// Get new dimensions.
 	var newW, newH int
-	if img, _, decErr := image.Decode(bytes.NewReader(finalBytes)); decErr == nil {
-		newW = img.Bounds().Dx()
-		newH = img.Bounds().Dy()
+	if cfg, _, decErr := image.DecodeConfig(bytes.NewReader(finalBytes)); decErr == nil {
+		newW = cfg.Width
+		newH = cfg.Height
 	}
 
 	// Update record. is_optimized is always true after a successful

@@ -5,7 +5,6 @@ import (
 
 	"squilla/internal/api"
 	"squilla/internal/httpobs"
-	"squilla/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -37,10 +36,28 @@ func NewAuthHandler(db *gorm.DB, sessionSvc *SessionService) *AuthHandler {
 		db:           db,
 		sessionSvc:   sessionSvc,
 		loginLimiter: NewPerIPLimiter(10, time.Minute, 10),
-		lockout:      NewLockoutTracker(5, 15*time.Minute, 15*time.Minute),
+		lockout:      NewLoginLockout(),
 
 		passwordLockout: NewLockoutTracker(5, 15*time.Minute, 15*time.Minute),
 	}
+}
+
+// NewLoginLockout returns the per-account lockout used by the login
+// endpoints: 5 failures within 15 minutes lock the account for 15 minutes.
+func NewLoginLockout() *LockoutTracker {
+	return NewLockoutTracker(5, 15*time.Minute, 15*time.Minute)
+}
+
+// LoginLockout exposes the account lockout so the form-based login
+// (PageAuthHandler) can share it — two independent trackers would double
+// an attacker's guess budget per account.
+func (h *AuthHandler) LoginLockout() *LockoutTracker { return h.lockout }
+
+// CleanIdle prunes idle rate-limiter and lockout entries.
+func (h *AuthHandler) CleanIdle() {
+	h.loginLimiter.CleanRefilled()
+	h.lockout.CleanIdle()
+	h.passwordLockout.CleanIdle()
 }
 
 // RegisterRoutes registers authentication routes under /auth and /me.
@@ -67,19 +84,25 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
 	}
 
+	req.Email = canonicalEmail(req.Email)
 	if req.Email == "" || req.Password == "" {
 		return api.ValidationError(c, map[string]string{
 			"email":    "Email is required",
 			"password": "Password is required",
 		})
 	}
+	// Size caps before any lockout/DB work: the lockout map is keyed by
+	// this attacker-supplied string.
+	if authInputTooLong(req.Email, req.Password) {
+		return api.Error(c, fiber.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid email or password")
+	}
 
 	if h.lockout.IsLocked(req.Email) {
 		return api.Error(c, fiber.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid email or password")
 	}
 
-	var user models.User
-	if err := h.db.Preload("Role").Where("email = ?", req.Email).First(&user).Error; err != nil {
+	user, err := findUserByEmail(h.db, req.Email, true)
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			// Burn an equivalent bcrypt comparison so the response
 			// time matches the user-found path. Without this, an
@@ -98,8 +121,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	h.lockout.RecordSuccess(req.Email)
 
-	token, err := h.sessionSvc.CreateSession(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
-	if err != nil {
+	token, sessErr := h.sessionSvc.CreateSession(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
+	if sessErr != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create session")
 	}
 

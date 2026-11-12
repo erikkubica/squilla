@@ -1,6 +1,8 @@
 package cms
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"os"
@@ -8,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -16,6 +19,7 @@ import (
 	"squilla/internal/auth"
 	"squilla/internal/models"
 	"squilla/internal/rendering"
+	"squilla/internal/sanitize"
 )
 
 // activeThemeChrome extracts the <head> inner HTML and the <body class="...">
@@ -128,7 +132,9 @@ func (h *BlockTypeHandler) resolveTestDataOne(bt *models.BlockType) {
 }
 
 // RegisterRoutes registers all block type routes on the provided router group.
-// Reads + preview are open to authenticated users; mutations require manage_layouts.
+// Reads + preview are open to authenticated users (previewing raw template
+// source checks manage_layouts inside the handler); mutations require
+// manage_layouts.
 func (h *BlockTypeHandler) RegisterRoutes(router fiber.Router) {
 	router.Get("/block-types", h.List)
 	router.Post("/block-types/preview", h.PreviewBlockTemplate)
@@ -279,46 +285,113 @@ func (h *BlockTypeHandler) Update(c *fiber.Ctx) error {
 	return api.Success(c, updated)
 }
 
+// Preview limits. Template execution can't be interrupted from outside,
+// so the writer and the seq helper check the deadline and abort the
+// render once it passes; the output cap bounds memory.
+const (
+	previewTimeout   = 5 * time.Second
+	previewMaxOutput = 2 << 20 // 2 MiB
+)
+
+var errPreviewLimit = errors.New("preview exceeded its time or output limit")
+
+// previewWriter caps output and aborts writes after the deadline.
+type previewWriter struct {
+	buf      strings.Builder
+	max      int
+	deadline time.Time
+}
+
+func (w *previewWriter) Write(p []byte) (int, error) {
+	if time.Now().After(w.deadline) || w.buf.Len()+len(p) > w.max {
+		return 0, errPreviewLimit
+	}
+	return w.buf.Write(p)
+}
+
 // PreviewBlockTemplate renders a block template with test data for live preview.
+//
+// Raw template source (`html_template`) is executed with the renderer's
+// full FuncMap, so it requires manage_layouts — the same capability that
+// can save a block template. Any admin user may preview a stored block
+// type by `block_type_id`. A request with neither returns only the
+// active theme's chrome (head + body class), which the forms preview
+// uses around its own server-rendered HTML.
 func (h *BlockTypeHandler) PreviewBlockTemplate(c *fiber.Ctx) error {
 	var req struct {
 		HTMLTemplate string                 `json:"html_template"`
 		TestData     map[string]interface{} `json:"test_data"`
+		BlockTypeID  int                    `json:"block_type_id"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
+	if req.HTMLTemplate != "" {
+		if !auth.HasCapability(auth.GetCurrentUser(c), "manage_layouts") {
+			return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "Previewing template source requires the manage_layouts capability")
+		}
+	} else if req.BlockTypeID > 0 {
+		bt, err := h.svc.GetByID(req.BlockTypeID)
+		if err != nil {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Block type not found")
+		}
+		req.HTMLTemplate = bt.HTMLTemplate
+		if req.TestData == nil && len(bt.TestData) > 0 {
+			h.resolveTestDataOne(bt)
+			_ = json.Unmarshal(bt.TestData, &req.TestData)
+		}
+	}
+
+	head, bodyClass := h.activeThemeChrome()
 	if req.HTMLTemplate == "" {
-		return c.JSON(fiber.Map{"html": ""})
+		return c.JSON(fiber.Map{"html": "", "head": head, "body_class": bodyClass})
 	}
 
 	if req.TestData == nil {
 		req.TestData = make(map[string]interface{})
 	}
 
-	// Mark any values containing HTML tags as template.HTML to prevent escaping
+	// Values containing markup are treated like richtext fields on the
+	// live site: sanitised, then marked as HTML so they aren't escaped.
 	for k, v := range req.TestData {
 		if s, ok := v.(string); ok && strings.Contains(s, "<") {
-			req.TestData[k] = template.HTML(s)
+			req.TestData[k] = template.HTML(sanitize.RichText(s))
 		}
 	}
 
-	funcs := template.FuncMap{
-		"safeHTML": func(s interface{}) template.HTML {
-			return template.HTML(fmt.Sprintf("%v", s))
-		},
-		"raw": func(s interface{}) template.HTML {
-			return template.HTML(fmt.Sprintf("%v", s))
-		},
-		"safeURL": func(s interface{}) template.URL {
-			return template.URL(fmt.Sprintf("%v", s))
-		},
+	html, err := h.executePreview(req.HTMLTemplate, req.TestData)
+	if err != nil {
+		label := "Render Error"
+		if errors.Is(err, errPreviewParse) {
+			label = "Template Error"
+		}
+		return c.JSON(fiber.Map{"html": fmt.Sprintf("<div class=\"text-red-500 text-sm p-3 bg-red-50 rounded-lg border border-red-200\"><strong>%s:</strong> %s</div>", label, template.HTMLEscapeString(err.Error()))})
+	}
+
+	return c.JSON(fiber.Map{"html": html, "head": head, "body_class": bodyClass})
+}
+
+var errPreviewParse = errors.New("template parse error")
+
+// executePreview parses and runs a preview template under the preview
+// limits, with the same block-view helpers the public renderer uses
+// (sanitising safeHTML/raw/safeURL).
+func (h *BlockTypeHandler) executePreview(src string, data map[string]interface{}) (string, error) {
+	deadline := time.Now().Add(previewTimeout)
+	funcs := rendering.BlockFuncOverrides()
+	// seq is the one helper that can make a template loop without
+	// writing; it checks the deadline so a runaway loop stops.
+	funcs["seq"] = func(v interface{}) ([]int, error) {
+		if time.Now().After(deadline) {
+			return nil, errPreviewLimit
+		}
+		return rendering.Seq(v), nil
 	}
 	// Inherit the live renderer's helpers (image_url, image_srcset, add,
-	// sub, seq, setting, mustSetting, list, mod, trim, …) so previewing a
+	// sub, setting, mustSetting, list, mod, trim, …) so previewing a
 	// block template behaves the same as the public render. Local entries
-	// above stay (safeHTML/raw/safeURL are preview-specific).
+	// above stay.
 	if h.renderer != nil {
 		for name, fn := range h.renderer.FuncMap() {
 			if _, taken := funcs[name]; !taken {
@@ -333,18 +406,34 @@ func (h *BlockTypeHandler) PreviewBlockTemplate(c *fiber.Ctx) error {
 			}
 		}
 	}
-	tmpl, err := template.New("preview").Funcs(funcs).Parse(req.HTMLTemplate)
+	tmpl, err := template.New("preview").Funcs(funcs).Parse(src)
 	if err != nil {
-		return c.JSON(fiber.Map{"html": fmt.Sprintf("<div class=\"text-red-500 text-sm p-3 bg-red-50 rounded-lg border border-red-200\"><strong>Template Error:</strong> %s</div>", template.HTMLEscapeString(err.Error()))})
+		return "", fmt.Errorf("%w: %s", errPreviewParse, err.Error())
 	}
 
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, req.TestData); err != nil {
-		return c.JSON(fiber.Map{"html": fmt.Sprintf("<div class=\"text-red-500 text-sm p-3 bg-red-50 rounded-lg border border-red-200\"><strong>Render Error:</strong> %s</div>", template.HTMLEscapeString(err.Error()))})
+	w := &previewWriter{max: previewMaxOutput, deadline: deadline}
+	done := make(chan error, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				done <- fmt.Errorf("panic: %v", r)
+			}
+		}()
+		done <- tmpl.Execute(w, data)
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			if errors.Is(err, errPreviewLimit) {
+				return "", errPreviewLimit
+			}
+			return "", err
+		}
+		return w.buf.String(), nil
+	case <-time.After(previewTimeout + time.Second):
+		// The goroutine stops at its next write or seq call.
+		return "", errPreviewLimit
 	}
-
-	head, bodyClass := h.activeThemeChrome()
-	return c.JSON(fiber.Map{"html": buf.String(), "head": head, "body_class": bodyClass})
 }
 
 // Delete handles DELETE /block-types/:id to remove a block type.

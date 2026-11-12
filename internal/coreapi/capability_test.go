@@ -324,7 +324,10 @@ func guardCases() []guardCase {
 		{"RegisterTaxonomy", "nodetypes:write", func(ctx context.Context, a CoreAPI) error { _, e := a.RegisterTaxonomy(ctx, TaxonomyInput{}); return e }},
 		{"GetTaxonomy", "nodetypes:read", func(ctx context.Context, a CoreAPI) error { _, e := a.GetTaxonomy(ctx, ""); return e }},
 		{"ListTaxonomies", "nodetypes:read", func(ctx context.Context, a CoreAPI) error { _, e := a.ListTaxonomies(ctx); return e }},
-		{"UpdateTaxonomy", "nodetypes:write", func(ctx context.Context, a CoreAPI) error { _, e := a.UpdateTaxonomy(ctx, "", TaxonomyInput{}); return e }},
+		{"UpdateTaxonomy", "nodetypes:write", func(ctx context.Context, a CoreAPI) error {
+			_, e := a.UpdateTaxonomy(ctx, "", TaxonomyInput{})
+			return e
+		}},
 		{"DeleteTaxonomy", "nodetypes:write", func(ctx context.Context, a CoreAPI) error { return a.DeleteTaxonomy(ctx, "") }},
 		{"ListTerms", "nodes:read", func(ctx context.Context, a CoreAPI) error { _, e := a.ListTerms(ctx, "", ""); return e }},
 		{"GetTerm", "nodes:read", func(ctx context.Context, a CoreAPI) error { _, e := a.GetTerm(ctx, 1); return e }},
@@ -382,7 +385,10 @@ func guardCases() []guardCase {
 		// the data:read/write/delete capability. DataExec has no
 		// table arg and stays internal-only.
 		{"DataGet", "data:read", func(ctx context.Context, a CoreAPI) error { _, e := a.DataGet(ctx, "test_table", 1); return e }},
-		{"DataQuery", "data:read", func(ctx context.Context, a CoreAPI) error { _, e := a.DataQuery(ctx, "test_table", DataStoreQuery{}); return e }},
+		{"DataQuery", "data:read", func(ctx context.Context, a CoreAPI) error {
+			_, e := a.DataQuery(ctx, "test_table", DataStoreQuery{})
+			return e
+		}},
 		{"DataCreate", "data:write", func(ctx context.Context, a CoreAPI) error { _, e := a.DataCreate(ctx, "test_table", nil); return e }},
 		{"DataUpdate", "data:write", func(ctx context.Context, a CoreAPI) error { return a.DataUpdate(ctx, "test_table", 1, nil) }},
 		{"DataDelete", "data:delete", func(ctx context.Context, a CoreAPI) error { return a.DataDelete(ctx, "test_table", 1) }},
@@ -393,7 +399,10 @@ func guardCases() []guardCase {
 		{"RegisterNodeType", "nodetypes:write", func(ctx context.Context, a CoreAPI) error { _, e := a.RegisterNodeType(ctx, NodeTypeInput{}); return e }},
 		{"GetNodeType", "nodetypes:read", func(ctx context.Context, a CoreAPI) error { _, e := a.GetNodeType(ctx, ""); return e }},
 		{"ListNodeTypes", "nodetypes:read", func(ctx context.Context, a CoreAPI) error { _, e := a.ListNodeTypes(ctx); return e }},
-		{"UpdateNodeType", "nodetypes:write", func(ctx context.Context, a CoreAPI) error { _, e := a.UpdateNodeType(ctx, "", NodeTypeInput{}); return e }},
+		{"UpdateNodeType", "nodetypes:write", func(ctx context.Context, a CoreAPI) error {
+			_, e := a.UpdateNodeType(ctx, "", NodeTypeInput{})
+			return e
+		}},
 		{"DeleteNodeType", "nodetypes:write", func(ctx context.Context, a CoreAPI) error { return a.DeleteNodeType(ctx, "") }},
 
 		// File Storage.
@@ -480,19 +489,101 @@ func TestCapabilityGuard_InternalCallerBypassesAll(t *testing.T) {
 	}
 }
 
-// TestCapabilityGuard_MissingContextDefaultsToInternal documents (and
-// pins) the fail-OPEN behavior of CallerFromContext when no caller is
-// attached. This is a known footgun (see core_dev_guide §1.4) and the
-// test exists so a future refactor that flips it to fail-closed is a
-// deliberate, reviewed change rather than a silent regression.
-func TestCapabilityGuard_MissingContextDefaultsToInternal(t *testing.T) {
+// TestCapabilityGuard_MissingContextFailsClosed pins the deliberate flip
+// from fail-open: a guarded call with no CallerInfo in its context is a
+// wiring bug and must be denied, not run with internal trust. The
+// unguarded CallerFromContext keeps its internal default for kernel code.
+func TestCapabilityGuard_MissingContextFailsClosed(t *testing.T) {
 	stub := &stubCoreAPI{}
 	guarded := NewCapabilityGuard(stub)
-	if _, err := guarded.GetNode(context.Background(), 1); err != nil {
-		t.Fatalf("expected pass-through for missing-caller context, got %v", err)
+	if _, err := guarded.GetNode(context.Background(), 1); err == nil || !isCapabilityErr(err) {
+		t.Fatalf("expected capability denial for missing-caller context, got %v", err)
 	}
-	if len(stub.calls) != 1 {
-		t.Fatalf("expected inner GetNode call, got %v", stub.calls)
+	if len(stub.calls) != 0 {
+		t.Fatalf("inner must not be called, got %v", stub.calls)
+	}
+	if CallerFromContext(context.Background()).Type != "internal" {
+		t.Fatal("unguarded CallerFromContext must keep its internal default")
+	}
+}
+
+type settingsStub struct {
+	stubCoreAPI
+	all map[string]string
+}
+
+// GetSettings mimics coreImpl: prefix-filtered, keys returned trimmed.
+func (s *settingsStub) GetSettings(_ context.Context, prefix string) (map[string]string, error) {
+	out := map[string]string{}
+	for k, v := range s.all {
+		if strings.HasPrefix(k, prefix) {
+			out[k[len(prefix):]] = v
+		}
+	}
+	return out, nil
+}
+
+// TestCapabilityGuard_SettingsNamespace: settings:write must not reach the
+// plugin pin namespace, and settings:read must not return another
+// extension's secrets (single-key or bulk).
+func TestCapabilityGuard_SettingsNamespace(t *testing.T) {
+	stub := &settingsStub{all: map[string]string{
+		"site_name":                       "Site",
+		"plugin.forms.forms.sha256":       "abc",
+		"ext.smtp-provider.smtp_password": "p",
+		"ext.forms.api_key":               "mine",
+		"email_resend_api_key":            "k",
+	}}
+	g := NewCapabilityGuard(stub)
+	ctx := WithCaller(context.Background(), CallerInfo{Slug: "forms", Type: "grpc",
+		Capabilities: map[string]bool{"settings:read": true, "settings:write": true}})
+
+	if err := g.SetSetting(ctx, "plugin.forms.forms.sha256", "evil"); !isCapabilityErr(err) {
+		t.Fatalf("writing a plugin pin must be denied, got %v", err)
+	}
+	if err := g.SetSettingLoc(ctx, "PLUGIN.x.y.sha256", "en", "evil"); !isCapabilityErr(err) {
+		t.Fatalf("pin namespace is case-insensitive, got %v", err)
+	}
+	if _, err := g.GetSetting(ctx, "plugin.forms.forms.sha256"); !isCapabilityErr(err) {
+		t.Fatalf("reading a plugin pin must be denied, got %v", err)
+	}
+	if _, err := g.GetSetting(ctx, "ext.smtp-provider.smtp_password"); !isCapabilityErr(err) {
+		t.Fatalf("reading a foreign secret must be denied, got %v", err)
+	}
+	if _, err := g.GetSettingLoc(ctx, "email_resend_api_key", "en"); !isCapabilityErr(err) {
+		t.Fatalf("reading a kernel secret must be denied, got %v", err)
+	}
+	if _, err := g.GetSetting(ctx, "ext.forms.api_key"); err != nil {
+		t.Fatalf("own secret must stay readable, got %v", err)
+	}
+	if _, err := g.GetSetting(ctx, "site_name"); err != nil {
+		t.Fatalf("ordinary keys stay readable, got %v", err)
+	}
+	if err := g.SetSetting(ctx, "site_tagline", "x"); err != nil {
+		t.Fatalf("ordinary writes stay allowed, got %v", err)
+	}
+	all, err := g.GetSettings(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(all) != 2 || all["site_name"] != "Site" || all["ext.forms.api_key"] != "mine" {
+		t.Fatalf("bulk read must drop pins and foreign secrets, got %v", all)
+	}
+
+	// Prefix reads are matched on the full key, not the trimmed one.
+	if pins, _ := g.GetSettings(ctx, "plugin."); len(pins) != 0 {
+		t.Fatalf("prefix read of the pin namespace leaked %v", pins)
+	}
+	if own, _ := g.GetSettings(ctx, "ext.forms."); own["api_key"] != "mine" {
+		t.Fatalf("own namespace via prefix read: got %v", own)
+	}
+	if foreign, _ := g.GetSettings(ctx, "ext.smtp-provider."); len(foreign) != 0 {
+		t.Fatalf("foreign secrets via prefix read leaked %v", foreign)
+	}
+
+	internal, _ := NewCapabilityGuard(stub).GetSettings(WithCaller(context.Background(), InternalCaller()), "")
+	if len(internal) != len(stub.all) {
+		t.Fatalf("internal callers see everything, got %v", internal)
 	}
 }
 

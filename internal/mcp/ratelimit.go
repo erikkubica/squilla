@@ -32,6 +32,7 @@ type perTokenLimiter struct {
 	mu       sync.Mutex
 	limiters map[int]*rate.Limiter
 	rps      rate.Limit
+	rpm      int
 	burst    int
 }
 
@@ -39,8 +40,15 @@ func newPerTokenLimiter(reqPerMinute int, burst int) *perTokenLimiter {
 	return &perTokenLimiter{
 		limiters: make(map[int]*rate.Limiter),
 		rps:      rate.Limit(float64(reqPerMinute) / 60.0),
+		rpm:      reqPerMinute,
 		burst:    burst,
 	}
+}
+
+// describe renders the configured limit for the rate_limited error so the
+// message always matches what the limiter actually enforces.
+func (p *perTokenLimiter) describe() string {
+	return strconv.Itoa(p.rpm) + " req/min per token (burst " + strconv.Itoa(p.burst) + ")"
 }
 
 func (p *perTokenLimiter) allow(tokenID int) bool {

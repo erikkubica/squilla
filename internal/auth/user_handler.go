@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"log"
 	"strconv"
 	"strings"
 
@@ -192,11 +193,19 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	})
 }
 
-// GetUser returns a single user by ID.
+// GetUser returns a single user by ID. Requires manage_users, except for
+// reading one's own record.
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return api.Error(c, fiber.StatusBadRequest, "BAD_REQUEST", "Invalid user ID")
+	}
+	currentUser := GetCurrentUser(c)
+	if currentUser == nil {
+		return api.Error(c, fiber.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
+	}
+	if currentUser.ID != id && !HasCapability(currentUser, "manage_users") {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "Insufficient permissions")
 	}
 
 	var user models.User
@@ -210,7 +219,17 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	return api.Success(c, toUserResponse(user))
 }
 
-// CreateUser creates a new user. Requires manage_users capability.
+// loadRole fetches a role by id; ok=false when it does not exist.
+func (h *UserHandler) loadRole(id int) (models.Role, bool) {
+	var role models.Role
+	if err := h.db.First(&role, id).Error; err != nil {
+		return models.Role{}, false
+	}
+	return role, true
+}
+
+// CreateUser creates a new user. Requires manage_users capability, and the
+// assigned role may not exceed the caller's own capabilities.
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	currentUser := GetCurrentUser(c)
 	if !HasCapability(currentUser, "manage_users") {
@@ -223,20 +242,19 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	}
 
 	fields := make(map[string]string)
-	if req.Email == "" {
-		fields["email"] = "Email is required"
+	email, msg := validateProfileEmail(req.Email)
+	if msg != "" {
+		fields["email"] = msg
 	}
 	if req.Password == "" {
 		fields["password"] = "Password is required"
+	} else if msg := validateNewPassword(req.Password); msg != "" {
+		fields["password"] = msg
 	}
 	if len(fields) > 0 {
 		return api.ValidationError(c, fields)
 	}
-
-	hashedPassword, err := HashPassword(req.Password)
-	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to hash password")
-	}
+	email = canonicalEmail(email)
 
 	roleID := req.RoleID
 	if roleID == 0 {
@@ -245,12 +263,31 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 			roleID = editorRole.ID
 		}
 	}
+	role, ok := h.loadRole(roleID)
+	if !ok {
+		return api.ValidationError(c, map[string]string{"role_id": "Unknown role"})
+	}
+	if !canAssignRole(currentUser, role) {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You cannot assign a role with capabilities you do not have")
+	}
 
+	if taken, err := emailTaken(h.db, email, 0); err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create user")
+	} else if taken {
+		return api.Error(c, fiber.StatusConflict, "CONFLICT", "A user with this email already exists")
+	}
+
+	hashedPassword, err := HashPassword(req.Password)
+	if err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to hash password")
+	}
+
+	fullName := strings.TrimSpace(req.FullName)
 	user := models.User{
-		Email:        req.Email,
+		Email:        email,
 		PasswordHash: string(hashedPassword),
-		FullName:     &req.FullName,
-		RoleID:       roleID,
+		FullName:     &fullName,
+		RoleID:       role.ID,
 	}
 
 	if err := h.db.Create(&user).Error; err != nil {
@@ -270,6 +307,12 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 }
 
 // UpdateUser updates an existing user.
+//
+// Self-service changes of email and password are refused here: they
+// belong to PATCH /me and POST /me/password, which require the current
+// password, apply the policy and revoke other sessions. A manage_users
+// caller may only touch accounts whose current role is within their own
+// capabilities, and only assign such roles.
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
@@ -281,12 +324,14 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
 	}
 
-	if !HasCapability(currentUser, "manage_users") && currentUser.ID != id {
+	isSelf := currentUser.ID == id
+	canManage := HasCapability(currentUser, "manage_users")
+	if !canManage && !isSelf {
 		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You can only update your own profile")
 	}
 
 	var user models.User
-	if err := h.db.First(&user, id).Error; err != nil {
+	if err := h.db.Preload("Role").First(&user, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "User not found")
 		}
@@ -298,28 +343,73 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
 	}
 
+	if isSelf {
+		if req.Password != nil {
+			return api.Error(c, fiber.StatusForbidden, "USE_ME_ENDPOINT", "Change your own password via POST /me/password")
+		}
+		if req.Email != nil && canonicalEmail(*req.Email) != canonicalEmail(user.Email) {
+			return api.Error(c, fiber.StatusForbidden, "USE_ME_ENDPOINT", "Change your own email via PATCH /me")
+		}
+	}
+
+	// Sensitive changes to another account require that account's role to
+	// be within the caller's own privileges — otherwise manage_users could
+	// reset an administrator's password or email and take the account over.
+	sensitive := !isSelf && (req.Password != nil || req.Email != nil || (req.RoleID != nil && *req.RoleID != user.RoleID))
+	if sensitive && !canAssignRole(currentUser, user.Role) {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You cannot modify a user whose role has capabilities you do not have")
+	}
+
 	updates := make(map[string]interface{})
+	fields := make(map[string]string)
+	emailChanged := false
 
 	if req.Email != nil {
-		updates["email"] = *req.Email
+		email, msg := validateProfileEmail(*req.Email)
+		if msg != "" {
+			fields["email"] = msg
+		} else if email = canonicalEmail(email); email != canonicalEmail(user.Email) {
+			if taken, err := emailTaken(h.db, email, user.ID); err != nil {
+				return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update user")
+			} else if taken {
+				return api.Error(c, fiber.StatusConflict, "CONFLICT", "A user with this email already exists")
+			}
+			updates["email"] = email
+			emailChanged = true
+		}
 	}
 	if req.FullName != nil {
-		updates["full_name"] = *req.FullName
+		updates["full_name"] = strings.TrimSpace(*req.FullName)
+	}
+	if req.Password != nil {
+		if msg := validateNewPassword(*req.Password); msg != "" {
+			fields["password"] = msg
+		}
+	}
+	if len(fields) > 0 {
+		return api.ValidationError(c, fields)
 	}
 	// The admin form always submits the current role; an unchanged role is a
 	// no-op, not a role change.
 	if req.RoleID != nil && *req.RoleID != user.RoleID {
-		if !HasCapability(currentUser, "manage_users") {
+		if !canManage {
 			return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "Only admins can change user roles")
 		}
 		// Self-promotion guard: a user with manage_users could otherwise
 		// PATCH /users/<their_id> {"role_id": <admin_id>} to grant
 		// themselves admin. Always require an outside actor for role
 		// elevation (or demotion — same path).
-		if currentUser.ID == id {
+		if isSelf {
 			return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You cannot change your own role")
 		}
-		updates["role_id"] = *req.RoleID
+		role, ok := h.loadRole(*req.RoleID)
+		if !ok {
+			return api.ValidationError(c, map[string]string{"role_id": "Unknown role"})
+		}
+		if !canAssignRole(currentUser, role) {
+			return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You cannot assign a role with capabilities you do not have")
+		}
+		updates["role_id"] = role.ID
 	}
 	if req.Password != nil {
 		hashedPassword, err := HashPassword(*req.Password)
@@ -333,8 +423,22 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusBadRequest, "BAD_REQUEST", "No fields to update")
 	}
 
-	if err := h.db.Model(&user).Updates(updates).Error; err != nil {
+	if err := h.db.Model(&models.User{}).Where("id = ?", user.ID).Updates(updates).Error; err != nil {
 		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update user")
+	}
+
+	// A password set by someone else signs the account out everywhere and
+	// voids outstanding reset links; an email change voids reset links
+	// that were mailed to the old address.
+	if req.Password != nil {
+		if err := h.db.Where("user_id = ?", user.ID).Delete(&models.Session{}).Error; err != nil {
+			log.Printf("revoke sessions after admin password change user=%d: %v", user.ID, err)
+		}
+	}
+	if req.Password != nil || emailChanged {
+		if err := NewPasswordResetService(h.db).InvalidateAllForUser(user.ID); err != nil {
+			log.Printf("invalidate reset tokens user=%d: %v", user.ID, err)
+		}
 	}
 
 	h.db.Preload("Role").First(&user, id)
@@ -365,6 +469,19 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	// of the very session this request is running under.
 	if currentUser != nil && currentUser.ID == id {
 		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You cannot delete your own account")
+	}
+
+	// Same privilege boundary as updates: manage_users can't delete an
+	// account more privileged than the caller.
+	var target models.User
+	if err := h.db.Preload("Role").First(&target, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "User not found")
+		}
+		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "Failed to delete user")
+	}
+	if !canAssignRole(currentUser, target.Role) {
+		return api.Error(c, fiber.StatusForbidden, "FORBIDDEN", "You cannot delete a user whose role has capabilities you do not have")
 	}
 
 	result := h.db.Delete(&models.User{}, id)

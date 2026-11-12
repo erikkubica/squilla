@@ -352,17 +352,8 @@ func NewTemplateRenderer(templateDir string, isDev bool) *TemplateRenderer {
 			return items
 		},
 		// seq accepts any number — JSON field values arrive as float64.
-		"seq": func(v interface{}) []int {
-			n := toInt(v)
-			if n <= 0 {
-				return nil
-			}
-			out := make([]int, n)
-			for i := range out {
-				out[i] = i
-			}
-			return out
-		},
+		// Capped at MaxSeq so a field value can't allocate gigabytes.
+		"seq": Seq,
 		// image_url returns template.URL (already-trusted) so Go's
 		// html/template URL sanitiser does NOT rewrite unknown-scheme
 		// strings to "#ZgotmplZ". theme-asset: / extension-asset: URIs are

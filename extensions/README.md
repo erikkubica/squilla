@@ -960,7 +960,7 @@ core.media.upload_finalize { upload_token, sha256? }
 The PUT route (`/api/uploads/<token>`) is unauthenticated — the unguessable
 64-char token in the URL is the entire access-control story (single-use,
 ~15 min TTL, bound to the issuing user). Bytes stream straight to
-`data/pending/<token>.bin` while computing SHA-256. See
+`data/pending/<sha256(token)>.bin` while computing SHA-256. See
 `docs/extension_api.md` §9 for the full client contract and
 `docs/security.md` §12 for the threat model. Caps are env-tunable via
 `SQUILLA_MEDIA_MAX_MB`. The same shape applies to theme/extension deploys

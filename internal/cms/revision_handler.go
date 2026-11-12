@@ -18,8 +18,8 @@ import (
 // (anyone editing nodes already has access to this data); restore is
 // gated on the same capability as a regular node update.
 type RevisionHandler struct {
-	db          *gorm.DB
-	contentSvc  *ContentService
+	db         *gorm.DB
+	contentSvc *ContentService
 }
 
 // NewRevisionHandler creates a RevisionHandler.
@@ -64,6 +64,10 @@ func (h *RevisionHandler) List(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Invalid node id")
 	}
 
+	if _, aerr := requireNodeAccess(c, h.db, id, false); aerr != nil {
+		return api.Error(c, aerr.Status, aerr.Code, aerr.Message)
+	}
+
 	// Pull just the columns we surface to the editor and resolve the
 	// creator separately so the query stays robust if migration 0041
 	// hasn't widened content_node_revisions yet on a partially-upgraded
@@ -92,7 +96,7 @@ func (h *RevisionHandler) List(c *fiber.Ctx) error {
 	creators := map[int]creator{}
 	if len(creatorIDs) > 0 {
 		var rows []creator
-		_ = h.db.Table("users").Select("id, name, email").Where("id IN ?", creatorIDs).Find(&rows).Error
+		_ = h.db.Table("users").Select("id, full_name AS name, email").Where("id IN ?", creatorIDs).Find(&rows).Error
 		for _, r := range rows {
 			creators[r.ID] = r
 		}
@@ -132,6 +136,9 @@ func (h *RevisionHandler) Get(c *fiber.Ctx) error {
 	if err != nil || revID <= 0 {
 		return api.Error(c, fiber.StatusBadRequest, "INVALID_REVISION_ID", "Invalid revision id")
 	}
+	if _, aerr := requireNodeAccess(c, h.db, nodeID, false); aerr != nil {
+		return api.Error(c, aerr.Status, aerr.Code, aerr.Message)
+	}
 
 	var rev models.ContentNodeRevision
 	if err := h.db.
@@ -154,6 +161,9 @@ func (h *RevisionHandler) Restore(c *fiber.Ctx) error {
 	revID, err := strconv.ParseInt(c.Params("revisionID"), 10, 64)
 	if err != nil || revID <= 0 {
 		return api.Error(c, fiber.StatusBadRequest, "INVALID_REVISION_ID", "Invalid revision id")
+	}
+	if _, aerr := requireNodeAccess(c, h.db, nodeID, true); aerr != nil {
+		return api.Error(c, aerr.Status, aerr.Code, aerr.Message)
 	}
 
 	var rev models.ContentNodeRevision
@@ -181,13 +191,17 @@ func (h *RevisionHandler) Restore(c *fiber.Ctx) error {
 		updates["slug"] = rev.Slug
 	}
 
+	// The session middleware stores the *models.User under "user"; the
+	// old c.Locals("user_id") lookup was never set, so every restore was
+	// attributed to user 0.
 	userID := 0
-	if u, ok := c.Locals("user_id").(int); ok {
-		userID = u
+	if u := auth.GetCurrentUser(c); u != nil {
+		userID = u.ID
 	}
 	node, err := h.contentSvc.Update(nodeID, updates, userID)
 	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "RESTORE_FAILED", err.Error())
+		log.Printf("ERROR restore revision %d onto node %d: %v", rev.ID, nodeID, err)
+		return api.Error(c, fiber.StatusInternalServerError, "RESTORE_FAILED", "Failed to restore revision")
 	}
 	return api.Success(c, fiber.Map{
 		"node":          node,

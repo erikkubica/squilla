@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -21,6 +22,14 @@ type Handler struct {
 }
 
 func NewHandler(store *Store) *Handler { return &Handler{store: store} }
+
+// writeInternalErr logs err and returns a generic 500. The PUT route is
+// unauthenticated (the token is the auth), so filesystem paths and DB
+// driver messages must never reach the response body.
+func writeInternalErr(w http.ResponseWriter, op string, err error) {
+	log.Printf("uploads: %s: %v", op, err)
+	writeJSONErr(w, http.StatusInternalServerError, "internal error")
+}
 
 func writeJSONErr(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
@@ -55,7 +64,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			writeJSONErr(w, http.StatusNotFound, "unknown token")
 			return
 		}
-		writeJSONErr(w, http.StatusInternalServerError, err.Error())
+		writeInternalErr(w, "lookup", err)
 		return
 	}
 	if err := h.store.ValidateForPUT(row); err != nil {
@@ -65,7 +74,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrAlreadyUploaded), errors.Is(err, ErrAlreadyFinalized):
 			writeJSONErr(w, http.StatusConflict, err.Error())
 		default:
-			writeJSONErr(w, http.StatusBadRequest, err.Error())
+			writeJSONErr(w, http.StatusBadRequest, "upload not accepted")
 		}
 		return
 	}
@@ -79,7 +88,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			writeJSONErr(w, http.StatusConflict, "upload in progress")
 			return
 		}
-		writeJSONErr(w, http.StatusInternalServerError, openErr.Error())
+		writeInternalErr(w, "open temp file", openErr)
 		return
 	}
 	cleanup := func() {
@@ -92,7 +101,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	written, copyErr := io.Copy(io.MultiWriter(f, hasher), limited)
 	if copyErr != nil {
 		cleanup()
-		writeJSONErr(w, http.StatusInternalServerError, copyErr.Error())
+		writeInternalErr(w, "write body", copyErr)
 		return
 	}
 	if written > row.MaxBytes {
@@ -102,12 +111,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := f.Sync(); err != nil {
 		cleanup()
-		writeJSONErr(w, http.StatusInternalServerError, err.Error())
+		writeInternalErr(w, "sync temp file", err)
 		return
 	}
 	if err := f.Close(); err != nil {
 		_ = os.Remove(tempPath)
-		writeJSONErr(w, http.StatusInternalServerError, err.Error())
+		writeInternalErr(w, "close temp file", err)
 		return
 	}
 
@@ -120,7 +129,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrAlreadyUploaded), errors.Is(err, ErrAlreadyFinalized):
 			writeJSONErr(w, http.StatusConflict, err.Error())
 		default:
-			writeJSONErr(w, http.StatusInternalServerError, err.Error())
+			writeInternalErr(w, "mark uploaded", err)
 		}
 		return
 	}

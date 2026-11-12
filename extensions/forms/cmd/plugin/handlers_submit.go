@@ -94,9 +94,25 @@ func (p *FormsPlugin) handleSubmit(ctx context.Context, slug string, req *pb.Plu
 			fieldsByID[id] = f
 		}
 	}
+	// Files are kept only for real file fields; anything posted under an
+	// unknown or non-file field name is dropped, never stored.
 	filesByField := make(map[string][]uploadedFile)
 	for _, pf := range pendingFiles {
+		fd, ok := fieldsByID[pf.FieldName]
+		if !ok {
+			continue
+		}
+		if t, _ := fd["type"].(string); t != "file" {
+			continue
+		}
 		filesByField[pf.FieldName] = append(filesByField[pf.FieldName], pf)
+	}
+	// File-field values are set from stored files below; a value posted
+	// for a file field (e.g. a JSON object with url/name) is discarded.
+	for id, fd := range fieldsByID {
+		if t, _ := fd["type"].(string); t == "file" {
+			delete(submissionData, id)
+		}
 	}
 
 	fieldErrors := validateSubmission(submissionData, fields, filesByField)
@@ -117,7 +133,8 @@ func (p *FormsPlugin) handleSubmit(ctx context.Context, slug string, req *pb.Plu
 			for _, f := range files {
 				meta, err := p.storeFile(ctx, formID, f)
 				if err != nil {
-					return jsonError(500, "STORE_FAILED", "file storage error: "+err.Error()), nil
+					p.host.Log(ctx, "error", "forms: store uploaded file: "+err.Error(), map[string]any{"form_id": formID})
+					return jsonError(500, "STORE_FAILED", "Could not save the uploaded file"), nil
 				}
 				arr = append(arr, meta)
 			}
@@ -125,7 +142,8 @@ func (p *FormsPlugin) handleSubmit(ctx context.Context, slug string, req *pb.Plu
 		} else {
 			meta, err := p.storeFile(ctx, formID, files[0])
 			if err != nil {
-				return jsonError(500, "STORE_FAILED", "file storage error: "+err.Error()), nil
+				p.host.Log(ctx, "error", "forms: store uploaded file: "+err.Error(), map[string]any{"form_id": formID})
+				return jsonError(500, "STORE_FAILED", "Could not save the uploaded file"), nil
 			}
 			submissionData[fieldName] = meta
 		}
@@ -155,7 +173,8 @@ func (p *FormsPlugin) handleSubmit(ctx context.Context, slug string, req *pb.Plu
 
 	created, err := p.host.DataCreate(ctx, submissionsTable, submission)
 	if err != nil {
-		return jsonError(500, "STORE_FAILED", err.Error()), nil
+		p.host.Log(ctx, "error", "forms: store submission: "+err.Error(), map[string]any{"form_id": formID})
+		return jsonError(500, "STORE_FAILED", "Could not save the submission"), nil
 	}
 
 	// Extract new submission ID

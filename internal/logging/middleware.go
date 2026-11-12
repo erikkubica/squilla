@@ -59,7 +59,7 @@ func remoteIP(c *fiber.Ctx) string {
 // context can do `ctx = logging.WithRequestID(c.Context(), rid)`.
 func RequestID() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		rid := c.Get(RequestIDHeader)
+		rid := sanitizeRequestID(c.Get(RequestIDHeader))
 		if rid == "" {
 			rid = newRequestID()
 		}
@@ -86,6 +86,31 @@ func RequestID() fiber.Handler {
 		Default().Info("http_request", attrs...)
 		return err
 	}
+}
+
+// maxRequestIDLen bounds a client-supplied X-Request-ID. Long enough for
+// UUIDs, W3C trace ids and the usual proxy formats.
+const maxRequestIDLen = 128
+
+// sanitizeRequestID returns raw when it is a short token made only of
+// [A-Za-z0-9._:-] characters, else "" so the caller mints a fresh id. The
+// value is echoed into response headers and every log line, so control
+// characters, quotes and oversized values are refused outright rather than
+// escaped.
+func sanitizeRequestID(raw string) string {
+	if raw == "" || len(raw) > maxRequestIDLen {
+		return ""
+	}
+	for i := 0; i < len(raw); i++ {
+		ch := raw[i]
+		switch {
+		case ch >= 'a' && ch <= 'z', ch >= 'A' && ch <= 'Z', ch >= '0' && ch <= '9':
+		case ch == '-' || ch == '_' || ch == '.' || ch == ':':
+		default:
+			return ""
+		}
+	}
+	return raw
 }
 
 // RequestIDFromFiber returns the request ID stored by the RequestID

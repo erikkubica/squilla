@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"squilla/internal/cms"
 	"squilla/internal/coreapi"
@@ -32,18 +31,11 @@ type ScriptEngine struct {
 	themeDir   string // path to active theme root
 	scriptsDir string // themeDir + "/scripts"
 
-	// activeScriptsDir is set during LoadThemeScripts/LoadExtensionScripts
-	// and used by registration functions to set baseDir on handlers.
-	activeScriptsDir string
-
-	// activeSlug tracks the current extension/theme slug being loaded
-	activeSlug string
-
-	// activeCapabilities tracks the capability set for the current loader
-	// scope. Set by LoadThemeScripts (defaultThemeCapabilities) and
-	// LoadExtensionScripts (manifest-declared). Sub-scripts (request
-	// handlers, filter handlers, etc.) inherit this set.
-	activeCapabilities map[string]bool
+	// loadMu serializes Load*/Unload* so two components never load (or
+	// unload) at once. The registration scope itself is a per-load
+	// *loadScope captured by the callbacks handed to the entry script,
+	// never engine-wide state.
+	loadMu sync.Mutex
 
 	// busUnsubs holds the UnsubscribeFunc returned by every event-bus
 	// Subscribe call we've made. Call them on Unload so reloads don't
@@ -112,25 +104,89 @@ func (e *ScriptEngine) isBaseDirActive(baseDir string) bool {
 	return e.activeBaseDirs[baseDir]
 }
 
-// scriptCallbacks returns a ScriptCallbacks that wires into the engine's
-// registration methods (EventsOn, FiltersAdd, HTTPRegister).
-func (e *ScriptEngine) scriptCallbacks() *coreapi.ScriptCallbacks {
+// loadScope is the registration scope of one LoadThemeScripts /
+// LoadExtensionScripts call: every route, filter and event handler the
+// entry script registers is stamped with this slug, scripts dir and
+// capability set. It is closed when the entry script returns so a VM that
+// outlived its deadline can't register later.
+type loadScope struct {
+	slug       string
+	scriptsDir string
+	caps       map[string]bool
+
+	mu     sync.Mutex
+	closed bool
+}
+
+func (s *loadScope) close() {
+	s.mu.Lock()
+	s.closed = true
+	s.mu.Unlock()
+}
+
+func (s *loadScope) isClosed() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.closed
+}
+
+// scriptCallbacks returns the registration callbacks for one load scope.
+// Handler scripts executed later (runScript) get nil callbacks instead, so
+// they can't register anything.
+func (e *ScriptEngine) scriptCallbacks(scope *loadScope) *coreapi.ScriptCallbacks {
 	return &coreapi.ScriptCallbacks{
-		OnEvent:     e.EventsOn,
-		OnFilter:    e.FiltersAdd,
-		OnRoute:     e.HTTPRegister,
-		OnWellKnown: e.WellKnownRegister,
+		OnEvent: func(name, scriptPath string, priority int) error {
+			return e.eventsOn(scope, name, scriptPath, priority)
+		},
+		OnFilter: func(name, scriptPath string, priority int) error {
+			return e.filtersAdd(scope, name, scriptPath, priority)
+		},
+		OnRoute: func(method, path, scriptPath string) error {
+			return e.httpRegister(scope, method, path, scriptPath)
+		},
+		OnWellKnown: func(path, scriptPath string) error {
+			return e.wellKnownRegister(scope, path, scriptPath)
+		},
 	}
+}
+
+// runEntryScript executes an entry script (theme.tengo / extension.tengo)
+// under scope, then closes the scope.
+func (e *ScriptEngine) runEntryScript(scope *loadScope, src []byte) error {
+	defer scope.close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), scriptTimeout)
+	defer cancel()
+
+	script := tengo.NewScript(src)
+	caller := coreapi.CallerInfo{Slug: scope.slug, Type: "tengo", Capabilities: scope.caps}
+	script.SetImports(coreapi.BuildTengoModulesContext(ctx, e.coreAPI, caller, nil, scope.scriptsDir, e.scriptCallbacks(scope), e.themeSettingsRegistry))
+	// Expose the dev-mode flag so seeds can branch to overwrite-on-reseed
+	// instead of skip-if-exists. Production stays safe (false); operators
+	// opt in via SQUILLA_DEV_MODE=true for autonomous AI dev/test loops.
+	if err := script.Add("dev_mode", devMode()); err != nil {
+		return fmt.Errorf("seeding dev_mode: %w", err)
+	}
+	script.SetMaxAllocs(scriptMaxAllocs)
+
+	_, err := runWithDeadline(ctx, script)
+	return err
 }
 
 // LoadThemeScripts loads and executes the theme's entry script (scripts/theme.tengo).
 // This populates event handler and HTTP route registrations.
 // Returns nil if no scripts directory or entry script exists (scripts are optional).
 func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
-	e.themeDir = themeDir
-	e.scriptsDir = filepath.Join(themeDir, "scripts")
+	e.loadMu.Lock()
+	defer e.loadMu.Unlock()
 
-	entryScript := filepath.Join(e.scriptsDir, "theme.tengo")
+	scriptsDir := filepath.Join(themeDir, "scripts")
+	e.mu.Lock()
+	e.themeDir = themeDir
+	e.scriptsDir = scriptsDir
+	e.mu.Unlock()
+
+	entryScript := filepath.Join(scriptsDir, "theme.tengo")
 
 	// Check if scripts directory and entry script exist
 	if _, err := os.Stat(entryScript); os.IsNotExist(err) {
@@ -138,53 +194,28 @@ func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
 		return nil
 	}
 
-	src, err := os.ReadFile(entryScript)
+	src, err := readScriptSource(scriptsDir, "theme.tengo")
 	if err != nil {
 		return fmt.Errorf("reading theme.tengo: %w", err)
 	}
 
-	log.Printf("[script] loading theme scripts from %s", e.scriptsDir)
+	log.Printf("[script] loading theme scripts from %s", scriptsDir)
 
-	// Set activeScriptsDir so registration functions capture it on handlers.
-	e.activeScriptsDir = e.scriptsDir
-	e.activeSlug = "theme"
-	e.activeCapabilities = defaultThemeCapabilities()
-
-	// Compile and execute the entry script.
 	// Themes are first-party, operator-installed code, but we still apply
 	// defense-in-depth: themes get the standard "trusted theme" capability
 	// set — read access to content/structure, write access for setup/seeding,
 	// no raw data store access. The capability guard wired in main.go
 	// enforces this against the CoreAPI.
-	script := tengo.NewScript(src)
-	caller := coreapi.CallerInfo{Slug: "theme", Type: "tengo", Capabilities: e.activeCapabilities}
-	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, nil, e.scriptsDir, e.scriptCallbacks(), e.themeSettingsRegistry))
-	// Expose the dev-mode flag so seeds can branch to overwrite-on-reseed
-	// instead of skip-if-exists. Production stays safe (false); operators
-	// opt in via SQUILLA_DEV_MODE=true for autonomous AI dev/test loops.
-	if err := script.Add("dev_mode", devMode()); err != nil {
-		return fmt.Errorf("seeding dev_mode: %w", err)
-	}
-
-	// Set a max execution time for safety
-	script.SetMaxAllocs(50000)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	_, err = script.RunContext(ctx)
-	if err != nil {
-		e.activeScriptsDir = ""
-		e.activeSlug = ""
-		e.activeCapabilities = nil
+	scope := &loadScope{slug: "theme", scriptsDir: scriptsDir, caps: defaultThemeCapabilities()}
+	if err := e.runEntryScript(scope, src); err != nil {
+		e.deactivateBaseDir(scriptsDir)
 		return fmt.Errorf("executing theme.tengo: %w", err)
 	}
 
-	e.activeScriptsDir = ""
-	e.activeSlug = ""
-	e.activeCapabilities = nil
-
-	// Wire event handlers to the EventBus
+	// Mark live, then wire event handlers to the EventBus.
+	e.mu.Lock()
+	e.activeBaseDirs[scriptsDir] = true
+	e.mu.Unlock()
 	e.subscribeEventHandlers()
 
 	e.mu.RLock()
@@ -198,10 +229,6 @@ func (e *ScriptEngine) LoadThemeScripts(themeDir string) error {
 	}
 	numRoutes := len(e.httpRoutes)
 	e.mu.RUnlock()
-
-	e.mu.Lock()
-	e.activeBaseDirs[e.scriptsDir] = true
-	e.mu.Unlock()
 
 	log.Printf("[script] theme scripts loaded: %d event handlers, %d filters, %d HTTP routes", numEvents, numFilters, numRoutes)
 
@@ -217,29 +244,36 @@ func (e *ScriptEngine) MountHTTPRoutes(app *fiber.App) {
 // runScript compiles and executes a Tengo script file with the given context variables.
 // Script path is relative to the scripts/ directory (without .tengo extension).
 // slug + capabilities define the caller that the CoreAPI capability guard
-// will see — must be the slug/caps captured when the handler was registered
-// (NOT the engine's current activeSlug/activeCapabilities, which are only
-// valid during the entry-script load phase).
+// will see — must be the slug/caps captured when the handler was registered.
+// Handler scripts get no registration callbacks: routes.register,
+// filters.add, events.on etc. return an error at runtime.
 // renderCtx is the optional template render context (for cms/routing module); pass nil if not in a render.
 // baseDir is the script directory for module resolution.
 // Returns the value of the "response" variable after execution.
 func (e *ScriptEngine) runScript(scriptPath, slug string, capabilities map[string]bool, baseDir string, vars map[string]interface{}, renderCtx interface{}) (interface{}, error) {
 	scriptsDir := baseDir
 	if scriptsDir == "" {
+		e.mu.RLock()
 		scriptsDir = e.scriptsDir
+		e.mu.RUnlock()
 	}
 
-	fullPath := filepath.Join(scriptsDir, scriptPath+".tengo")
-
-	src, err := os.ReadFile(fullPath)
+	rel, err := normalizeScriptPath(scriptPath)
+	if err != nil {
+		return nil, err
+	}
+	src, err := readScriptSource(scriptsDir, rel+".tengo")
 	if err != nil {
 		return nil, fmt.Errorf("script not found: %s: %w", scriptPath, err)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), scriptTimeout)
+	defer cancel()
+
 	script := tengo.NewScript(src)
 	caller := coreapi.CallerInfo{Slug: slug, Type: "tengo", Capabilities: capabilities}
-	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, renderCtx, scriptsDir, e.scriptCallbacks(), e.themeSettingsRegistry))
-	script.SetMaxAllocs(50000)
+	script.SetImports(coreapi.BuildTengoModulesContext(ctx, e.coreAPI, caller, renderCtx, scriptsDir, nil, e.themeSettingsRegistry))
+	script.SetMaxAllocs(scriptMaxAllocs)
 
 	// Inject context variables — convert to Tengo objects first to handle
 	// types that Tengo's FromInterface can't auto-convert (e.g. map[string]string).
@@ -253,10 +287,7 @@ func (e *ScriptEngine) runScript(scriptPath, slug string, capabilities map[strin
 	// Add response placeholder
 	_ = script.Add("response", nil)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	compiled, err := script.RunContext(ctx)
+	compiled, err := runWithDeadline(ctx, script)
 	if err != nil {
 		return nil, fmt.Errorf("script execution error (%s): %w", scriptPath, err)
 	}
@@ -280,6 +311,9 @@ func (e *ScriptEngine) runScript(scriptPath, slug string, capabilities map[strin
 // capabilities is the set of permissions declared in the extension manifest.
 // Returns nil if no scripts directory or entry script exists.
 func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string, capabilities ...map[string]bool) error {
+	e.loadMu.Lock()
+	defer e.loadMu.Unlock()
+
 	extScriptsDir := filepath.Join(extDir, "scripts")
 	entryScript := filepath.Join(extScriptsDir, "extension.tengo")
 
@@ -288,7 +322,7 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string, capabili
 		return nil
 	}
 
-	src, err := os.ReadFile(entryScript)
+	src, err := readScriptSource(extScriptsDir, "extension.tengo")
 	if err != nil {
 		return fmt.Errorf("reading extension.tengo for %s: %w", slug, err)
 	}
@@ -300,36 +334,11 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string, capabili
 		caps = capabilities[0]
 	}
 
-	// Set active loader scope so registration functions capture it on handlers.
-	e.activeScriptsDir = extScriptsDir
-	e.activeSlug = slug
-	e.activeCapabilities = caps
-
-	caller := coreapi.CallerInfo{Slug: slug, Type: "tengo", Capabilities: caps}
-	script := tengo.NewScript(src)
-	script.SetImports(coreapi.BuildTengoModules(e.coreAPI, caller, nil, extScriptsDir, e.scriptCallbacks(), e.themeSettingsRegistry))
-	if err := script.Add("dev_mode", devMode()); err != nil {
-		return fmt.Errorf("seeding dev_mode: %w", err)
-	}
-	script.SetMaxAllocs(50000)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	_, err = script.RunContext(ctx)
-	if err != nil {
-		e.activeScriptsDir = ""
-		e.activeSlug = ""
-		e.activeCapabilities = nil
+	scope := &loadScope{slug: slug, scriptsDir: extScriptsDir, caps: caps}
+	if err := e.runEntryScript(scope, src); err != nil {
+		e.deactivateBaseDir(extScriptsDir)
 		return fmt.Errorf("executing extension.tengo for %s: %w", slug, err)
 	}
-
-	e.activeScriptsDir = ""
-	e.activeSlug = ""
-	e.activeCapabilities = nil
-
-	// Wire any new event handlers to the EventBus
-	e.subscribeEventHandlers()
 
 	// Mark this baseDir live so the route-gating closure lets requests
 	// through. Without this, routes registered via routes.register would
@@ -338,68 +347,67 @@ func (e *ScriptEngine) LoadExtensionScripts(extDir string, slug string, capabili
 	e.activeBaseDirs[extScriptsDir] = true
 	e.mu.Unlock()
 
+	// Wire any new event handlers to the EventBus
+	e.subscribeEventHandlers()
+
 	log.Printf("[script] extension %s scripts loaded", slug)
 	return nil
 }
 
-// UnloadExtensionScripts removes all event, filter, HTTP route, and
-// .well-known registrations contributed by an extension. Fiber doesn't
-// support runtime route unmounting, so the route entries themselves are
-// dropped from the engine's slice AND the baseDir is marked inactive —
-// the makeHTTPHandler closure consults the active set on every request
-// and 404s when its baseDir was deactivated.
-func (e *ScriptEngine) UnloadExtensionScripts(extDir string, slug string) {
-	extScriptsDir := filepath.Join(extDir, "scripts")
-
+// deactivateBaseDir drops every event, filter, HTTP route and .well-known
+// registration contributed from baseDir, marks it inactive, and rebuilds
+// the event-bus subscriptions so unloaded handlers stop receiving events.
+// Fiber doesn't support runtime route unmounting: mounted routes stay, but
+// the makeHTTPHandler closure 404s once baseDir is inactive.
+func (e *ScriptEngine) deactivateBaseDir(baseDir string) {
 	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	// Remove event handlers from this extension
 	for name, handlers := range e.eventHandlers {
 		filtered := make([]scriptHandler, 0, len(handlers))
 		for _, h := range handlers {
-			if h.baseDir != extScriptsDir {
+			if h.baseDir != baseDir {
 				filtered = append(filtered, h)
 			}
 		}
 		e.eventHandlers[name] = filtered
 	}
-
-	// Remove filter handlers from this extension
 	for name, handlers := range e.filterHandlers {
 		filtered := make([]scriptHandler, 0, len(handlers))
 		for _, h := range handlers {
-			if h.baseDir != extScriptsDir {
+			if h.baseDir != baseDir {
 				filtered = append(filtered, h)
 			}
 		}
 		e.filterHandlers[name] = filtered
 	}
-
-	// Drop HTTP route entries so a future MountRoutes (e.g. on next
-	// restart) doesn't re-register them. Mounted routes on the running
-	// Fiber app stay — the active-baseDir gate below handles them.
 	filteredRoutes := make([]httpRoute, 0, len(e.httpRoutes))
 	for _, r := range e.httpRoutes {
-		if r.baseDir != extScriptsDir {
+		if r.baseDir != baseDir {
 			filteredRoutes = append(filteredRoutes, r)
 		}
 	}
 	e.httpRoutes = filteredRoutes
-
-	// Same for .well-known.
 	filteredWellKnown := make([]wellKnownRoute, 0, len(e.wellKnown))
 	for _, r := range e.wellKnown {
-		if r.baseDir != extScriptsDir {
+		if r.baseDir != baseDir {
 			filteredWellKnown = append(filteredWellKnown, r)
 		}
 	}
 	e.wellKnown = filteredWellKnown
+	delete(e.activeBaseDirs, baseDir)
+	e.mu.Unlock()
 
-	// Mark inactive — this is what actually disables in-flight Fiber
-	// routes that were mounted before deactivation.
-	delete(e.activeBaseDirs, extScriptsDir)
+	e.subscribeEventHandlers()
+}
 
+// UnloadExtensionScripts removes all event, filter, HTTP route, and
+// .well-known registrations contributed by an extension, drops its
+// event-bus subscriptions, and marks its baseDir inactive (which is what
+// disables already-mounted Fiber routes).
+func (e *ScriptEngine) UnloadExtensionScripts(extDir string, slug string) {
+	e.loadMu.Lock()
+	defer e.loadMu.Unlock()
+
+	e.deactivateBaseDir(filepath.Join(extDir, "scripts"))
 	log.Printf("[script] extension %s scripts unloaded", slug)
 }
 
@@ -407,58 +415,18 @@ func (e *ScriptEngine) UnloadExtensionScripts(extDir string, slug string) {
 // routes that were registered by the currently loaded theme's theme.tengo.
 // Call this before loading a new theme so stale handlers don't leak.
 func (e *ScriptEngine) UnloadThemeScripts() {
-	e.mu.Lock()
-	defer e.mu.Unlock()
+	e.loadMu.Lock()
+	defer e.loadMu.Unlock()
 
+	e.mu.Lock()
 	scriptsDir := e.scriptsDir
+	e.themeDir = ""
+	e.scriptsDir = ""
+	e.mu.Unlock()
 	if scriptsDir == "" {
 		return
 	}
 
-	// Remove event handlers from the theme
-	for name, handlers := range e.eventHandlers {
-		filtered := make([]scriptHandler, 0, len(handlers))
-		for _, h := range handlers {
-			if h.baseDir != scriptsDir {
-				filtered = append(filtered, h)
-			}
-		}
-		e.eventHandlers[name] = filtered
-	}
-
-	// Remove filter handlers from the theme
-	for name, handlers := range e.filterHandlers {
-		filtered := make([]scriptHandler, 0, len(handlers))
-		for _, h := range handlers {
-			if h.baseDir != scriptsDir {
-				filtered = append(filtered, h)
-			}
-		}
-		e.filterHandlers[name] = filtered
-	}
-
-	// Remove HTTP routes from the theme
-	filteredRoutes := make([]httpRoute, 0, len(e.httpRoutes))
-	for _, r := range e.httpRoutes {
-		if r.baseDir != scriptsDir {
-			filteredRoutes = append(filteredRoutes, r)
-		}
-	}
-	e.httpRoutes = filteredRoutes
-
-	// Same for .well-known so a theme switch doesn't leave stale handlers.
-	filteredWellKnown := make([]wellKnownRoute, 0, len(e.wellKnown))
-	for _, r := range e.wellKnown {
-		if r.baseDir != scriptsDir {
-			filteredWellKnown = append(filteredWellKnown, r)
-		}
-	}
-	e.wellKnown = filteredWellKnown
-
-	delete(e.activeBaseDirs, scriptsDir)
-
-	e.themeDir = ""
-	e.scriptsDir = ""
-
+	e.deactivateBaseDir(scriptsDir)
 	log.Printf("[script] theme scripts unloaded")
 }

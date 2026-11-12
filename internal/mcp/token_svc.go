@@ -10,6 +10,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"squilla/internal/auth"
 	"squilla/internal/models"
 )
 
@@ -17,7 +18,36 @@ var (
 	ErrTokenNotFound = errors.New("mcp token not found")
 	ErrTokenExpired  = errors.New("mcp token has expired")
 	ErrInvalidToken  = errors.New("invalid mcp token")
+	// ErrOwnerNotPermitted is returned by Validate when the token's owner
+	// no longer holds the role capabilities the token's scope requires
+	// (demoted, role edited, user deleted). The token stays in the DB so
+	// a re-promotion restores it, but it cannot be used meanwhile.
+	ErrOwnerNotPermitted = errors.New("mcp token owner no longer permitted")
+	// ErrScopeRequired is returned by CreateToken when no scope is given.
+	// The handler resolves the default from the caller's capabilities.
+	ErrScopeRequired = errors.New("scope is required")
 )
+
+// Capabilities the token owner's role must hold. admin_access gates every
+// scope; manage_settings additionally gates scope=full because a full token
+// can rewrite settings, deploy+activate extensions (code execution), send
+// email and make outbound HTTP calls — far beyond what an author/editor can
+// do through the admin UI.
+const (
+	capMintAny  = "admin_access"
+	capMintFull = "manage_settings"
+)
+
+// ownerMayHoldScope reports whether user's role may hold a token of scope.
+func ownerMayHoldScope(user *models.User, scope string) bool {
+	if !auth.HasCapability(user, capMintAny) {
+		return false
+	}
+	if scope == ScopeFull && !auth.HasCapability(user, capMintFull) {
+		return false
+	}
+	return true
+}
 
 // Scope values. Kept deliberately small for v1; per-capability ACLs land in v2
 // via the capabilities JSONB column already reserved on mcp_tokens.
@@ -44,7 +74,7 @@ func NewTokenService(db *gorm.DB) *TokenService {
 // only once; callers must surface it to the user before discarding.
 func (s *TokenService) CreateToken(userID int, name, scope string, expiresAt *time.Time) (rawToken string, tok *models.McpToken, err error) {
 	if scope == "" {
-		scope = ScopeFull
+		return "", nil, ErrScopeRequired
 	}
 	if !isValidScope(scope) {
 		return "", nil, fmt.Errorf("invalid scope %q", scope)
@@ -74,7 +104,9 @@ func (s *TokenService) CreateToken(userID int, name, scope string, expiresAt *ti
 	return rawToken, row, nil
 }
 
-// Validate looks up a raw token, checks expiry, and updates LastUsedAt.
+// Validate looks up a raw token, checks expiry, and re-checks that the
+// owner's role still permits the token's scope. It does not write — the
+// HTTP auth middleware calls Touch once per request to bump last_used_at.
 func (s *TokenService) Validate(raw string) (*models.McpToken, error) {
 	if raw == "" {
 		return nil, ErrInvalidToken
@@ -92,10 +124,28 @@ func (s *TokenService) Validate(raw string) (*models.McpToken, error) {
 		return nil, ErrTokenExpired
 	}
 
+	var owner models.User
+	if err := s.db.Preload("Role").First(&owner, tok.UserID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrOwnerNotPermitted
+		}
+		return nil, fmt.Errorf("query token owner: %w", err)
+	}
+	if !ownerMayHoldScope(&owner, tok.Scope) {
+		return nil, ErrOwnerNotPermitted
+	}
+	return &tok, nil
+}
+
+// Touch records that tok was just used. Best-effort: a failed write must
+// not fail the request.
+func (s *TokenService) Touch(tok *models.McpToken) {
+	if tok == nil {
+		return
+	}
 	now := time.Now()
 	s.db.Model(&models.McpToken{}).Where("id = ?", tok.ID).Update("last_used_at", now)
 	tok.LastUsedAt = &now
-	return &tok, nil
 }
 
 // List returns all tokens owned by a user, ordered newest first.

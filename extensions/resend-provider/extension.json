@@ -5,7 +5,7 @@
   "author": "Squilla",
   "description": "Send emails via Resend.com API",
   "priority": 50,
-  "capabilities": ["settings:read", "events:subscribe", "http:fetch", "log:write"],
+  "capabilities": ["settings:read", "events:subscribe", "email:provide", "http:fetch", "log:write"],
   "provides": ["email.provider"],
   "auto_activate": true,
   "admin_ui": {

@@ -13,7 +13,7 @@ An extension lives in its own directory under `extensions/<slug>/`. It can conta
 2. **gRPC Plugin Binary** (Optional): Compiled Go binary for backend logic.
 3. **Tengo Scripts** (Optional): Script files in `scripts/` to hook into events and routes without compiling Go code.
 4. **React Micro-Frontend** (Optional): Vite build output for admin UI pages.
-5. **SQL Migrations** (Optional): In `migrations/`, executed when the extension activates.
+5. **SQL Migrations** (Optional): In `migrations/`, executed when the extension activates. Each file runs in a transaction together with its bookkeeping row; if one fails, it is rolled back and activation is aborted (the extension stays inactive) — avoid statements that can't run inside a transaction (e.g. `CREATE INDEX CONCURRENTLY`).
 
 ### The Manifest (`extension.json`)
 
@@ -46,11 +46,14 @@ An extension lives in its own directory under `extensions/<slug>/`. It can conta
 
 - **`priority`**: Order in which extensions load (default: 50).
 - **`capabilities`**: Core API permissions the extension requests. Enforced at runtime by the CoreAPI wrapper.
-- **`plugins`**: Defines where the gRPC binary is located so the PluginManager can start it.
+- **`plugins`**: Defines where the gRPC binary is located so the PluginManager can start it. `binary` must resolve (after symlinks) to a regular file inside the extension directory, or the plugin is refused.
+- **`auto_activate`**: Activates the extension on first registration — honoured only for extensions bundled in the image (`extensions/`). Operator-installed packages (`data/extensions/`, zip/MCP deploys) must be activated explicitly.
+- **`data_owned_tables`**: Tables the `data:*` CoreAPI methods may touch. Entries naming a kernel table, or a table another active extension already owns (bundled extensions win, then lower `priority`), are dropped at load with a warning.
 - **`admin`**: Injects paths into the React Admin SPA. The component is loaded via import maps.
 - **`admin_ui.capabilities`** (optional): Role capabilities the extension contributes to the admin role-editor. Each entry is `{key, label, description, default_roles?}`. Registered when the extension activates, dropped when it deactivates. Roles with `"*": true` (Full access, e.g. the seeded admin) get every capability automatically. `default_roles` (role slugs, e.g. `["editor"]`) grants the capability to those roles on activation, but only when the role has no entry for the key yet — an explicit `false` is never overridden. See `docs/security.md` §4.1.
 - **`admin_ui.menu.required_capability`** (optional): Capability key required to see the menu entry. Defaults are applied per-section when omitted (settings/development → `manage_settings`, design → `manage_layouts`, content → any-write-node-access).
-- **`admin_routes`** (optional but strongly recommended for mutating routes): Per-route capability gate enforced at the kernel proxy before forwarding to the plugin. Each entry is `{method, path, required_capability}`. Path supports `*` (one segment) and `**` (any number). Without these, an extension's API is gated only by `admin_access` — sufficient for read-only extensions but a privilege escalation hole for anything mutating data.
+- **`admin_routes`** (optional but strongly recommended): Per-route capability gate enforced at the kernel proxy before forwarding to the plugin. Each entry is `{method, path, required_capability}`. Path supports `*` (one segment) and `**` (any number); the request path is normalised (trailing slash, `//`, `.`/`..`) before matching. **Requests that match no rule:** `GET`/`HEAD` need only `admin_access`, every other method needs `manage_settings`. To open a mutating route to every admin user (e.g. media upload for Authors), declare it explicitly with `"required_capability": ""`.
+- **Proxy header rules**: the plugin never sees client `Cookie`, `Authorization`, `X-Forwarded-For`/`X-Real-IP` (replaced by the trusted client IP) or client-supplied `X-User-*` headers; the kernel sets `X-User-Email`/`X-User-Name` itself. Response headers `Strict-Transport-Security`, `Access-Control-*` and hop-by-hop headers are dropped, `Content-Security-Policy` is added alongside (never replaces) a kernel policy, and `Set-Cookie` is passed through only for cookies named `<slug_with_underscores>_*` (never the session cookie). Proxied calls time out after 60 s.
 
 Example with capabilities + per-route gates:
 
@@ -89,12 +92,17 @@ The kernel matches routes first-rule-wins. Group menus are visible when **any** 
 
 ## 2. Capability System
 
-To prevent extensions from secretly exfiltrating data or wiping the database, you must declare all required capabilities in `extension.json`. The CoreAPI will intercept and reject any call for which the extension lacks permission.
+Declare every CoreAPI capability your extension uses in `extension.json`; the capability guard rejects any CoreAPI call the manifest doesn't cover.
+
+**What capabilities do and don't bound.** For Tengo scripts, the `core/*` modules are the only way out of the VM, so capabilities bound what a script can do. A **gRPC plugin is native code running as the Squilla process user**: capabilities bound only its use of the CoreAPI (the `SquillaHost` gRPC service). They do not stop a plugin binary from reading files or opening network connections on its own — install gRPC extensions only from sources you trust as much as Squilla. The kernel narrows what a plugin process inherits: it gets an allow-listed environment only (`PATH HOME USER TZ LANG LC_ALL LC_CTYPE TMPDIR SSL_CERT_FILE SSL_CERT_DIR GOMEMLIMIT GOGC GOMAXPROCS GODEBUG STORAGE_DIR`, plus anything the operator lists in `SQUILLA_PLUGIN_ENV`), so read configuration through `GetSetting`, not `os.Getenv`; the host/plugin channel uses go-plugin AutoMTLS; and operators can pin binary SHA-256s (`plugin.<slug>.<binary>.sha256`, enforced for every binary with `SQUILLA_REQUIRE_PLUGIN_PINS=true`). There is no binary signature verification.
 
 Common capabilities include:
 - `nodes:read`, `nodes:write`
-- `settings:read`, `settings:write`
-- `events:emit`, `events:subscribe`
+- `settings:read`, `settings:write` — the `plugin.*` namespace (binary pins) is never readable/writable by extensions, and secret-shaped keys (`*_password`, `*_secret`, `*_key`, `*_token`, …) are readable only inside the extension's own `ext.<slug>.` namespace (bulk `GetSettings` silently omits the rest)
+- `events:emit`, `events:subscribe` — **every** event subscription (plugin `GetSubscriptions` or Tengo `events.on`) requires `events:subscribe`; subscriptions without it are skipped with a warning
+- `events:subscribe_all` — additionally required to subscribe to the wildcard `"*"`
+- `email:provide` — required to receive `email.send` (the full outgoing message plus provider settings); email provider extensions declare it. Wildcard subscribers without it never get `email.send`.
+- `auth:observe` — required to receive `user.password_reset_requested` (its payload carries the reset token / URL). Wildcard subscribers without it never get this event.
 - `email:send`
 - `menus:read`, `menus:write`
 - `media:read`, `media:write`
@@ -522,9 +530,12 @@ The install pipeline enforces every check needed to accept untrusted archives:
 | **Slug validation** | The `slug` declared in the manifest must match `[A-Za-z0-9_-]+` and be ≤ 128 chars. A hostile manifest cannot escape `themes/` or `extensions/` via `../`. |
 | **Zip-slip** | Every entry's destination is checked against the staging directory. Archives containing `../escape.txt` are rejected with `zip slip detected`. |
 | **Size cap** | 50 MB per archive (theme and extension). Configurable via `MaxThemeUploadSize` / `MaxExtensionUploadSize` constants in `internal/cms/`. |
-| **Per-file zip-bomb cap** | Each file is bounded to 256 MB during extraction (shared limit across both installers). |
+| **Zip-bomb caps** | Each file is bounded to 256 MB, the whole archive to 500 MB extracted and 10,000 entries (shared limits across both installers). Over-cap archives are rejected. |
+| **Duplicate entries** | Archives with two entries that normalise to the same path are rejected (the validated manifest must be the one written to disk). |
+| **File modes** | Extracted files are written with `mode & 0755` — setuid/setgid/sticky and group/world-write bits are dropped. |
+| **Symlinks / manifest paths** | Manifest-named files (layouts, partials, templates, block dirs, assets, settings pages, plugin binaries) must resolve inside the package directory; symlinks pointing outside are not followed when loading or serving. |
 | **Atomic directory swap** | Archives are extracted into `<dest>.deploy.tmp/`, the existing dir is renamed to `<dest>.deploy.old/`, the new dir is renamed into place, and the backup is removed. The fs watcher and theme/extension loader never observe a partial directory. |
-| **Plugin chmod** | For extensions, every `manifest.plugins[].binary` path inside the archive is `chmod 0755` so the host can spawn the gRPC subprocess without an out-of-band step. |
+| **Plugin chmod** | For extensions, every `manifest.plugins[].binary` path inside the archive is `chmod 0755` so the host can spawn the gRPC subprocess without an out-of-band step. A binary path that resolves outside the extension directory fails the install. |
 | **Idempotent re-deploy** | Re-deploying the same slug refreshes the existing DB row in place (name/version/description/path) and overwrites files via the same atomic swap. |
 
 ### Limitations
@@ -562,7 +573,7 @@ Available `<kind>` values: `media` (50 MB default cap), `theme` (200 MB), `exten
 ### Properties
 
 - **Token IS the auth.** The PUT route is unauthenticated — no session, no bearer header. The unguessable 64-char token in the URL is the entire access-control story. Single-use, ~15 min TTL, scoped to one kind, bound to the user who issued the init.
-- **Streamed to disk.** The PUT handler streams the body straight to `data/pending/<token>.bin` while computing SHA-256 on the fly. Bytes never sit in memory in a single allocation.
+- **Streamed to disk.** The PUT handler streams the body straight to `data/pending/<sha256(token)>.bin` while computing SHA-256 on the fly. Bytes never sit in memory in a single allocation.
 - **SHA-256 returned by PUT.** Clients can compare the value against their own hash and pass it back to `_finalize` for end-to-end corruption detection.
 - **Cleanup ticker.** A background sweep every 5 minutes deletes pending/uploaded rows past `expires_at` along with their temp files.
 - **Backwards compatible.** The legacy `core.media.upload`, `core.theme.deploy`, and `core.extension.deploy` tools keep working with `body_base64` — the small-payload path (favicons, tiny extensions) still gets the round-trip win.

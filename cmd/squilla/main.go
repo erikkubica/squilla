@@ -32,11 +32,9 @@ import (
 	pb "squilla/pkg/plugin/coreapipb"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"google.golang.org/grpc"
 )
 
@@ -47,7 +45,7 @@ func main() {
 	}
 
 	cfg := config.Load()
-	logging.Init(strings.EqualFold(cfg.AppEnv, "development"))
+	logging.Init(cfg.IsDevelopment())
 	logging.Default().Info("squilla_starting", "env", cfg.AppEnv, "port", cfg.Port)
 	log.Printf("Squilla starting | env=%s port=%s", cfg.AppEnv, cfg.Port)
 
@@ -57,6 +55,14 @@ func main() {
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("config validation failed: %v", err)
 	}
+	if !cfg.AppEnvExplicit {
+		// Development stays the default so `go run` works, but the server
+		// listens on every interface — make an accidental public deploy
+		// impossible to miss in the logs.
+		log.Printf("WARNING: APP_ENV is unset — running with DEVELOPMENT defaults (no production safety gates, dev CORS, Host-derived reset links) on 0.0.0.0:%s. Set APP_ENV=production for any internet-facing deployment.", cfg.Port)
+	}
+	// Production never builds password-reset links from the request Host.
+	auth.SetStrictSiteOrigin(cfg.IsProduction())
 
 	// At-rest encryption service. NewFromEnv reads SQUILLA_SECRET_KEY;
 	// in dev it returns an inactive service that passes plaintext
@@ -110,16 +116,29 @@ func main() {
 	logging.SetRemoteIPFunc(httpobs.ClientIP)
 
 	// Fiber app.
-	app := fiber.New(fiber.Config{
+	//
+	// Timeouts: ReadTimeout bounds header + body arrival (30 s; extended
+	// per request for upload routes, see body_limits.go) and IdleTimeout
+	// bounds keep-alive waits — together they stop slowloris-style
+	// connection hoarding. WriteTimeout stays 0 (unlimited) on purpose:
+	// fasthttp applies it to the whole response write, which would cut
+	// the long-lived SSE stream at /admin/api/events and large media /
+	// export downloads; slow readers are bounded by TCP and IdleTimeout.
+	bodyPolicy := defaultBodyLimitPolicy()
+	fiberCfg := fiber.Config{
 		AppName:                 "Squilla",
 		DisableStartupMessage:   false,
-		BodyLimit:               50 * 1024 * 1024, // 50 MB — theme/extension uploads
-		ReadBufferSize:          16 * 1024,        // 16 KB — handles large cookies without 431
+		ReadBufferSize:          16 * 1024, // 16 KB — handles large cookies without 431
 		ProxyHeader:             cfg.ClientIPHeader,
 		EnableTrustedProxyCheck: cfg.ClientIPHeader != "",
 		TrustedProxies:          cfg.TrustedProxies,
 		EnableIPValidation:      true,
-	})
+		IdleTimeout:             120 * time.Second,
+		ErrorHandler:            errorHandler,
+	}
+	bodyPolicy.applyTo(&fiberCfg)
+	app := fiber.New(fiberCfg)
+	app.Server().HeaderReceived = bodyPolicy.headerReceived
 
 	// Request-ID middleware MUST come first so every downstream
 	// handler/middleware sees a stable correlation ID (logs, errors,
@@ -127,6 +146,9 @@ func main() {
 	// stays as a backup; logging.RequestID emits its own structured
 	// access log too.
 	app.Use(logging.RequestID())
+	// Body-size enforcement runs before anything can read the body (the
+	// request-id middleware above never touches it).
+	app.Use(bodyLimitMiddleware(bodyPolicy))
 	// Request observer — publishes batched http.requests records to
 	// explicit subscribers (extensions declaring http:observe). Mounted
 	// directly after RequestID so it wraps every other middleware.
@@ -134,7 +156,8 @@ func main() {
 	app.Use(httpObserver.Middleware())
 	cms.ReserveCookieNames(auth.CookieName)
 	app.Use(fiberlogger.New())
-	app.Use(recover.New())
+	app.Use(recoverMiddleware())
+	app.Use(securityHeaders())
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelDefault,
 		Next: func(c *fiber.Ctx) bool {
@@ -144,6 +167,9 @@ func main() {
 				strings.Contains(c.Get("Accept"), "text/event-stream")
 		},
 	}))
+	allowedCORS := corsOrigins(cfg)
+	// The CSRF mutation guard accepts these as cross-origin sources too.
+	auth.SetAllowedOrigins(allowedCORS)
 	// Strict admin/public CORS: cookie-bearing requests (admin SPA, SSE)
 	// must originate from the configured allowlist. /mcp is intentionally
 	// excluded — it's bearer-token gated and meant to be reachable by any
@@ -153,7 +179,7 @@ func main() {
 		Next: func(c *fiber.Ctx) bool {
 			return strings.HasPrefix(c.Path(), "/mcp")
 		},
-		AllowOrigins:     corsOrigins(cfg.AppEnv),
+		AllowOrigins:     allowedCORS,
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
 		AllowCredentials: true,
@@ -186,6 +212,8 @@ func main() {
 	// short-lived (1h expiry) but get marked used rather than deleted on
 	// successful reset, so without a sweep they pile up over time.
 	auth.NewPasswordResetService(database).StartCleanupLoop(bgCtx, time.Hour)
+	// Close open SSE streams when shutdown begins.
+	sduiBroadcaster.StopOnContext(bgCtx)
 	contentSvc := cms.NewContentService(database, eventBus)
 	nodeTypeSvc := cms.NewNodeTypeService(database, eventBus)
 	langSvc := cms.NewLanguageService(database)
@@ -198,7 +226,7 @@ func main() {
 	layoutSvc := cms.NewLayoutService(database, eventBus, themeAssets)
 	layoutBlockSvc := cms.NewLayoutBlockService(database, eventBus, themeAssets)
 	menuSvc := cms.NewMenuService(database, eventBus)
-	isDev := cfg.AppEnv == "development"
+	isDev := cfg.IsDevelopment()
 	renderer := rendering.NewTemplateRenderer("", isDev)
 
 	// Allow operators (or the media-manager extension on activation)
@@ -266,7 +294,12 @@ func main() {
 	settingsSchemaHandler := settings.NewHandler(settingsRegistry, settingsStore, database, eventBus)
 
 	pageAuthHandler := auth.NewPageAuthHandler(database, sessionSvc, eventBus)
+	// One per-account lockout for /auth/login and /auth/login-page.
+	pageAuthHandler.ShareLockout(authHandler.LoginLockout())
 	adminAuthHandler := auth.NewAdminAuthHandler(database, sessionSvc, eventBus)
+	// Prune idle rate-limiter / lockout entries so unauthenticated floods
+	// can't grow those maps without bound.
+	auth.StartJanitor(bgCtx, 5*time.Minute, authHandler, pageAuthHandler, adminAuthHandler)
 
 	// SDUI handlers — boot manifest, layout trees, and SSE events.
 	bootHandler := api.NewBootHandler(database, sduiEngine)
@@ -399,15 +432,21 @@ func main() {
 	if err := cms.NewDropInWatcher("data/extensions", "extension.json", extLoader.ScanAndRegister).Start(bgCtx); err != nil {
 		log.Printf("WARN: extensions drop-in watcher: %v", err)
 	}
-	activeExts, _ := extLoader.GetActive()
+	activeExts, err := extLoader.GetActive()
+	if err != nil {
+		log.Printf("ERROR: listing active extensions failed — no extension scripts or plugins will start: %v", err)
+	}
+	// Run pending SQL migrations first. An extension whose migrations fail
+	// is dropped from the boot set — its scripts and plugins would run
+	// against a half-migrated schema (HotActivate aborts the same way).
+	activeExts = migrateBootExtensions(activeExts, func(ext models.Extension) error {
+		return cms.RunExtensionMigrations(database, ext.Path, ext.Slug)
+	})
 	for _, ext := range activeExts {
-		// Run pending SQL migrations for this extension.
-		if err := cms.RunExtensionMigrations(database, ext.Path, ext.Slug); err != nil {
-			log.Printf("WARN: extension %s migrations failed: %v", ext.Slug, err)
-		}
-
 		var manifest cms.ExtensionManifest
-		_ = json.Unmarshal(ext.Manifest, &manifest)
+		if err := json.Unmarshal(ext.Manifest, &manifest); err != nil {
+			log.Printf("WARN: extension %s manifest unreadable, loading scripts with no capabilities: %v", ext.Slug, err)
+		}
 		caps := manifest.CapabilityMap()
 		if err := scriptEngine.LoadExtensionScripts(ext.Path, ext.Slug, caps); err != nil {
 			log.Printf("WARN: extension %s script loading failed: %v", ext.Slug, err)
@@ -512,14 +551,17 @@ func main() {
 	// Presigned-upload mechanism: core.<kind>.upload_init issues a token,
 	// the client PUTs the binary to /api/uploads/<token>, then
 	// core.<kind>.upload_finalize finishes the job. Mounted as a raw
-	// http.Handler via Fiber's adaptor so we stream straight to disk and
-	// bypass Fiber's body buffering / global BodyLimit. Token IS the auth.
+	// http.Handler through streamingHTTPHandler (NOT adaptor.HTTPHandler,
+	// which buffers the whole body via PostBody) so the bytes stream
+	// straight to disk; the per-route body policy exempts this path from
+	// the default limit and the handler enforces each token's max_bytes.
+	// Token IS the auth.
 	uploadStore, err := uploads.NewStore(database, "data/pending")
 	if err != nil {
 		log.Fatalf("uploads store init failed: %v", err)
 	}
 	uploadHandler := uploads.NewHandler(uploadStore)
-	app.All("/api/uploads/:token", adaptor.HTTPHandler(uploadHandler))
+	app.All("/api/uploads/:token", streamingHTTPHandler(uploadHandler, presignedUploadTransportCap))
 	uploads.StartCleanupLoop(bgCtx, uploadStore, 5*time.Minute)
 	mcpServer.SetUploadStore(uploadStore)
 
@@ -548,7 +590,9 @@ func main() {
 	// Start plugins for already-active extensions.
 	for _, ext := range activeExts {
 		var manifest cms.ExtensionManifest
-		_ = json.Unmarshal(ext.Manifest, &manifest)
+		if err := json.Unmarshal(ext.Manifest, &manifest); err != nil {
+			log.Printf("WARN: extension %s manifest unreadable, starting plugins with no capabilities: %v", ext.Slug, err)
+		}
 		caps := manifest.CapabilityMap()
 		owned := manifest.OwnedTablesMap()
 		if err := pluginManager.StartPlugins(ext.Path, ext.Slug, json.RawMessage(ext.Manifest), caps, owned); err != nil {
@@ -585,6 +629,7 @@ func main() {
 
 	// Extension admin handler.
 	extHandler := cms.NewExtensionHandler(database, extLoader)
+	extHandler.SetSecrets(secretsSvc)
 	extHandler.SetScriptLoader(scriptEngine)
 	extHandler.SetPluginManager(pluginManager)
 	extHandler.SetAssetRegistry(themeAssets)
@@ -621,6 +666,9 @@ func main() {
 
 	// Media files served by media-manager extension via public_routes proxy.
 	// Fallback static handler for when extension is not active.
+	// Forced download for anything that isn't image/video/audio/pdf so an
+	// uploaded .html/.svg can't run script in the site origin.
+	app.Use("/media", mediaFallbackHeaders())
 	app.Static("/media", "./storage/media")
 
 	// --- Public block + theme assets + admin SPA static mounts ---
@@ -645,18 +693,29 @@ func main() {
 	// --- Public content routes (must be last) ---
 	publicHandler.RegisterRoutes(app)
 
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	listenFailed := make(chan struct{})
+
 	go func() {
 		addr := fmt.Sprintf(":%s", cfg.Port)
 		if err := app.Listen(addr); err != nil {
-			log.Fatalf("server failed to start: %v", err)
+			// No log.Fatalf: os.Exit would skip plugin cleanup (StopAll)
+			// and leave orphaned plugin processes. Fall through to the
+			// normal shutdown path instead.
+			log.Printf("server failed to start: %v", err)
+			close(listenFailed)
 		}
 	}()
 
 	log.Printf("Squilla ready | http://localhost:%s | env=%s", cfg.Port, cfg.AppEnv)
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	exitCode := 0
+	select {
+	case <-quit:
+	case <-listenFailed:
+		exitCode = 1
+	}
 
 	log.Println("shutting down gracefully...")
 	// Bounded shutdown — without a timeout, in-flight SSE streams or hung
@@ -683,10 +742,16 @@ func main() {
 		log.Println("request observer flush timed out; remaining records dropped")
 	}
 	log.Println("Squilla stopped")
+	if exitCode != 0 {
+		// Deferred cleanup (pluginManager.StopAll, bgCancel) must run
+		// before exiting non-zero.
+		pluginManager.StopAll()
+		os.Exit(exitCode)
+	}
 }
 
-func corsOrigins(env string) string {
-	if env == "development" {
+func corsOrigins(cfg *config.Config) string {
+	if cfg.IsDevelopment() {
 		return "http://localhost:3000,http://localhost:8080"
 	}
 	if origins := os.Getenv("CORS_ORIGINS"); origins != "" {
@@ -721,4 +786,21 @@ func normalizeCORSOrigins(raw string) string {
 		out = append(out, p)
 	}
 	return strings.Join(out, ",")
+}
+
+// migrateBootExtensions runs migrate for every active extension and returns
+// only those whose migrations succeeded. Failures are logged loudly and the
+// extension's scripts and plugins are not loaded this boot; it stays marked
+// active so the next restart (after the operator fixes the migration)
+// retries.
+func migrateBootExtensions(exts []models.Extension, migrate func(models.Extension) error) []models.Extension {
+	ok := make([]models.Extension, 0, len(exts))
+	for _, ext := range exts {
+		if err := migrate(ext); err != nil {
+			log.Printf("ERROR: extension %s migrations failed — skipping its scripts and plugins until fixed: %v", ext.Slug, err)
+			continue
+		}
+		ok = append(ok, ext)
+	}
+	return ok
 }

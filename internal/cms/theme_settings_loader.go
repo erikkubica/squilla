@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 )
 
 // ThemeSettingsPage is a parsed settings page resolved from disk. It mirrors
@@ -82,8 +80,7 @@ func loadSettingsPage(themeDir string, def ThemeSettingsPageDef) (ThemeSettingsP
 	if def.File == "" {
 		return ThemeSettingsPage{}, fmt.Errorf("missing file")
 	}
-	path := filepath.Join(themeDir, def.File)
-	data, err := os.ReadFile(path)
+	data, err := readConfinedFile(themeDir, def.File)
 	if err != nil {
 		return ThemeSettingsPage{}, fmt.Errorf("read %s: %w", def.File, err)
 	}

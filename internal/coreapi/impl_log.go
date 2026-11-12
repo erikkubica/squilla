@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+// logLineEscaper neutralises CR/LF so a caller-supplied message or field
+// can't forge additional log lines (e.g. a fake "[ERROR] [internal] ...").
+var logLineEscaper = strings.NewReplacer("\r", `\r`, "\n", `\n`)
+
 func (c *coreImpl) Log(ctx context.Context, level, message string, fields map[string]any) error {
 	caller := CallerFromContext(ctx)
 
@@ -24,11 +28,11 @@ func (c *coreImpl) Log(ctx context.Context, level, message string, fields map[st
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			fieldParts = append(fieldParts, fmt.Sprintf("%s=%v", k, fields[k]))
+			fieldParts = append(fieldParts, logLineEscaper.Replace(fmt.Sprintf("%s=%v", k, fields[k])))
 		}
 	}
 
-	msg := fmt.Sprintf("%s %s", prefix, message)
+	msg := fmt.Sprintf("%s %s", prefix, logLineEscaper.Replace(message))
 	if len(fieldParts) > 0 {
 		msg += " " + strings.Join(fieldParts, " ")
 	}

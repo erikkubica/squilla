@@ -136,12 +136,21 @@ func rewrapForRecursion(items []MenuItem) tengo.Object {
 // in URL as a placeholder — the caller (menuItemsFromTengoResolvingNodes)
 // resolves that slug into a NodeID + full_url.
 func menuItemsFromTengo(obj tengo.Object) []MenuItem {
+	return menuItemsFromTengoDepth(obj, 0)
+}
+
+// menuItemsFromTengoDepth bounds `children` recursion so a cyclic menu
+// tree built by a script can't overflow the Go stack.
+func menuItemsFromTengoDepth(obj tengo.Object, depth int) []MenuItem {
+	if depth > MaxTengoValueDepth {
+		return nil
+	}
 	arr, ok := obj.(*tengo.Array)
 	if !ok {
 		if imm, ok := obj.(*tengo.ImmutableArray); ok {
 			out := make([]MenuItem, 0, len(imm.Value))
 			for _, v := range imm.Value {
-				out = append(out, menuItemFromTengo(v))
+				out = append(out, menuItemFromTengo(v, depth))
 			}
 			return out
 		}
@@ -149,12 +158,12 @@ func menuItemsFromTengo(obj tengo.Object) []MenuItem {
 	}
 	out := make([]MenuItem, 0, len(arr.Value))
 	for _, v := range arr.Value {
-		out = append(out, menuItemFromTengo(v))
+		out = append(out, menuItemFromTengo(v, depth))
 	}
 	return out
 }
 
-func menuItemFromTengo(v tengo.Object) MenuItem {
+func menuItemFromTengo(v tengo.Object, depth int) MenuItem {
 	m := getTengoMap(v)
 	if m == nil {
 		return MenuItem{}
@@ -177,7 +186,7 @@ func menuItemFromTengo(v tengo.Object) MenuItem {
 		item.ItemType = "node"
 		item.URL = slug
 	}
-	item.Children = menuItemsFromTengo(m["children"])
+	item.Children = menuItemsFromTengoDepth(m["children"], depth+1)
 	return item
 }
 

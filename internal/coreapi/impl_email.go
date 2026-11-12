@@ -72,7 +72,15 @@ func (c *coreImpl) SendEmail(ctx context.Context, req EmailRequest) error {
 	extPrefix := "ext." + providerName + "."
 	for k, v := range settingsMap {
 		if strings.HasPrefix(k, extPrefix) {
-			providerSettings[strings.TrimPrefix(k, extPrefix)] = v
+			// Secret-shaped keys (SMTP password, API key) are encrypted at
+			// rest by SetSetting / the extension settings handler; decrypt
+			// them exactly like GetSetting so the provider receives the
+			// credential, not the envelope. Legacy plaintext passes through.
+			plain, err := c.decryptIfSecret(k, v)
+			if err != nil {
+				return NewInternal("could not decrypt email provider setting " + k)
+			}
+			providerSettings[strings.TrimPrefix(k, extPrefix)] = plain
 		}
 	}
 

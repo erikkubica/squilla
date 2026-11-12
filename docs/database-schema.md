@@ -632,7 +632,7 @@ security story. Added by migration `0042_pending_uploads.sql`. See
 | `state` | VARCHAR(16) NOT NULL DEFAULT 'pending' | `pending` → `uploaded` → `finalized` |
 | `size_bytes` | BIGINT NULL | Set by PUT |
 | `sha256` | CHAR(64) NULL | Set by PUT, may be re-checked at finalize |
-| `temp_path` | TEXT NULL | `data/pending/<token>.bin` |
+| `temp_path` | TEXT NULL | `data/pending/<sha256(token)>.bin` |
 | `created_at`, `expires_at`, `finalized_at` | TIMESTAMPTZ | ~15 min TTL |
 
 Index: `idx_pending_uploads_state_expires` on `(state, expires_at)`. A

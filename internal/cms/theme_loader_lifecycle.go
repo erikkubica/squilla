@@ -62,9 +62,9 @@ func (tl *ThemeLoader) LoadTheme(themeDir string) error {
 	// Register layouts.
 	for _, def := range manifest.Layouts {
 		filePath := filepath.Join(themeDir, "layouts", def.File)
-		code, err := os.ReadFile(filePath)
+		code, err := readConfinedFile(themeDir, filepath.Join("layouts", def.File))
 		if err != nil {
-			log.Printf("WARN: layout file not found %s: %v", filePath, err)
+			log.Printf("WARN: layout file not loaded %s: %v", filePath, err)
 			continue
 		}
 		tl.upsertLayout(manifest.Name, def, string(code))
@@ -73,9 +73,9 @@ func (tl *ThemeLoader) LoadTheme(themeDir string) error {
 	// Register partials.
 	for _, def := range manifest.Partials {
 		filePath := filepath.Join(themeDir, "partials", def.File)
-		code, err := os.ReadFile(filePath)
+		code, err := readConfinedFile(themeDir, filepath.Join("partials", def.File))
 		if err != nil {
-			log.Printf("WARN: partial file not found %s: %v", filePath, err)
+			log.Printf("WARN: partial file not loaded %s: %v", filePath, err)
 			continue
 		}
 		tl.upsertPartial(manifest.Name, def, string(code))
@@ -189,7 +189,11 @@ type themeTemplateFile struct {
 
 // registerBlock reads block files and upserts the block type (theme source).
 func (tl *ThemeLoader) registerBlock(themeName string, def ThemeBlockDef, themeDir string) {
-	blockDir := filepath.Join(themeDir, "blocks", def.Dir)
+	blockDir, err := confinedDir(themeDir, filepath.Join("blocks", def.Dir))
+	if err != nil {
+		log.Printf("WARN: block %s: %v", def.Slug, err)
+		return
+	}
 	if err := RegisterBlockFromDir(tl.db, tl.registry, blockDir, def.Slug, "theme", themeName); err != nil {
 		log.Printf("WARN: %v", err)
 	}
@@ -291,10 +295,12 @@ func (tl *ThemeLoader) DeregisterTheme(themeName string) error {
 func themeAssetsPayload(themeDir string, defs []ThemeMediaAssetDef) []map[string]interface{} {
 	out := make([]map[string]interface{}, 0, len(defs))
 	for _, d := range defs {
-		rel := filepath.Join(themeDir, "assets", d.Src)
-		abs, err := filepath.Abs(rel)
+		// Confined: media-manager imports abs_path into the public media
+		// library, so a ../ or symlinked src must never reach it.
+		abs, err := confinedFile(themeDir, filepath.Join("assets", d.Src))
 		if err != nil {
-			abs = rel
+			log.Printf("WARN: theme asset %q skipped: %v", d.Src, err)
+			continue
 		}
 		out = append(out, map[string]interface{}{
 			"key":      d.Key,

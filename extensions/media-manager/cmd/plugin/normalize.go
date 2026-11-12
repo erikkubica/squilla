@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"image"
 	"log"
 	"os"
 	"os/exec"
@@ -45,7 +43,7 @@ func (p *MediaManagerPlugin) normalizeImage(ctx context.Context, data []byte, mi
 	tmpFile.Close()
 
 	// Step 1: Downscale if needed using ImageMagick (much better quality than Go).
-	img, format, decErr := image.Decode(bytes.NewReader(data))
+	img, format, decErr := decodeImageBounded(data)
 	if decErr != nil {
 		log.Printf("[normalize] decode failed: %v", decErr)
 		return data, mimeType

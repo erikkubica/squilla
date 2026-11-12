@@ -38,6 +38,21 @@ function optionLabel(field: FormField | undefined, v: unknown): string | null {
   return null;
 }
 
+// safeFileHref accepts only same-site paths and http(s) URLs for stored
+// upload links.
+function safeFileHref(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const url = raw.trim();
+  if (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\")) return url;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.href;
+  } catch {
+    /* invalid URL */
+  }
+  return null;
+}
+
 function renderValue(value: unknown, field?: FormField): React.ReactNode {
   if (value === true || value === "true") return field?.type === "checkbox" ? "Yes, agreed" : "Yes";
   if (value === false || value === "false") return "No";
@@ -55,13 +70,16 @@ function renderValue(value: unknown, field?: FormField): React.ReactNode {
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
     if ("label" in obj && "value" in obj && Object.keys(obj).length === 2) return String(obj.label);
-    if ("url" in obj && "name" in obj) {
+    // Only real file fields render as a download link; anything else with
+    // url/name keys came from the submitter and is shown as plain JSON.
+    const fileHref = field?.type === "file" && "url" in obj && "name" in obj ? safeFileHref(obj.url) : null;
+    if (fileHref) {
       const isImage = typeof obj.mime_type === "string" && obj.mime_type.startsWith("image/");
       const size = typeof obj.size === "number" ? `${(obj.size / 1024).toFixed(1)} KB` : "";
       return (
-        <a href={String(obj.url)} download={String(obj.name)} className="fm-focus inline-flex items-center gap-3 rounded-md p-1 pr-3" style={{ boxShadow: "inset 0 0 0 1px var(--fm-line)" }}>
+        <a href={fileHref} download={String(obj.name)} className="fm-focus inline-flex items-center gap-3 rounded-md p-1 pr-3" style={{ boxShadow: "inset 0 0 0 1px var(--fm-line)" }}>
           {isImage ? (
-            <img src={String(obj.url)} alt="" className="h-12 w-12 rounded object-cover" />
+            <img src={fileHref} alt="" className="h-12 w-12 rounded object-cover" />
           ) : (
             <span className="fm-hero-icon" style={{ width: 40, height: 40 }} aria-hidden="true">
               <Paperclip />

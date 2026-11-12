@@ -8,6 +8,7 @@
     "priority": 50,
     "auto_activate": true,
     "capabilities": [
+        "events:subscribe",
         "media:read",
         "media:write",
         "media:delete",
@@ -24,6 +25,16 @@
     "data_owned_tables": [
         "media_files",
         "media_image_sizes"
+    ],
+    "admin_routes": [
+        { "method": "*", "path": "/optimizer", "required_capability": "manage_settings" },
+        { "method": "*", "path": "/optimizer/**", "required_capability": "manage_settings" },
+        { "method": "GET", "path": "/**", "required_capability": "" },
+        { "method": "POST", "path": "/upload", "required_capability": "" },
+        { "method": "POST", "path": "/*/restore", "required_capability": "" },
+        { "method": "POST", "path": "/*/reoptimize", "required_capability": "" },
+        { "method": "PUT", "path": "/*", "required_capability": "" },
+        { "method": "DELETE", "path": "/*", "required_capability": "" }
     ],
     "plugins": [
         {

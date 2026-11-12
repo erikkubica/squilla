@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -92,25 +93,30 @@ func isBinary(name string) bool {
 // BrowseFilesInDir handles browsing files within a base directory.
 // requestedPath is relative to baseDir. It returns a DirectoryResponse or FileResponse.
 func BrowseFilesInDir(baseDir, requestedPath string) (interface{}, error) {
-	// Clean and resolve the full path.
-	cleanBase := filepath.Clean(baseDir)
-	fullPath := filepath.Clean(filepath.Join(cleanBase, requestedPath))
-
-	// Security: ensure resolved path is within the base directory.
-	if !strings.HasPrefix(fullPath, cleanBase+string(os.PathSeparator)) && fullPath != cleanBase {
-		return nil, fmt.Errorf("INVALID_PATH")
-	}
-
-	info, err := os.Stat(fullPath)
+	// Resolve symlinks and require the real path to stay inside the base
+	// directory: a theme/extension package can ship a symlink to any host
+	// file, which a purely lexical check would happily follow.
+	fullPath, err := confinedPath(baseDir, requestedPath)
 	if err != nil {
+		if errors.Is(err, errPathEscape) {
+			return nil, fmt.Errorf("INVALID_PATH")
+		}
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("NOT_FOUND")
 		}
 		return nil, fmt.Errorf("STAT_FAILED")
 	}
 
+	info, err := os.Lstat(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("STAT_FAILED")
+	}
+
 	if info.IsDir() {
 		return browseDirectory(fullPath, requestedPath)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("INVALID_PATH")
 	}
 	return browseFile(fullPath, requestedPath, info)
 }

@@ -8,6 +8,7 @@ import (
 
 	"squilla/internal/api"
 	"squilla/internal/auth"
+	"squilla/internal/models"
 )
 
 // TokenHandler exposes MCP token CRUD at /admin/api/mcp-tokens. Session auth
@@ -93,7 +94,12 @@ func (h *TokenHandler) Create(c *fiber.Ctx) error {
 		exp = &t
 	}
 
-	raw, row, err := h.svc.CreateToken(user.ID, req.Name, req.Scope, exp)
+	scope, status, code, msg := resolveMintScope(user, req.Scope)
+	if status != 0 {
+		return api.Error(c, status, code, msg)
+	}
+
+	raw, row, err := h.svc.CreateToken(user.ID, req.Name, scope, exp)
 	if err != nil {
 		return api.Error(c, fiber.StatusBadRequest, "CREATE_FAILED", err.Error())
 	}
@@ -104,6 +110,31 @@ func (h *TokenHandler) Create(c *fiber.Ctx) error {
 			LastUsedAt: row.LastUsedAt, ExpiresAt: row.ExpiresAt, CreatedAt: row.CreatedAt,
 		},
 	})
+}
+
+// resolveMintScope applies the minting policy: scope=full requires
+// manage_settings on top of admin_access (seeded Author/Editor roles have
+// admin_access but must not be able to mint an admin-equivalent token).
+// An omitted scope defaults to full only for callers allowed to hold it;
+// everyone else must pick read or content explicitly. Returns a non-zero
+// HTTP status with an error code/message when the request is refused.
+func resolveMintScope(user *models.User, requested string) (scope string, status int, code, msg string) {
+	scope = requested
+	canFull := ownerMayHoldScope(user, ScopeFull)
+	if scope == "" {
+		if !canFull {
+			return "", fiber.StatusBadRequest, "SCOPE_REQUIRED",
+				"scope is required: choose \"read\" or \"content\" (\"full\" requires the manage_settings capability)"
+		}
+		scope = ScopeFull
+	}
+	if !isValidScope(scope) {
+		return "", fiber.StatusBadRequest, "INVALID_SCOPE", "scope must be one of read, content, full"
+	}
+	if scope == ScopeFull && !canFull {
+		return "", fiber.StatusForbidden, "FORBIDDEN", "full-scope MCP tokens require the manage_settings capability"
+	}
+	return scope, 0, "", ""
 }
 
 func (h *TokenHandler) Revoke(c *fiber.Ctx) error {

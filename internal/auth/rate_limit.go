@@ -25,7 +25,13 @@ type PerIPLimiter struct {
 	// can drop entries for IPs that haven't hit the endpoint in a while.
 	// Without this, the map grows linearly with unique attackers.
 	lastSeen map[string]time.Time
+
+	maxEntries int
 }
+
+// defaultMaxLimiterEntries bounds the per-IP map (IPv6 makes address
+// rotation cheap).
+const defaultMaxLimiterEntries = 100000
 
 // NewPerIPLimiter constructs a limiter at reqPerInterval / interval rate,
 // allowing a short burst. For example NewPerIPLimiter(5, time.Minute, 5)
@@ -36,6 +42,8 @@ func NewPerIPLimiter(reqPerInterval int, interval time.Duration, burst int) *Per
 		lastSeen: make(map[string]time.Time),
 		limit:    rate.Limit(float64(reqPerInterval) / interval.Seconds()),
 		burst:    burst,
+
+		maxEntries: defaultMaxLimiterEntries,
 	}
 }
 
@@ -46,6 +54,9 @@ func (p *PerIPLimiter) Allow(ip string) bool {
 	defer p.mu.Unlock()
 	lim, ok := p.limiters[ip]
 	if !ok {
+		if len(p.limiters) >= p.maxEntries {
+			p.makeRoomLocked()
+		}
 		lim = rate.NewLimiter(p.limit, p.burst)
 		p.limiters[ip] = lim
 	}
@@ -59,12 +70,63 @@ func (p *PerIPLimiter) CleanIdle(maxAge time.Duration) {
 	cutoff := time.Now().Add(-maxAge)
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	p.cleanBeforeLocked(cutoff)
+}
+
+func (p *PerIPLimiter) cleanBeforeLocked(cutoff time.Time) {
 	for ip, ts := range p.lastSeen {
 		if ts.Before(cutoff) {
 			delete(p.limiters, ip)
 			delete(p.lastSeen, ip)
 		}
 	}
+}
+
+// refillDuration is how long an idle limiter takes to refill its burst —
+// dropping it after that is lossless (a fresh limiter is identical).
+func (p *PerIPLimiter) refillDuration() time.Duration {
+	if p.limit <= 0 {
+		return time.Hour
+	}
+	return time.Duration(float64(p.burst) / float64(p.limit) * float64(time.Second))
+}
+
+// CleanRefilled drops entries idle long enough to have fully refilled.
+func (p *PerIPLimiter) CleanRefilled() {
+	p.CleanIdle(p.refillDuration())
+}
+
+// makeRoomLocked runs when the map is full: drop refilled entries, then
+// the least recently seen ~10%.
+func (p *PerIPLimiter) makeRoomLocked() {
+	p.cleanBeforeLocked(time.Now().Add(-p.refillDuration()))
+	if len(p.limiters) < p.maxEntries {
+		return
+	}
+	target := p.maxEntries - p.maxEntries/10
+	for len(p.limiters) > target {
+		var oldestIP string
+		var oldest time.Time
+		n := 0
+		for ip, ts := range p.lastSeen { // sample, not full scan
+			if oldestIP == "" || ts.Before(oldest) {
+				oldestIP, oldest = ip, ts
+			}
+			n++
+			if n >= 64 {
+				break
+			}
+		}
+		delete(p.limiters, oldestIP)
+		delete(p.lastSeen, oldestIP)
+	}
+}
+
+// Len returns the number of tracked IPs (diagnostics/tests).
+func (p *PerIPLimiter) Len() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return len(p.limiters)
 }
 
 // Middleware returns a Fiber handler that consults this limiter and

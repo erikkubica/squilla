@@ -2,6 +2,7 @@ package cms
 
 import (
 	"encoding/json"
+	"log"
 	"path/filepath"
 
 	"squilla/internal/events"
@@ -13,10 +14,10 @@ import (
 func extensionAssetsPayload(extPath string, defs []ThemeMediaAssetDef) []map[string]interface{} {
 	out := make([]map[string]interface{}, 0, len(defs))
 	for _, d := range defs {
-		rel := filepath.Join(extPath, "assets", d.Src)
-		abs, err := filepath.Abs(rel)
+		abs, err := confinedFile(extPath, filepath.Join("assets", d.Src))
 		if err != nil {
-			abs = rel
+			log.Printf("[extensions] asset %q skipped: %v", d.Src, err)
+			continue
 		}
 		out = append(out, map[string]interface{}{
 			"key":      d.Key,

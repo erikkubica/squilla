@@ -98,9 +98,18 @@ func (s *PasswordResetService) VerifyAndConsume(rawToken string) (int, error) {
 		return 0, ErrResetTokenExpired
 	}
 
+	// Single conditional UPDATE: of two concurrent requests with the same
+	// token only one can flip used_at, so a token is consumed exactly once
+	// (the read above is only for the error classification).
 	now := time.Now()
-	if err := s.db.Model(&row).Update("used_at", &now).Error; err != nil {
-		return 0, fmt.Errorf("consuming reset token: %w", err)
+	res := s.db.Model(&models.PasswordResetToken{}).
+		Where("id = ? AND used_at IS NULL AND expires_at > ?", row.ID, now).
+		Update("used_at", &now)
+	if res.Error != nil {
+		return 0, fmt.Errorf("consuming reset token: %w", res.Error)
+	}
+	if res.RowsAffected != 1 {
+		return 0, ErrResetTokenUsed
 	}
 	return row.UserID, nil
 }

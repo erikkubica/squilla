@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"mime"
 	"mime/multipart"
-	"net/http"
 	"net/textproto"
 	"path"
 	"strings"
@@ -141,7 +140,7 @@ func (s *Server) registerMediaTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.media.import_url",
-		mcp.WithDescription("Download a file from a public URL and store it in the media library. Returns the stored MediaFile — use its id and url when populating image/file/gallery fields so you reference real assets instead of guessing paths. Filename and mime_type are inferred from the response when not provided."),
+		mcp.WithDescription("Download a file from a public URL and store it in the media library. Private, loopback and link-local destinations are refused; the download is capped at the media size limit (SQUILLA_MEDIA_MAX_MB, default 50). Returns the stored MediaFile — use its id and url when populating image/file/gallery fields so you reference real assets instead of guessing paths. Filename and mime_type are inferred from the response when not provided."),
 		mcp.WithString("url", mcp.Required(), mcp.Description("Absolute http(s) URL of the asset to import")),
 		mcp.WithString("filename", mcp.Description("Override filename; defaults to URL basename")),
 		mcp.WithString("mime_type", mcp.Description("Override mime; defaults to response Content-Type")),
@@ -150,23 +149,12 @@ func (s *Server) registerMediaTools() {
 		if src == "" {
 			return nil, fmt.Errorf("url is required")
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, src, nil)
+		maxBytes := int64(envIntDefault("SQUILLA_MEDIA_MAX_MB", 50)) * 1024 * 1024
+		body, contentType, err := fetchForImport(ctx, src, maxBytes)
 		if err != nil {
-			return nil, fmt.Errorf("build request: %w", err)
+			return nil, err
 		}
-		req.Header.Set("User-Agent", "Squilla-MCP/1.0")
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("fetch: %w", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, fmt.Errorf("fetch returned status %d", resp.StatusCode)
-		}
-		buf := new(bytes.Buffer)
-		if _, err := buf.ReadFrom(resp.Body); err != nil {
-			return nil, fmt.Errorf("read body: %w", err)
-		}
+		buf := bytes.NewBuffer(body)
 
 		filename := stringArg(args, "filename")
 		if filename == "" {
@@ -182,7 +170,7 @@ func (s *Server) registerMediaTools() {
 
 		mimeType := stringArg(args, "mime_type")
 		if mimeType == "" {
-			ct := resp.Header.Get("Content-Type")
+			ct := contentType
 			if ct != "" {
 				if parsed, _, perr := mime.ParseMediaType(ct); perr == nil {
 					mimeType = parsed

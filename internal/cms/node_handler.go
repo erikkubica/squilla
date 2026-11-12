@@ -49,6 +49,10 @@ func (h *NodeHandler) GetTranslations(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Node ID must be a valid integer")
 	}
 
+	if _, aerr := requireNodeAccess(c, h.db, id, false); aerr != nil {
+		return api.Error(c, aerr.Status, aerr.Code, aerr.Message)
+	}
+
 	translations, err := h.svc.GetTranslations(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -57,7 +61,17 @@ func (h *NodeHandler) GetTranslations(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch translations")
 	}
 
-	return api.Success(c, translations)
+	// Siblings are separate nodes: hide the ones the caller can't read
+	// (e.g. another author's translation under scope "own").
+	user := auth.GetCurrentUser(c)
+	visible := make([]models.ContentNode, 0, len(translations))
+	for _, t := range translations {
+		if canSeeNode(user, t.NodeType, t.AuthorID) {
+			visible = append(visible, t)
+		}
+	}
+
+	return api.Success(c, visible)
 }
 
 // createTranslationRequest represents the JSON body for creating a translation.
@@ -70,6 +84,10 @@ func (h *NodeHandler) CreateTranslation(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return api.Error(c, fiber.StatusBadRequest, "INVALID_ID", "Node ID must be a valid integer")
+	}
+
+	if _, aerr := requireNodeAccess(c, h.db, id, true); aerr != nil {
+		return api.Error(c, aerr.Status, aerr.Code, aerr.Message)
 	}
 
 	var req createTranslationRequest

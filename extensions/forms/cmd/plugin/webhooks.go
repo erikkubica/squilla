@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	neturl "net/url"
+	"strings"
 	"time"
 
 	"squilla/internal/coreapi"
@@ -58,16 +60,19 @@ func (p *FormsPlugin) fireWebhook(ctx context.Context, form map[string]any, subm
 	duration := int(time.Since(start).Milliseconds())
 
 	logEntry := map[string]any{
-		"form_id":      formID,
+		"form_id":       formID,
 		"submission_id": submissionID,
-		"url":          url,
-		"request_body": string(body),
-		"duration_ms":  duration,
+		"url":           url,
+		"request_body":  string(body),
+		"duration_ms":   duration,
 	}
 	if fetchErr != nil {
 		logEntry["error"] = fetchErr.Error()
 		logEntry["status_code"] = 0
-		p.host.Log(ctx, "warn", fmt.Sprintf("webhook %s failed: %s", url, fetchErr), nil)
+		// The URL may carry a token in its path or query: log the host
+		// only, and scrub the URL out of the error text too.
+		host := webhookHost(url)
+		p.host.Log(ctx, "warn", fmt.Sprintf("webhook to %s failed: %s", host, strings.ReplaceAll(fetchErr.Error(), url, host)), nil)
 	} else {
 		logEntry["status_code"] = res.StatusCode
 		logEntry["response_body"] = webhookTruncate(res.Body, 4096)
@@ -95,4 +100,13 @@ func webhookTruncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "...(truncated)"
+}
+
+// webhookHost returns just the host of a webhook URL for logging.
+func webhookHost(raw string) string {
+	u, err := neturl.Parse(raw)
+	if err != nil || u.Host == "" {
+		return "(invalid url)"
+	}
+	return u.Host
 }

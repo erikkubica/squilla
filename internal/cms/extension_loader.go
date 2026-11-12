@@ -98,18 +98,17 @@ type PublicRouteEntry struct {
 // what the plugin would call its "request path", with a leading slash.
 // Two glob tokens:
 //
-//	*   matches a single path segment (no slashes)
-//	**  matches any number of segments (including zero)
+//   - matches a single path segment (no slashes)
+//     **  matches any number of segments (including zero)
 //
 // RequiredCapability is the boolean capability key that the user's
-// role must carry. If empty, the entry effectively only enforces
-// admin_access (already verified by the proxy group), which is rarely
-// what an author wants — non-empty is strongly recommended.
+// role must carry. Empty means the route needs only admin_access (already
+// verified by the proxy group) — use it deliberately to open a mutating
+// route to every admin user.
 //
 // Matching is first-rule-wins, so order entries with most specific
-// patterns first. Unmatched requests fall through to the proxy's
-// admin_access default — that's the back-compat behaviour for
-// extensions that haven't declared admin_routes yet.
+// patterns first. Unmatched GET/HEAD requests need only admin_access;
+// unmatched requests with any other method need manage_settings.
 type AdminRouteEntry struct {
 	Method             string `json:"method"`
 	Path               string `json:"path"`
@@ -117,52 +116,52 @@ type AdminRouteEntry struct {
 }
 
 type ExtensionManifest struct {
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
-	Version     string `json:"version"`
-	Author      string `json:"author"`
-	Description string `json:"description"`
-	Priority    int    `json:"priority"`
+	Name        string   `json:"name"`
+	Slug        string   `json:"slug"`
+	Version     string   `json:"version"`
+	Author      string   `json:"author"`
+	Description string   `json:"description"`
+	Priority    int      `json:"priority"`
 	Provides    []string `json:"provides"`
 	// AutoActivate=true means the extension flips is_active=true on fresh
 	// installs. The flag is ignored on existing installations (the
 	// is_active column is not in the ON CONFLICT update set, so user
 	// choices stick). Replaces the kernel-side hardcoded list of slugs.
-	AutoActivate bool                     `json:"auto_activate"`
-	Capabilities []string                 `json:"capabilities"`
+	AutoActivate bool     `json:"auto_activate"`
+	Capabilities []string `json:"capabilities"`
 	// DataOwnedTables enumerates the database tables this extension
 	// is allowed to read/write through the Data* CoreAPI methods. The
 	// kernel default-denies any table not on this list (see
 	// coreapi.checkTableAccess) so an extension granted "data:read"
 	// can't pivot from its own data into users / sessions / etc.
-	DataOwnedTables []string                 `json:"data_owned_tables"`
+	DataOwnedTables []string `json:"data_owned_tables"`
 	// DataOwnedFunctions enumerates the SQL functions (created by the
 	// extension's own migrations) this extension may invoke through
 	// CoreAPI.DataCall. Default deny, like DataOwnedTables.
-	DataOwnedFunctions []string `json:"data_owned_functions"`
-	Plugins        []PluginManifestEntry    `json:"plugins"`
-	AdminUI        *AdminUIManifest         `json:"admin_ui"`
-	SettingsSchema map[string]SettingsField `json:"settings_schema"`
+	DataOwnedFunctions []string                 `json:"data_owned_functions"`
+	Plugins            []PluginManifestEntry    `json:"plugins"`
+	AdminUI            *AdminUIManifest         `json:"admin_ui"`
+	SettingsSchema     map[string]SettingsField `json:"settings_schema"`
 	// Settings is the rich, schema-driven settings declaration. Each entry
 	// is a complete settings.Schema (sections + fields with translatable
 	// flags). Registered into the in-process settings registry on
 	// activation, unregistered on deactivation. The schema ID is namespaced
 	// to "ext.<slug>.<id>" by the activation bridge so two extensions can
 	// declare schemas with the same local ID without collision.
-	Settings []json.RawMessage `json:"settings"`
-	Blocks         []ThemeBlockDef          `json:"blocks"`
-	Templates      []ThemeTemplateDef       `json:"templates"`
-	Layouts        []ThemeLayoutDef         `json:"layouts"`
-	Partials       []ThemePartialDef        `json:"partials"`
-	PublicRoutes   []PublicRouteEntry       `json:"public_routes"`
+	Settings     []json.RawMessage  `json:"settings"`
+	Blocks       []ThemeBlockDef    `json:"blocks"`
+	Templates    []ThemeTemplateDef `json:"templates"`
+	Layouts      []ThemeLayoutDef   `json:"layouts"`
+	Partials     []ThemePartialDef  `json:"partials"`
+	PublicRoutes []PublicRouteEntry `json:"public_routes"`
 	// AdminRoutes declares per-capability gates on /admin/api/ext/<slug>/*
 	// requests. The proxy enforces these BEFORE forwarding to the plugin
 	// so a logged-in admin without the right cap can't bypass UI guards
 	// and POST directly. Without this list, extensions are gated only by
 	// admin_access — which is fine for read-only extensions but a hole
 	// for anything mutating data the user shouldn't touch.
-	AdminRoutes    []AdminRouteEntry        `json:"admin_routes"`
-	Assets         []ThemeMediaAssetDef     `json:"assets"`
+	AdminRoutes []AdminRouteEntry    `json:"admin_routes"`
+	Assets      []ThemeMediaAssetDef `json:"assets"`
 }
 
 // CapabilityMap returns the Capabilities slice as a map for quick lookup.
@@ -274,6 +273,12 @@ func (l *ExtensionLoader) registerDir(extDir string, isData, force bool) bool {
 	if manifest.Slug == "" {
 		manifest.Slug = filepath.Base(extDir)
 	}
+	// The slug is joined into data-dir paths (delete, install) and used
+	// as the capability/caller identity — reject anything but [A-Za-z0-9_-].
+	if !isValidSettingsKey(manifest.Slug) {
+		log.Printf("[extensions] skipping %s: invalid slug %q", extDir, manifest.Slug)
+		return false
+	}
 	if manifest.Priority == 0 {
 		manifest.Priority = 50
 	}
@@ -299,7 +304,9 @@ func (l *ExtensionLoader) registerDir(extDir string, isData, force bool) bool {
 		Path:        extDir,
 		Priority:    manifest.Priority,
 		Manifest:    models.JSONB(data),
-		IsActive:    manifest.AutoActivate,
+		// auto_activate is honoured only for image-bundled extensions: an
+		// operator-dropped or uploaded package must be activated explicitly.
+		IsActive: manifest.AutoActivate && !isData && isUnderDir(extDir, l.extensionsDir),
 	}
 
 	result := l.db.Clauses(clause.OnConflict{
@@ -419,10 +426,18 @@ func (l *ExtensionLoader) RegisterBundled(slug string) error {
 }
 
 // GetActive returns all active extensions sorted by priority (ascending).
+// Rows are filtered through sanitizeActive: a row whose path is outside the
+// bundled/data extension dirs is skipped (with a warning), and each
+// manifest's data_owned_tables is stripped of kernel tables and of tables
+// another active extension already owns. Every boot/activation consumer
+// (migrations, scripts, plugins) goes through this method.
 func (l *ExtensionLoader) GetActive() ([]models.Extension, error) {
 	var exts []models.Extension
 	err := l.db.Where("is_active = ?", true).Order("priority ASC, slug ASC").Find(&exts).Error
-	return exts, err
+	if err != nil {
+		return nil, err
+	}
+	return l.sanitizeActive(exts), nil
 }
 
 // Activate sets is_active=true for the extension with the given slug.
@@ -550,7 +565,11 @@ func (l *ExtensionLoader) loadExtensionBlocks(ext models.Extension, registry *Th
 
 	// Load blocks.
 	for _, def := range manifest.Blocks {
-		blockDir := filepath.Join(ext.Path, "blocks", def.Dir)
+		blockDir, err := confinedDir(ext.Path, filepath.Join("blocks", def.Dir))
+		if err != nil {
+			log.Printf("[extensions] block %s from %s: %v", def.Slug, ext.Slug, err)
+			continue
+		}
 		if err := RegisterBlockFromDir(l.db, registry, blockDir, def.Slug, "extension", ext.Slug); err != nil {
 			log.Printf("[extensions] block %s from %s: %v", def.Slug, ext.Slug, err)
 			continue
@@ -560,7 +579,11 @@ func (l *ExtensionLoader) loadExtensionBlocks(ext models.Extension, registry *Th
 
 	// Load templates.
 	for _, def := range manifest.Templates {
-		filePath := filepath.Join(ext.Path, "templates", def.File)
+		filePath, err := confinedFile(ext.Path, filepath.Join("templates", def.File))
+		if err != nil {
+			log.Printf("[extensions] template %s from %s: %v", def.Slug, ext.Slug, err)
+			continue
+		}
 		if err := RegisterTemplateFromFile(l.db, filePath, def.Slug, "extension", ext.Slug); err != nil {
 			log.Printf("[extensions] template %s from %s: %v", def.Slug, ext.Slug, err)
 			continue
@@ -569,8 +592,7 @@ func (l *ExtensionLoader) loadExtensionBlocks(ext models.Extension, registry *Th
 
 	// Load layouts.
 	for _, def := range manifest.Layouts {
-		filePath := filepath.Join(ext.Path, "layouts", def.File)
-		code, err := os.ReadFile(filePath)
+		code, err := readConfinedFile(ext.Path, filepath.Join("layouts", def.File))
 		if err != nil {
 			log.Printf("[extensions] layout %s from %s: %v", def.Slug, ext.Slug, err)
 			continue
@@ -582,8 +604,7 @@ func (l *ExtensionLoader) loadExtensionBlocks(ext models.Extension, registry *Th
 
 	// Load partials.
 	for _, def := range manifest.Partials {
-		filePath := filepath.Join(ext.Path, "partials", def.File)
-		code, err := os.ReadFile(filePath)
+		code, err := readConfinedFile(ext.Path, filepath.Join("partials", def.File))
 		if err != nil {
 			log.Printf("[extensions] partial %s from %s: %v", def.Slug, ext.Slug, err)
 			continue

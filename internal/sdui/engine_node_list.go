@@ -28,15 +28,103 @@ func buildLanguageList(db *gorm.DB) []map[string]interface{} {
 	return out
 }
 
+// termFilterJSON encodes a single-term JSON array for the taxonomies @>
+// containment filter. json.Marshal (not Sprintf) so quotes/backslashes in
+// the URL-supplied term can't break out of the string literal.
+func termFilterJSON(term string) string {
+	b, _ := json.Marshal([]string{term})
+	return string(b)
+}
+
+// nodeTypeScopeOwn reports whether the user's access to slug is limited to
+// nodes they authored (scope "own"). Mirrors auth.GetNodeAccess; see
+// canReadNodeType for why it is duplicated.
+func nodeTypeScopeOwn(user *models.User, slug string) bool {
+	if user == nil {
+		return true
+	}
+	var caps map[string]interface{}
+	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
+		return true
+	}
+	scope := "all"
+	if nodes, ok := caps["nodes"].(map[string]interface{}); ok {
+		if override, ok := nodes[slug].(map[string]interface{}); ok {
+			if sc, ok := override["scope"].(string); ok {
+				scope = sc
+			}
+			return scope == "own"
+		}
+	}
+	if def, ok := caps["default_node_access"].(map[string]interface{}); ok {
+		if sc, ok := def["scope"].(string); ok {
+			scope = sc
+		}
+	}
+	return scope == "own"
+}
+
+// ownScopeFilter restricts a content_nodes query to rows the user may see
+// under per-type "own" scope: for every node type whose effective scope
+// is "own" (nodeTypeScopeOwn), only nodes authored by the user remain.
+// Works without enumerating node types: explicit per-type overrides are
+// listed, everything else follows default_node_access.
+func ownScopeFilter(q *gorm.DB, user *models.User) *gorm.DB {
+	if user == nil {
+		return q.Where("1 = 0")
+	}
+	var caps map[string]interface{}
+	if err := json.Unmarshal(user.Role.Capabilities, &caps); err != nil {
+		return q.Where("1 = 0")
+	}
+	var ownTypes, allTypes []string
+	if nodes, ok := caps["nodes"].(map[string]interface{}); ok {
+		for slug, ov := range nodes {
+			if _, ok := ov.(map[string]interface{}); !ok {
+				continue
+			}
+			if nodeTypeScopeOwn(user, slug) {
+				ownTypes = append(ownTypes, slug)
+			} else {
+				allTypes = append(allTypes, slug)
+			}
+		}
+	}
+	defaultOwn := false
+	if def, ok := caps["default_node_access"].(map[string]interface{}); ok {
+		sc, _ := def["scope"].(string)
+		defaultOwn = sc == "own"
+	}
+	if defaultOwn {
+		// Own by default; explicit "all" overrides are exempt.
+		if len(allTypes) == 0 {
+			return q.Where("author_id = ?", user.ID)
+		}
+		return q.Where("(author_id = ? OR node_type IN ?)", user.ID, allTypes)
+	}
+	if len(ownTypes) == 0 {
+		return q
+	}
+	return q.Where("(author_id = ? OR node_type NOT IN ?)", user.ID, ownTypes)
+}
+
 // nodeListLayout renders /admin/{pages|posts|content/<type>}.
 // Counts per status come from a separate raw query (rather than
 // re-reading the filtered slice) so tabs reflect the unfiltered total
 // while the table reflects the active status filter.
-func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
+//
+// Per-node access mirrors auth.GetNodeAccess: a caller without read access
+// to the type gets the empty default layout, and scope "own" restricts
+// both the rows and the tab counts to nodes the caller authored.
+func (e *Engine) nodeListLayout(params map[string]string, user *models.User) *LayoutNode {
 	nodeTypeSlug := params["nodeType"]
 	if nodeTypeSlug == "" {
 		return e.defaultLayout("node-list")
 	}
+	if !canReadNodeType(user, nodeTypeSlug) {
+		return e.defaultLayout("node-list")
+	}
+	ownOnly := nodeTypeScopeOwn(user, nodeTypeSlug)
 
 	// 1. Get NodeType by slug
 	var nt models.NodeType
@@ -89,6 +177,9 @@ func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
 	}
 
 	query := e.db.Model(&models.ContentNode{}).Where("node_type = ? AND deleted_at IS NULL", nodeTypeSlug)
+	if ownOnly {
+		query = query.Where("author_id = ?", user.ID)
+	}
 
 	// Optional search filter (applied before status counting)
 	if search := params["search"]; search != "" {
@@ -104,7 +195,7 @@ func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
 	activeTaxFilters := make([]map[string]interface{}, 0)
 	for _, taxDef := range taxonomyDefs {
 		if termName := params[taxDef.Slug]; termName != "" {
-			query = query.Where("taxonomies->? @> ?::jsonb", taxDef.Slug, fmt.Sprintf(`["%s"]`, termName))
+			query = query.Where("taxonomies->? @> ?::jsonb", taxDef.Slug, termFilterJSON(termName))
 			activeTaxFilters = append(activeTaxFilters, map[string]interface{}{
 				"taxonomy": taxDef.Slug,
 				"term":     termName,
@@ -116,6 +207,10 @@ func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
 	// 4. Query status counts (unfiltered by status, but filtered by node_type, search, language, taxonomy)
 	baseCountQuery := "SELECT status, COUNT(*) as count FROM content_nodes WHERE node_type = ? AND deleted_at IS NULL"
 	countArgs := []interface{}{nodeTypeSlug}
+	if ownOnly {
+		baseCountQuery += " AND author_id = ?"
+		countArgs = append(countArgs, user.ID)
+	}
 	if search := params["search"]; search != "" {
 		baseCountQuery += " AND title ILIKE ?"
 		countArgs = append(countArgs, "%"+search+"%")
@@ -127,7 +222,7 @@ func (e *Engine) nodeListLayout(params map[string]string) *LayoutNode {
 	for _, taxDef := range taxonomyDefs {
 		if termName := params[taxDef.Slug]; termName != "" {
 			baseCountQuery += " AND taxonomies->? @> ?::jsonb"
-			countArgs = append(countArgs, taxDef.Slug, fmt.Sprintf(`["%s"]`, termName))
+			countArgs = append(countArgs, taxDef.Slug, termFilterJSON(termName))
 		}
 	}
 	baseCountQuery += " GROUP BY status"

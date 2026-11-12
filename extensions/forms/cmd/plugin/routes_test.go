@@ -312,13 +312,21 @@ func TestRouteRequest_AdminPrefixStrip(t *testing.T) {
 	p := newPlugin(h)
 	seedForm(h)
 
-	// Admin proxy uses /admin/api/ext/forms prefix
-	resp, err := p.routeRequest(ctx(), routeReq("GET", "/admin/api/ext/forms/1", nil, nil))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	// The kernel proxy already strips /admin/api/ext/forms and matches
+	// admin_routes on the remainder. A doubled prefix must not be
+	// re-stripped here, or "/admin/api/ext/forms/submissions" (which no
+	// manage_forms rule matches) would still list submissions.
+	for _, path := range []string{"/admin/api/ext/forms/1", "/admin/api/ext/forms/submissions", "/api/ext/forms/submissions"} {
+		resp, err := p.routeRequest(ctx(), routeReq("GET", path, nil, nil))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp.StatusCode != 404 {
+			t.Errorf("GET %s: expected 404, got %d", path, resp.StatusCode)
+		}
 	}
-	if resp.StatusCode != 200 {
-		t.Errorf("admin prefix stripping expected 200, got %d", resp.StatusCode)
+	if resp, _ := p.routeRequest(ctx(), routeReq("GET", "/1", nil, nil)); resp.StatusCode != 200 {
+		t.Errorf("GET /1 expected 200, got %d", resp.StatusCode)
 	}
 }
 

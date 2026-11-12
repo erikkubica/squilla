@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
@@ -315,9 +316,9 @@ func TestHandleSubmit_FileUploadStored(t *testing.T) {
 	p := newPlugin(h)
 
 	h.DataCreate(ctx(), formsTable, map[string]any{
-		"name":  "File Form",
-		"slug":  "file-form",
-		"fields": `[{"id":"doc","label":"Document","type":"file"}]`,
+		"name":     "File Form",
+		"slug":     "file-form",
+		"fields":   `[{"id":"doc","label":"Document","type":"file"}]`,
 		"settings": `{}`,
 	})
 
@@ -375,4 +376,138 @@ func TestHandleSubmit_StoreIPFalse(t *testing.T) {
 			}
 		}
 	}
+}
+
+// ---- File and value hardening ----
+
+func multipartSubmit(t *testing.T, p *FormsPlugin, slug string, build func(mw *multipart.Writer)) *pb.PluginHTTPResponse {
+	t.Helper()
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	build(mw)
+	mw.Close()
+	req := &pb.PluginHTTPRequest{
+		Method:  "POST",
+		Path:    "forms/submit/" + slug,
+		Headers: map[string]string{"Content-Type": mw.FormDataContentType(), "X-Forwarded-For": "1.2.3.4"},
+		Body:    buf.Bytes(),
+	}
+	resp, _ := p.handleSubmit(ctx(), slug, req)
+	return resp
+}
+
+func seedFileForm(h *FakeHost) {
+	h.DataCreate(ctx(), formsTable, map[string]any{
+		"name":     "File Form",
+		"slug":     "file-form",
+		"fields":   `[{"id":"name","label":"Name","type":"text"},{"id":"doc","label":"Document","type":"file"}]`,
+		"settings": `{}`,
+	})
+}
+
+func TestHandleSubmit_FilesForUnknownOrNonFileFieldsDropped(t *testing.T) {
+	h := NewFakeHost()
+	p := newPlugin(h)
+	seedFileForm(h)
+
+	resp := multipartSubmit(t, p, "file-form", func(mw *multipart.Writer) {
+		fw, _ := mw.CreateFormFile("evil", "x.pdf")
+		fmt.Fprint(fw, "%PDF")
+		fw, _ = mw.CreateFormFile("name", "y.pdf")
+		fmt.Fprint(fw, "%PDF")
+		mw.WriteField("name", "Alice")
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("expected 200, got %d (%s)", resp.StatusCode, resp.Body)
+	}
+	if len(h.StoredFiles) != 0 {
+		t.Errorf("files for unknown/non-file fields were stored: %v", h.StoredFiles)
+	}
+}
+
+func TestHandleSubmit_SingleFileFieldRejectsSeveral(t *testing.T) {
+	h := NewFakeHost()
+	p := newPlugin(h)
+	seedFileForm(h)
+	resp := multipartSubmit(t, p, "file-form", func(mw *multipart.Writer) {
+		for i := 0; i < 3; i++ {
+			fw, _ := mw.CreateFormFile("doc", fmt.Sprintf("d%d.pdf", i))
+			fmt.Fprint(fw, "%PDF")
+		}
+	})
+	if resp.StatusCode != 422 || len(h.StoredFiles) != 0 {
+		t.Errorf("status %d, stored %d", resp.StatusCode, len(h.StoredFiles))
+	}
+}
+
+func TestHandleSubmit_DefaultFileAllowListApplies(t *testing.T) {
+	h := NewFakeHost()
+	p := newPlugin(h)
+	seedFileForm(h)
+	resp := multipartSubmit(t, p, "file-form", func(mw *multipart.Writer) {
+		fw, _ := mw.CreateFormFile("doc", "page.html")
+		fmt.Fprint(fw, "<script>alert(1)</script>")
+	})
+	if resp.StatusCode != 422 || len(h.StoredFiles) != 0 {
+		t.Errorf("html upload: status %d, stored %d", resp.StatusCode, len(h.StoredFiles))
+	}
+}
+
+// An anonymous JSON body must not plant objects the admin UI renders as
+// file links (url/name), neither for file fields nor for other fields.
+func TestHandleSubmit_RejectsObjectValues(t *testing.T) {
+	h := NewFakeHost()
+	p := newPlugin(h)
+	seedFileForm(h)
+
+	resp := submitJSON(h, p, "file-form", map[string]any{
+		"name": map[string]any{"url": "javascript:alert(1)", "name": "x"},
+	})
+	if resp.StatusCode != 422 {
+		t.Errorf("object value for text field: status %d", resp.StatusCode)
+	}
+
+	resp = submitJSON(h, p, "file-form", map[string]any{
+		"name": "Alice",
+		"doc":  map[string]any{"url": "javascript:alert(1)", "name": "x.pdf"},
+	})
+	if resp.StatusCode == 200 {
+		for _, row := range h.Tables[submissionsTable] {
+			data, _ := row["data"].(map[string]any)
+			if _, ok := data["doc"]; ok {
+				t.Errorf("file field value from JSON body was stored: %v", data["doc"])
+			}
+		}
+	} else if resp.StatusCode != 422 {
+		t.Errorf("unexpected status %d", resp.StatusCode)
+	}
+
+	// Lists of scalars (checkbox groups) stay allowed.
+	resp = submitJSON(h, p, "file-form", map[string]any{"name": "Bob", "tags": []any{"a", "b"}})
+	if resp.StatusCode != 200 {
+		t.Errorf("scalar list rejected: %d %s", resp.StatusCode, resp.Body)
+	}
+}
+
+func TestHandleSubmit_StoreErrorsAreGeneric(t *testing.T) {
+	h := NewFakeHost()
+	p := newPlugin(h)
+	seedFileForm(h)
+	p.host = &failingStoreHost{FakeHost: h}
+	resp := multipartSubmit(t, p, "file-form", func(mw *multipart.Writer) {
+		fw, _ := mw.CreateFormFile("doc", "d.pdf")
+		fmt.Fprint(fw, "%PDF")
+	})
+	if resp.StatusCode != 500 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	if strings.Contains(string(resp.Body), "/srv/secret") {
+		t.Errorf("filesystem detail leaked: %s", resp.Body)
+	}
+}
+
+type failingStoreHost struct{ *FakeHost }
+
+func (f *failingStoreHost) StoreFile(_ context.Context, path string, _ []byte) (string, error) {
+	return "", fmt.Errorf("open /srv/secret/storage/%s: permission denied", path)
 }

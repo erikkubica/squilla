@@ -84,6 +84,9 @@ func (s *Server) registerThemeChecklistTool() {
 		mcp.WithString("slug", mcp.Description("Theme slug (directory name). Defaults to the active theme.")),
 	), "read", func(ctx context.Context, args map[string]any) (any, error) {
 		slug := stringArg(args, "slug")
+		if slug != "" && !themeSlugPattern.MatchString(slug) {
+			return nil, fmt.Errorf("invalid theme slug %q (allowed: a-z, 0-9, '-', '_')", slug)
+		}
 		mgmt := s.deps.ThemeMgmtSvc
 		if mgmt == nil {
 			return nil, fmt.Errorf("theme management service not wired")
@@ -100,11 +103,15 @@ func (s *Server) registerThemeChecklistTool() {
 		}
 		themeDir := filepath.Join(mgmt.ThemesDir(), slug)
 		if _, err := os.Stat(themeDir); err != nil {
-			return nil, fmt.Errorf("theme directory not found: %s", themeDir)
+			return nil, fmt.Errorf("theme directory not found: themes/%s", slug)
 		}
 		return runThemeChecklist(slug, themeDir), nil
 	})
 }
+
+// themeSlugPattern is the accepted shape for a caller-supplied theme slug;
+// it is joined into a filesystem path.
+var themeSlugPattern = regexp.MustCompile(`^[a-z0-9_-]+$`)
 
 type checklistItem struct {
 	ID       string `json:"id"`
@@ -548,7 +555,7 @@ func scanViewFallbacks(path string) []checklistItem {
 		// {{ or .x "literal" }} — the canonical fallback bug.
 		if orFallbackRegex.MatchString(line) {
 			out = append(out, checklistItem{
-				ID: "view.fallback." + filepath.Base(filepath.Dir(path)),
+				ID:       "view.fallback." + filepath.Base(filepath.Dir(path)),
 				Severity: "fail", Pass: false,
 				Message: fmt.Sprintf("%s:%d hardcoded fallback `{{ or .x \"…\" }}` — replace with `{{ with .x }}{{ . }}{{ end }}` so empty data renders empty (loud), not fake-complete (silent).",
 					relTheme(path), i+1),
@@ -561,7 +568,7 @@ func scanViewFallbacks(path string) []checklistItem {
 		// closing `{{end}}` on the same line.
 		if elseLiteralRegex.MatchString(line) {
 			out = append(out, checklistItem{
-				ID: "view.fallback." + filepath.Base(filepath.Dir(path)),
+				ID:       "view.fallback." + filepath.Base(filepath.Dir(path)),
 				Severity: "warn", Pass: false,
 				Message: fmt.Sprintf("%s:%d `{{ else }}LITERAL{{ end }}` — confirm the literal isn't standing in for missing data; prefer empty render so screenshots reflect reality.",
 					relTheme(path), i+1),
@@ -732,9 +739,22 @@ func summarize(slug, themeDir string, checks []checklistItem) map[string]any {
 			warnings++
 		}
 	}
+	// Report paths relative to the repo (themes/<slug>/...) — the absolute
+	// install path is server detail the agent has no use for.
+	relDir := "themes/" + slug
+	for i := range checks {
+		if checks[i].File != "" {
+			if r, err := filepath.Rel(themeDir, checks[i].File); err == nil && !strings.HasPrefix(r, "..") {
+				checks[i].File = filepath.ToSlash(filepath.Join(relDir, r))
+			}
+		}
+		if themeDir != "" {
+			checks[i].Message = strings.ReplaceAll(checks[i].Message, themeDir, relDir)
+		}
+	}
 	return map[string]any{
 		"slug":      slug,
-		"theme_dir": themeDir,
+		"theme_dir": relDir,
 		"checks":    checks,
 		"summary": map[string]int{
 			"passed":   passed,

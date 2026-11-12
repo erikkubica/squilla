@@ -41,6 +41,11 @@ func (p *MediaManagerPlugin) handlePublicCacheRequest(ctx context.Context, req *
 	if strings.Contains(originalPath, "..") || strings.HasPrefix(originalPath, "/") || strings.ContainsRune(originalPath, 0) {
 		return binaryError(404), nil
 	}
+	// Pre-optimisation backups (which may still carry EXIF/GPS) are
+	// never public.
+	if isPrivateMediaPath(originalPath) {
+		return binaryError(404), nil
+	}
 
 	// Look up the size definition from the database.
 	sizeResult, err := p.host.DataQuery(ctx, sizesTable, coreapi.DataStoreQuery{
@@ -81,6 +86,19 @@ func (p *MediaManagerPlugin) handlePublicCacheRequest(ctx context.Context, req *
 		return p.serveCachedFile(cp, false)
 	}
 
+	// Confirm the original exists before taking a lock or doing any work,
+	// so requests for nonexistent paths stay cheap.
+	originalFile := filepath.Join(p.storageDir, "media", originalPath)
+	if _, err := os.Stat(originalFile); err != nil {
+		return binaryError(404), nil
+	}
+
+	// A previous attempt failed (corrupt or oversized image): don't
+	// decode it again on every anonymous request.
+	if p.conversionFailed(cp) {
+		return binaryError(404), nil
+	}
+
 	// Acquire per-path mutex to prevent thundering herd.
 	mu := p.getPathMutex(cp)
 	mu.Lock()
@@ -98,7 +116,6 @@ func (p *MediaManagerPlugin) handlePublicCacheRequest(ctx context.Context, req *
 	}
 
 	// Read original file from disk.
-	originalFile := filepath.Join(p.storageDir, "media", originalPath)
 	originalData, err := os.ReadFile(originalFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -136,6 +153,7 @@ func (p *MediaManagerPlugin) handlePublicCacheRequest(ctx context.Context, req *
 	resized, outMime, err := resizeImage(bytes.NewReader(originalData), mimeType, width, height, mode, quality)
 	if err != nil {
 		log.Printf("ERROR: resize %s/%s: %v", sizeName, originalPath, err)
+		p.markConversionFailed(cp)
 		return binaryError(500), nil
 	}
 
@@ -164,9 +182,10 @@ func (p *MediaManagerPlugin) handlePublicCacheRequest(ctx context.Context, req *
 	return &pb.PluginHTTPResponse{
 		StatusCode: 200,
 		Headers: map[string]string{
-			"Content-Type":  outputMime,
-			"Cache-Control": "public, max-age=31536000",
-			"Vary":          "Accept",
+			"Content-Type":           outputMime,
+			"Cache-Control":          "public, max-age=31536000",
+			"Vary":                   "Accept",
+			"X-Content-Type-Options": "nosniff",
 		},
 		Body: outputData,
 	}, nil
@@ -185,8 +204,9 @@ func (p *MediaManagerPlugin) serveCachedFile(path string, isWebP bool) (*pb.Plug
 	return &pb.PluginHTTPResponse{
 		StatusCode: 200,
 		Headers: map[string]string{
-			"Content-Type":  contentType,
-			"Cache-Control": "public, max-age=31536000",
+			"Content-Type":           contentType,
+			"Cache-Control":          "public, max-age=31536000",
+			"X-Content-Type-Options": "nosniff",
 		},
 		Body: data,
 	}, nil
@@ -205,6 +225,11 @@ func (p *MediaManagerPlugin) handlePublicMediaRequest(ctx context.Context, req *
 	// Reject directory traversal — the cache route rejects it too, and
 	// this entry would otherwise read arbitrary files via /media/../etc.
 	if strings.Contains(relPath, "..") || strings.ContainsRune(relPath, 0) {
+		return &pb.PluginHTTPResponse{StatusCode: 404}, nil
+	}
+	// Pre-optimisation backups (which may still carry EXIF/GPS) are
+	// never public; nothing in the admin UI fetches them by URL.
+	if isPrivateMediaPath(relPath) {
 		return &pb.PluginHTTPResponse{StatusCode: 404}, nil
 	}
 
@@ -242,9 +267,10 @@ func (p *MediaManagerPlugin) handlePublicMediaRequest(ctx context.Context, req *
 		return &pb.PluginHTTPResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
-				"Content-Type":  mimeType,
-				"Cache-Control": "public, max-age=31536000",
-				"Vary":          "Accept",
+				"Content-Type":           mimeType,
+				"Cache-Control":          "public, max-age=31536000",
+				"Vary":                   "Accept",
+				"X-Content-Type-Options": "nosniff",
 			},
 			Body: data,
 		}, nil
@@ -258,9 +284,10 @@ func (p *MediaManagerPlugin) handlePublicMediaRequest(ctx context.Context, req *
 		return &pb.PluginHTTPResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
-				"Content-Type":  "image/webp",
-				"Cache-Control": "public, max-age=31536000",
-				"Vary":          "Accept",
+				"Content-Type":           "image/webp",
+				"Cache-Control":          "public, max-age=31536000",
+				"Vary":                   "Accept",
+				"X-Content-Type-Options": "nosniff",
 			},
 			Body: data,
 		}, nil
@@ -271,6 +298,19 @@ func (p *MediaManagerPlugin) handlePublicMediaRequest(ctx context.Context, req *
 	originalData, err := os.ReadFile(originalFile)
 	if err != nil {
 		return &pb.PluginHTTPResponse{StatusCode: 404}, nil
+	}
+	failKey := "_webp/" + relPath
+	if p.conversionFailed(failKey) {
+		return &pb.PluginHTTPResponse{
+			StatusCode: 200,
+			Headers: map[string]string{
+				"Content-Type":           mimeFromExt(ext),
+				"Cache-Control":          "public, max-age=31536000",
+				"Vary":                   "Accept",
+				"X-Content-Type-Options": "nosniff",
+			},
+			Body: originalData,
+		}, nil
 	}
 
 	// Convert to WebP.
@@ -283,14 +323,16 @@ func (p *MediaManagerPlugin) handlePublicMediaRequest(ctx context.Context, req *
 
 	webpData, convErr := convertToWebP(bytes.NewReader(originalData), webpQuality)
 	if convErr != nil {
-		// Conversion failed — serve original with Vary header.
+		// Conversion failed — remember it and serve the original.
+		p.markConversionFailed(failKey)
 		mimeType := mimeFromExt(ext)
 		return &pb.PluginHTTPResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
-				"Content-Type":  mimeType,
-				"Cache-Control": "public, max-age=31536000",
-				"Vary":          "Accept",
+				"Content-Type":           mimeType,
+				"Cache-Control":          "public, max-age=31536000",
+				"Vary":                   "Accept",
+				"X-Content-Type-Options": "nosniff",
 			},
 			Body: originalData,
 		}, nil
@@ -305,9 +347,10 @@ func (p *MediaManagerPlugin) handlePublicMediaRequest(ctx context.Context, req *
 	return &pb.PluginHTTPResponse{
 		StatusCode: 200,
 		Headers: map[string]string{
-			"Content-Type":  "image/webp",
-			"Cache-Control": "public, max-age=31536000",
-			"Vary":          "Accept",
+			"Content-Type":           "image/webp",
+			"Cache-Control":          "public, max-age=31536000",
+			"Vary":                   "Accept",
+			"X-Content-Type-Options": "nosniff",
 		},
 		Body: webpData,
 	}, nil
@@ -344,6 +387,7 @@ func (p *MediaManagerPlugin) serveStaticAsset(relPath, ext string, req *pb.Plugi
 		"Cache-Control": "public, max-age=31536000",
 		"Accept-Ranges": "bytes",
 	}
+	applyMediaSafetyHeaders(headers, ext)
 
 	// Parse a single 'bytes=start-end' range. Multipart ranges fall back
 	// to a full-body response — they're rare in the wild for the formats
@@ -426,6 +470,13 @@ func parseSingleByteRange(header string, total int64) (int64, int64, bool) {
 		return 0, 0, false
 	}
 	return start, end, true
+}
+
+// isPrivateMediaPath reports whether a path relative to storage/media is
+// one the public routes must never serve.
+func isPrivateMediaPath(relPath string) bool {
+	clean := strings.TrimLeft(filepath.ToSlash(filepath.Clean(relPath)), "/")
+	return clean == "originals" || strings.HasPrefix(clean, "originals/")
 }
 
 // mimeFromExt returns the MIME type for a file extension.

@@ -5,6 +5,7 @@
     "author": "Squilla",
     "description": "Example extension demonstrating the extension API",
     "priority": 50,
+    "capabilities": ["events:subscribe", "log:write"],
     "assets": [
         {
             "key": "demo-banner",

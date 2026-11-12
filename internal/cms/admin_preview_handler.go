@@ -13,19 +13,19 @@ import (
 // RegisterAdminPreviewRoutes mounts the admin-side preview endpoints used
 // by the node editor's Preview button. Two shapes:
 //
-//   GET  /admin/api/nodes/:id/preview
-//        Render the persisted row as-is. Useful for previewing a node
-//        the way it would render right now without any editor context.
+//	GET  /admin/api/nodes/:id/preview
+//	     Render the persisted row as-is. Useful for previewing a node
+//	     the way it would render right now without any editor context.
 //
-//   POST /admin/api/nodes/:id/preview
-//        Render the node with the request body's draft overrides applied
-//        in-memory only. Nothing is written to the DB. Use this when the
-//        editor has unsaved changes and the operator wants to see the
-//        page exactly as it will look — without committing.
+//	POST /admin/api/nodes/:id/preview
+//	     Render the node with the request body's draft overrides applied
+//	     in-memory only. Nothing is written to the DB. Use this when the
+//	     editor has unsaved changes and the operator wants to see the
+//	     page exactly as it will look — without committing.
 //
-//   POST /admin/api/nodes/:id/render-blocks
-//        Render unsaved blocks for the visual editor's live preview and
-//        return one HTML string per block (see admin_render_blocks.go).
+//	POST /admin/api/nodes/:id/render-blocks
+//	     Render unsaved blocks for the visual editor's live preview and
+//	     return one HTML string per block (see admin_render_blocks.go).
 //
 // Both endpoints return text/html (the rendered page) on success and an
 // inline HTML error page on failure. JSON envelopes don't render well in
@@ -41,6 +41,9 @@ func (h *PublicHandler) AdminNodePreview(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil || id == 0 {
 		return previewHTMLError(c, fiber.StatusBadRequest, "Node id must be a positive integer")
+	}
+	if _, aerr := requireNodeAccess(c, h.db, int(id), false); aerr != nil {
+		return previewHTMLError(c, aerr.Status, aerr.Message)
 	}
 	return renderPreview(c, h, uint(id), nil)
 }
@@ -74,6 +77,9 @@ func (h *PublicHandler) AdminNodePreviewWithDraft(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil || id == 0 {
 		return previewHTMLError(c, fiber.StatusBadRequest, "Node id must be a positive integer")
+	}
+	if _, aerr := requireNodeAccess(c, h.db, int(id), false); aerr != nil {
+		return previewHTMLError(c, aerr.Status, aerr.Message)
 	}
 
 	var body adminPreviewBody

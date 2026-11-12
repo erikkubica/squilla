@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/mail"
@@ -14,6 +15,18 @@ import (
 // `files` is the parsed file uploads keyed by field id (nil for JSON-only submits).
 func validateSubmission(data map[string]any, fields []map[string]any, files map[string][]uploadedFile) map[string]string {
 	errs := map[string]string{}
+
+	// Values must be scalars (or lists of scalars, for checkbox groups and
+	// multi-selects). Objects are what the admin UI renders as file links,
+	// so an anonymous JSON body must not be able to plant one.
+	for key, val := range data {
+		if !isScalarOrScalarList(val) {
+			errs[key] = "Invalid value"
+		}
+	}
+	if len(errs) > 0 {
+		return errs
+	}
 
 	for _, field := range fields {
 		id, _ := field["id"].(string)
@@ -81,12 +94,20 @@ func validateSubmission(data map[string]any, fields []map[string]any, files map[
 			}
 		case "file":
 			if ffiles := files[id]; len(ffiles) > 0 {
-				// max_files check
+				// File count: one for single-file fields, max_files (or
+				// maxFilesPerField) for multiple.
 				if multiple, _ := field["multiple"].(bool); multiple {
-					if maxF := intField(field, "max_files"); maxF > 0 && len(ffiles) > maxF {
+					maxF := intField(field, "max_files")
+					if maxF <= 0 {
+						maxF = maxFilesPerField
+					}
+					if len(ffiles) > maxF {
 						errs[id] = fmt.Sprintf("At most %d files allowed", maxF)
 						continue
 					}
+				} else if len(ffiles) > 1 {
+					errs[id] = "Only one file allowed"
+					continue
 				}
 				// per-file allowed_types / max_size
 				for _, f := range ffiles {
@@ -237,3 +258,23 @@ func checkPattern(field map[string]any, val any) string {
 	return ""
 }
 
+// isScalarOrScalarList reports whether v is a string, number, bool or
+// nil, or a list of those.
+func isScalarOrScalarList(v any) bool {
+	switch t := v.(type) {
+	case nil, string, bool, float64, int, int64, json.Number:
+		return true
+	case []any:
+		for _, item := range t {
+			switch item.(type) {
+			case nil, string, bool, float64, int, int64, json.Number:
+			default:
+				return false
+			}
+		}
+		return true
+	case []string:
+		return true
+	}
+	return false
+}

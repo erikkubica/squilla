@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,14 +61,53 @@ func (p *MediaManagerPlugin) cacheWrite(path string, data []byte) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-// getPathMutex returns a mutex for the given cache path, creating one if needed.
+// cacheLockStripes is the number of mutexes cache generation is spread
+// over. A fixed array keeps memory bounded no matter how many distinct
+// paths anonymous visitors request.
+const cacheLockStripes = 256
+
+// getPathMutex returns the mutex guarding generation of the given cache
+// path. Paths hash onto a fixed set of stripes, so two paths may share a
+// lock; that only serialises their generation.
 func (p *MediaManagerPlugin) getPathMutex(path string) *sync.Mutex {
-	val, _ := p.cacheLocks.LoadOrStore(path, &sync.Mutex{})
-	return val.(*sync.Mutex)
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(path))
+	return &p.cacheLocks[h.Sum32()%cacheLockStripes]
+}
+
+// failedConversions remembers originals whose resize / WebP conversion
+// failed, so public requests don't re-run the decode on every hit. Keys
+// are only added for originals that exist on disk, and the map is reset
+// when it grows past maxFailedConversions.
+const maxFailedConversions = 10_000
+
+func (p *MediaManagerPlugin) conversionFailed(key string) bool {
+	p.failedMu.Lock()
+	defer p.failedMu.Unlock()
+	_, ok := p.failed[key]
+	return ok
+}
+
+func (p *MediaManagerPlugin) markConversionFailed(key string) {
+	p.failedMu.Lock()
+	defer p.failedMu.Unlock()
+	if p.failed == nil || len(p.failed) >= maxFailedConversions {
+		p.failed = make(map[string]struct{})
+	}
+	p.failed[key] = struct{}{}
+}
+
+// forgetConversionFailures drops negative-cache entries, e.g. after the
+// cache is cleared or an original is replaced.
+func (p *MediaManagerPlugin) forgetConversionFailures() {
+	p.failedMu.Lock()
+	p.failed = nil
+	p.failedMu.Unlock()
 }
 
 // handleClearAllCache clears all cached image variants.
 func (p *MediaManagerPlugin) handleClearAllCache(ctx context.Context) (*pb.PluginHTTPResponse, error) {
+	p.forgetConversionFailures()
 	if err := os.RemoveAll(p.cacheBaseDir()); err != nil {
 		return jsonError(500, "CACHE_CLEAR_FAILED", "Failed to clear image cache"), nil
 	}
@@ -116,6 +156,7 @@ func (p *MediaManagerPlugin) clearCacheForOriginals(ctx context.Context, origina
 // "media/2026/03/photo.jpg"), its variant and WebP variant in every given
 // size plus its full-size WebP copy.
 func (p *MediaManagerPlugin) removeCachedCopies(originalPaths, sizeNames []string) {
+	p.forgetConversionFailures()
 	for _, originalPath := range originalPaths {
 		relPath := strings.TrimPrefix(originalPath, "media/")
 		if relPath == "" || strings.Contains(relPath, "..") {

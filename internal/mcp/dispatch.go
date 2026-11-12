@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"squilla/internal/coreapi"
+	"squilla/internal/models"
 )
 
 // scopeAllows reports whether the given scope may invoke a tool classified as
@@ -29,6 +31,22 @@ func scopeAllows(scope, class string) bool {
 		return class == "read"
 	}
 	return false
+}
+
+// gate is the authorization path shared by tools and resources: token
+// present, scope covers class, per-token rate limit. Returns an error code
+// plus a caller-safe message when the request must be refused.
+func (s *Server) gate(tok *models.McpToken, class, kind string) (code string, err error) {
+	if tok == nil {
+		return "unauthenticated", fmt.Errorf("missing token")
+	}
+	if !scopeAllows(tok.Scope, class) {
+		return "scope_denied", fmt.Errorf("token scope %q cannot invoke %s %s", tok.Scope, class, kind)
+	}
+	if !s.limiter.allow(tok.ID) {
+		return "rate_limited", fmt.Errorf("slow down: %s", s.limiter.describe())
+	}
+	return "", nil
 }
 
 // addTool is the single registration path for every MCP tool. It wires in the
@@ -58,8 +76,9 @@ func (s *Server) addTool(tool mcp.Tool, class string, fn func(ctx context.Contex
 
 		defer func() {
 			if r := recover(); r != nil {
-				s.logger.Printf("PANIC in mcp tool %s: %v\n%s", tool.Name, r, debug.Stack())
-				result = toolError("panic", fmt.Errorf("%v", r))
+				reqID := newRequestID()
+				s.logger.Printf("PANIC in mcp tool %s request_id=%s: %v\n%s", tool.Name, reqID, r, debug.Stack())
+				result = mcp.NewToolResultError("internal: " + internalMessage(reqID))
 				entry.status = "error"
 				entry.errorCode = "panic"
 			}
@@ -67,23 +86,10 @@ func (s *Server) addTool(tool mcp.Tool, class string, fn func(ctx context.Contex
 			s.auditor.log(entry)
 		}()
 
-		// Scope gate.
-		if tok == nil {
+		if code, gerr := s.gate(tok, class, "tools"); gerr != nil {
 			entry.status = "denied"
-			entry.errorCode = "unauthenticated"
-			return toolError("unauthenticated", fmt.Errorf("missing token")), nil
-		}
-		if !scopeAllows(tok.Scope, class) {
-			entry.status = "denied"
-			entry.errorCode = "scope_denied"
-			return toolError("scope_denied", fmt.Errorf("token scope %q cannot invoke %s tools", tok.Scope, class)), nil
-		}
-
-		// Rate limit.
-		if !s.limiter.allow(tok.ID) {
-			entry.status = "denied"
-			entry.errorCode = "rate_limited"
-			return toolError("rate_limited", fmt.Errorf("slow down: 60 req/min per token")), nil
+			entry.errorCode = code
+			return toolError(code, gerr), nil
 		}
 
 		// Every tool talks to CoreAPI as InternalCaller — MCP is trusted kernel
@@ -92,9 +98,10 @@ func (s *Server) addTool(tool mcp.Tool, class string, fn func(ctx context.Contex
 
 		data, err := fn(coreCtx, args)
 		if err != nil {
+			code, msg := publicError(s.logger, tool.Name, err)
 			entry.status = "error"
-			entry.errorCode = "internal"
-			return mapError(err), nil
+			entry.errorCode = code
+			return mcp.NewToolResultError(code + ": " + msg), nil
 		}
 		entry.status = "ok"
 
@@ -102,12 +109,63 @@ func (s *Server) addTool(tool mcp.Tool, class string, fn func(ctx context.Contex
 		if err != nil {
 			entry.status = "error"
 			entry.errorCode = "marshal"
-			return toolError("marshal", err), nil
+			reqID := newRequestID()
+			s.logger.Printf("tool=%s request_id=%s marshal result: %v", tool.Name, reqID, err)
+			return mcp.NewToolResultError("internal: " + internalMessage(reqID)), nil
 		}
 		return mcp.NewToolResultText(string(payload)), nil
 	}
 
 	s.mcp.AddTool(tool, handler)
+}
+
+// wrapResource applies the tool gate (scope class "read"), rate limiter,
+// audit log, panic recovery and InternalCaller context to a resource read.
+// Resources used to be registered straight on the MCP server, so an
+// unauthenticated session or a rate-limited token could still read them
+// and nothing was audited.
+func (s *Server) wrapResource(name string, fn func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error)) func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	return func(ctx context.Context, req mcp.ReadResourceRequest) (contents []mcp.ResourceContents, err error) {
+		start := time.Now()
+		tok := tokenFromCtx(ctx)
+		var tokenID *int
+		if tok != nil {
+			tokenID = &tok.ID
+		}
+		entry := auditEntry{
+			tokenID:  tokenID,
+			tool:     "resource:" + name,
+			argsHash: hashArgs(map[string]any{"uri": req.Params.URI}),
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				reqID := newRequestID()
+				s.logger.Printf("PANIC in mcp resource %s request_id=%s: %v\n%s", name, reqID, r, debug.Stack())
+				contents = nil
+				err = errors.New("internal: " + internalMessage(reqID))
+				entry.status = "error"
+				entry.errorCode = "panic"
+			}
+			entry.durationMs = sinceMs(start)
+			s.auditor.log(entry)
+		}()
+
+		if code, gerr := s.gate(tok, "read", "resources"); gerr != nil {
+			entry.status = "denied"
+			entry.errorCode = code
+			return nil, fmt.Errorf("%s: %s", code, gerr.Error())
+		}
+		coreCtx := coreapi.WithCaller(ctx, coreapi.InternalCaller())
+		out, ferr := fn(coreCtx, req)
+		if ferr != nil {
+			code, msg := publicError(s.logger, "resource:"+name, ferr)
+			entry.status = "error"
+			entry.errorCode = code
+			return nil, errors.New(code + ": " + msg)
+		}
+		entry.status = "ok"
+		return out, nil
+	}
 }
 
 // coerceNumber accepts any JSON-decoded numeric value and returns an int64.

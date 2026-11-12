@@ -16,7 +16,13 @@ type LockoutTracker struct {
 	maxFailures int
 	window      time.Duration
 	lockFor     time.Duration
+	maxEntries  int
 }
+
+// defaultMaxLockoutEntries bounds the failure map. Keys are capped at
+// maxEmailInputBytes by the handlers, so the worst case is a few tens of
+// MB rather than unbounded growth from an unauthenticated flood.
+const defaultMaxLockoutEntries = 50000
 
 type lockoutEntry struct {
 	count     int
@@ -34,6 +40,7 @@ func NewLockoutTracker(maxFailures int, window, lockFor time.Duration) *LockoutT
 		maxFailures: maxFailures,
 		window:      window,
 		lockFor:     lockFor,
+		maxEntries:  defaultMaxLockoutEntries,
 	}
 }
 
@@ -60,6 +67,9 @@ func (l *LockoutTracker) RecordFailure(email string) {
 	defer l.mu.Unlock()
 	e, ok := l.failures[key]
 	if !ok || now.Sub(e.firstSeen) > l.window {
+		if !ok && len(l.failures) >= l.maxEntries {
+			l.makeRoomLocked(now)
+		}
 		l.failures[key] = &lockoutEntry{count: 1, firstSeen: now}
 		return
 	}
@@ -78,16 +88,53 @@ func (l *LockoutTracker) RecordSuccess(email string) {
 }
 
 // CleanIdle drops entries whose lockUntil and firstSeen+window have both
-// passed. Called periodically to bound memory.
+// passed. Called periodically (StartJanitor) to bound memory.
 func (l *LockoutTracker) CleanIdle() {
 	now := time.Now()
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.cleanIdleLocked(now)
+}
+
+func (l *LockoutTracker) cleanIdleLocked(now time.Time) {
 	for k, e := range l.failures {
 		if now.After(e.lockUntil) && now.Sub(e.firstSeen) > l.window {
 			delete(l.failures, k)
 		}
 	}
+}
+
+// makeRoomLocked frees space when the map is at maxEntries: first expired
+// entries, then (still full) unlocked entries, then anything. Evicting
+// keeps the tracker working for new keys instead of silently refusing to
+// count them.
+func (l *LockoutTracker) makeRoomLocked(now time.Time) {
+	l.cleanIdleLocked(now)
+	if len(l.failures) < l.maxEntries {
+		return
+	}
+	target := l.maxEntries - l.maxEntries/10 // free ~10% at once
+	for k, e := range l.failures {
+		if len(l.failures) <= target {
+			return
+		}
+		if !now.Before(e.lockUntil) {
+			delete(l.failures, k)
+		}
+	}
+	for k := range l.failures {
+		if len(l.failures) <= target {
+			return
+		}
+		delete(l.failures, k)
+	}
+}
+
+// Len returns the number of tracked keys (diagnostics/tests).
+func (l *LockoutTracker) Len() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.failures)
 }
 
 // normalizeEmail lowercases and trims so "Alice@example.com" and

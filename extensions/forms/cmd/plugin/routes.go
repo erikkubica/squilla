@@ -14,11 +14,12 @@ func (p *FormsPlugin) routeRequest(ctx context.Context, req *pb.PluginHTTPReques
 	path := strings.TrimSuffix(req.GetPath(), "/")
 	method := strings.ToUpper(req.GetMethod())
 
-	// Strip any known prefixes so we work with both the admin proxy
-	// (which sends relative paths like "/", "/preview", "/123") and
-	// the public proxy (which sends full paths like "/forms/submit/contact").
-	path = strings.TrimPrefix(path, "/admin/api/ext/forms")
-	path = strings.TrimPrefix(path, "/api/ext/forms")
+	// The admin proxy sends paths relative to /admin/api/ext/forms ("/",
+	// "/preview", "/123"); the public proxy sends full paths
+	// ("/forms/submit/contact"). Do NOT also strip an "/admin/api/ext/forms"
+	// prefix here: the kernel matches admin_routes capabilities on the
+	// relative path, so ".../ext/forms/admin/api/ext/forms/submissions"
+	// would dodge the manage_forms rule yet still reach the handler.
 	path = strings.TrimPrefix(path, "/")
 	path = strings.TrimSuffix(path, "/")
 

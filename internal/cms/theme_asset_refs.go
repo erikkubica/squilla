@@ -127,7 +127,12 @@ func refsSignature(refs []string) string {
 // versioned, the same body gzipped, and a hash of the body. ok is false
 // when the file can't be read.
 func ThemeCSS(themeDir, rel string) (body, gz []byte, hash string, ok bool) {
-	file := filepath.Join(themeDir, "assets", filepath.FromSlash(path.Clean("/"+rel)))
+	// Confined: the body is served publicly, so a symlink in assets/ that
+	// points outside the theme must not be followed.
+	file, err := confinedFile(themeDir, filepath.Join("assets", filepath.FromSlash(path.Clean("/"+rel))))
+	if err != nil {
+		return nil, nil, "", false
+	}
 	info, err := os.Stat(file)
 	if err != nil || info.IsDir() {
 		return nil, nil, "", false

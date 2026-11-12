@@ -14,7 +14,7 @@ import (
 // Source values:
 //   - "kernel"            — built-in, always present
 //   - "extension:<slug>"  — registered when the extension activates,
-//                           dropped on deactivation
+//     dropped on deactivation
 //   - "theme:<slug>"      — registered when the theme activates
 type Capability struct {
 	Key         string `json:"key"`

@@ -27,20 +27,25 @@ func (k Kind) Valid() bool {
 	return false
 }
 
-// State is the row state machine: pending → uploaded → finalized.
-// Cleanup deletes pending/uploaded rows past expires_at; finalized rows
-// survive only because we keep them for a short audit window before the
-// next sweep.
+// State is the row state machine: pending → uploaded → finalizing →
+// finalized. "finalizing" is claimed with a conditional UPDATE so only one
+// finalize call installs a given upload. Cleanup deletes pending/uploaded
+// rows past expires_at and finalized rows after a short audit window.
 type State string
 
 const (
-	StatePending   State = "pending"
-	StateUploaded  State = "uploaded"
-	StateFinalized State = "finalized"
+	StatePending    State = "pending"
+	StateUploaded   State = "uploaded"
+	StateFinalizing State = "finalizing"
+	StateFinalized  State = "finalized"
 )
 
-// PendingUpload is the GORM row for a single in-flight upload. The token
-// is the primary key — single-use, opaque, ~128 bits of entropy.
+// PendingUpload is the GORM row for a single in-flight upload. The primary
+// key is the SHA-256 hex of the upload token (single-use, opaque, 256 bits
+// of entropy); the raw token is never stored. Store.Issue returns the row
+// with Token set to the raw value; rows read back from the DB carry the
+// hash. TempPath is informational only — readers derive the staging path
+// from the token.
 type PendingUpload struct {
 	Token       string     `gorm:"column:token;primaryKey;type:varchar(64)" json:"token"`
 	Kind        string     `gorm:"column:kind;type:varchar(16);not null" json:"kind"`

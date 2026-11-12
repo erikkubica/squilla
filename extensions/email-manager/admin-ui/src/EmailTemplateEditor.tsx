@@ -76,7 +76,10 @@ function PreviewIframe({ html, title }: { html: string; title: string }) {
     win.document.write(html);
     win.document.close();
   }, [html]);
-  return <iframe ref={ref} title={title} className="w-full h-full border-0" />;
+  // sandbox without allow-scripts: the parent can still write into the
+  // (same-origin) document, but scripts and inline handlers in stored
+  // email HTML never run inside the admin origin.
+  return <iframe ref={ref} title={title} sandbox="allow-same-origin" className="w-full h-full border-0" />;
 }
 
 function renderPreview(bodyTemplate: string, testData: Record<string, any>): string {

@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -55,25 +56,43 @@ func hashFile(path string) (string, error) {
 // such a plugin.
 var ErrPluginHashMismatch = errors.New("plugin binary SHA-256 mismatch")
 
+// requirePinsEnv opts an install into strict pin enforcement: when set to
+// a true value, a plugin binary without an operator-pinned SHA-256 is
+// refused instead of loaded. Off by default so existing installs (and
+// first boot) keep working.
+const requirePinsEnv = "SQUILLA_REQUIRE_PLUGIN_PINS"
+
+// ErrPluginUnpinned is returned in strict mode for a binary with no pin.
+var ErrPluginUnpinned = errors.New("plugin binary has no pinned SHA-256 (" + requirePinsEnv + " is set)")
+
+func requirePluginPins() bool {
+	v, _ := strconv.ParseBool(strings.TrimSpace(os.Getenv(requirePinsEnv)))
+	return v
+}
+
 // verifyPluginBinary computes the SHA-256 of the binary at path and
-// compares it against an operator-pinned hash in site_settings. The
-// behaviour is defense-in-depth, not gatekeeping:
+// compares it against an operator-pinned hash in site_settings:
 //
 //   - When a pin exists: a mismatch returns ErrPluginHashMismatch and
 //     the kernel refuses to spawn the plugin. This is the protection
 //     against a swapped bin/ directory.
 //   - When no pin exists: the actual digest is logged so the operator
-//     can pin it via the admin Settings UI. The plugin still loads —
-//     refusing all unpinned plugins would break first-boot installs.
+//     can pin it, and the plugin loads — unless SQUILLA_REQUIRE_PLUGIN_PINS
+//     is true, in which case it is refused (ErrPluginUnpinned).
+//   - When the pin lookup itself fails, the plugin is refused (fail
+//     closed): a DB error must not silently downgrade a pinned binary to
+//     "unpinned, load anyway".
 //
-// The DB lookup is "best effort": a transient DB failure logs a warning
-// and falls back to no-pin behaviour rather than block plugin startup.
-// (We bias toward availability here because plugin manager runs after
-// migrations have already passed health checks.)
+// This is integrity pinning of a known binary, not signature
+// verification: whoever can write the pin setting decides what runs.
 func verifyPluginBinary(db *gorm.DB, slug, binary, path string) error {
 	if db == nil {
 		// No DB context — skip pin verification (used in tests and
-		// during early bootstrap before the DB is wired).
+		// during early bootstrap before the DB is wired). Strict mode
+		// still refuses, since nothing can be verified.
+		if requirePluginPins() {
+			return fmt.Errorf("%w: %s/%s (no settings store)", ErrPluginUnpinned, slug, binary)
+		}
 		return nil
 	}
 	digest, err := hashFile(path)
@@ -84,11 +103,13 @@ func verifyPluginBinary(db *gorm.DB, slug, binary, path string) error {
 	key := pluginPinSettingKey(slug, binary)
 	var rows []models.SiteSetting
 	if dbErr := db.Where("\"key\" = ?", key).Limit(1).Find(&rows).Error; dbErr != nil {
-		log.Printf("[plugins] WARN: pin lookup failed for %s/%s: %v (loading unpinned)", slug, binary, dbErr)
-		return nil
+		return fmt.Errorf("pin lookup failed for %s/%s: %w", slug, binary, dbErr)
 	}
 
 	if len(rows) == 0 || rows[0].Value == nil || strings.TrimSpace(*rows[0].Value) == "" {
+		if requirePluginPins() {
+			return fmt.Errorf("%w: %s/%s sha256=%s — set %s to load it", ErrPluginUnpinned, slug, binary, digest, key)
+		}
 		// Unpinned — log digest so an operator can pin it.
 		log.Printf("[plugins] %s/%s unpinned (sha256=%s) — set %s in settings to enforce",
 			slug, binary, digest, key)

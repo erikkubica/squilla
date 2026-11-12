@@ -41,10 +41,16 @@ func registerBlockAssets(app *fiber.App) {
 		if !allowedBlockAssetExts[strings.ToLower(filepath.Ext(rel))] {
 			return c.SendStatus(fiber.StatusForbidden)
 		}
-		base := filepath.Clean(filepath.Join("extensions", slug, "blocks", dir))
-		full := filepath.Clean(filepath.Join(base, rel))
-		if !strings.HasPrefix(full, base+string(filepath.Separator)) && full != base {
-			return c.SendStatus(fiber.StatusBadRequest)
+		// Both the slug/dir segments and rel are confined: the block dir
+		// must sit inside extensions/, the file inside the block dir, and
+		// neither may be reached through a symlink pointing elsewhere.
+		base, err := cms.ConfinedDir("extensions", filepath.Join(slug, "blocks", dir))
+		if err != nil {
+			return c.SendStatus(fiber.StatusNotFound)
+		}
+		full, err := cms.ConfinedFile(base, rel)
+		if err != nil {
+			return c.SendStatus(fiber.StatusNotFound)
 		}
 		return sendCachedAsset(c, full)
 	})
@@ -66,7 +72,13 @@ func registerThemeAssets(app *fiber.App, resolver *themeAssetsResolver) {
 				return sendThemeCSS(c, body, gz, hash)
 			}
 		}
-		full := filepath.Join(assetsDir, clean)
+		// Resolve symlinks and require a regular file inside the active
+		// theme's assets dir — a cloned/uploaded theme can ship a symlink
+		// to any host file, which the lexical Clean above can't see.
+		full, err := cms.ConfinedFile(assetsDir, clean)
+		if err != nil {
+			return c.SendStatus(fiber.StatusNotFound)
+		}
 		return sendCachedAsset(c, full)
 	})
 }

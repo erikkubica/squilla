@@ -146,9 +146,12 @@ log        := import("core/log")        // Structured logging
 
 Capabilities determine which modules return useful data:
 
-- Themes are granted a default capability set (read/write nodes, menus, settings; routes, events, filters, helpers, log, http, files — but not `data:*` or `media:*`).
+- Themes are granted a default capability set (read/write nodes, menus, settings; `theme_settings:read`; routes, events, filters, helpers, log, http, files — but not `data:*`, `media:*`, or the sensitive-event capabilities below).
 - Extensions are granted exactly what `extension.json` declares.
 - A capability-denied call returns an error value rather than panicking — wrap with `is_error()`.
+- Registration is capability-gated too: `events.on` / `events.subscribe` need `events:subscribe`, `filters.add` needs `filters:register`, `routes.register` and `wellknown.register` need `routes:register`. Subscribing to sensitive events additionally needs a dedicated capability: `email.send` → `email:provide`, `user.password_reset_requested` → `auth:observe`, `http.requests` → `http:observe`. A refused registration is logged, skipped, and returned to the script as an error value.
+- Registration only works while the entry script (`theme.tengo` / `extension.tengo`) loads. Handler scripts that call `routes.register`, `filters.add`, `events.on` or `wellknown.register` at request/event time get an error value.
+- Script paths passed to registration functions must stay inside `scripts/` (no absolute paths, no `..`).
 
 ### Theme Source Modules (`./*`)
 
@@ -180,8 +183,9 @@ rand   := import("rand")    // Random number generation
 json   := import("json")    // JSON encode/decode
 base64 := import("base64")  // Base64 encode/decode
 hex    := import("hex")     // Hex encode/decode
-enum   := import("enum")    // Enumeration helpers (map, filter, etc.)
 ```
+
+This is an explicit allow-list: `os` and `enum` are not importable, `fmt` has no `print`/`printf`/`println` (use `sprintf` + `core/log`), and `times` has no `sleep`.
 
 **Not available**: `os` and any file/network access modules. This is intentional for security.
 
@@ -829,7 +833,7 @@ Read editor-managed values from the **active theme's settings pages**. Themes de
 
 ### Capability
 
-`theme_settings:read` is required for non-internal callers. Themes ship without explicit capability declarations and bypass the gate; extensions must list it in `extension.json`'s `capabilities` array. Internal callers (core code) bypass.
+`theme_settings:read` is required for non-internal callers. Themes get it in their default capability set; extensions must list it in `extension.json`'s `capabilities` array. Internal callers (core code) bypass.
 
 The module is intentionally **read-only**. Editors save values through the admin UI; scripts have no `set` verb so seed scripts can't accidentally clobber editor input.
 
@@ -945,10 +949,13 @@ request.method   // string: "GET", "POST", etc.
 request.path     // string: full request path
 request.query    // map: query string parameters {key: value}
 request.params   // map: URL parameters from :param placeholders {key: value}
-request.headers  // map: HTTP headers {key: value}
+request.headers  // map: HTTP headers {key: value} — Cookie, Authorization,
+                 // Proxy-Authorization and X-CSRF-* / X-XSRF-Token are removed
 request.body     // map or string: parsed JSON body (POST/PUT/PATCH) or raw string
 request.ip       // string: client IP address
 ```
+
+Request bodies larger than 1 MiB are rejected with `413` before the script runs.
 
 ### The `response` Object
 
@@ -996,6 +1003,8 @@ response = {
     body: {data: "value"}
 }
 ```
+
+Script routes share an origin with `/admin`, so some headers are refused (logged and dropped): `Set-Cookie`, hop-by-hop headers (`Connection`, `Keep-Alive`, `Proxy-*`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade`), `Content-Length`, and any name or value containing CR/LF. A `status` outside 100–599 is sent as `500`.
 
 #### No Content
 
@@ -1159,13 +1168,13 @@ http.post("https://hooks.example.com/notify", {
 ### Hardening
 
 - **Scheme allowlist:** `http`, `https`. Rejects `file://`, `gopher://`, etc.
-- **Internal-host blocklist:** rejects `localhost`, `127.0.0.0/8`, `169.254.0.0/16` (link-local + AWS metadata), RFC1918 ranges, IPv6 link-local.
+- **Destination blocklist:** only global unicast addresses — loopback, RFC1918 / unique-local, link-local (incl. cloud metadata `169.254.169.254`), CGNAT, NAT64/6to4, documentation, multicast and reserved ranges are refused. Enforced at dial time on the resolved IP, so DNS rebinding and redirects are covered; `HTTP(S)_PROXY` is ignored.
 - **Redirect bound:** max 5 hops; each hop re-validated.
-- **Body cap:** 10 MB default, configurable per call.
-- **Timeout:** 30 s default, configurable per call.
+- **Body cap:** 10 MB.
+- **Timeout:** 30 s default, max 120 s per call.
 - **Capability:** requires `http:fetch`.
 
-Override the blocklist in development with `SQUILLA_ALLOW_PRIVATE_HTTP=true`.
+There is no environment override for the blocklist (see `docs/security.md` §9).
 
 ---
 
@@ -1772,22 +1781,16 @@ hex := import("hex")
 encoded := hex.encode("Hello")
 ```
 
-### `enum` -- Enumeration Helpers
-
-```tengo
-enum := import("enum")
-doubled := enum.map([1, 2, 3], func(k, v) { return v * 2 })  // [2, 4, 6]
-filtered := enum.filter([1, 2, 3, 4], func(k, v) { return v > 2 })  // [3, 4]
-```
-
 ### Restricted Modules
 
-The following standard library modules are **not available** for security:
+The stdlib is an explicit allow-list (`fmt`, `math`, `text`, `times`, `rand`, `json`, `base64`, `hex`). Not available:
 
-- `os` -- No filesystem access
-- Any module providing network, process, or file I/O access
+- `os` -- no filesystem, environment, or process access
+- `enum` -- not exposed
+- `fmt.print` / `fmt.printf` / `fmt.println` -- use `fmt.sprintf` with `core/log`
+- `times.sleep` -- would pin a request goroutine past the script deadline
 
-Scripts are fully sandboxed and cannot interact with the host system beyond the provided CMS API modules.
+Scripts cannot interact with the host system beyond the provided CMS API modules (outbound HTTP only through `core/http`, gated by `http:fetch`).
 
 ---
 
@@ -1799,13 +1802,16 @@ Every script runs in a sandboxed Tengo VM with strict resource limits:
 
 | Constraint | Limit | Description |
 |-----------|-------|-------------|
-| Max allocations | 50,000 | Maximum memory allocations per execution |
-| Timeout | 10 seconds | Maximum wall-clock execution time |
-| File access | None | No `os` module, no filesystem operations |
-| Network access | None | No outbound HTTP, sockets, or DNS |
+| Max allocations | 50,000 | Tengo object allocations per execution (an object count, not bytes) |
+| String / bytes size | 4 MiB | Maximum length of any single string or bytes value |
+| Script source size | 1 MiB | Larger `.tengo` files are refused |
+| Timeout | 10 seconds | Wall-clock limit. CoreAPI calls made by the script receive the deadline; the caller is released at the deadline even if a builtin is still blocked |
+| File access | None | No `os` module; `core/assets` reads files inside the theme/extension root only |
+| Network access | `core/http` only | Outbound HTTP via `core/http` (capability `http:fetch`, SSRF-filtered); no sockets |
 | Process access | None | No ability to spawn processes or read env vars |
+| Value nesting | 64 levels | Values handed back to Go (`response`, `events.emit`, `log` fields, …) are cut off below this depth, so cyclic maps can't crash the server |
 
-If a script exceeds the allocation limit or timeout, execution is terminated and an error is logged. The CMS continues operating normally.
+If a script exceeds the allocation limit, a size cap, or the timeout, execution is terminated and an error is logged. The CMS continues operating normally.
 
 ### Fresh VM Per Execution
 

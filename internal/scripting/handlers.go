@@ -53,79 +53,119 @@ const (
 	httpObserveCapability = "http:observe"
 )
 
-// EventsOn handles events.on(name, script_path[, priority])
-// Registers a handler script for the given event name.
-// This is called from theme.tengo / extension.tengo entry scripts.
-func (e *ScriptEngine) EventsOn(name, scriptPath string, priority int) {
-	if name == "" || scriptPath == "" {
-		return
-	}
-	// Strip leading "./"
-	if len(scriptPath) > 2 && scriptPath[:2] == "./" {
-		scriptPath = scriptPath[2:]
-	}
+// Registration capabilities (same names the CoreAPI capability guard uses).
+const (
+	capEventsSubscribe = "events:subscribe"
+	capFiltersRegister = "filters:register"
+	capRoutesRegister  = "routes:register"
+)
 
-	// http.requests carries raw client IPs and headers; like gRPC plugins
-	// (plugin_manager.subscriptionAllowed), scripts need http:observe.
-	if name == httpObserveEvent && !e.activeCapabilities[httpObserveCapability] {
-		log.Printf("[script] WARNING: %s subscribes to %q without capability %q — handler skipped", e.activeSlug, name, httpObserveCapability)
-		return
+// sensitiveEventCaps lists events whose payloads carry secrets (outgoing
+// mail incl. reset links, raw reset tokens, client IPs/headers). On top of
+// events:subscribe, subscribing needs the dedicated capability — the same
+// names the gRPC plugin subscription gate uses.
+var sensitiveEventCaps = map[string]string{
+	httpObserveEvent:                httpObserveCapability,
+	"email.send":                    "email:provide",
+	"user.password_reset_requested": "auth:observe",
+}
+
+// checkRegistration validates a registration against its load scope:
+// registration must happen during the load phase, the scope must hold
+// capability cap, and scriptPath must stay inside the scripts dir.
+// Returns the normalized script path. Denials are logged (the module also
+// hands the error back to the script as an error value).
+func (e *ScriptEngine) checkRegistration(scope *loadScope, what, cap, scriptPath string) (string, error) {
+	if scope == nil || scope.isClosed() {
+		return "", fmt.Errorf("%s: registration is only allowed while theme.tengo / extension.tengo loads", what)
+	}
+	if cap != "" && !scope.caps[cap] {
+		log.Printf("[script] WARNING: %s: %s without capability %q — registration skipped", scope.slug, what, cap)
+		return "", fmt.Errorf("%s: capability %q required (declare it in extension.json capabilities)", what, cap)
+	}
+	sp, err := normalizeScriptPath(scriptPath)
+	if err != nil {
+		log.Printf("[script] WARNING: %s: %s: %v — registration skipped", scope.slug, what, err)
+		return "", fmt.Errorf("%s: %w", what, err)
+	}
+	return sp, nil
+}
+
+// eventsOn handles events.on / events.subscribe(name, script_path[, priority])
+// from an entry script. Requires events:subscribe, plus the dedicated
+// capability for sensitive events.
+func (e *ScriptEngine) eventsOn(scope *loadScope, name, scriptPath string, priority int) error {
+	if name == "" || scriptPath == "" {
+		return fmt.Errorf("events.on: name and script_path required")
+	}
+	what := fmt.Sprintf("events.on(%q)", name)
+	scriptPath, err := e.checkRegistration(scope, what, capEventsSubscribe, scriptPath)
+	if err != nil {
+		return err
+	}
+	if need, ok := sensitiveEventCaps[name]; ok && !scope.caps[need] {
+		log.Printf("[script] WARNING: %s subscribes to %q without capability %q — handler skipped", scope.slug, name, need)
+		return fmt.Errorf("%s: capability %q required (declare it in extension.json capabilities)", what, need)
 	}
 
 	handler := scriptHandler{
 		scriptPath:   scriptPath,
 		priority:     priority,
-		baseDir:      e.activeScriptsDir,
-		slug:         e.activeSlug,
-		capabilities: e.activeCapabilities,
+		baseDir:      scope.scriptsDir,
+		slug:         scope.slug,
+		capabilities: scope.caps,
 	}
 
 	e.mu.Lock()
 	e.eventHandlers[name] = append(e.eventHandlers[name], handler)
-	sort.Slice(e.eventHandlers[name], func(i, j int) bool {
+	sort.SliceStable(e.eventHandlers[name], func(i, j int) bool {
 		return e.eventHandlers[name][i].priority < e.eventHandlers[name][j].priority
 	})
 	e.mu.Unlock()
 
 	log.Printf("[script] registered event: %s -> %s (priority %d)", name, scriptPath, priority)
+	return nil
 }
 
 // ---------------------------------------------------------------------------
 // Filter handler registration
 // ---------------------------------------------------------------------------
 
-// FiltersAdd registers a filter handler script.
-func (e *ScriptEngine) FiltersAdd(name, scriptPath string, priority int) {
+// filtersAdd registers a filter handler script. Requires filters:register.
+func (e *ScriptEngine) filtersAdd(scope *loadScope, name, scriptPath string, priority int) error {
 	if name == "" || scriptPath == "" {
-		return
+		return fmt.Errorf("filters.add: name and script_path required")
 	}
-	if len(scriptPath) > 2 && scriptPath[:2] == "./" {
-		scriptPath = scriptPath[2:]
+	what := fmt.Sprintf("filters.add(%q)", name)
+	scriptPath, err := e.checkRegistration(scope, what, capFiltersRegister, scriptPath)
+	if err != nil {
+		return err
 	}
 
 	// http.requests carries raw client IPs and headers; like gRPC plugins
 	// (plugin_manager.subscriptionAllowed), scripts need http:observe.
-	if name == httpObserveEvent && !e.activeCapabilities[httpObserveCapability] {
-		log.Printf("[script] WARNING: %s subscribes to %q without capability %q — handler skipped", e.activeSlug, name, httpObserveCapability)
-		return
+	if name == httpObserveEvent && !scope.caps[httpObserveCapability] {
+		log.Printf("[script] WARNING: %s subscribes to %q without capability %q — handler skipped", scope.slug, name, httpObserveCapability)
+		return fmt.Errorf("%s: capability %q required", what, httpObserveCapability)
 	}
 
 	handler := scriptHandler{
 		scriptPath:   scriptPath,
 		priority:     priority,
-		baseDir:      e.activeScriptsDir,
-		slug:         e.activeSlug,
-		capabilities: e.activeCapabilities,
+		baseDir:      scope.scriptsDir,
+		slug:         scope.slug,
+		capabilities: scope.caps,
 	}
 
 	e.mu.Lock()
 	e.filterHandlers[name] = append(e.filterHandlers[name], handler)
-	sort.Slice(e.filterHandlers[name], func(i, j int) bool {
+	sort.SliceStable(e.filterHandlers[name], func(i, j int) bool {
 		return e.filterHandlers[name][i].priority < e.filterHandlers[name][j].priority
 	})
 	e.mu.Unlock()
 
 	log.Printf("[script] registered filter: %s -> %s (priority %d)", name, scriptPath, priority)
+	return nil
 }
 
 // ApplyFilter runs the filter chain for the named filter, passing the value
@@ -183,6 +223,10 @@ func (e *ScriptEngine) subscribeEventHandlers() {
 			slug := h.slug
 			caps := h.capabilities
 			unsub := e.eventBus.Subscribe(n, func(act string, payload events.Payload) {
+				// A handler snapshot may outlive its component's unload.
+				if !e.isBaseDirActive(bd) {
+					return
+				}
 				payloadMap := make(map[string]interface{}, len(payload))
 				for k, v := range payload {
 					payloadMap[k] = v
@@ -206,6 +250,9 @@ func (e *ScriptEngine) subscribeEventHandlers() {
 			//   "error: <message>"   → request failed with <message>
 			//   anything else        → handled successfully
 			errUnsub := e.eventBus.SubscribeErr(n, func(act string, payload events.Payload) error {
+				if !e.isBaseDirActive(bd) {
+					return events.ErrNotHandled
+				}
 				payloadMap := make(map[string]interface{}, len(payload))
 				for k, v := range payload {
 					payloadMap[k] = v
@@ -329,16 +376,17 @@ func eventPayloadFromCtx(ctx interface{}) events.Payload {
 // HTTP route registration & mounting
 // ---------------------------------------------------------------------------
 
-// HTTPRegister registers an HTTP route from a script.
-func (e *ScriptEngine) HTTPRegister(method, path, scriptPath string) {
+// httpRegister registers an HTTP route from a script. Requires routes:register.
+func (e *ScriptEngine) httpRegister(scope *loadScope, method, path, scriptPath string) error {
 	if path == "" || scriptPath == "" {
-		return
+		return fmt.Errorf("routes.register: path and script_path required")
 	}
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	if len(scriptPath) > 2 && scriptPath[:2] == "./" {
-		scriptPath = scriptPath[2:]
+	scriptPath, err := e.checkRegistration(scope, fmt.Sprintf("routes.register(%s %s)", method, path), capRoutesRegister, scriptPath)
+	if err != nil {
+		return err
 	}
 
 	e.mu.Lock()
@@ -346,13 +394,14 @@ func (e *ScriptEngine) HTTPRegister(method, path, scriptPath string) {
 		method:       method,
 		path:         path,
 		scriptPath:   scriptPath,
-		baseDir:      e.activeScriptsDir,
-		slug:         e.activeSlug,
-		capabilities: e.activeCapabilities,
+		baseDir:      scope.scriptsDir,
+		slug:         scope.slug,
+		capabilities: scope.caps,
 	})
 	e.mu.Unlock()
 
 	log.Printf("[script] registered HTTP route: %s /api/theme%s -> %s", method, path, scriptPath)
+	return nil
 }
 
 // MountRoutes registers all script HTTP handlers on the Fiber app.
@@ -408,24 +457,27 @@ func (e *ScriptEngine) MountRoutes(app *fiber.App) {
 	}
 }
 
-// WellKnownRegister records a .well-known handler from a Tengo script.
-func (e *ScriptEngine) WellKnownRegister(path, scriptPath string) {
+// wellKnownRegister records a .well-known handler from a Tengo script.
+// .well-known handlers are routes, so this requires routes:register.
+func (e *ScriptEngine) wellKnownRegister(scope *loadScope, path, scriptPath string) error {
 	if path == "" || scriptPath == "" {
-		return
+		return fmt.Errorf("wellknown.register: path and script_path required")
 	}
-	if len(scriptPath) > 2 && scriptPath[:2] == "./" {
-		scriptPath = scriptPath[2:]
+	scriptPath, err := e.checkRegistration(scope, fmt.Sprintf("wellknown.register(%q)", path), capRoutesRegister, scriptPath)
+	if err != nil {
+		return err
 	}
 	e.mu.Lock()
 	e.wellKnown = append(e.wellKnown, wellKnownRoute{
 		path:         path,
 		scriptPath:   scriptPath,
-		baseDir:      e.activeScriptsDir,
-		slug:         e.activeSlug,
-		capabilities: e.activeCapabilities,
+		baseDir:      scope.scriptsDir,
+		slug:         scope.slug,
+		capabilities: scope.caps,
 	})
 	e.mu.Unlock()
 	log.Printf("[script] registered well-known: /.well-known/%s -> %s", path, scriptPath)
+	return nil
 }
 
 // MountWellKnown registers all script-defined .well-known handlers on the
@@ -472,10 +524,20 @@ func (e *ScriptEngine) makeHTTPHandler(scriptPath, slug string, capabilities map
 			params[param] = c.Params(param)
 		}
 
+		// Script routes are same-origin with /admin: never hand them the
+		// caller's session cookie, credentials or CSRF token.
 		headers := make(map[string]interface{})
 		c.Request().Header.VisitAll(func(key, value []byte) {
-			headers[string(key)] = string(value)
+			k := string(key)
+			if isCredentialHeader(k) {
+				return
+			}
+			headers[k] = string(value)
 		})
+
+		if len(c.Body()) > maxRouteBodyLen {
+			return c.Status(fiber.StatusRequestEntityTooLarge).JSON(fiber.Map{"error": "request body too large"})
+		}
 
 		var body interface{}
 		if c.Method() != "GET" && c.Method() != "DELETE" {
@@ -520,14 +582,23 @@ func (e *ScriptEngine) makeHTTPHandler(scriptPath, slug string, capabilities map
 					status = v
 				}
 			}
+			if status < 100 || status > 599 {
+				log.Printf("[script] HTTP handler %s returned invalid status %d — sending 500", scriptPath, status)
+				status = fiber.StatusInternalServerError
+			}
 
 			if h, ok := resp["headers"].(map[string]interface{}); ok {
 				for k, v := range h {
-					c.Set(k, fmt.Sprintf("%v", v))
+					val := fmt.Sprintf("%v", v)
+					if !scriptResponseHeaderAllowed(k, val) {
+						log.Printf("[script] HTTP handler %s: response header %q refused", scriptPath, k)
+						continue
+					}
+					c.Set(k, val)
 				}
 			}
 
-			if ct, ok := resp["content_type"].(string); ok && ct != "" {
+			if ct, ok := resp["content_type"].(string); ok && ct != "" && !strings.ContainsAny(ct, "\r\n") {
 				c.Set("Content-Type", ct)
 			}
 
@@ -555,4 +626,41 @@ func (e *ScriptEngine) makeHTTPHandler(scriptPath, slug string, capabilities map
 
 		return c.Status(204).SendString("")
 	}
+}
+
+// isCredentialHeader reports request headers stripped before a script
+// route sees the request: session cookies, credentials and CSRF tokens.
+func isCredentialHeader(name string) bool {
+	n := strings.ToLower(name)
+	switch n {
+	case "cookie", "authorization", "proxy-authorization", "x-xsrf-token":
+		return true
+	}
+	return strings.HasPrefix(n, "x-csrf-")
+}
+
+// refusedResponseHeaders may not be set by script routes: Set-Cookie
+// (scripts are same-origin with /admin and could plant/overwrite session
+// cookies), hop-by-hop headers and framing headers the server owns.
+var refusedResponseHeaders = map[string]bool{
+	"set-cookie":          true,
+	"connection":          true,
+	"keep-alive":          true,
+	"proxy-authenticate":  true,
+	"proxy-authorization": true,
+	"proxy-connection":    true,
+	"te":                  true,
+	"trailer":             true,
+	"transfer-encoding":   true,
+	"upgrade":             true,
+	"content-length":      true,
+}
+
+// scriptResponseHeaderAllowed reports whether a script route may set the
+// response header name: value.
+func scriptResponseHeaderAllowed(name, value string) bool {
+	if name == "" || strings.ContainsAny(name, "\r\n: ") || strings.ContainsAny(value, "\r\n") {
+		return false
+	}
+	return !refusedResponseHeaders[strings.ToLower(name)]
 }

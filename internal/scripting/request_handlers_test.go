@@ -39,6 +39,7 @@ func TestTengoHandlers_AnswerPublishRequest(t *testing.T) {
 		dir := writeScript(t, "send", src)
 		e.eventHandlers["email.send"] = append(e.eventHandlers["email.send"],
 			scriptHandler{scriptPath: "send", baseDir: dir, slug: slug})
+		e.activeBaseDirs[dir] = true
 	}
 	e.subscribeEventHandlers()
 
@@ -65,6 +66,7 @@ func TestResendHandler_DeclinesOtherProvider(t *testing.T) {
 	bus := events.New()
 	e := NewScriptEngine(bus, nil, nil)
 	e.eventHandlers["email.send"] = []scriptHandler{{scriptPath: "handlers/send_email", baseDir: dir, slug: "resend-provider"}}
+	e.activeBaseDirs[dir] = true
 	e.subscribeEventHandlers()
 
 	err = bus.PublishRequest("email.send", events.Payload{
@@ -117,6 +119,7 @@ func TestResendHandler_SelectedSendsOnce(t *testing.T) {
 		e := NewScriptEngine(bus, api, nil)
 		e.eventHandlers["email.send"] = []scriptHandler{{scriptPath: "handlers/send_email", baseDir: dir, slug: "resend-provider",
 			capabilities: map[string]bool{"http:fetch": true}}}
+		e.activeBaseDirs[dir] = true
 		e.subscribeEventHandlers()
 
 		err = bus.PublishRequest("email.send", events.Payload{

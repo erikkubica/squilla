@@ -1,13 +1,16 @@
 package cms
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 )
 
 // allowedGitSchemes restricts InstallFromGit to vetted transport schemes.
@@ -94,7 +97,31 @@ func safeGitFlags() []string {
 		"-c", "protocol.allow=never",
 		"-c", "protocol.https.allow=always",
 		"-c", "advice.detachedHead=false",
+		// Check symlinks out as plain files containing the link text. A
+		// theme repo could otherwise ship assets/x.css -> /etc/passwd and
+		// have /theme/assets/x.css (or the file browser) serve host files.
+		"-c", "core.symlinks=false",
 	}
+}
+
+// gitCommandTimeout bounds clone/pull so a slow or hostile remote can't
+// pin an admin request (and a git process) forever.
+const gitCommandTimeout = 2 * time.Minute
+
+// gitRefRe is a conservative subset of git-check-ref-format: it must start
+// with an alphanumeric (so it can never be read as an option) and contain
+// only characters that appear in ordinary branch names.
+var gitRefRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$`)
+
+// validateGitBranch rejects branch names that could be parsed as git
+// options or that git itself would refuse.
+func validateGitBranch(branch string) error {
+	if !gitRefRe.MatchString(branch) || strings.Contains(branch, "..") ||
+		strings.Contains(branch, "//") || strings.HasSuffix(branch, "/") ||
+		strings.HasSuffix(branch, ".") || strings.HasSuffix(branch, ".lock") {
+		return fmt.Errorf("invalid git branch name %q", branch)
+	}
+	return nil
 }
 
 // buildSafeGitClone constructs a sandboxed `git clone` invocation. When a
@@ -102,26 +129,36 @@ func safeGitFlags() []string {
 // than being baked into the URL — keeps it out of `ps aux`. The returned
 // cleanup must be called to remove the temp helper script.
 func buildSafeGitClone(gitURL, branch, token, dest string) (*exec.Cmd, func(), error) {
-	args := append([]string{}, safeGitFlags()...)
-	args = append(args, "clone", "--branch", branch, "--single-branch", "--depth", "1", gitURL, dest)
-	cmd := exec.Command("git", args...)
-	cleanup, err := installAskpass(cmd, token)
-	if err != nil {
+	if err := validateGitBranch(branch); err != nil {
 		return nil, nil, err
 	}
-	return cmd, cleanup, nil
+	args := append([]string{}, safeGitFlags()...)
+	args = append(args, "clone", "--branch", branch, "--single-branch", "--depth", "1", "--", gitURL, dest)
+	return buildGitCmd(args, token)
 }
 
-// buildSafeGitPull is the same pattern for `git -C <path> pull`.
+// buildSafeGitPull is the same pattern for `git -C <path> pull`. The branch
+// is validated and passed after "--" so it can never be read as an option.
 func buildSafeGitPull(path, branch, token string) (*exec.Cmd, func(), error) {
-	args := append([]string{}, safeGitFlags()...)
-	args = append(args, "-C", path, "pull", "origin", branch)
-	cmd := exec.Command("git", args...)
-	cleanup, err := installAskpass(cmd, token)
-	if err != nil {
+	if err := validateGitBranch(branch); err != nil {
 		return nil, nil, err
 	}
-	return cmd, cleanup, nil
+	args := append([]string{}, safeGitFlags()...)
+	args = append(args, "-C", path, "pull", "--", "origin", branch)
+	return buildGitCmd(args, token)
+}
+
+// buildGitCmd wraps exec.CommandContext with gitCommandTimeout and the
+// askpass plumbing. The returned cleanup cancels the context too.
+func buildGitCmd(args []string, token string) (*exec.Cmd, func(), error) {
+	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cleanup, err := installAskpass(cmd, token)
+	if err != nil {
+		cancel()
+		return nil, nil, err
+	}
+	return cmd, func() { cleanup(); cancel() }, nil
 }
 
 // installAskpass writes a temp script that prints $SQUILLA_GIT_TOKEN, sets

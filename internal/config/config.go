@@ -44,14 +44,23 @@ var ErrUnsafeProduction = errors.New("refusing to start in production with unsaf
 
 // Config holds all application configuration values loaded from environment variables.
 type Config struct {
-	Port               string
-	AppEnv             string
-	DBHost             string
-	DBPort             string
-	DBUser             string
-	DBPassword         string
-	DBName             string
-	DBSSLMode          string
+	Port string
+	// AppEnv is normalised (trimmed, lowercased) by Load. Valid values are
+	// EnvDevelopment, EnvProduction and EnvTest; Validate rejects anything
+	// else. Use IsProduction / IsDevelopment rather than comparing.
+	AppEnv string
+	// AppEnvExplicit is false when APP_ENV was unset and AppEnv fell back
+	// to development — main logs a loud warning in that case.
+	AppEnvExplicit bool
+	DBHost         string
+	DBPort         string
+	DBUser         string
+	DBPassword     string
+	DBName         string
+	DBSSLMode      string
+	// SessionSecret is DEPRECATED and unused: sessions are random
+	// server-side tokens (only their SHA-256 is stored), nothing is signed
+	// with it. Still read so existing env files keep working.
 	SessionSecret      string
 	SessionExpiryHours int
 	MonitorBearerToken string
@@ -73,6 +82,20 @@ type Config struct {
 	ClientIPHeader string
 }
 
+// Accepted APP_ENV values.
+const (
+	EnvDevelopment = "development"
+	EnvProduction  = "production"
+	EnvTest        = "test"
+)
+
+// IsProduction reports whether the production safety gates apply.
+func (c *Config) IsProduction() bool { return c.AppEnv == EnvProduction }
+
+// IsDevelopment reports development mode (template hot-reload, dev CORS
+// defaults, human-readable logs).
+func (c *Config) IsDevelopment() bool { return c.AppEnv == EnvDevelopment }
+
 // DefaultTrustedProxies is used when TRUSTED_PROXIES is unset.
 const DefaultTrustedProxies = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::1/128,fc00::/7"
 
@@ -82,7 +105,8 @@ const DefaultTrustedProxies = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/
 func Load() *Config {
 	cfg := &Config{
 		Port:               envOrDefault("PORT", "8080"),
-		AppEnv:             envOrDefault("APP_ENV", "development"),
+		AppEnv:             strings.ToLower(strings.TrimSpace(envOrDefault("APP_ENV", EnvDevelopment))),
+		AppEnvExplicit:     strings.TrimSpace(os.Getenv("APP_ENV")) != "",
 		DBHost:             envOrDefault("DB_HOST", "localhost"),
 		DBPort:             envOrDefault("DB_PORT", "5432"),
 		DBUser:             envOrDefault("DB_USER", "squilla"),
@@ -151,18 +175,26 @@ func isInternalDBHost(host string) bool {
 // password, disabled TLS to the database, or unset CORS allowlist. The
 // returned error wraps ErrUnsafeProduction with a list of every violation.
 func (c *Config) Validate() error {
-	if !strings.EqualFold(c.AppEnv, "production") {
+	switch c.AppEnv {
+	case EnvDevelopment, EnvTest:
 		return nil
+	case EnvProduction:
+	default:
+		// Fail closed: a typo such as "prod" or "Production " must not
+		// silently boot with development defaults.
+		return fmt.Errorf("%w: APP_ENV=%q is not one of development, production, test", ErrUnsafeProduction, c.AppEnv)
 	}
 	var problems []string
-	if c.SessionSecret == "" {
-		problems = append(problems, "SESSION_SECRET is unset")
-	}
 	if c.MonitorBearerToken == "" {
 		problems = append(problems, "MONITOR_BEARER_TOKEN is unset")
+	} else if isPlaceholderSecret(c.MonitorBearerToken) {
+		problems = append(problems, "MONITOR_BEARER_TOKEN is still the example placeholder")
 	}
-	if c.DBPassword == "" || c.DBPassword == "squilla_secret" {
-		problems = append(problems, "DB_PASSWORD is empty or the seed default 'squilla_secret'")
+	if c.DBPassword == "" || c.DBPassword == "squilla_secret" || isPlaceholderSecret(c.DBPassword) {
+		problems = append(problems, "DB_PASSWORD is empty, a placeholder, or the seed default 'squilla_secret'")
+	}
+	if pw := os.Getenv("ADMIN_PASSWORD"); pw == "admin123" || isPlaceholderSecret(pw) {
+		problems = append(problems, "ADMIN_PASSWORD is the development default; unset it (a random password is generated and logged on first boot) or set a strong one")
 	}
 	// Reject unknown sslmode values regardless of host — better to fail
 	// loudly here than at connect time with a generic libpq error.
@@ -176,19 +208,39 @@ func (c *Config) Validate() error {
 		problems = append(problems,
 			fmt.Sprintf("DB_SSLMODE=disable with public DB host %q (use require/verify-ca/verify-full, or run the DB on the compose private network)", c.DBHost))
 	}
-	if os.Getenv("CORS_ORIGINS") == "" {
+	if origins := os.Getenv("CORS_ORIGINS"); origins == "" {
 		problems = append(problems, "CORS_ORIGINS is unset (would default to localhost:8099)")
+	} else {
+		for _, o := range strings.Split(origins, ",") {
+			if o = strings.TrimSpace(o); o == "*" || strings.EqualFold(o, "null") {
+				problems = append(problems, fmt.Sprintf("CORS_ORIGINS contains %q — credentialed admin requests must name explicit origins", o))
+			}
+		}
 	}
 	if c.SecretKey == "" {
 		// Without a master key we'd silently store theme git PATs and
 		// other credentials as plaintext, defeating the at-rest
 		// encryption story. Refuse production boot.
 		problems = append(problems, "SQUILLA_SECRET_KEY is unset (required for at-rest encryption of secrets)")
+	} else if isPlaceholderSecret(c.SecretKey) {
+		problems = append(problems, "SQUILLA_SECRET_KEY is still the example placeholder")
 	}
 	if len(problems) == 0 {
 		return nil
 	}
 	return fmt.Errorf("%w: %s", ErrUnsafeProduction, strings.Join(problems, "; "))
+}
+
+// isPlaceholderSecret recognises the example values shipped in
+// .env.example / docker-compose files ("change-me-…" and friends).
+func isPlaceholderSecret(v string) bool {
+	v = strings.ToLower(strings.TrimSpace(v))
+	for _, p := range []string{"change-me", "changeme", "replace-me", "your-secret"} {
+		if strings.HasPrefix(v, p) {
+			return true
+		}
+	}
+	return false
 }
 
 // applyDatabaseURL parses a postgres:// URL and overrides individual DB_* fields.
@@ -218,10 +270,19 @@ func applyDatabaseURL(cfg *Config, dburl string) {
 	}
 }
 
-// DSN returns a PostgreSQL connection string built from the configuration values.
+// DSN returns a PostgreSQL keyword/value connection string built from the
+// configuration values. Every value is single-quoted with backslash and
+// quote escaping (libpq rules), so a password containing spaces, quotes
+// or "key=value" text can't inject extra connection parameters.
 func (c *Config) DSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName, c.DBSSLMode)
+		dsnQuote(c.DBHost), dsnQuote(c.DBPort), dsnQuote(c.DBUser), dsnQuote(c.DBPassword), dsnQuote(c.DBName), dsnQuote(c.DBSSLMode))
+}
+
+func dsnQuote(v string) string {
+	v = strings.ReplaceAll(v, `\`, `\\`)
+	v = strings.ReplaceAll(v, `'`, `\'`)
+	return "'" + v + "'"
 }
 
 // DefaultClientIPHeader is used when CLIENT_IP_HEADER is unset.

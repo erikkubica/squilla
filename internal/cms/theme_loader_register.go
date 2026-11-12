@@ -101,7 +101,11 @@ func RegisterTemplateFromFile(db *gorm.DB, filePath string, slug string, source 
 
 // registerTemplate reads a theme template file and upserts the template record.
 func (tl *ThemeLoader) registerTemplate(themeName string, def ThemeTemplateDef, themeDir string) {
-	filePath := filepath.Join(themeDir, "templates", def.File)
+	filePath, err := confinedFile(themeDir, filepath.Join("templates", def.File))
+	if err != nil {
+		log.Printf("WARN: template %s: %v", def.Slug, err)
+		return
+	}
 	if err := RegisterTemplateFromFile(tl.db, filePath, def.Slug, "theme", themeName); err != nil {
 		log.Printf("WARN: %v", err)
 	}
@@ -357,7 +361,7 @@ type blockManifest struct {
 // This is a shared helper used by both ThemeLoader and ExtensionLoader.
 func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir string, slug string, source string, sourceName string) error {
 	// Read block.json.
-	bjData, err := os.ReadFile(filepath.Join(blockDir, "block.json"))
+	bjData, err := readConfinedFile(blockDir, "block.json")
 	if err != nil {
 		return fmt.Errorf("block.json not found for block %s: %w", slug, err)
 	}
@@ -372,17 +376,17 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 	}
 
 	// Read view.html (the HTML template for the block).
-	viewData, err := os.ReadFile(filepath.Join(blockDir, "view.html"))
+	viewData, err := readConfinedFile(blockDir, "view.html")
 	if err != nil {
 		return fmt.Errorf("view.html not found for block %s: %w", slug, err)
 	}
 
 	// Read optional style.css and script.js.
 	var blockCSS, blockJS string
-	if cssData, err := os.ReadFile(filepath.Join(blockDir, "style.css")); err == nil {
+	if cssData, err := readConfinedFile(blockDir, "style.css"); err == nil {
 		blockCSS = string(cssData)
 	}
-	if jsData, err := os.ReadFile(filepath.Join(blockDir, "script.js")); err == nil {
+	if jsData, err := readConfinedFile(blockDir, "script.js"); err == nil {
 		blockJS = string(jsData)
 	}
 
@@ -485,4 +489,3 @@ func RegisterBlockFromDir(db *gorm.DB, registry *ThemeAssetRegistry, blockDir st
 
 	return nil
 }
-

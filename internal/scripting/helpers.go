@@ -2,6 +2,8 @@ package scripting
 
 import (
 	"github.com/d5/tengo/v2"
+
+	"squilla/internal/coreapi"
 )
 
 // goToTengo converts a Go value to a Tengo object.
@@ -55,9 +57,16 @@ func goToTengo(v interface{}) tengo.Object {
 	}
 }
 
-// tengoToGo converts a Tengo object to a Go value.
+// tengoToGo converts a Tengo object to a Go value. Recursion is bounded by
+// coreapi.MaxTengoValueDepth: a script can build a cyclic value
+// (`m := {}; m.self = m; response = m`) and unbounded recursion on it would
+// overflow the Go stack — a fatal crash of the whole process.
 func tengoToGo(obj tengo.Object) interface{} {
-	if obj == nil {
+	return tengoToGoDepth(obj, 0)
+}
+
+func tengoToGoDepth(obj tengo.Object, depth int) interface{} {
+	if obj == nil || depth > coreapi.MaxTengoValueDepth {
 		return nil
 	}
 	switch val := obj.(type) {
@@ -70,13 +79,13 @@ func tengoToGo(obj tengo.Object) interface{} {
 	case *tengo.Bool:
 		return !val.IsFalsy()
 	case *tengo.Map:
-		return tengoMapToGo(val.Value)
+		return tengoMapToGo(val.Value, depth)
 	case *tengo.ImmutableMap:
-		return tengoMapToGo(val.Value)
+		return tengoMapToGo(val.Value, depth)
 	case *tengo.Array:
-		return tengoArrayToGo(val.Value)
+		return tengoArrayToGo(val.Value, depth)
 	case *tengo.ImmutableArray:
-		return tengoArrayToGo(val.Value)
+		return tengoArrayToGo(val.Value, depth)
 	case *tengo.Undefined:
 		return nil
 	default:
@@ -85,19 +94,19 @@ func tengoToGo(obj tengo.Object) interface{} {
 }
 
 // tengoMapToGo converts a Tengo map to a Go map.
-func tengoMapToGo(m map[string]tengo.Object) map[string]interface{} {
+func tengoMapToGo(m map[string]tengo.Object, depth int) map[string]interface{} {
 	result := make(map[string]interface{}, len(m))
 	for k, v := range m {
-		result[k] = tengoToGo(v)
+		result[k] = tengoToGoDepth(v, depth+1)
 	}
 	return result
 }
 
 // tengoArrayToGo converts a Tengo array to a Go slice.
-func tengoArrayToGo(arr []tengo.Object) []interface{} {
+func tengoArrayToGo(arr []tengo.Object, depth int) []interface{} {
 	result := make([]interface{}, len(arr))
 	for i, v := range arr {
-		result[i] = tengoToGo(v)
+		result[i] = tengoToGoDepth(v, depth+1)
 	}
 	return result
 }

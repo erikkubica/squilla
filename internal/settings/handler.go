@@ -1,6 +1,9 @@
 package settings
 
 import (
+	"log"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
@@ -40,11 +43,11 @@ func (h *Handler) RegisterRoutes(router fiber.Router) {
 // enough for the admin UI to render a directory of available surfaces
 // without paying the cost of every field definition.
 type listEntry struct {
-	ID                string `json:"id"`
-	Title             string `json:"title"`
-	Description       string `json:"description,omitempty"`
-	Capability        string `json:"capability,omitempty"`
-	HasTranslatable   bool   `json:"has_translatable"`
+	ID              string `json:"id"`
+	Title           string `json:"title"`
+	Description     string `json:"description,omitempty"`
+	Capability      string `json:"capability,omitempty"`
+	HasTranslatable bool   `json:"has_translatable"`
 }
 
 // List handles GET /settings/schemas.
@@ -98,7 +101,8 @@ func (h *Handler) Get(c *fiber.Ctx) error {
 	locale := resolveLocale(c, h.db)
 	values, err := h.store.Load(schema, locale)
 	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "LOAD_FAILED", err.Error())
+		log.Printf("[settings] load schema %q locale %q: %v", schema.ID, locale, err)
+		return api.Error(c, fiber.StatusInternalServerError, "LOAD_FAILED", "Failed to load settings")
 	}
 	return api.Success(c, schemaEnvelope{Schema: schema, Values: values, Locale: locale})
 }
@@ -137,7 +141,11 @@ func (h *Handler) Save(c *fiber.Ctx) error {
 	}
 
 	if err := h.store.Save(schema, locale, body.Values); err != nil {
-		return api.Error(c, fiber.StatusBadRequest, "SAVE_FAILED", err.Error())
+		if msg, ok := saveValidationMessage(err); ok {
+			return api.Error(c, fiber.StatusBadRequest, "SAVE_FAILED", msg)
+		}
+		log.Printf("[settings] save schema %q locale %q: %v", schema.ID, locale, err)
+		return api.Error(c, fiber.StatusInternalServerError, "SAVE_FAILED", "Failed to save settings")
 	}
 
 	if h.eventBus != nil {
@@ -185,4 +193,18 @@ func keysOf(m map[string]string) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// saveValidationMessage returns the user-facing text of a Store.Save
+// validation failure (unknown field, wrong locale, bad emoji/icon value).
+// Those are built by the store with a "settings: " prefix and carry no
+// internals. Everything else — DB / encryption errors, including the
+// store's own wrapped lookup failures — is logged and replaced with a
+// generic message so SQL errors never reach the client.
+func saveValidationMessage(err error) (string, bool) {
+	msg := err.Error()
+	if !strings.HasPrefix(msg, "settings: ") || strings.Contains(msg, "failed to") {
+		return "", false
+	}
+	return msg, true
 }

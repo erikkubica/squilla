@@ -13,7 +13,9 @@ import (
 
 // registerResources exposes CMS entities as MCP resources under the squilla://
 // URI scheme. Clients can list and read these for discovery; mutations always
-// go through tools.
+// go through tools. Every read handler is wrapped in wrapResource so it goes
+// through the same token check (class "read"), rate limiter and audit log as
+// tool calls.
 func (s *Server) registerResources() {
 	api := s.deps.CoreAPI
 
@@ -25,7 +27,7 @@ func (s *Server) registerResources() {
 			mcp.WithTemplateDescription("A content node (page, post, etc.) by numeric ID. URI form: squilla://nodes/{id}"),
 			mcp.WithTemplateMIMEType("application/json"),
 		),
-		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		s.wrapResource("nodes", func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			id, err := parseResourceID(req.Params.URI, "squilla://nodes/")
 			if err != nil {
 				return nil, err
@@ -35,7 +37,7 @@ func (s *Server) registerResources() {
 				return nil, err
 			}
 			return jsonResource(req.Params.URI, node)
-		},
+		}),
 	)
 
 	// Theme resource — squilla://themes/{slug}
@@ -46,7 +48,7 @@ func (s *Server) registerResources() {
 			mcp.WithTemplateDescription("A theme by slug."),
 			mcp.WithTemplateMIMEType("application/json"),
 		),
-		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		s.wrapResource("themes", func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			if s.deps.ThemeMgmtSvc == nil {
 				return nil, fmt.Errorf("theme management service not wired")
 			}
@@ -61,7 +63,7 @@ func (s *Server) registerResources() {
 				}
 			}
 			return nil, fmt.Errorf("theme %q not found", slug)
-		},
+		}),
 	)
 
 	// Extension resource — squilla://extensions/{slug}
@@ -72,7 +74,7 @@ func (s *Server) registerResources() {
 			mcp.WithTemplateDescription("An extension by slug."),
 			mcp.WithTemplateMIMEType("application/json"),
 		),
-		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		s.wrapResource("extensions", func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			if s.deps.ExtensionLoader == nil {
 				return nil, fmt.Errorf("extension loader not wired")
 			}
@@ -82,7 +84,7 @@ func (s *Server) registerResources() {
 				return nil, err
 			}
 			return jsonResource(req.Params.URI, ext)
-		},
+		}),
 	)
 
 	// Theme Guidelines resource — squilla://guidelines/themes
@@ -92,7 +94,7 @@ func (s *Server) registerResources() {
 			"Theme Development Standards",
 			mcp.WithResourceDescription("Official Squilla theme development guidelines (Rules 1.1 - 1.6)."),
 		),
-		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		s.wrapResource("guidelines/themes", func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			// Return both structured JSON and raw Markdown
 			// Resources are pull-on-demand reference material — return the full
 			// reference dump (verbose=true). The compact mode only matters for
@@ -123,7 +125,7 @@ func (s *Server) registerResources() {
 			}
 
 			return contents, nil
-		},
+		}),
 	)
 
 	// Extension Guidelines resource — squilla://guidelines/extensions
@@ -133,7 +135,7 @@ func (s *Server) registerResources() {
 			"Extension Development Standards",
 			mcp.WithResourceDescription("Official Squilla extension development guidelines (manifest, capabilities, gRPC plugin lifecycle, admin-UI micro-frontend, list-page primitives, lifecycle events)."),
 		),
-		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		s.wrapResource("guidelines/extensions", func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			jsonContent, err := json.Marshal(extensionStandards(true))
 			if err != nil {
 				return nil, err
@@ -154,7 +156,7 @@ func (s *Server) registerResources() {
 				})
 			}
 			return contents, nil
-		},
+		}),
 	)
 
 	// AI Onboarding resource — squilla://guidelines/onboarding
@@ -164,7 +166,7 @@ func (s *Server) registerResources() {
 			"AI Agent Onboarding Guide",
 			mcp.WithResourceDescription("Mandatory protocol for AI agents building Squilla themes."),
 		),
-		func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		s.wrapResource("guidelines/onboarding", func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			return []mcp.ResourceContents{
 				mcp.TextResourceContents{
 					URI:      req.Params.URI,
@@ -172,7 +174,7 @@ func (s *Server) registerResources() {
 					Text:     onboardingGuide(),
 				},
 			}, nil
-		},
+		}),
 	)
 }
 

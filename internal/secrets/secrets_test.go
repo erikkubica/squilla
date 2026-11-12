@@ -165,3 +165,24 @@ func TestGenerateKey_Unique(t *testing.T) {
 		t.Fatalf("generated key not accepted: %v", err)
 	}
 }
+
+func TestIsSecretKey(t *testing.T) {
+	secret := []string{
+		"smtp_password", "ext.resend-provider.api_key", "providers.email_smtp_password",
+		"ext.smtp-provider.password", "ext.x.Token", "password", "ext.x.secret", "ext.x.credentials",
+	}
+	plain := []string{
+		"site_name", "ext.smtp-provider.host", "ext.smtp-provider.username",
+		"ext.password.host", "password_policy_note.enabled", "ext.x.passwords_enabled",
+	}
+	for _, k := range secret {
+		if !IsSecretKey(k) {
+			t.Errorf("IsSecretKey(%q) = false, want true", k)
+		}
+	}
+	for _, k := range plain {
+		if IsSecretKey(k) {
+			t.Errorf("IsSecretKey(%q) = true, want false", k)
+		}
+	}
+}

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-plugin"
-	pb "squilla/pkg/plugin/proto"
 	"google.golang.org/grpc"
+	pb "squilla/pkg/plugin/proto"
 )
 
 // Handshake is used to ensure the plugin and host are compatible.
@@ -76,8 +76,19 @@ type GRPCClient struct {
 	broker *plugin.GRPCBroker
 }
 
+// lifecycleCallTimeout bounds the short lifecycle RPCs (GetSubscriptions,
+// Initialize, Shutdown) so a hung plugin can't wedge activation, the
+// plugin manager or server shutdown.
+const lifecycleCallTimeout = 10 * time.Second
+
+// HTTPCallTimeout is the default deadline for HandleHTTPRequest when the
+// caller doesn't supply its own context (HandleHTTPRequestCtx).
+const HTTPCallTimeout = 60 * time.Second
+
 func (c *GRPCClient) GetSubscriptions() ([]*pb.Subscription, error) {
-	resp, err := c.client.GetSubscriptions(context.Background(), &pb.Empty{})
+	ctx, cancel := context.WithTimeout(context.Background(), lifecycleCallTimeout)
+	defer cancel()
+	resp, err := c.client.GetSubscriptions(ctx, &pb.Empty{})
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +117,29 @@ func (c *GRPCClient) HandleEventCtx(ctx context.Context, action string, payload 
 	return c.client.HandleEvent(ctx, &pb.EventRequest{Action: action, Payload: payload})
 }
 
+// HandleHTTPRequest forwards an HTTP request with the HTTPCallTimeout
+// deadline. Use HandleHTTPRequestCtx to derive the deadline from the
+// inbound request instead.
 func (c *GRPCClient) HandleHTTPRequest(req *pb.PluginHTTPRequest) (*pb.PluginHTTPResponse, error) {
-	return c.client.HandleHTTPRequest(context.Background(), req)
+	return c.HandleHTTPRequestCtx(context.Background(), req)
+}
+
+// HandleHTTPRequestCtx is HandleHTTPRequest with a caller context. When
+// ctx carries no deadline, HTTPCallTimeout is applied so a hung plugin
+// can never pin the calling goroutine forever.
+func (c *GRPCClient) HandleHTTPRequestCtx(ctx context.Context, req *pb.PluginHTTPRequest) (*pb.PluginHTTPResponse, error) {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, HTTPCallTimeout)
+		defer cancel()
+	}
+	return c.client.HandleHTTPRequest(ctx, req)
 }
 
 func (c *GRPCClient) Shutdown() error {
-	_, err := c.client.Shutdown(context.Background(), &pb.Empty{})
+	ctx, cancel := context.WithTimeout(context.Background(), lifecycleCallTimeout)
+	defer cancel()
+	_, err := c.client.Shutdown(ctx, &pb.Empty{})
 	return err
 }
 
@@ -139,7 +167,9 @@ func (c *GRPCClient) InitializeHost(registerServer func(s *grpc.Server)) error {
 		return s
 	})
 
-	_, err := c.client.Initialize(context.Background(), &pb.InitializeRequest{
+	ctx, cancel := context.WithTimeout(context.Background(), lifecycleCallTimeout)
+	defer cancel()
+	_, err := c.client.Initialize(ctx, &pb.InitializeRequest{
 		HostServiceId: hostServiceID,
 	})
 	return err

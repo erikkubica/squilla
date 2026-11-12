@@ -10,12 +10,20 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       DB_USER: ${DB_USER:-squilla}
-      DB_PASSWORD: ${DB_PASSWORD:-squilla_secret}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (see .env.example)}
       DB_NAME: ${DB_NAME:-squilla}
       DB_SSLMODE: disable
-      SESSION_SECRET: ${SESSION_SECRET:-change-me-to-a-random-64-char-string}
       SESSION_EXPIRY_HOURS: "24"
-      MONITOR_BEARER_TOKEN: ${MONITOR_BEARER_TOKEN:-change-me-to-a-random-token}
+      # Required in production (APP_ENV=production refuses to boot without them).
+      MONITOR_BEARER_TOKEN: ${MONITOR_BEARER_TOKEN:?Set MONITOR_BEARER_TOKEN in .env}
+      SQUILLA_SECRET_KEY: ${SQUILLA_SECRET_KEY:?Set SQUILLA_SECRET_KEY in .env (openssl rand -base64 32)}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS in .env (your public site URL)}
+      # Public origin for links in emails (password reset). Falls back to
+      # the site_url setting; production never uses the request Host.
+      SQUILLA_PUBLIC_URL: ${SQUILLA_PUBLIC_URL:-}
+      # Set when running behind a TLS-terminating proxy so cookies get
+      # the Secure flag and HSTS is sent.
+      TRUST_FORWARDED_PROTO: ${TRUST_FORWARDED_PROTO:-false}
       STORAGE_DRIVER: local
       STORAGE_PATH: /app/storage
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
@@ -36,11 +44,12 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    ports:
-      - "5432:5432"
+    # No published port: the app reaches Postgres over the compose network.
+    # For local access add `ports: ["127.0.0.1:5432:5432"]` — never bind
+    # 5432 on all interfaces.
     environment:
       POSTGRES_USER: ${DB_USER:-squilla}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-squilla_secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       POSTGRES_DB: ${DB_NAME:-squilla}
     volumes:
       - squilla-pgdata:/var/lib/postgresql/data

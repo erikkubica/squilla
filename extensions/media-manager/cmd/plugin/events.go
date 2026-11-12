@@ -127,6 +127,11 @@ func (p *MediaManagerPlugin) handleOwnedAssetsActivated(payload []byte, kind own
 		hash := hex.EncodeToString(sum[:])
 
 		detectedType := http.DetectContentType(data)
+		if strings.EqualFold(filepath.Ext(absPath), ".svg") {
+			// Sniffing labels SVG as text/xml; theme/extension SVGs are
+			// stored as SVG and served with the sandbox CSP.
+			detectedType = "image/svg+xml"
+		}
 		ext := safeExtension(detectedType, absPath)
 
 		if (width == 0 || height == 0) && strings.HasPrefix(detectedType, "image/") && detectedType != "image/svg+xml" {

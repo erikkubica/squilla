@@ -82,3 +82,24 @@ func TestRichText_PreservesText(t *testing.T) {
 		t.Fatalf("RichText(plain text) lost content: got %q want %q", got, in)
 	}
 }
+
+// id is kept only on headings (in-page anchors) and only as a plain
+// slug, so authored content can't clobber DOM globals via id="config".
+func TestRichText_IDOnlyOnHeadings(t *testing.T) {
+	out := RichText(`<p id="config">a</p><div id="x">b</div><a id="y" href="/">c</a><h2 id="sec-1">d</h2><h3 id="1 bad">e</h3><img id="z" src="/a.png">`)
+	for _, banned := range []string{`id="config"`, `id="x"`, `id="y"`, `id="z"`, `id="1 bad"`} {
+		if strings.Contains(out, banned) {
+			t.Errorf("output still contains %s: %s", banned, out)
+		}
+	}
+	if !strings.Contains(out, `<h2 id="sec-1">`) {
+		t.Errorf("heading anchor lost: %s", out)
+	}
+}
+
+func TestRichText_TargetBlankGetsNoopener(t *testing.T) {
+	out := RichText(`<a href="https://example.com" target="_blank">x</a><a href="/local" target="_blank" rel="opener">y</a>`)
+	if strings.Count(out, "noopener") != 2 || strings.Count(out, "noreferrer") != 2 {
+		t.Errorf("target=_blank links missing noopener/noreferrer: %s", out)
+	}
+}

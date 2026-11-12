@@ -168,3 +168,28 @@ func TestHandleWebhookLogs(t *testing.T) {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
 	}
 }
+
+// Webhook URLs often carry a secret token; the server log gets the host
+// only, even when the fetch error echoes the full URL.
+func TestFireWebhook_LogsHostOnly(t *testing.T) {
+	h := NewFakeHost()
+	const hook = "https://hooks.example.com/services/T000/B000/s3cr3tt0ken?sig=abc"
+	h.FetchStub = func(_ coreapi.FetchRequest) (*coreapi.FetchResponse, error) {
+		return nil, fmt.Errorf("Post %q: dial tcp: connection refused", hook)
+	}
+	p := newPlugin(h)
+	p.fireWebhook(ctx(), makeFormWithWebhook(hook), 1, map[string]any{}, map[string]any{})
+
+	found := false
+	for _, l := range h.Logs {
+		if strings.Contains(l.Message, "s3cr3tt0ken") || strings.Contains(l.Message, "sig=abc") {
+			t.Errorf("log leaks webhook secret: %q", l.Message)
+		}
+		if strings.Contains(l.Message, "hooks.example.com") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected a log line naming the host, got %v", h.Logs)
+	}
+}

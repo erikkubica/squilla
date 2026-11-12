@@ -147,6 +147,12 @@ func (s *ThemeMgmtService) scanDir(root string, isData bool) int {
 			continue
 		}
 		manifest.Slug = themeSlugFor(manifest, entry.Name())
+		// The slug is later joined into data-dir paths (install, delete,
+		// adopt) — a hostile on-disk theme.json must not smuggle "../".
+		if !isValidSettingsKey(manifest.Slug) {
+			log.Printf("[themes] skipping %s: invalid slug %q", themeDir, manifest.Slug)
+			continue
+		}
 
 		// Look up by path first (stable identifier) then by slug.
 		var existing models.Theme
@@ -405,6 +411,9 @@ func (s *ThemeMgmtService) InstallFromZip(file io.Reader, filename string) (*mod
 	if err != nil {
 		return nil, fmt.Errorf("failed to open zip archive: %w", err)
 	}
+	if err := checkZipArchive(zr); err != nil {
+		return nil, err
+	}
 
 	// Create a temp directory for extraction.
 	tmpDir, err := os.MkdirTemp("", "squilla-theme-*")
@@ -414,6 +423,7 @@ func (s *ThemeMgmtService) InstallFromZip(file io.Reader, filename string) (*mod
 	defer os.RemoveAll(tmpDir)
 
 	// Extract all files, guarding against zip-slip.
+	budget := newZipBudget()
 	for _, f := range zr.File {
 		destPath := filepath.Join(tmpDir, f.Name)
 		// Zip-slip protection: ensure extracted path stays within tmpDir.
@@ -433,7 +443,7 @@ func (s *ThemeMgmtService) InstallFromZip(file io.Reader, filename string) (*mod
 			return nil, fmt.Errorf("failed to create parent dir for %s: %w", destPath, err)
 		}
 
-		if err := extractZipFile(f, destPath); err != nil {
+		if err := extractZipFile(f, destPath, budget); err != nil {
 			return nil, fmt.Errorf("failed to extract %s: %w", f.Name, err)
 		}
 	}

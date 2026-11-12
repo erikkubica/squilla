@@ -90,6 +90,7 @@ func (h *AuthHandler) UpdateMe(c *fiber.Ctx) error {
 	}
 	if req.Email != nil {
 		email, msg := validateProfileEmail(*req.Email)
+		email = canonicalEmail(email)
 		if msg != "" {
 			fields["email"] = msg
 		} else if email != user.Email {
@@ -180,6 +181,9 @@ func (h *AuthHandler) ChangeMyPassword(c *fiber.Ctx) error {
 
 	if err := h.sessionSvc.DeleteOtherSessions(user.ID, c.Cookies(CookieName)); err != nil {
 		log.Printf("revoke other sessions after password change user=%d: %v", user.ID, err)
+	}
+	if err := NewPasswordResetService(h.db).InvalidateAllForUser(user.ID); err != nil {
+		log.Printf("invalidate reset tokens after password change user=%d: %v", user.ID, err)
 	}
 
 	return api.Success(c, fiber.Map{"message": "Password changed"})

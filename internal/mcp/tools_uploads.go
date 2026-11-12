@@ -33,27 +33,41 @@ func (s *Server) uploadBaseURL() string {
 	return ""
 }
 
-// finalizeRow validates the token + sha and returns the row + open temp file.
-// Caller must Close() the file and call MarkFinalized on success.
-func (s *Server) finalizeRow(token, sha string, kind uploads.Kind) (*uploads.PendingUpload, *os.File, error) {
+// finalizeRow validates the token + sha, checks the upload was issued to
+// the calling token's user, atomically claims the row (uploaded →
+// finalizing) and opens the staged bytes. The staging path is derived from
+// the token, never from the row's temp_path column.
+//
+// On success the caller must Close() the file and then call MarkFinalized
+// (install succeeded) or releaseUpload (install failed — lets the client
+// retry with the same token).
+func (s *Server) finalizeRow(ctx context.Context, token, sha string, kind uploads.Kind) (*uploads.PendingUpload, *os.File, error) {
 	if s.deps.UploadStore == nil {
 		return nil, nil, fmt.Errorf("upload store not wired")
 	}
-	row, err := s.deps.UploadStore.Lookup(token)
+	tok := tokenFromCtx(ctx)
+	if tok == nil {
+		return nil, nil, fmt.Errorf("missing token")
+	}
+	row, err := s.deps.UploadStore.Claim(token, kind, sha, int64(tok.UserID))
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := s.deps.UploadStore.ValidateForFinalize(row, kind, sha); err != nil {
-		return nil, nil, err
-	}
-	if row.TempPath == nil || *row.TempPath == "" {
-		return nil, nil, fmt.Errorf("temp file missing for token")
-	}
-	f, err := os.Open(*row.TempPath)
+	f, err := s.deps.UploadStore.OpenUpload(token)
 	if err != nil {
-		return nil, nil, fmt.Errorf("open temp file: %w", err)
+		_ = s.deps.UploadStore.Release(token)
+		s.logger.Printf("upload finalize: open staged file: %v", err)
+		return nil, nil, fmt.Errorf("staged upload bytes are missing; upload again")
 	}
 	return row, f, nil
+}
+
+// releaseUpload hands a claimed upload back (finalizing → uploaded) after
+// a failed install.
+func (s *Server) releaseUpload(token string) {
+	if s.deps.UploadStore != nil {
+		_ = s.deps.UploadStore.Release(token)
+	}
 }
 
 func (s *Server) registerUploadTools() {
@@ -100,13 +114,13 @@ func (s *Server) registerUploadTools() {
 	})
 
 	s.addTool(mcp.NewTool("core.media.upload_finalize",
-		mcp.WithDescription("Finalize a presigned media upload. Pass the upload_token from upload_init after the PUT step. Optional sha256 is verified against the value computed by the PUT route — set it when the client wants end-to-end corruption detection. Returns the same shape as core.media.upload (id, url, slug, ...). When the media-manager extension is active the bytes route through its /upload handler, so the optimisation pipeline (WebP, normalisation, original backup) runs identically to manual uploads."),
+		mcp.WithDescription("Finalize a presigned media upload. Pass the upload_token from upload_init after the PUT step; only the user whose MCP token called upload_init can finalize it. Optional sha256 is verified against the value computed by the PUT route — set it when the client wants end-to-end corruption detection. Returns the same shape as core.media.upload (id, url, slug, ...). When the media-manager extension is active the bytes route through its /upload handler, so the optimisation pipeline (WebP, normalisation, original backup) runs identically to manual uploads."),
 		mcp.WithString("upload_token", mcp.Required()),
 		mcp.WithString("sha256", mcp.Description("Optional. Reject finalize if it doesn't match the hash computed during PUT.")),
 	), "content", func(ctx context.Context, args map[string]any) (any, error) {
 		token := stringArg(args, "upload_token")
 		sha := stringArg(args, "sha256")
-		row, f, err := s.finalizeRow(token, sha, uploads.KindMedia)
+		row, f, err := s.finalizeRow(ctx, token, sha, uploads.KindMedia)
 		if err != nil {
 			return nil, err
 		}
@@ -125,10 +139,12 @@ func (s *Server) registerUploadTools() {
 		// pipeline), fall back to the kernel media service otherwise.
 		buf, readErr := readAllFromFile(f)
 		if readErr != nil {
+			s.releaseUpload(token)
 			return nil, readErr
 		}
 		var out any
 		if proxied, perr := s.uploadViaMediaProvider(ctx, filename, mimeType, buf); perr != nil {
+			s.releaseUpload(token)
 			return nil, perr
 		} else if proxied != nil {
 			out = proxied
@@ -139,6 +155,7 @@ func (s *Server) registerUploadTools() {
 				Body:     bytes.NewReader(buf),
 			})
 			if kerr != nil {
+				s.releaseUpload(token)
 				return nil, kerr
 			}
 			out = result
@@ -191,13 +208,14 @@ func (s *Server) registerUploadTools() {
 		}
 		token := stringArg(args, "upload_token")
 		sha := stringArg(args, "sha256")
-		_, f, err := s.finalizeRow(token, sha, uploads.KindTheme)
+		_, f, err := s.finalizeRow(ctx, token, sha, uploads.KindTheme)
 		if err != nil {
 			return nil, err
 		}
 		theme, instErr := mgmt.InstallFromZip(f, "deploy.zip")
 		_ = f.Close()
 		if instErr != nil {
+			s.releaseUpload(token)
 			return nil, instErr
 		}
 		activated := false
@@ -269,17 +287,19 @@ func (s *Server) registerUploadTools() {
 		}
 		token := stringArg(args, "upload_token")
 		sha := stringArg(args, "sha256")
-		_, f, err := s.finalizeRow(token, sha, uploads.KindExtension)
+		_, f, err := s.finalizeRow(ctx, token, sha, uploads.KindExtension)
 		if err != nil {
 			return nil, err
 		}
 		raw, readErr := readAllFromFile(f)
 		_ = f.Close()
 		if readErr != nil {
+			s.releaseUpload(token)
 			return nil, readErr
 		}
 		ext, instErr := extHandler.InstallFromZip(raw)
 		if instErr != nil {
+			s.releaseUpload(token)
 			return nil, instErr
 		}
 		activated := false

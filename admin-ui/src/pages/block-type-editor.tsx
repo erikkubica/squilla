@@ -323,7 +323,10 @@ export default function BlockTypeEditorPage() {
                         <iframe
                           title="Block preview"
                           className="h-full w-full border-0 bg-card"
-                          sandbox="allow-same-origin allow-scripts"
+                          // No allow-same-origin: the preview runs theme/test
+                          // markup, so it gets an opaque origin and can't reach
+                          // the admin session. Scripts stay on for Tailwind CDN.
+                          sandbox="allow-scripts"
                           srcDoc={`<!doctype html><html><head><meta charset="utf-8">${previewHead || '<script src="https://cdn.tailwindcss.com"></script>'}<style>body{margin:0;padding:1rem;}</style></head><body class="${previewBodyClass}">${previewHtml}</body></html>`}
                         />
                       ) : (

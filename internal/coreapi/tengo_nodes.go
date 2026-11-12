@@ -96,6 +96,12 @@ func nodesModule(api CoreAPI, ctx context.Context) map[string]tengo.Object {
 // tengoToField builds a NodeTypeField from a Tengo map using the canonical
 // vocabulary: name, title, type, fields, initialValue, description.
 func tengoToField(fm map[string]tengo.Object) NodeTypeField {
+	return tengoToFieldDepth(fm, 0)
+}
+
+// tengoToFieldDepth bounds sub-field recursion: a script can build a cyclic
+// `fields` map, which would otherwise overflow the Go stack.
+func tengoToFieldDepth(fm map[string]tengo.Object, depth int) NodeTypeField {
 	f := NodeTypeField{
 		Name:  tengoToString(fm["name"]),
 		Title: tengoToString(fm["title"]),
@@ -115,10 +121,10 @@ func tengoToField(fm map[string]tengo.Object) NodeTypeField {
 			}
 		}
 	}
-	if sfarr, ok := fm["fields"].(*tengo.Array); ok {
+	if sfarr, ok := fm["fields"].(*tengo.Array); ok && depth < MaxTengoValueDepth {
 		for _, sf := range sfarr.Value {
 			if sm, ok := sf.(*tengo.Map); ok {
-				f.Fields = append(f.Fields, tengoToField(sm.Value))
+				f.Fields = append(f.Fields, tengoToFieldDepth(sm.Value, depth+1))
 			}
 		}
 	}

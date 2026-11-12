@@ -46,13 +46,13 @@ func (s *Server) registerGuideTools() {
 // buildGuide assembles the response in one of three modes:
 //
 //   - verbose=true        — full reference dump (recipes, gotchas, playbook,
-//                           every tool description). ~30 k tokens.
+//     every tool description). ~30 k tokens.
 //   - topic=<name>        — focused: full recipes + relevant gotchas +
-//                           editing_playbook (when topic=='editing') + tools
-//                           for that topic's domains. ~10–15 k tokens.
+//     editing_playbook (when topic=='editing') + tools
+//     for that topic's domains. ~10–15 k tokens.
 //   - default (no args)   — compact menu: topic list, recipe goals only,
-//                           gotcha topic keys only, tool names grouped by
-//                           domain, snapshot. <8 k tokens.
+//     gotcha topic keys only, tool names grouped by
+//     domain, snapshot. <8 k tokens.
 //
 // The compact menu is engineered so a 125–250 k context model can call
 // core.guide in the first turn without triggering a per-tool token dump.
@@ -101,17 +101,17 @@ func (s *Server) buildGuide(ctx context.Context, topic string, verbose bool) (ma
 	// Default — compact menu. Goal: fit in <8 k tokens so the AI can call
 	// this first without burning a turn on a token-dumped response.
 	return map[string]any{
-		"version":   "1",
-		"mode":      "menu",
-		"namespace": "core.<domain>.<verb>",
+		"version":          "1",
+		"mode":             "menu",
+		"namespace":        "core.<domain>.<verb>",
 		"available_topics": guideTopics(),
-		"recipe_index": guideRecipeIndex(""),
-		"gotcha_topics": guideGotchaKeys(),
-		"data_shapes":   guideShapes(),
-		"conventions":   guideConventions(),
-		"snapshot":      snap,
-		"tools_by_domain": s.toolsByDomain(),
-		"next_step": "Call core.guide({topic:'<topic>'}) for full recipes + gotchas + tool descriptions in that domain. Use verbose:true only for the full dump (~30 k tokens).",
+		"recipe_index":     guideRecipeIndex(""),
+		"gotcha_topics":    guideGotchaKeys(),
+		"data_shapes":      guideShapes(),
+		"conventions":      guideConventions(),
+		"snapshot":         snap,
+		"tools_by_domain":  s.toolsByDomain(),
+		"next_step":        "Call core.guide({topic:'<topic>'}) for full recipes + gotchas + tool descriptions in that domain. Use verbose:true only for the full dump (~30 k tokens).",
 	}, nil
 }
 
@@ -504,7 +504,7 @@ func guideRecipes(topic string) []map[string]any {
 				"PUT <upload_url> with the raw bytes — NO Authorization header (the token in the URL is the auth)",
 				"core.media.upload_finalize({upload_token, sha256?}) — returns the same shape as core.media.upload",
 			},
-			"notes": "Token TTL ~15 min, single-use, bound to the issuing user. Bytes stream straight to data/pending/<token>.bin while computing SHA-256. Default cap 50 MB (env: SQUILLA_MEDIA_MAX_MB). Same flow exists for themes (core.theme.deploy_init / .deploy_finalize, default 200 MB) and extensions (core.extension.deploy_init / .deploy_finalize, default 200 MB).",
+			"notes": "Token TTL ~15 min, single-use, bound to the issuing user. Bytes stream straight to data/pending/<sha256(token)>.bin while computing SHA-256. Default cap 50 MB (env: SQUILLA_MEDIA_MAX_MB). Same flow exists for themes (core.theme.deploy_init / .deploy_finalize, default 200 MB) and extensions (core.extension.deploy_init / .deploy_finalize, default 200 MB).",
 		},
 	}
 	if topic == "" {
@@ -644,7 +644,7 @@ func guideConventions() []string {
 		"All list/query tools accept {limit, offset}; default 25, max 200; responses include {total}.",
 		"render.* tools are side-effect-free — no events, no view counts, no writes.",
 		"restart_required is currently always false — theme and extension activate/deactivate are hot. Activation spawns/kills only the plugin subprocess, not the app. Brand-new directories dropped into themes/ or extensions/ on disk are picked up automatically by the fs watcher (no restart, no manual rescan); core.theme.rescan / core.extension.rescan exist as explicit triggers for CI/ops.",
-		"Prefer typed tools (core.node.query, core.data.query) over core.data.exec (gated raw SQL).",
+		"Prefer typed tools (core.node.*, core.media.*, core.menu.*, core.taxonomy.*). The generic core.data.* table tools need a scope=full token (read/content tokens are refused), and core.data.exec (raw SQL) is additionally gated by a server env flag.",
 		"Reference media/layouts by slug when authoring theme-portable content; IDs rotate when themes are reactivated.",
 		"For binaries above ~5 MB use the presigned upload pair (core.<kind>.upload_init + .upload_finalize, kind ∈ {media, theme, extension}). The PUT route at /api/uploads/<token> is unauthenticated — the 64-char token IS the auth, single-use, ~15 min TTL.",
 		"Bulk-patch nodes via core.node.update_many ONLY for safe top-level columns (status, layout_slug, language_code). For fields_data / blocks_data / seo_settings use per-node core.node.update so per-node merge logic runs.",
@@ -718,7 +718,7 @@ func themeStandardsCore() map[string]any {
 			"{{ renderLayoutBlock \"slug\" }} — render a partial. LAYOUT/PARTIAL ONLY. There is NO `partial` template function.",
 			"{{ filter \"name\" value }} — run a registered Tengo filter (list_nodes, get_node, distinct_field, ...).",
 			"{{ event \"name\" ctx }} — fire an event; collect HTML responses (used for forms:render, etc.). Returns template.HTML.",
-			"{{ safeHTML s }} — bypass HTML escaping. Use only on fields you trust or on event results.",
+			"{{ safeHTML s }} — emit s as HTML. In block views plain strings are run through the rich-text sanitiser (scripts, event handlers and unsafe URLs are stripped; sanitised richtext and event output pass unchanged). In layouts and partials it is raw — use it there only for admin-owned settings, never for node/block fields.",
 			"{{ image_url .url \"size\" }} — cached, optimized image URL (sizes from media-manager).",
 			"{{ image_srcset .url \"size1\" \"size2\" ... }} — responsive srcset attribute value.",
 			"{{ icon .feature_icon \"w-6 h-6\" }} — inline <svg aria-hidden=\"true\"> (currentColor) for an icon field value \"provider:name\" (lucide:map-pin, material:restaurant; bare names = material). Extra args are joined into class=\"\". Empty/unknown value renders nothing — wrap the surrounding markup in {{ with }}.",
@@ -734,14 +734,14 @@ func themeStandardsCore() map[string]any {
 			"block":   "Sees ONLY the block's own field values at root, e.g. {{ .heading }}, {{ .items }}. Cannot reach .app or .node. To pull node data into a block, use {{ filter \"list_nodes\" ... }} or {{ filter \"get_node\" ... }}.",
 		},
 		"head_checklist": map[string]any{
-			"intent":  "Every layout that wraps a public page must drop these into <head> so SEO chrome and per-block assets render correctly.",
-			"snippet": "<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>{{ if and .node.seo .node.seo.meta_title }}{{ .node.seo.meta_title }}{{ else }}{{ .node.title }}{{ end }}</title>\n  {{.app.head_meta}}\n  {{- range .app.head_styles -}}<link rel=\"stylesheet\" href=\"{{.}}\">{{- end -}}\n  {{.app.block_styles}}\n</head>",
-			"head_meta": "Pre-built canonical/og:*/twitter:*/robots/hreflang block. Per-node SEO wins; site-wide defaults from Site Settings → SEO fill the gaps; node title/excerpt and featured_image are the final fallback. og:image auto-uses the node's featured_image when seo.og_image is empty. Translations emit hreflang alternates automatically. DO NOT hand-roll og:* / twitter:* tags in your layout — they'll duplicate what the kernel already emits.",
-			"head_styles":   "Theme + extension <link rel=stylesheet> URLs. Always render with the {{ range }} loop above.",
-			"block_styles":  "Per-block scoped CSS for blocks present on this page (built from blocks/<slug>/style.css).",
+			"intent":       "Every layout that wraps a public page must drop these into <head> so SEO chrome and per-block assets render correctly.",
+			"snippet":      "<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>{{ if and .node.seo .node.seo.meta_title }}{{ .node.seo.meta_title }}{{ else }}{{ .node.title }}{{ end }}</title>\n  {{.app.head_meta}}\n  {{- range .app.head_styles -}}<link rel=\"stylesheet\" href=\"{{.}}\">{{- end -}}\n  {{.app.block_styles}}\n</head>",
+			"head_meta":    "Pre-built canonical/og:*/twitter:*/robots/hreflang block. Per-node SEO wins; site-wide defaults from Site Settings → SEO fill the gaps; node title/excerpt and featured_image are the final fallback. og:image auto-uses the node's featured_image when seo.og_image is empty. Translations emit hreflang alternates automatically. DO NOT hand-roll og:* / twitter:* tags in your layout — they'll duplicate what the kernel already emits.",
+			"head_styles":  "Theme + extension <link rel=stylesheet> URLs. Always render with the {{ range }} loop above.",
+			"block_styles": "Per-block scoped CSS for blocks present on this page (built from blocks/<slug>/style.css).",
 		},
 		"reserved_layout_slugs": map[string]string{
-			"404": "Theme-supplied Page Not Found layout. Register `{ \"slug\": \"404\", \"file\": \"404.html\" }` in theme.json to opt in. The synthesized 404 content lands in `{{.node.blocks_html}}` so a typical 404 layout is your default chrome with blocks_html inside it. head_meta still flows through (with noindex,nofollow forced for 404s). When neither `404` nor the legacy alias `error` is registered, the default layout handles missing pages.",
+			"404":   "Theme-supplied Page Not Found layout. Register `{ \"slug\": \"404\", \"file\": \"404.html\" }` in theme.json to opt in. The synthesized 404 content lands in `{{.node.blocks_html}}` so a typical 404 layout is your default chrome with blocks_html inside it. head_meta still flows through (with noindex,nofollow forced for 404s). When neither `404` nor the legacy alias `error` is registered, the default layout handles missing pages.",
 			"error": "Legacy alias for 404. Recognized for backward compatibility (e.g. squilla theme's existing layouts/error.html); new themes should use `404`.",
 		},
 		"core_rules": []map[string]any{
@@ -754,7 +754,7 @@ func themeStandardsCore() map[string]any {
 			{"id": "7", "title": "Cross-extension rendering goes through event.", "description": "Use event \"forms:render\" for forms; never hand-roll a <form> and JS-intercept submit (submissions get silently dropped)."},
 			{"id": "8", "title": "Settings are namespaced.", "description": "Use <theme-prefix>.<dot.path> (e.g. hv.whatsapp, hv.social.instagram) so editor overrides don't collide with another theme's keys."},
 			{"id": "9", "title": "Menu items use page:\"<slug>\", not url:\"/<slug>\".", "description": "menus.upsert resolves slug → NodeID at upsert time, so renames don't break menus."},
-			{"id": "10", "title": "safeHTML only on fields you trust.", "description": "Prefer Go's auto-escaping. Mark HTML-bearing fields explicitly in block.json's help. safeHTML on user-controlled strings is XSS."},
+			{"id": "10", "title": "safeHTML: sanitised in blocks, raw in layouts.", "description": "Prefer Go's auto-escaping. In block views safeHTML/raw sanitise plain strings with the rich-text policy, so they render formatting but not script. In layouts and partials safeHTML is raw: never pipe node or block field values through it there."},
 			{"id": "11", "title": "Block-scoped CSS goes in blocks/<slug>/style.css.", "description": "Site-wide CSS goes in assets/styles/theme.css. Don't dump <style> blocks inside view.html."},
 			{"id": "12", "title": "No dead schema fields.", "description": "If you remove a field from view.html, remove it from block.json, the templates/*.json, and the theme.tengo seed. Schema and template must agree."},
 			{"id": "13", "title": "Drop {{.app.head_meta}} into every layout's <head>.", "description": "The kernel composes canonical/og:*/twitter:*/robots/hreflang once per render. Layouts must surface it — without {{.app.head_meta}}, social previews and search engines see only your hand-written <title>/<meta name=description>. Do NOT hand-roll og:* tags; they will duplicate the kernel's output."},

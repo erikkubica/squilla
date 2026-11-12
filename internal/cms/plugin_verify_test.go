@@ -2,8 +2,11 @@ package cms
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	"os"
 	"path/filepath"
+	"squilla/internal/models"
+	"squilla/internal/testutil"
 	"testing"
 )
 
@@ -97,3 +100,40 @@ func TestHashPluginBinary_MatchesInternal(t *testing.T) {
 
 // keep imports honest when removing or changing tests
 var _ = errors.Is
+
+func pinDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := testutil.NewSQLiteDB(t)
+	if err := db.AutoMigrate(&models.SiteSetting{}); err != nil {
+		t.Fatal(err)
+	}
+	return db
+}
+
+func TestVerifyPluginBinary_StrictModeRefusesUnpinned(t *testing.T) {
+	db := pinDB(t)
+	path := writeBinary(t, "plugin-bytes")
+	if err := verifyPluginBinary(db, "ext", "bin/ext", path); err != nil {
+		t.Fatalf("default mode must load unpinned binaries, got %v", err)
+	}
+	t.Setenv(requirePinsEnv, "true")
+	if err := verifyPluginBinary(db, "ext", "bin/ext", path); !errors.Is(err, ErrPluginUnpinned) {
+		t.Fatalf("strict mode must refuse an unpinned binary, got %v", err)
+	}
+	digest, _ := hashFile(path)
+	v := digest
+	if err := db.Create(&models.SiteSetting{Key: pluginPinSettingKey("ext", "bin/ext"), LanguageCode: "", Value: &v}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyPluginBinary(db, "ext", "bin/ext", path); err != nil {
+		t.Fatalf("strict mode must load a correctly pinned binary, got %v", err)
+	}
+}
+
+func TestVerifyPluginBinary_LookupErrorFailsClosed(t *testing.T) {
+	db := testutil.NewSQLiteDB(t) // no site_settings table → lookup error
+	path := writeBinary(t, "plugin-bytes")
+	if err := verifyPluginBinary(db, "ext", "bin/ext", path); err == nil {
+		t.Fatal("a pin lookup failure must refuse the plugin, not load it unpinned")
+	}
+}

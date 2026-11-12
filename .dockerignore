@@ -1,0 +1,21 @@
+# Keep secrets, VCS metadata, runtime state and dependency trees out of the
+# build context (and therefore out of the builder stage's `COPY . .`).
+#
+# NOT excluded on purpose: /squilla, admin-ui/dist, extensions/*/bin and
+# extensions/*/admin-ui/dist — Dockerfile.local copies those prebuilt
+# artifacts from the host.
+.git
+.github
+.env
+.env.*
+!.env.example
+storage
+data
+**/node_modules
+.claude
+.agents
+.superpowers
+.planning
+tmp
+*.test
+*.out

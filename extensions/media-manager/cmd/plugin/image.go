@@ -20,7 +20,14 @@ import (
 // and the WebP companion convertor.
 
 func resizeImage(src io.Reader, mimeType string, width, height int, mode string, quality int) ([]byte, string, error) {
-	img, err := decodeImage(src, mimeType)
+	raw, err := io.ReadAll(src)
+	if err != nil {
+		return nil, "", fmt.Errorf("read: %w", err)
+	}
+	if err := checkImageDimensions(raw); err != nil {
+		return nil, "", fmt.Errorf("decode: %w", err)
+	}
+	img, err := decodeImage(bytes.NewReader(raw), mimeType)
 	if err != nil {
 		return nil, "", fmt.Errorf("decode: %w", err)
 	}
@@ -49,7 +56,11 @@ func resizeImage(src io.Reader, mimeType string, width, height int, mode string,
 
 // convertToWebP converts any image to WebP format.
 func convertToWebP(src io.Reader, quality int) ([]byte, error) {
-	img, _, err := image.Decode(src)
+	raw, err := io.ReadAll(src)
+	if err != nil {
+		return nil, fmt.Errorf("read for webp conversion: %w", err)
+	}
+	img, _, err := decodeImageBounded(raw)
 	if err != nil {
 		return nil, fmt.Errorf("decode for webp conversion: %w", err)
 	}

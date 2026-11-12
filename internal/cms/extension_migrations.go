@@ -66,16 +66,23 @@ func RunExtensionMigrations(db *gorm.DB, extDir string, slug string) error {
 		}
 
 		log.Printf("[ext-migrations] applying %s/%s", slug, filename)
-		if err := db.Exec(string(sqlBytes)).Error; err != nil {
-			return fmt.Errorf("executing migration %s: %w", filename, err)
-		}
-
-		// Record as applied
-		if err := db.Exec(
-			"INSERT INTO extension_migrations (extension_slug, filename) VALUES (?, ?)",
-			slug, filename,
-		).Error; err != nil {
-			return fmt.Errorf("recording migration %s: %w", filename, err)
+		// The migration and its bookkeeping row commit together: a
+		// failure part-way rolls both back (Postgres DDL is transactional),
+		// so the file is retried on the next activation instead of being
+		// half-applied or recorded without having run.
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Exec(string(sqlBytes)).Error; err != nil {
+				return fmt.Errorf("executing migration %s: %w", filename, err)
+			}
+			if err := tx.Exec(
+				"INSERT INTO extension_migrations (extension_slug, filename) VALUES (?, ?)",
+				slug, filename,
+			).Error; err != nil {
+				return fmt.Errorf("recording migration %s: %w", filename, err)
+			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 

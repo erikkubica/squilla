@@ -64,11 +64,32 @@ func TestValidateFile_AllowedTypes(t *testing.T) {
 	}
 }
 
+// Without allowed_types a field falls back to a default safe list
+// rather than accepting any extension.
 func TestValidateFile_NoAllowedTypes(t *testing.T) {
-	field := map[string]any{} // no restriction
-	f := uploadedFile{FileName: "anything.xyz", Size: 100}
-	if msg := validateFile(field, f); msg != "" {
-		t.Errorf("no allowed_types constraint: unexpected error %q", msg)
+	field := map[string]any{} // no explicit restriction
+	for _, name := range []string{"cv.pdf", "photo.JPG", "notes.docx", "clip.mp4"} {
+		if msg := validateFile(field, uploadedFile{FileName: name, Size: 100}); msg != "" {
+			t.Errorf("%s: unexpected error %q", name, msg)
+		}
+	}
+	for _, name := range []string{"anything.xyz", "page.html", "x.svg", "run.exe", "noext"} {
+		if msg := validateFile(field, uploadedFile{FileName: name, Size: 100}); msg == "" {
+			t.Errorf("%s: accepted without allowed_types", name)
+		}
+	}
+}
+
+// Active-content types stay blocked even if a form lists them.
+func TestValidateFile_ActiveContentAlwaysBlocked(t *testing.T) {
+	field := map[string]any{"allowed_types": "html, .svg,js,pdf"}
+	for _, name := range []string{"a.html", "a.svg", "a.js"} {
+		if msg := validateFile(field, uploadedFile{FileName: name, Size: 100}); msg == "" {
+			t.Errorf("%s accepted", name)
+		}
+	}
+	if msg := validateFile(field, uploadedFile{FileName: "a.pdf", Size: 100}); msg != "" {
+		t.Errorf("pdf rejected: %q", msg)
 	}
 }
 

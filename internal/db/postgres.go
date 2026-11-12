@@ -19,7 +19,15 @@ var migrationsFS embed.FS
 // Per architecture convention, database connectivity failures trigger a fatal halt.
 func Connect(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.New(log.Default(), logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logger.Warn,
+			IgnoreRecordNotFoundError: true,
+			// Never interpolate bind values into logged SQL — slow/failed
+			// query logs would otherwise leak password hashes, reset token
+			// hashes and user PII into stdout.
+			ParameterizedQueries: true,
+		}),
 	})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
@@ -32,9 +40,13 @@ func Connect(dsn string) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	// 25 open connections leaves headroom under Postgres' default
+	// max_connections=100 for migrations, psql sessions, backups and a
+	// second replica during rolling deploys.
 	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetConnMaxLifetime(1 * time.Hour)
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 
 	// Verify connectivity
 	if err := sqlDB.Ping(); err != nil {
@@ -58,7 +70,11 @@ func RunMigrations(db *gorm.DB) error {
 
 	// Load already-applied migrations.
 	var applied []struct{ Filename string }
-	db.Raw("SELECT filename FROM schema_migrations").Scan(&applied)
+	// A failed read here must abort: treating it as "nothing applied"
+	// would re-run every migration against a populated database.
+	if err := db.Raw("SELECT filename FROM schema_migrations").Scan(&applied).Error; err != nil {
+		return fmt.Errorf("failed to read schema_migrations: %w", err)
+	}
 	appliedSet := make(map[string]bool, len(applied))
 	for _, a := range applied {
 		appliedSet[a.Filename] = true

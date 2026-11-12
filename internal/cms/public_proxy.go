@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"strings"
@@ -8,8 +9,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"squilla/internal/httpobs"
 	"squilla/internal/models"
+	vibeplugin "squilla/pkg/plugin"
 	pb "squilla/pkg/plugin/proto"
 )
 
@@ -270,22 +271,9 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 			return c.Next()
 		}
 
-		// Build headers map. Strip sensitive auth headers AND any
-		// client-supplied X-Forwarded-For / X-Real-IP — those are
-		// trivially spoofable and plugins use them for per-IP rate
-		// limiting (forms extension does for spam control). The
-		// kernel writes the trusted value (httpobs.ClientIP(c)) below.
-		headers := make(map[string]string)
-		c.Request().Header.VisitAll(func(key, value []byte) {
-			k := string(key)
-			kLower := strings.ToLower(k)
-			switch kLower {
-			case "cookie", "authorization", "x-forwarded-for", "x-real-ip":
-				return
-			}
-			headers[k] = string(value)
-		})
-		headers["X-Forwarded-For"] = httpobs.ClientIP(c)
+		// Build headers map. Same stripping as the admin proxy (credentials, spoofable IP
+		// headers, client-supplied X-User-*); see pluginRequestHeaders.
+		headers := pluginRequestHeaders(c)
 		// Cookies are stripped, except the ones this extension declared in
 		// public_route_cookies (guarded: own prefix, never the session).
 		if names := pp.pluginMgr.PublicRouteCookies(slug); len(names) > 0 {
@@ -324,15 +312,15 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 			UserId:      0, // no auth on public routes
 		}
 
-		resp, err := client.HandleHTTPRequest(req)
+		ctx, cancel := context.WithTimeout(c.UserContext(), vibeplugin.HTTPCallTimeout)
+		defer cancel()
+		resp, err := client.HandleHTTPRequestCtx(ctx, req)
 		if err != nil {
 			log.Printf("[public-proxy] gRPC error from %s: %v", slug, err)
 			return c.SendStatus(fiber.StatusBadGateway)
 		}
 
-		for k, v := range resp.Headers {
-			c.Set(k, v)
-		}
+		setPluginResponseHeaders(c, slug, resp.Headers)
 
 		return c.Status(int(resp.StatusCode)).Send(resp.Body)
 	}

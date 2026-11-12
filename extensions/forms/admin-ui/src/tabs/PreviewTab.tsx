@@ -84,23 +84,39 @@ export default function PreviewTab({ form }: any) {
     setLoading(true);
     setError(null);
     try {
+      // The form HTML comes from the forms extension's own renderer (the
+      // same one the public site uses); the kernel preview endpoint only
+      // supplies the active theme's <head> and body class around it.
       const testData = buildTestData(currentForm);
-      const res = await fetch("/admin/api/block-types/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html_template: currentForm.layout, test_data: testData }),
-        credentials: "include",
-      });
+      const [res, chromeRes] = await Promise.all([
+        fetch("/admin/api/ext/forms/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...currentForm, fields: testData.fields_list }),
+          credentials: "include",
+        }),
+        fetch("/admin/api/block-types/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+          credentials: "include",
+        }).catch(() => null),
+      ]);
       if (!isMountedRef.current) return;
       if (res.ok) {
         const data = await res.json();
+        let chrome: any = {};
+        if (chromeRes && chromeRes.ok) {
+          try { chrome = await chromeRes.json(); } catch { chrome = {}; }
+        }
+        if (!isMountedRef.current) return;
         setPreviewHtml(data.html || "");
-        setPreviewHead(data.head || "");
-        setPreviewBodyClass(data.body_class || "");
+        setPreviewHead(chrome.head || "");
+        setPreviewBodyClass(chrome.body_class || "");
       } else {
         let errData: any;
         try { errData = await res.json(); } catch { errData = { error: `HTTP ${res.status}` }; }
-        setError(errData.error || errData.message || "Failed to render preview");
+        setError(String(errData.message || errData.error || "Failed to render preview"));
       }
     } catch (err: any) {
       if (!isMountedRef.current) return;
@@ -242,7 +258,7 @@ export default function PreviewTab({ form }: any) {
                 <iframe
                   title="Form preview"
                   className="h-[600px] w-full border-0 bg-card"
-                  sandbox="allow-same-origin allow-scripts"
+                  sandbox="allow-scripts"
                   srcDoc={iframeSrcDoc}
                 />
               </div>

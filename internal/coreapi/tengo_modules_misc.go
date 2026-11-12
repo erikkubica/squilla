@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/d5/tengo/v2"
 
+	"squilla/internal/cms"
 	"squilla/internal/icons"
 )
 
@@ -33,8 +35,11 @@ func routesModule(cb *ScriptCallbacks) map[string]tengo.Object {
 			method := tengoToString(args[0])
 			path := tengoToString(args[1])
 			scriptPath := tengoToString(args[2])
-			if cb != nil && cb.OnRoute != nil {
-				cb.OnRoute(method, path, scriptPath)
+			if cb == nil || cb.OnRoute == nil {
+				return wrapError(errRegistrationClosed), nil
+			}
+			if err := cb.OnRoute(method, path, scriptPath); err != nil {
+				return wrapError(err), nil
 			}
 			return tengo.UndefinedValue, nil
 		}},
@@ -54,8 +59,11 @@ func wellKnownModule(cb *ScriptCallbacks) map[string]tengo.Object {
 			}
 			path := tengoToString(args[0])
 			scriptPath := tengoToString(args[1])
-			if cb != nil && cb.OnWellKnown != nil {
-				cb.OnWellKnown(path, scriptPath)
+			if cb == nil || cb.OnWellKnown == nil {
+				return wrapError(errRegistrationClosed), nil
+			}
+			if err := cb.OnWellKnown(path, scriptPath); err != nil {
+				return wrapError(err), nil
 			}
 			return tengo.UndefinedValue, nil
 		}},
@@ -77,8 +85,11 @@ func filtersModule(cb *ScriptCallbacks) map[string]tengo.Object {
 					priority = p
 				}
 			}
-			if cb != nil && cb.OnFilter != nil {
-				cb.OnFilter(name, scriptPath, priority)
+			if cb == nil || cb.OnFilter == nil {
+				return wrapError(errRegistrationClosed), nil
+			}
+			if err := cb.OnFilter(name, scriptPath, priority); err != nil {
+				return wrapError(err), nil
 			}
 			return tengo.UndefinedValue, nil
 		}},
@@ -158,8 +169,11 @@ func eventsModule(api CoreAPI, ctx context.Context, cb *ScriptCallbacks) map[str
 					priority = p
 				}
 			}
-			if cb != nil && cb.OnEvent != nil {
-				cb.OnEvent(action, scriptPath, priority)
+			if cb == nil || cb.OnEvent == nil {
+				return wrapError(errRegistrationClosed), nil
+			}
+			if err := cb.OnEvent(action, scriptPath, priority); err != nil {
+				return wrapError(err), nil
 			}
 			return tengo.UndefinedValue, nil
 		}},
@@ -175,8 +189,11 @@ func eventsModule(api CoreAPI, ctx context.Context, cb *ScriptCallbacks) map[str
 					priority = p
 				}
 			}
-			if cb != nil && cb.OnEvent != nil {
-				cb.OnEvent(action, scriptPath, priority)
+			if cb == nil || cb.OnEvent == nil {
+				return wrapError(errRegistrationClosed), nil
+			}
+			if err := cb.OnEvent(action, scriptPath, priority); err != nil {
+				return wrapError(err), nil
 			}
 			return tengo.UndefinedValue, nil
 		}},
@@ -340,19 +357,16 @@ func assetsModule(scriptsDir string) map[string]tengo.Object {
 		if filepath.IsAbs(rel) {
 			return "", fmt.Errorf("assets: absolute paths not allowed")
 		}
-		clean := filepath.Clean(filepath.Join(root, rel))
-		rootAbs, err := filepath.Abs(root)
+		// Lexical and symlink escapes are both refused: the resolved file
+		// must be a regular file inside the root's real path.
+		real, err := cms.ConfinedFile(root, rel)
 		if err != nil {
-			return "", err
-		}
-		cleanAbs, err := filepath.Abs(clean)
-		if err != nil {
-			return "", err
-		}
-		if !strings.HasPrefix(cleanAbs, rootAbs+string(filepath.Separator)) && cleanAbs != rootAbs {
+			if errors.Is(err, os.ErrNotExist) {
+				return "", err
+			}
 			return "", fmt.Errorf("assets: path escapes theme root")
 		}
-		return clean, nil
+		return real, nil
 	}
 	return map[string]tengo.Object{
 		"read": &tengo.UserFunction{Name: "read", Value: func(args ...tengo.Object) (tengo.Object, error) {

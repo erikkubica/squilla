@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 	"io"
@@ -11,7 +12,6 @@ import (
 	"math"
 	"mime"
 	"mime/multipart"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -175,13 +175,13 @@ func (p *MediaManagerPlugin) handleUpload(ctx context.Context, req *pb.PluginHTT
 		return jsonError(400, "NO_FILE", "No file uploaded"), nil
 	}
 
-	// Validate MIME type: detect from content and enforce allowlist.
-	detectedType := http.DetectContentType(fileData)
-	if fileMimeType == "" {
-		fileMimeType = detectedType
-	}
-	if !isAllowedMimeType(fileMimeType) {
-		return jsonError(400, "INVALID_FILE_TYPE", fmt.Sprintf("File type %s is not allowed", fileMimeType)), nil
+	// Validate MIME type: the declared type must be allow-listed and the
+	// sniffed bytes must agree with it. SVG is re-serialised through a
+	// strict sanitizer instead.
+	var verr *pb.PluginHTTPResponse
+	fileData, fileMimeType, verr = validateUpload(fileData, fileMimeType, originalName)
+	if verr != nil {
+		return verr, nil
 	}
 
 	// Generate unique filename with safe extension derived from MIME type.
@@ -194,9 +194,12 @@ func (p *MediaManagerPlugin) handleUpload(ctx context.Context, req *pb.PluginHTT
 	// Track original dimensions before any processing.
 	var origW, origH int
 	if strings.HasPrefix(fileMimeType, "image/") && fileMimeType != "image/svg+xml" {
-		if img, _, err := image.Decode(bytes.NewReader(fileData)); err == nil {
-			origW = img.Bounds().Dx()
-			origH = img.Bounds().Dy()
+		if err := checkImageDimensions(fileData); errors.Is(err, errImageTooLarge) {
+			return jsonError(400, "IMAGE_TOO_LARGE", fmt.Sprintf("Image dimensions exceed the maximum of %d px per side or %d megapixels", maxImageSide, maxImagePixels/1_000_000)), nil
+		}
+		if cfg, _, err := image.DecodeConfig(bytes.NewReader(fileData)); err == nil {
+			origW = cfg.Width
+			origH = cfg.Height
 		}
 	}
 

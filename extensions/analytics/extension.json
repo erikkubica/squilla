@@ -7,6 +7,7 @@
   "provides": ["analytics"],
   "auto_activate": false,
   "capabilities": [
+    "events:subscribe",
     "data:read",
     "data:write",
     "data:delete",

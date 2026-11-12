@@ -170,10 +170,28 @@ var secretKeySuffixes = []string{
 	"_credentials",
 }
 
+// secretKeySegments are whole dot-segment names that mark a setting as
+// credential-like even without an underscore prefix — extension settings
+// are stored as "ext.<slug>.<schema key>", so a schema key named plain
+// "password" (smtp-provider) becomes "ext.smtp-provider.password", which
+// the substring list above does not catch. Only the last segment is
+// compared, so "ext.foo.password_hint_shown" style names stay plain
+// unless the substring list already matches them.
+var secretKeySegments = map[string]bool{
+	"password":    true,
+	"secret":      true,
+	"token":       true,
+	"apikey":      true,
+	"api_key":     true,
+	"credentials": true,
+}
+
 // IsSecretKey reports whether a setting key looks like a credential.
 // The match is case-insensitive substring, not suffix only — it must
 // catch things like "smtp_password" and "encrypted_secret_value" but
-// also nested names like "providers.email_smtp_password".
+// also nested names like "providers.email_smtp_password". A key whose
+// last dot-segment is exactly a credential word ("ext.x.password",
+// "token") also counts.
 func IsSecretKey(key string) bool {
 	k := strings.ToLower(key)
 	for _, s := range secretKeySuffixes {
@@ -181,7 +199,10 @@ func IsSecretKey(key string) bool {
 			return true
 		}
 	}
-	return false
+	if i := strings.LastIndexByte(k, '.'); i >= 0 {
+		k = k[i+1:]
+	}
+	return secretKeySegments[k]
 }
 
 // GenerateKey returns a fresh base64-encoded 32-byte key, suitable for

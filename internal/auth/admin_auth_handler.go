@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -54,6 +53,13 @@ func NewAdminAuthHandler(db *gorm.DB, sessionSvc *SessionService, eventBus *even
 	}
 }
 
+// CleanIdle prunes idle rate-limiter entries.
+func (h *AdminAuthHandler) CleanIdle() {
+	h.signupLimiter.CleanRefilled()
+	h.forgotLimiter.CleanRefilled()
+	h.resetLimiter.CleanRefilled()
+}
+
 // RegisterRoutes mounts the admin auth JSON endpoints on the public app.
 // All four are intentionally UN-authenticated — the user calling them has
 // no session yet by definition.
@@ -69,8 +75,8 @@ func (h *AdminAuthHandler) RegisterRoutes(app *fiber.App) {
 // security state — flipping them client-side does nothing useful, the
 // real check still runs in each endpoint.
 type authConfigResponse struct {
-	AllowRegistration     bool `json:"allow_registration"`
-	PasswordResetEnabled  bool `json:"password_reset_enabled"`
+	AllowRegistration    bool `json:"allow_registration"`
+	PasswordResetEnabled bool `json:"password_reset_enabled"`
 }
 
 // Config returns the gating flags the login UI needs. Public, no auth.
@@ -111,9 +117,13 @@ func (h *AdminAuthHandler) Register(c *fiber.Ctx) error {
 	}
 
 	fullName := strings.TrimSpace(req.FullName)
-	email := strings.TrimSpace(req.Email)
+	email := canonicalEmail(req.Email)
 	password := req.Password
 	passwordConfirm := req.PasswordConfirm
+
+	if authInputTooLong(email, password, passwordConfirm) {
+		return api.Error(c, fiber.StatusBadRequest, "BAD_REQUEST", "Input too long")
+	}
 
 	if fullName == "" || email == "" || password == "" || passwordConfirm == "" {
 		return api.ValidationError(c, map[string]string{
@@ -123,14 +133,21 @@ func (h *AdminAuthHandler) Register(c *fiber.Ctx) error {
 			"password_confirm": "Required",
 		})
 	}
+	if _, msg := validateProfileEmail(email); msg != "" {
+		return api.ValidationError(c, map[string]string{"email": msg})
+	}
+	if msg := validateNewPassword(password); msg != "" {
+		return api.ValidationError(c, map[string]string{"password": msg})
+	}
 	if password != passwordConfirm {
 		return api.ValidationError(c, map[string]string{
 			"password_confirm": "Passwords do not match",
 		})
 	}
 
-	var existing models.User
-	if err := h.db.Where("email = ?", email).First(&existing).Error; err == nil {
+	if taken, err := emailTaken(h.db, email, 0); err != nil {
+		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "An unexpected error occurred")
+	} else if taken {
 		return api.Error(c, fiber.StatusConflict, "EMAIL_TAKEN", "An account with this email already exists")
 	}
 
@@ -140,19 +157,10 @@ func (h *AdminAuthHandler) Register(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "An unexpected error occurred")
 	}
 
-	roleSlug := defaultRegistrationRoleSlug(h.db)
-	var defaultRole models.Role
-	if err := h.db.Where("slug = ?", roleSlug).First(&defaultRole).Error; err != nil {
-		if roleSlug != "member" {
-			log.Printf("default_registration_role=%q not found, falling back to member: %v", roleSlug, err)
-			if err := h.db.Where("slug = ?", "member").First(&defaultRole).Error; err != nil {
-				log.Printf("find member role: %v", err)
-				return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "An unexpected error occurred")
-			}
-		} else {
-			log.Printf("find member role: %v", err)
-			return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "An unexpected error occurred")
-		}
+	defaultRole, err := registrationRole(h.db)
+	if err != nil {
+		log.Printf("registration role: %v", err)
+		return api.Error(c, fiber.StatusInternalServerError, "INTERNAL_ERROR", "An unexpected error occurred")
 	}
 
 	user := models.User{
@@ -173,9 +181,9 @@ func (h *AdminAuthHandler) Register(c *fiber.Ctx) error {
 		// the SPA can redirect to the login form with a helpful message.
 		return c.JSON(fiber.Map{
 			"data": fiber.Map{
-				"user_id":  user.ID,
-				"email":    user.Email,
-				"sign_in":  false,
+				"user_id": user.ID,
+				"email":   user.Email,
+				"sign_in": false,
 			},
 		})
 	}
@@ -233,31 +241,24 @@ func (h *AdminAuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return api.Error(c, fiber.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
 	}
-	email := strings.TrimSpace(req.Email)
+	email := canonicalEmail(req.Email)
 	if email == "" {
 		return api.ValidationError(c, map[string]string{"email": "Required"})
 	}
-
-	var user models.User
-	if err := h.db.Where("email = ?", email).First(&user).Error; err != nil {
+	if authInputTooLong(email) {
 		return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
 	}
 
-	rawToken, expires, err := h.resetSvc.IssueToken(user.ID, httpobs.ClientIP(c), c.Get("User-Agent"))
-	if err != nil {
-		log.Printf("issue reset token user=%d: %v", user.ID, err)
-		return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
-	}
-
-	resetURL := buildAdminResetURL(h.db, c, rawToken)
-	h.eventBus.PublishSync("user.password_reset_requested", events.Payload{
-		"user_id":     user.ID,
-		"user_email":  user.Email,
-		"actor_email": user.Email,
-		"reset_url":   resetURL,
-		"reset_token": rawToken,
-		"expires_at":  expires.Format(time.RFC3339),
-		"ip_address":  httpobs.ClientIP(c),
+	origin, _ := siteOriginFor(h.db, c)
+	startPasswordReset(passwordResetRequest{
+		db:        h.db,
+		resetSvc:  h.resetSvc,
+		bus:       h.eventBus,
+		email:     email,
+		origin:    origin,
+		resetPath: "/admin/reset-password",
+		ip:        httpobs.ClientIP(c),
+		userAgent: c.Get("User-Agent"),
 	})
 
 	return api.Success(c, fiber.Map{"message": forgotPasswordSuccessMsg})
@@ -294,6 +295,13 @@ func (h *AdminAuthHandler) ResetPassword(c *fiber.Ctx) error {
 			"password":         "Required",
 			"password_confirm": "Required",
 		})
+	}
+	if authInputTooLong("", token, password, passwordConfirm) {
+		return api.Error(c, fiber.StatusBadRequest, "INVALID_TOKEN", "This password reset link is invalid or has expired")
+	}
+	// Validate before consuming so a policy failure doesn't burn the link.
+	if msg := validateNewPassword(password); msg != "" {
+		return api.ValidationError(c, map[string]string{"password": msg})
 	}
 	if password != passwordConfirm {
 		return api.ValidationError(c, map[string]string{
@@ -338,12 +346,4 @@ func (h *AdminAuthHandler) ResetPassword(c *fiber.Ctx) error {
 	}
 
 	return api.Success(c, fiber.Map{"message": "Password reset successfully. Please sign in with your new password."})
-}
-
-// buildAdminResetURL composes an absolute reset URL that lands inside the
-// admin shell. Origin is resolved by siteOriginFor (site_url setting
-// preferred, request Host as fallback) so a misconfigured edge proxy
-// can't turn forgot-password into a token-leak vector.
-func buildAdminResetURL(db *gorm.DB, c *fiber.Ctx, token string) string {
-	return fmt.Sprintf("%s/admin/reset-password?token=%s", siteOriginFor(db, c), token)
 }

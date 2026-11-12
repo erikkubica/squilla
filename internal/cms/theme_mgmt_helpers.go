@@ -6,29 +6,90 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 )
 
 // This file owns small filesystem helpers used by the theme
 // management service: zip extraction, manifest discovery, and
 // recursive copy. Pure utilities, no DB access.
 
-func extractZipFile(f *zip.File, destPath string) error {
+// Archive extraction limits shared by the theme and extension installers.
+// The per-file cap stops a single zip bomb entry; the total and entry-count
+// caps stop many small entries from filling the disk or inode table.
+const (
+	maxZipFileBytes   = 256 << 20
+	maxZipTotalBytes  = 500 << 20
+	maxZipEntries     = 10000
+	zipExtractedPerms = 0o755
+)
+
+// zipBudget tracks bytes written across one archive extraction.
+type zipBudget struct{ remaining int64 }
+
+func newZipBudget() *zipBudget { return &zipBudget{remaining: maxZipTotalBytes} }
+
+// checkZipArchive rejects archives with too many entries or with two
+// entries that normalise to the same path. Duplicate names are dangerous
+// because manifest discovery reads the FIRST extension.json/theme.json
+// while extraction writes them in order, so the LAST copy wins on disk:
+// the validated manifest would not be the one installed.
+func checkZipArchive(r *zip.Reader) error {
+	if len(r.File) > maxZipEntries {
+		return fmt.Errorf("archive has %d entries (max %d)", len(r.File), maxZipEntries)
+	}
+	seen := make(map[string]bool, len(r.File))
+	for _, f := range r.File {
+		name := path.Clean("/" + strings.ReplaceAll(f.Name, "\\", "/"))
+		if f.FileInfo().IsDir() {
+			continue
+		}
+		if seen[name] {
+			return fmt.Errorf("archive contains duplicate entry %q", f.Name)
+		}
+		seen[name] = true
+	}
+	return nil
+}
+
+// extractZipFile writes one archive entry to destPath. Archive mode bits
+// are masked to 0755 so setuid/setgid/sticky bits (or world-writable
+// files) in a hostile archive never reach the disk. budget, when non-nil,
+// enforces the per-archive total size cap.
+func extractZipFile(f *zip.File, destPath string, budget *zipBudget) error {
 	rc, err := f.Open()
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
 
-	out, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, f.Mode())
+	out, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, f.Mode().Perm()&zipExtractedPerms)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
-	// Limit copy size to prevent zip bombs (256 MB per file).
-	_, err = io.Copy(out, io.LimitReader(rc, 256<<20))
-	return err
+	limit := int64(maxZipFileBytes)
+	if budget != nil && budget.remaining < limit {
+		limit = budget.remaining
+	}
+	// Read one byte past the limit so an over-cap entry is an error, not
+	// a silently truncated file.
+	n, err := io.Copy(out, io.LimitReader(rc, limit+1))
+	if err != nil {
+		return err
+	}
+	if n > limit {
+		if budget != nil && limit == budget.remaining {
+			return fmt.Errorf("archive exceeds total extracted size of %d bytes", maxZipTotalBytes)
+		}
+		return fmt.Errorf("entry exceeds maximum size of %d bytes", maxZipFileBytes)
+	}
+	if budget != nil {
+		budget.remaining -= n
+	}
+	return nil
 }
 
 // findAndParseManifest looks for theme.json in dir or one level deep.
@@ -89,7 +150,7 @@ func copyDir(src, dst string) error {
 		return err
 	}
 
-	if err := os.MkdirAll(dst, srcInfo.Mode()); err != nil {
+	if err := os.MkdirAll(dst, srcInfo.Mode().Perm()&zipExtractedPerms|0o700); err != nil {
 		return err
 	}
 
@@ -102,11 +163,17 @@ func copyDir(src, dst string) error {
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
 
-		if entry.IsDir() {
+		// Symlinks and special files are skipped, never followed: copying
+		// a link's target would materialise an arbitrary host file (e.g.
+		// /etc/passwd) inside the theme as an ordinary, servable file.
+		switch {
+		case entry.Type()&os.ModeSymlink != 0:
+			continue
+		case entry.IsDir():
 			if err := copyDir(srcPath, dstPath); err != nil {
 				return err
 			}
-		} else {
+		case entry.Type().IsRegular():
 			if err := copyFile(srcPath, dstPath); err != nil {
 				return err
 			}
@@ -129,7 +196,7 @@ func copyFile(src, dst string) error {
 		return err
 	}
 
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode())
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, info.Mode().Perm()&zipExtractedPerms)
 	if err != nil {
 		return err
 	}

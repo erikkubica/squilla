@@ -34,9 +34,24 @@ func WithCaller(ctx context.Context, caller CallerInfo) context.Context {
 	return context.WithValue(ctx, callerKey, caller)
 }
 
+// CallerFromContext returns the caller stored in ctx, or InternalCaller()
+// when none is set. The unguarded CoreAPI implementation is called
+// directly by kernel code with plain contexts and relies on that default.
 func CallerFromContext(ctx context.Context) CallerInfo {
 	if c, ok := ctx.Value(callerKey).(CallerInfo); ok {
 		return c
 	}
 	return InternalCaller()
+}
+
+// guardCallerFromContext is CallerFromContext for the capability guard:
+// it fails closed. Every legitimate guarded path (gRPC host server, Tengo
+// adapter, MCP dispatch) sets an explicit CallerInfo, so a missing one is
+// a wiring bug and gets an anonymous caller with no capabilities instead
+// of full internal trust.
+func guardCallerFromContext(ctx context.Context) CallerInfo {
+	if c, ok := ctx.Value(callerKey).(CallerInfo); ok {
+		return c
+	}
+	return CallerInfo{Type: "unknown"}
 }

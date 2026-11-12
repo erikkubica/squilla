@@ -34,18 +34,33 @@ func wrapError(err error) tengo.Object {
 	return &tengo.Error{Value: &tengo.String{Value: err.Error()}}
 }
 
+// MaxTengoValueDepth bounds how deep Tengo→Go conversion recurses. Tengo
+// maps/arrays are mutable references, so `m := {}; m.self = m` is a cycle;
+// unbounded recursion on it overflows the Go stack, which is a fatal,
+// unrecoverable crash of the whole process. Values nested deeper than this
+// convert to nil.
+const MaxTengoValueDepth = 64
+
 // tengoMapToGoMap converts a Tengo map (map[string]tengo.Object) to map[string]any.
 func tengoMapToGoMap(m map[string]tengo.Object) map[string]any {
+	return tengoMapToGoMapDepth(m, 0)
+}
+
+func tengoMapToGoMapDepth(m map[string]tengo.Object, depth int) map[string]any {
 	result := make(map[string]any, len(m))
 	for k, v := range m {
-		result[k] = tengoObjToGo(v)
+		result[k] = tengoObjToGoDepth(v, depth+1)
 	}
 	return result
 }
 
 // tengoObjToGo converts a Tengo object to a Go value.
 func tengoObjToGo(obj tengo.Object) any {
-	if obj == nil {
+	return tengoObjToGoDepth(obj, 0)
+}
+
+func tengoObjToGoDepth(obj tengo.Object, depth int) any {
+	if obj == nil || depth > MaxTengoValueDepth {
 		return nil
 	}
 	switch v := obj.(type) {
@@ -58,19 +73,19 @@ func tengoObjToGo(obj tengo.Object) any {
 	case *tengo.Bool:
 		return !v.IsFalsy()
 	case *tengo.Map:
-		return tengoMapToGoMap(v.Value)
+		return tengoMapToGoMapDepth(v.Value, depth)
 	case *tengo.ImmutableMap:
-		return tengoMapToGoMap(v.Value)
+		return tengoMapToGoMapDepth(v.Value, depth)
 	case *tengo.Array:
 		arr := make([]any, len(v.Value))
 		for i, item := range v.Value {
-			arr[i] = tengoObjToGo(item)
+			arr[i] = tengoObjToGoDepth(item, depth+1)
 		}
 		return arr
 	case *tengo.ImmutableArray:
 		arr := make([]any, len(v.Value))
 		for i, item := range v.Value {
-			arr[i] = tengoObjToGo(item)
+			arr[i] = tengoObjToGoDepth(item, depth+1)
 		}
 		return arr
 	case *tengo.Undefined:

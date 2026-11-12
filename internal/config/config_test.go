@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestNormalizeSSLMode(t *testing.T) {
@@ -169,5 +171,89 @@ func TestLoad_ClientIPOverrides(t *testing.T) {
 	}
 	if strings.Join(cfg.TrustedProxies, "|") != "10.0.0.1|172.18.0.0/16" {
 		t.Fatalf("unexpected TrustedProxies %v", cfg.TrustedProxies)
+	}
+}
+
+func TestLoad_NormalisesAppEnv(t *testing.T) {
+	t.Setenv("APP_ENV", "  Production ")
+	cfg := Load()
+	if cfg.AppEnv != "production" || !cfg.IsProduction() || !cfg.AppEnvExplicit {
+		t.Fatalf("AppEnv=%q explicit=%v", cfg.AppEnv, cfg.AppEnvExplicit)
+	}
+	t.Setenv("APP_ENV", "")
+	cfg = Load()
+	if cfg.AppEnv != "development" || cfg.AppEnvExplicit {
+		t.Fatalf("unset APP_ENV: AppEnv=%q explicit=%v", cfg.AppEnv, cfg.AppEnvExplicit)
+	}
+}
+
+// TestValidate_UnknownAppEnvFailsClosed: "prod" used to mean "not
+// production" and skip every safety gate.
+func TestValidate_UnknownAppEnvFailsClosed(t *testing.T) {
+	for _, env := range []string{"prod", "staging", "Production"} {
+		cfg := productionCfg()
+		cfg.AppEnv = env
+		if err := cfg.Validate(); err == nil {
+			t.Errorf("APP_ENV=%q must fail validation", env)
+		}
+	}
+	cfg := productionCfg()
+	cfg.AppEnv = "test"
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("APP_ENV=test: %v", err)
+	}
+}
+
+func TestValidate_ProductionRejectsPlaceholders(t *testing.T) {
+	cases := []struct {
+		name string
+		mut  func(c *Config, t *testing.T)
+		want string
+	}{
+		{"monitor placeholder", func(c *Config, t *testing.T) { c.MonitorBearerToken = "change-me-to-a-random-token" }, "MONITOR_BEARER_TOKEN"},
+		{"secret key placeholder", func(c *Config, t *testing.T) { c.SecretKey = "change-me" }, "SQUILLA_SECRET_KEY"},
+		{"db password placeholder", func(c *Config, t *testing.T) { c.DBPassword = "change-me-db" }, "DB_PASSWORD"},
+		{"db password seed default", func(c *Config, t *testing.T) { c.DBPassword = "squilla_secret" }, "DB_PASSWORD"},
+		{"admin123", func(c *Config, t *testing.T) { t.Setenv("ADMIN_PASSWORD", "admin123") }, "ADMIN_PASSWORD"},
+		{"cors wildcard", func(c *Config, t *testing.T) { t.Setenv("CORS_ORIGINS", "https://a.com,*") }, "CORS_ORIGINS"},
+		{"cors null", func(c *Config, t *testing.T) { t.Setenv("CORS_ORIGINS", "null") }, "CORS_ORIGINS"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			withCORS(t)
+			t.Setenv("ADMIN_PASSWORD", "")
+			cfg := productionCfg()
+			tc.mut(cfg, t)
+			err := cfg.Validate()
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("want error mentioning %s, got %v", tc.want, err)
+			}
+		})
+	}
+}
+
+// TestValidate_SessionSecretNoLongerRequired: SESSION_SECRET is read
+// nowhere, so demanding it only produced false confidence.
+func TestValidate_SessionSecretNoLongerRequired(t *testing.T) {
+	withCORS(t)
+	t.Setenv("ADMIN_PASSWORD", "")
+	cfg := productionCfg()
+	cfg.SessionSecret = ""
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("unexpected: %v", err)
+	}
+}
+
+func TestDSN_QuotesValues(t *testing.T) {
+	cfg := &Config{DBHost: "db", DBPort: "5432", DBUser: "u", DBPassword: `p w' sslmode=disable \x`, DBName: "squilla", DBSSLMode: "require"}
+	pc, err := pgconn.ParseConfig(cfg.DSN())
+	if err != nil {
+		t.Fatalf("DSN does not parse: %v (%s)", err, cfg.DSN())
+	}
+	if pc.Password != `p w' sslmode=disable \x` {
+		t.Fatalf("password round-trip: %q", pc.Password)
+	}
+	if pc.TLSConfig == nil {
+		t.Fatal("password text injected sslmode=disable")
 	}
 }

@@ -3,6 +3,9 @@ package coreapi
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	"squilla/internal/secrets"
 )
 
 // compile-time check
@@ -18,7 +21,10 @@ func NewCapabilityGuard(inner CoreAPI) CoreAPI {
 }
 
 func checkCapability(ctx context.Context, cap string) error {
-	caller := CallerFromContext(ctx)
+	// guardCallerFromContext fails closed: a guarded call that arrives
+	// without a CallerInfo (a wiring bug) holds no capabilities rather
+	// than being treated as fully-trusted internal code.
+	caller := guardCallerFromContext(ctx)
 	if caller.Type == "internal" {
 		return nil
 	}
@@ -152,16 +158,82 @@ func (g *capabilityGuard) DeleteTaxonomy(ctx context.Context, slug string) error
 }
 
 // --- Settings ---
+//
+// Settings have no per-extension write namespace yet, but two slices are
+// fenced off from extensions (non-internal callers):
+//
+//   - "plugin.*" — the operator's plugin SHA-256 pins. Writing one would
+//     defeat binary pinning; reading them has no extension use.
+//   - secret-shaped keys (secrets.IsSecretKey) outside the caller's own
+//     "ext.<slug>." namespace — another extension's API keys, SMTP
+//     passwords, webhook secrets. Writes stay allowed (settings:write).
+//
+// GetSettings / GetSettingsLoc silently drop fenced keys from the result
+// (matched on the full key, prefix included).
+
+func settingReadAllowed(caller CallerInfo, key string) bool {
+	if caller.Type == "internal" {
+		return true
+	}
+	k := strings.ToLower(key)
+	if strings.HasPrefix(k, "plugin.") {
+		return false
+	}
+	if secrets.IsSecretKey(k) {
+		return caller.Slug != "" && strings.HasPrefix(k, "ext."+strings.ToLower(caller.Slug)+".")
+	}
+	return true
+}
+
+func settingWriteAllowed(caller CallerInfo, key string) bool {
+	return caller.Type == "internal" || !strings.HasPrefix(strings.ToLower(key), "plugin.")
+}
+
+func checkSettingRead(ctx context.Context, key string) error {
+	if err := checkCapability(ctx, "settings:read"); err != nil {
+		return err
+	}
+	if !settingReadAllowed(guardCallerFromContext(ctx), key) {
+		return NewCapabilityDenied("settings:read " + key + " (kernel-reserved or another extension's secret)")
+	}
+	return nil
+}
+
+func checkSettingWrite(ctx context.Context, key string) error {
+	if err := checkCapability(ctx, "settings:write"); err != nil {
+		return err
+	}
+	if !settingWriteAllowed(guardCallerFromContext(ctx), key) {
+		return NewCapabilityDenied("settings:write " + key + " (kernel-reserved)")
+	}
+	return nil
+}
+
+// filterReadableSettings drops fenced keys from a bulk read. The inner
+// GetSettings* methods return keys with prefix trimmed, so the full key
+// is prefix+k.
+func filterReadableSettings(ctx context.Context, prefix string, all map[string]string) map[string]string {
+	caller := guardCallerFromContext(ctx)
+	if caller.Type == "internal" {
+		return all
+	}
+	for k := range all {
+		if !settingReadAllowed(caller, prefix+k) {
+			delete(all, k)
+		}
+	}
+	return all
+}
 
 func (g *capabilityGuard) GetSetting(ctx context.Context, key string) (string, error) {
-	if err := checkCapability(ctx, "settings:read"); err != nil {
+	if err := checkSettingRead(ctx, key); err != nil {
 		return "", err
 	}
 	return g.inner.GetSetting(ctx, key)
 }
 
 func (g *capabilityGuard) SetSetting(ctx context.Context, key, value string) error {
-	if err := checkCapability(ctx, "settings:write"); err != nil {
+	if err := checkSettingWrite(ctx, key); err != nil {
 		return err
 	}
 	return g.inner.SetSetting(ctx, key, value)
@@ -171,18 +243,22 @@ func (g *capabilityGuard) GetSettings(ctx context.Context, prefix string) (map[s
 	if err := checkCapability(ctx, "settings:read"); err != nil {
 		return nil, err
 	}
-	return g.inner.GetSettings(ctx, prefix)
+	all, err := g.inner.GetSettings(ctx, prefix)
+	if err != nil {
+		return nil, err
+	}
+	return filterReadableSettings(ctx, prefix, all), nil
 }
 
 func (g *capabilityGuard) GetSettingLoc(ctx context.Context, key, locale string) (string, error) {
-	if err := checkCapability(ctx, "settings:read"); err != nil {
+	if err := checkSettingRead(ctx, key); err != nil {
 		return "", err
 	}
 	return g.inner.GetSettingLoc(ctx, key, locale)
 }
 
 func (g *capabilityGuard) SetSettingLoc(ctx context.Context, key, locale, value string) error {
-	if err := checkCapability(ctx, "settings:write"); err != nil {
+	if err := checkSettingWrite(ctx, key); err != nil {
 		return err
 	}
 	return g.inner.SetSettingLoc(ctx, key, locale, value)
@@ -192,7 +268,11 @@ func (g *capabilityGuard) GetSettingsLoc(ctx context.Context, prefix, locale str
 	if err := checkCapability(ctx, "settings:read"); err != nil {
 		return nil, err
 	}
-	return g.inner.GetSettingsLoc(ctx, prefix, locale)
+	all, err := g.inner.GetSettingsLoc(ctx, prefix, locale)
+	if err != nil {
+		return nil, err
+	}
+	return filterReadableSettings(ctx, prefix, all), nil
 }
 
 // --- Events ---

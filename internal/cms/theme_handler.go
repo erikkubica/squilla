@@ -2,8 +2,7 @@ package cms
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -152,7 +151,8 @@ func (h *ThemeHandler) AdoptBundled(c *fiber.Ctx) error {
 		case err.Error() == "NOT_SHADOWED":
 			return api.Error(c, fiber.StatusBadRequest, "NOT_SHADOWED", "This theme has no bundled copy to switch to")
 		}
-		return api.Error(c, fiber.StatusInternalServerError, "ADOPT_FAILED", err.Error())
+		log.Printf("[themes] adopt-bundled %d failed: %v", id, err)
+		return api.Error(c, fiber.StatusInternalServerError, "ADOPT_FAILED", "Failed to switch to the bundled theme (see server log)")
 	}
 	return api.Success(c, res)
 }
@@ -171,9 +171,10 @@ func (h *ThemeHandler) ServePreview(c *fiber.Ctx) error {
 	}
 
 	for _, name := range []string{"preview.svg", "preview.png", "preview.jpg", "preview.webp"} {
-		path := filepath.Join(theme.Path, name)
-		if _, err := os.Stat(path); err == nil {
+		path, err := confinedFile(theme.Path, name)
+		if err == nil {
 			c.Set("Cache-Control", "public, max-age=3600")
+			c.Set("X-Content-Type-Options", "nosniff")
 			return c.SendFile(path)
 		}
 	}
@@ -225,7 +226,8 @@ func (h *ThemeHandler) Upload(c *fiber.Ctx) error {
 
 	theme, err := h.mgmtSvc.InstallFromZip(file, fileHeader.Filename)
 	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "INSTALL_FAILED", "Failed to install theme from zip: "+err.Error())
+		log.Printf("[themes] zip install failed: %v", err)
+		return api.Error(c, fiber.StatusInternalServerError, "INSTALL_FAILED", "Failed to install theme from zip: "+adminSafeError(err))
 	}
 
 	return api.Created(c, toThemeResponse(theme))
@@ -254,7 +256,8 @@ func (h *ThemeHandler) InstallFromGit(c *fiber.Ctx) error {
 
 	theme, err := h.mgmtSvc.InstallFromGit(req.GitURL, req.GitBranch, req.GitToken)
 	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "INSTALL_FAILED", "Failed to install theme from git: "+err.Error())
+		log.Printf("[themes] git install failed: %v", err)
+		return api.Error(c, fiber.StatusInternalServerError, "INSTALL_FAILED", "Failed to install theme from git: "+adminSafeError(err))
 	}
 
 	return api.Created(c, toThemeResponse(theme))
@@ -364,9 +367,17 @@ func (h *ThemeHandler) UpdateGitConfig(c *fiber.Ctx) error {
 
 	updates := map[string]interface{}{}
 	if req.GitURL != nil {
+		// Same allowlist as InstallFromGit: a stored URL is what the
+		// next pull (admin or webhook) fetches from.
+		if err := validateGitURL(*req.GitURL); err != nil {
+			return api.ValidationError(c, map[string]string{"git_url": err.Error()})
+		}
 		updates["git_url"] = *req.GitURL
 	}
 	if req.GitBranch != nil {
+		if err := validateGitBranch(*req.GitBranch); err != nil {
+			return api.ValidationError(c, map[string]string{"git_branch": err.Error()})
+		}
 		updates["git_branch"] = *req.GitBranch
 	}
 	if req.GitToken != nil {
@@ -423,7 +434,7 @@ func (h *ThemeHandler) webhookDeploy(c *fiber.Ctx) error {
 	// for the former so existing deployments aren't broken by enabling
 	// SQUILLA_SECRET_KEY.
 	var setting models.SiteSetting
-	err := h.db.Where("`key` = ?", "theme_webhook_secret").First(&setting).Error
+	err := webhookSecretQuery(h.db).First(&setting).Error
 	if err != nil || setting.Value == nil || *setting.Value == "" {
 		return api.Error(c, fiber.StatusForbidden, "WEBHOOK_DISABLED", "Webhook secret is not configured")
 	}
@@ -488,8 +499,29 @@ func (h *ThemeHandler) webhookDeploy(c *fiber.Ctx) error {
 	// 4. Pull update.
 	updated, err := h.mgmtSvc.PullUpdate(theme.ID)
 	if err != nil {
-		return api.Error(c, fiber.StatusInternalServerError, "PULL_FAILED", "Failed to pull theme update: "+err.Error())
+		log.Printf("[themes] webhook pull for %s failed: %v", theme.Slug, err)
+		return api.Error(c, fiber.StatusInternalServerError, "PULL_FAILED", "Failed to pull theme update")
 	}
 
 	return api.Success(c, toThemeResponse(updated))
+}
+
+// adminSafeError reduces an install/update error to its top-level
+// description for the admin API response. Wrapped causes — git output,
+// OS errors carrying absolute filesystem paths — are dropped here and
+// logged server-side by the caller instead.
+func adminSafeError(err error) string {
+	msg := err.Error()
+	if i := strings.Index(msg, ": "); i > 0 {
+		msg = msg[:i]
+	}
+	return msg
+}
+
+// webhookSecretQuery selects the theme_webhook_secret row. "key" is quoted
+// ANSI-style (Postgres/SQLite): the MySQL backticks used before were a
+// syntax error on Postgres, so the webhook always reported "not
+// configured".
+func webhookSecretQuery(db *gorm.DB) *gorm.DB {
+	return db.Where(`"key" = ?`, "theme_webhook_secret")
 }

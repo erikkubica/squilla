@@ -238,6 +238,17 @@ limit=25, max=200. The response includes {total} so you know when to stop.
 core.render.* never fires events, never increments view counts, never writes.
 Always preview before calling update/create when a user is watching output.
 
-# Raw SQL
-core.data.exec is gated behind scope=full AND a server env flag. Prefer the
-typed tools (core.node.query, core.data.query) which enforce tenancy/ACL.`
+# Generic table access / raw SQL
+core.data.get/query/create/update/delete require a scope=full token; read and
+content tokens must use the typed tools (core.node.*, core.media.*, ...).
+core.data.query's 'raw' WHERE fragment is limited to plain column comparisons
+unless the server enables raw SQL. core.data.exec is gated behind scope=full
+AND a server env flag.
+
+# Scopes
+read    — get/list/query/render tools, resources
+content — read + content mutations (nodes, taxonomies, menus, media, files,
+          filter.apply)
+full    — everything (settings, users, themes/extensions, data.*, email, http)
+Secret-like settings (*_password, *_key, *_token, ...) and plugin.* settings are
+redacted for read/content tokens.`

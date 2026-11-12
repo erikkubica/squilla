@@ -15,7 +15,7 @@ import (
 // token plumbing, hostile-config defenses) and the secrets-service
 // envelope helpers in theme_mgmt_service.go.
 
-//   - Token encrypted at rest if a *secrets.Service is configured.
+// - Token encrypted at rest if a *secrets.Service is configured.
 func (s *ThemeMgmtService) InstallFromGit(gitURL, branch, token string) (*models.Theme, error) {
 	if branch == "" {
 		branch = "main"
@@ -42,6 +42,13 @@ func (s *ThemeMgmtService) InstallFromGit(gitURL, branch, token string) (*models
 		return nil, fmt.Errorf("git clone failed: %s: %w", strings.TrimSpace(string(output)), err)
 	}
 
+	return s.installClonedTheme(tmpDir, gitURL, branch, token)
+}
+
+// installClonedTheme validates the theme cloned into tmpDir and moves it
+// into the data dir, creating the theme row. Split from InstallFromGit so
+// the slug/path handling is testable without a network clone.
+func (s *ThemeMgmtService) installClonedTheme(tmpDir, gitURL, branch, token string) (*models.Theme, error) {
 	// Parse theme.json from cloned directory.
 	manifest, _, err := findAndParseManifest(tmpDir)
 	if err != nil {
@@ -50,6 +57,22 @@ func (s *ThemeMgmtService) InstallFromGit(gitURL, branch, token string) (*models
 
 	if manifest.Slug == "" {
 		return nil, fmt.Errorf("theme.json missing required 'slug' field")
+	}
+	// Same rule as the zip installer: the slug becomes a directory name
+	// under dataDir and is passed to os.RemoveAll, so "../x" or "a/b"
+	// must be rejected before any path is built from it.
+	if !isValidSettingsKey(manifest.Slug) {
+		return nil, fmt.Errorf("theme slug %q contains invalid characters", manifest.Slug)
+	}
+	// A git install creates a new theme row. Refuse an existing slug
+	// before touching disk — otherwise the live theme dir would be
+	// removed first and the insert would then fail on the unique slug.
+	var existingCount int64
+	if err := s.db.Model(&models.Theme{}).Where("slug = ?", manifest.Slug).Count(&existingCount).Error; err != nil {
+		return nil, fmt.Errorf("failed to look up theme: %w", err)
+	}
+	if existingCount > 0 {
+		return nil, fmt.Errorf("a theme with slug %q is already installed", manifest.Slug)
 	}
 
 	// Move cloned directory into the writable data dir. Bundled themes in
@@ -63,7 +86,7 @@ func (s *ThemeMgmtService) InstallFromGit(gitURL, branch, token string) (*models
 	if err := os.Rename(tmpDir, destDir); err != nil {
 		// Rename may fail across filesystems; fall back to copy.
 		if err := copyDir(tmpDir, destDir); err != nil {
-			return nil, fmt.Errorf("failed to move theme to %s: %w", destDir, err)
+			return nil, fmt.Errorf("failed to move theme into place: %s: %w", destDir, err)
 		}
 	}
 

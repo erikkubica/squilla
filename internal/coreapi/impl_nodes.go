@@ -104,6 +104,12 @@ func (c *coreImpl) GetNode(ctx context.Context, id uint) (*Node, error) {
 // Nodes whose node_type is no longer registered are treated as dormant and
 // excluded (they return on their own once the type is re-registered).
 func (c *coreImpl) QueryNodes(ctx context.Context, q NodeQuery) (*NodeList, error) {
+	// OrderBy reaches GORM's .Order() verbatim, so it is validated for
+	// every caller — MCP runs as InternalCaller, and Tengo/gRPC/theme
+	// filters forward user-influenced values.
+	if q.OrderBy != "" && !isValidOrderBy(q.OrderBy) {
+		return nil, NewValidation("invalid order_by clause: use column [ASC|DESC] [NULLS FIRST|LAST], comma-separated; COALESCE(col, col) is the only expression allowed")
+	}
 	query := c.db.Model(&models.ContentNode{}).
 		Where("node_type IN (?)", c.db.Model(&models.NodeType{}).Select("slug"))
 
@@ -152,7 +158,7 @@ func (c *coreImpl) QueryNodes(ctx context.Context, q NodeQuery) (*NodeList, erro
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		return nil, fmt.Errorf("coreapi QueryNodes count: %w", err)
+		return nil, dataInternal("QueryNodes count", err)
 	}
 
 	orderBy := "created_at DESC"
@@ -170,7 +176,7 @@ func (c *coreImpl) QueryNodes(ctx context.Context, q NodeQuery) (*NodeList, erro
 
 	var rows []models.ContentNode
 	if err := query.Find(&rows).Error; err != nil {
-		return nil, fmt.Errorf("coreapi QueryNodes: %w", err)
+		return nil, dataInternal("QueryNodes", err)
 	}
 
 	// Pre-compute theme-asset lookup once so every node in this batch
@@ -298,7 +304,7 @@ func (c *coreImpl) ListTaxonomyTerms(ctx context.Context, nodeType string, taxon
 		Scan(&terms).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("coreapi ListTaxonomyTerms: %w", err)
+		return nil, dataInternal("ListTaxonomyTerms", err)
 	}
 	return terms, nil
 }

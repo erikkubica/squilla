@@ -32,6 +32,8 @@ var kernelPrivateTables = map[string]bool{
 	"mcp_audit_log":         true,
 	"mcp_token_audit":       true,
 	"languages":             true, // language metadata can be enumerated through typed APIs; row access is rarely needed.
+	"pending_uploads":       true, // holds live upload-token hashes and staging state for the presigned-upload flow.
+	"extension_migrations":  true, // migration bookkeeping; a forged row would skip an extension's schema migration.
 }
 
 // IsKernelPrivateTable reports whether the named table is in the

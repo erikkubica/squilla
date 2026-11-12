@@ -80,8 +80,10 @@ func (p *bulkJobProgress) snapshot() map[string]any {
 // MediaManagerPlugin implements the ExtensionPlugin interface.
 type MediaManagerPlugin struct {
 	host               *coreapi.GRPCHostClient
-	storageDir         string   // base storage path (e.g. "storage")
-	cacheLocks         sync.Map // per-path mutexes to prevent thundering herd
+	storageDir         string                       // base storage path (e.g. "storage")
+	cacheLocks         [cacheLockStripes]sync.Mutex // striped per-path locks to prevent thundering herd
+	failedMu           sync.Mutex
+	failed             map[string]struct{} // negative cache of failed conversions (see cache.go)
 	reoptimizeProgress bulkJobProgress
 	restoreProgress    bulkJobProgress
 }

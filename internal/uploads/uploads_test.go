@@ -163,7 +163,7 @@ func TestPUTExpired(t *testing.T) {
 }
 
 func TestPUTOversize(t *testing.T) {
-	store, dir := newStore(t)
+	store, _ := newStore(t)
 	srv := httptest.NewServer(NewHandler(store))
 	t.Cleanup(srv.Close)
 
@@ -174,7 +174,7 @@ func TestPUTOversize(t *testing.T) {
 		t.Fatalf("expected 413, got %d", resp.StatusCode)
 	}
 	// Temp file must be gone.
-	if _, err := os.Stat(filepath.Join(dir, row.Token+".bin")); !os.IsNotExist(err) {
+	if _, err := os.Stat(store.TempPathFor(row.Token)); !os.IsNotExist(err) {
 		t.Fatalf("expected temp file removed, stat err=%v", err)
 	}
 	// Row stays pending.
@@ -231,10 +231,10 @@ func TestFinalizeSHA256Mismatch(t *testing.T) {
 }
 
 func TestDoubleFinalize(t *testing.T) {
-	store, dir := newStore(t)
+	store, _ := newStore(t)
 	row := issue(t, store, KindMedia, 100)
 	body := []byte("hello")
-	tempPath := filepath.Join(dir, row.Token+".bin")
+	tempPath := store.TempPathFor(row.Token)
 	if err := os.WriteFile(tempPath, body, 0o644); err != nil {
 		t.Fatalf("write temp: %v", err)
 	}
@@ -254,12 +254,12 @@ func TestDoubleFinalize(t *testing.T) {
 }
 
 func TestCleanupRemovesExpired(t *testing.T) {
-	store, dir := newStore(t)
+	store, _ := newStore(t)
 	base := time.Now()
 	store.SetClock(func() time.Time { return base })
 
 	row := issue(t, store, KindMedia, 100)
-	tempPath := filepath.Join(dir, row.Token+".bin")
+	tempPath := store.TempPathFor(row.Token)
 	if err := os.WriteFile(tempPath, []byte("x"), 0o644); err != nil {
 		t.Fatalf("write temp: %v", err)
 	}
@@ -284,12 +284,12 @@ func TestCleanupRemovesExpired(t *testing.T) {
 }
 
 func TestCleanupKeepsFinalized(t *testing.T) {
-	store, dir := newStore(t)
+	store, _ := newStore(t)
 	base := time.Now()
 	store.SetClock(func() time.Time { return base })
 
 	row := issue(t, store, KindMedia, 100)
-	tempPath := filepath.Join(dir, row.Token+".bin")
+	tempPath := store.TempPathFor(row.Token)
 	if err := os.WriteFile(tempPath, []byte("x"), 0o644); err != nil {
 		t.Fatalf("write temp: %v", err)
 	}

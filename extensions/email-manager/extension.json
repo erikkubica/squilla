@@ -7,6 +7,8 @@
     "provides": ["email-management"],
     "auto_activate": true,
     "capabilities": [
+        "events:subscribe_all",
+        "auth:observe",
         "data:read",
         "data:write",
         "data:delete",
@@ -32,7 +34,8 @@
         { "method": "*",    "path": "/rules",         "required_capability": "manage_email" },
         { "method": "*",    "path": "/rules/**",      "required_capability": "manage_email" },
         { "method": "*",    "path": "/settings",      "required_capability": "manage_email" },
-        { "method": "*",    "path": "/settings/**",   "required_capability": "manage_email" }
+        { "method": "*",    "path": "/settings/**",   "required_capability": "manage_email" },
+        { "method": "*",    "path": "/**",   "required_capability": "manage_email" }
     ],
     "plugins": [
         {

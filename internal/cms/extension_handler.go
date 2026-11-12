@@ -2,6 +2,7 @@ package cms
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"squilla/internal/events"
 	"squilla/internal/models"
 	"squilla/internal/sdui"
+	"squilla/internal/secrets"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
@@ -33,6 +35,14 @@ type ExtensionHandler struct {
 	assetRegistry *ThemeAssetRegistry
 	eventBus      *events.EventBus
 	themeLoader   *ThemeLoader
+	// secrets encrypts secret-shaped extension settings at rest, matching
+	// the CoreAPI SetSetting path. nil = plaintext (dev / not wired).
+	secrets *secrets.Service
+}
+
+// SetSecrets wires the at-rest encryption service used by UpdateSettings.
+func (h *ExtensionHandler) SetSecrets(s *secrets.Service) {
+	h.secrets = s
 }
 
 // NewExtensionHandler creates a new ExtensionHandler.
@@ -233,18 +243,26 @@ func hasAdminUIBlock(manifest models.JSONB) bool {
 func (h *ExtensionHandler) GetSettings(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 
-	if _, err := h.loader.GetBySlug(slug); err != nil {
+	ext, err := h.loader.GetBySlug(slug)
+	if err != nil {
 		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
 	}
+	sensitive := sensitiveSettingKeys(ext.Manifest)
 
 	prefix := "ext." + slug + "."
 	var settings []models.SiteSetting
-	h.db.Where("key LIKE ?", prefix+"%").Find(&settings)
+	h.db.Where(`"key" LIKE ?`, prefix+"%").Find(&settings)
 
 	result := make(map[string]string)
 	for _, s := range settings {
 		key := strings.TrimPrefix(s.Key, prefix)
 		if s.Value != nil {
+			// Secrets never round-trip to the browser; "***" means "set,
+			// unchanged" and UpdateSettings skips it on save.
+			if *s.Value != "" && (sensitive[key] || secrets.IsSecretKey(s.Key)) {
+				result[key] = secretMask
+				continue
+			}
 			result[key] = *s.Value
 		}
 	}
@@ -255,9 +273,11 @@ func (h *ExtensionHandler) GetSettings(c *fiber.Ctx) error {
 func (h *ExtensionHandler) UpdateSettings(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 
-	if _, err := h.loader.GetBySlug(slug); err != nil {
+	ext, err := h.loader.GetBySlug(slug)
+	if err != nil {
 		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
 	}
+	sensitive := sensitiveSettingKeys(ext.Manifest)
 
 	var body map[string]string
 	if err := c.BodyParser(&body); err != nil {
@@ -270,12 +290,27 @@ func (h *ExtensionHandler) UpdateSettings(c *fiber.Ctx) error {
 		if !isValidSettingsKey(key) {
 			return api.Error(c, fiber.StatusBadRequest, "INVALID_KEY", fmt.Sprintf("Invalid settings key: %s", key))
 		}
+		fullKey := prefix + key
+		isSecret := secrets.IsSecretKey(fullKey)
+		if (isSecret || sensitive[key]) && value == secretMask {
+			continue // masked value round-tripped from GetSettings
+		}
 		v := value
+		// Encrypt secret-shaped keys exactly like CoreAPI SetSetting does,
+		// so the plugin's GetSetting (which decrypts the same key set)
+		// keeps reading plaintext.
+		if isSecret && h.secrets != nil {
+			enc, encErr := h.secrets.MaybeEncrypt(value)
+			if encErr != nil {
+				return api.Error(c, fiber.StatusInternalServerError, "ENCRYPT_FAILED", "Failed to encrypt secret setting")
+			}
+			v = enc
+		}
 		setting := models.SiteSetting{
-			Key:   prefix + key,
+			Key:   fullKey,
 			Value: &v,
 		}
-		h.db.Where("key = ?", setting.Key).Assign(models.SiteSetting{Value: &v}).FirstOrCreate(&setting)
+		h.db.Where(`"key" = ?`, setting.Key).Assign(models.SiteSetting{Value: &v}).FirstOrCreate(&setting)
 	}
 
 	return api.Success(c, fiber.Map{"message": "Settings saved"})
@@ -291,9 +326,10 @@ func (h *ExtensionHandler) ServePreview(c *fiber.Ctx) error {
 	}
 
 	for _, name := range []string{"preview.svg", "preview.png", "preview.jpg", "preview.webp"} {
-		path := filepath.Join(ext.Path, name)
-		if _, err := os.Stat(path); err == nil {
+		path, err := confinedFile(ext.Path, name)
+		if err == nil {
 			c.Set("Cache-Control", "public, max-age=3600")
+			c.Set("X-Content-Type-Options", "nosniff")
 			return c.SendFile(path)
 		}
 	}
@@ -311,19 +347,20 @@ func (h *ExtensionHandler) ServeAsset(c *fiber.Ctx) error {
 		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Extension not found")
 	}
 
-	fullPath := filepath.Join(ext.Path, "admin-ui", "dist", filePath)
-	cleanPath := filepath.Clean(fullPath)
-	basePath := filepath.Clean(filepath.Join(ext.Path, "admin-ui", "dist"))
-
-	// Prefix check MUST end at a path separator — otherwise a sibling
-	// directory whose name starts with "dist" (e.g. "dist-evil/") would
-	// pass containment when filePath crafts a "../dist-evil/x" jump.
-	// Equality covers the basePath-itself case (file inside dist root).
-	if cleanPath != basePath && !strings.HasPrefix(cleanPath, basePath+string(os.PathSeparator)) {
-		return api.Error(c, fiber.StatusBadRequest, "INVALID_PATH", "Path traversal not allowed")
+	// confinedFile resolves symlinks and rejects anything that lands
+	// outside admin-ui/dist (lexical ../ jumps, sibling "dist-evil/"
+	// prefixes, links to host files) or that isn't a regular file.
+	basePath := filepath.Join(ext.Path, "admin-ui", "dist")
+	cleanPath, err := confinedFile(basePath, filePath)
+	if err != nil {
+		if errors.Is(err, errPathEscape) {
+			return api.Error(c, fiber.StatusBadRequest, "INVALID_PATH", "Path traversal not allowed")
+		}
+		return api.Error(c, fiber.StatusNotFound, "NOT_FOUND", "Asset not found")
 	}
 
 	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Set("X-Content-Type-Options", "nosniff")
 	return c.SendFile(cleanPath)
 }
 
@@ -362,12 +399,20 @@ func (h *ExtensionHandler) HotActivate(slug string) error {
 	if err := h.loader.Activate(slug); err != nil {
 		return err
 	}
-	ext, err := h.loader.GetBySlug(slug)
-	if err != nil {
-		return nil
+	// GetActiveBySlug applies the path-containment and owned-table checks
+	// (see ExtensionLoader.sanitizeActive) — never run code from a row
+	// that failed them.
+	ext := h.loader.GetActiveBySlug(slug)
+	if ext == nil {
+		_ = h.loader.Deactivate(slug)
+		return fmt.Errorf("extension %s failed trust checks (path outside the extensions directories)", slug)
 	}
 	if migErr := RunExtensionMigrations(h.db, ext.Path, slug); migErr != nil {
-		log.Printf("[extensions] warning: failed to run migrations for %s: %v", slug, migErr)
+		// Don't start scripts/plugins against a schema they don't expect:
+		// roll the activation back and surface the failure.
+		log.Printf("[extensions] migrations failed for %s, activation aborted: %v", slug, migErr)
+		_ = h.loader.Deactivate(slug)
+		return fmt.Errorf("migrations failed for extension %s: %w", slug, migErr)
 	}
 	var manifest ExtensionManifest
 	_ = json.Unmarshal(ext.Manifest, &manifest)
@@ -499,7 +544,8 @@ func (h *ExtensionHandler) Delete(c *fiber.Ctx) error {
 		case "STILL_ACTIVE":
 			return api.Error(c, fiber.StatusBadRequest, "STILL_ACTIVE", "Deactivate extension before deleting")
 		default:
-			return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", err.Error())
+			log.Printf("[extensions] delete %s failed: %v", slug, err)
+			return api.Error(c, fiber.StatusInternalServerError, "DELETE_FAILED", "Failed to delete extension (see server log)")
 		}
 	}
 	return api.Success(c, fiber.Map{"message": "Extension deleted"})
@@ -528,9 +574,12 @@ func (h *ExtensionHandler) DeleteBySlug(slug string) error {
 		h.loader.UnloadExtensionBlocks(slug, h.assetRegistry)
 	}
 
-	extDir := filepath.Join(h.loader.dataDir, slug)
-	if err := os.RemoveAll(extDir); err != nil {
-		log.Printf("WARN: failed to remove extension dir %s: %v", extDir, err)
+	// Only ever remove a directory inside the data dir, and only for a
+	// slug that can't carry path separators.
+	if extDir := filepath.Join(h.loader.dataDir, slug); isValidSettingsKey(slug) && isUnderDir(extDir, h.loader.dataDir) {
+		if err := os.RemoveAll(extDir); err != nil {
+			log.Printf("WARN: failed to remove extension dir %s: %v", extDir, err)
+		}
 	}
 
 	h.db.Where("slug = ?", slug).Delete(&models.Extension{})
@@ -604,7 +653,8 @@ func (h *ExtensionHandler) AdoptBundledHandler(c *fiber.Ctx) error {
 		case "NOT_SHADOWED":
 			return api.Error(c, fiber.StatusBadRequest, "NOT_SHADOWED", "This extension has no bundled copy to switch to")
 		}
-		return api.Error(c, fiber.StatusInternalServerError, "ADOPT_FAILED", err.Error())
+		log.Printf("[extensions] adopt-bundled %s failed: %v", slug, err)
+		return api.Error(c, fiber.StatusInternalServerError, "ADOPT_FAILED", "Failed to switch to the bundled extension (see server log)")
 	}
 	return api.Success(c, res)
 }
@@ -620,4 +670,23 @@ func isValidSettingsKey(key string) bool {
 		}
 	}
 	return true
+}
+
+// secretMask is what GetSettings returns in place of a stored secret.
+const secretMask = "***"
+
+// sensitiveSettingKeys returns the settings_schema keys an extension
+// marked "sensitive": true.
+func sensitiveSettingKeys(manifest models.JSONB) map[string]bool {
+	var m struct {
+		SettingsSchema map[string]SettingsField `json:"settings_schema"`
+	}
+	_ = json.Unmarshal(manifest, &m)
+	out := make(map[string]bool, len(m.SettingsSchema))
+	for k, f := range m.SettingsSchema {
+		if f.Sensitive {
+			out[k] = true
+		}
+	}
+	return out
 }

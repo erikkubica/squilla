@@ -7,6 +7,7 @@
   "provides": ["forms"],
   "auto_activate": true,
   "capabilities": [
+    "events:subscribe",
     "data:read",
     "data:write",
     "data:delete",
@@ -36,7 +37,11 @@
     { "method": "*", "path": "/forms",       "required_capability": "manage_forms" },
     { "method": "*", "path": "/forms/**",    "required_capability": "manage_forms" },
     { "method": "*", "path": "/submissions",     "required_capability": "manage_forms" },
-    { "method": "*", "path": "/submissions/**",  "required_capability": "manage_forms" }
+    { "method": "*", "path": "/submissions/**",  "required_capability": "manage_forms" },
+    { "method": "POST",   "path": "/**", "required_capability": "manage_forms" },
+    { "method": "PUT",    "path": "/**", "required_capability": "manage_forms" },
+    { "method": "PATCH",  "path": "/**", "required_capability": "manage_forms" },
+    { "method": "DELETE", "path": "/**", "required_capability": "manage_forms" }
   ],
   "admin_ui": {
     "entry": "admin-ui/dist/index.js",

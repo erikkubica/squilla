@@ -120,6 +120,20 @@
   // Per-form initialisation
   // ---------------------------------------------------------------------------
 
+  // vibeFormSafeRedirect returns the redirect URL when it is http(s) or a
+  // same-site relative path, and "" otherwise (javascript:, data:, …).
+  function vibeFormSafeRedirect(raw) {
+    if (typeof raw !== "string") return "";
+    var url = raw.trim();
+    if (!url) return "";
+    if (url.charAt(0) === "/" && url.charAt(1) !== "/" && url.charAt(1) !== "\\") return url;
+    try {
+      var parsed = new URL(url, window.location.href);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.href;
+    } catch (e) { /* invalid URL */ }
+    return "";
+  }
+
   function collectFormData(form) {
     var data = {};
     new FormData(form).forEach(function (value, key) {
@@ -348,10 +362,16 @@
           var successMsg = (formSettings && formSettings.success_message)
             ? formSettings.success_message
             : (result.message || "Thank you! Your submission has been received.");
-          if (formSettings && formSettings.redirect_url) {
-            window.location = formSettings.redirect_url;
+          var redirectTo = formSettings && vibeFormSafeRedirect(formSettings.redirect_url);
+          if (redirectTo) {
+            window.location.assign(redirectTo);
           } else {
-            form.innerHTML = "<div class=\"form-success-message\">" + successMsg + "</div>";
+            // textContent, not innerHTML: the message is plain text.
+            var msgEl = document.createElement("div");
+            msgEl.className = "form-success-message";
+            msgEl.textContent = String(successMsg);
+            form.innerHTML = "";
+            form.appendChild(msgEl);
           }
         } else if (result.fields) {
           vibeFormRenderErrors(form, result.fields);
