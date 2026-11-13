@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -89,8 +90,11 @@ type publicRoute struct {
 	slug    string
 	method  string // upper-case; "" means any method
 	pattern string
-	match   func(path string) (wildcard string, ok bool)
-	handler fiber.Handler
+	// passthrough routes are dispatched late (MountPassthrough) and the
+	// plugin may decline a request, see PublicRouteEntry.Passthrough.
+	passthrough bool
+	match       func(path string) (wildcard string, ok bool)
+	handler     fiber.Handler
 }
 
 // RegisterPublicRoutes mounts the public-route dispatcher on app and loads
@@ -108,8 +112,26 @@ func (pp *PublicExtensionProxy) RegisterPublicRoutes(app *fiber.App, exts []mode
 // a route table it looks up at request time. SetExtensions/Refresh swap that
 // table atomically, which is what makes hot activation mount new routes.
 func (pp *PublicExtensionProxy) Mount(app *fiber.App) {
-	app.Use(pp.dispatch)
+	app.Use(func(c *fiber.Ctx) error { return pp.dispatch(c, false) })
 }
+
+// MountPassthrough installs the dispatcher for `"passthrough": true` routes.
+// Mount it after every kernel, static and extension route and right before
+// the public page router: those routes only see requests nothing else
+// claimed, and the plugin may hand a request on to the page router.
+func (pp *PublicExtensionProxy) MountPassthrough(app *fiber.App) {
+	app.Use(func(c *fiber.Ctx) error { return pp.dispatch(c, true) })
+}
+
+// PassthroughHeader is the response header a plugin sets (to any non-empty
+// value) on a passthrough route to decline the request. The plugin's
+// response is discarded and the request continues to the page router.
+const PassthroughHeader = "X-Squilla-Passthrough"
+
+// passthroughTimeout bounds the plugin call on a passthrough route. Those
+// routes sit in front of every public page, so a hung plugin must cost a
+// visitor at most this long before the page renders anyway.
+const passthroughTimeout = 2 * time.Second
 
 // SetSource sets the function Refresh uses to list the extensions whose
 // routes should be live (normally ExtensionLoader.GetActive).
@@ -157,11 +179,12 @@ func (pp *PublicExtensionProxy) SetExtensions(exts []models.Extension) {
 				continue
 			}
 			routes = append(routes, publicRoute{
-				slug:    slug,
-				method:  method,
-				pattern: path,
-				match:   compilePublicRoutePattern(path),
-				handler: pp.handlerFor(slug, path),
+				slug:        slug,
+				method:      method,
+				pattern:     path,
+				passthrough: route.Passthrough,
+				match:       compilePublicRoutePattern(path),
+				handler:     pp.handlerFor(slug, path, route.Passthrough),
 			})
 		}
 	}
@@ -169,10 +192,12 @@ func (pp *PublicExtensionProxy) SetExtensions(exts []models.Extension) {
 	log.Printf("[public-proxy] %d public routes live", len(routes))
 }
 
-// dispatch finds the first route matching the request and runs its handler.
-// When nothing matches — or the matched extension's plugin isn't running and
-// the handler steps aside — the request continues down the Fiber stack.
-func (pp *PublicExtensionProxy) dispatch(c *fiber.Ctx) error {
+// dispatch finds the first route of the given stage matching the request and
+// runs its handler. When nothing matches — or the matched extension's plugin
+// isn't running and the handler steps aside — the request continues down the
+// Fiber stack. On the passthrough stage a route whose plugin declined the
+// request is skipped and the next matching route gets its turn.
+func (pp *PublicExtensionProxy) dispatch(c *fiber.Ctx, passthrough bool) error {
 	table := pp.routes.Load()
 	if table == nil || len(*table) == 0 {
 		return c.Next()
@@ -181,6 +206,9 @@ func (pp *PublicExtensionProxy) dispatch(c *fiber.Ctx) error {
 	path := c.Path()
 	for i := range *table {
 		r := &(*table)[i]
+		if r.passthrough != passthrough {
+			continue
+		}
 		if r.method != "" && r.method != method && !(r.method == "GET" && method == "HEAD") {
 			continue
 		}
@@ -192,17 +220,30 @@ func (pp *PublicExtensionProxy) dispatch(c *fiber.Ctx) error {
 			continue
 		}
 		c.Locals(publicRouteWildcardKey, wildcard)
-		return r.handler(c)
+		if !passthrough {
+			return r.handler(c)
+		}
+		c.Locals(publicRouteDeclinedKey, false)
+		if err := r.handler(c); err != nil {
+			return err
+		}
+		if declined, _ := c.Locals(publicRouteDeclinedKey).(bool); !declined {
+			return nil
+		}
 	}
 	return c.Next()
 }
 
-func (pp *PublicExtensionProxy) handlerFor(slug, path string) fiber.Handler {
+func (pp *PublicExtensionProxy) handlerFor(slug, path string, passthrough bool) fiber.Handler {
 	if pp.newHandler != nil {
 		return pp.newHandler(slug, path)
 	}
-	return pp.makeHandler(slug, path)
+	return pp.makeHandler(slug, path, passthrough)
 }
+
+// publicRouteDeclinedKey is set to true by a passthrough handler that did
+// not answer the request (plugin declined, stopped, or failed).
+const publicRouteDeclinedKey = "squilla.public_route.declined"
 
 const publicRouteWildcardKey = "squilla.public_route.wildcard"
 
@@ -259,16 +300,28 @@ func compilePublicRoutePattern(pattern string) func(string) (string, bool) {
 
 // makeHandler returns a Fiber handler that proxies a public request to the
 // given extension slug's gRPC plugin.
-func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handler {
+//
+// With passthrough set the handler never calls c.Next() itself: when the
+// plugin declines (PassthroughHeader), is gone, or errors, it flags the
+// request as declined and returns so dispatch can try the next route. A
+// failing plugin therefore never turns a public page into a 502.
+func (pp *PublicExtensionProxy) makeHandler(slug, routePath string, passthrough bool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		if pp.pluginMgr == nil {
+		decline := func() error {
+			if passthrough {
+				c.Locals(publicRouteDeclinedKey, true)
+				return nil
+			}
 			return c.Next()
+		}
+		if pp.pluginMgr == nil {
+			return decline()
 		}
 		client := pp.pluginMgr.GetClient(slug)
 		if client == nil {
 			// Plugin stopped between dispatch and here: let the next
 			// route — a fallback or the page router — answer.
-			return c.Next()
+			return decline()
 		}
 
 		// Build headers map. Same stripping as the admin proxy (credentials, spoofable IP
@@ -312,16 +365,37 @@ func (pp *PublicExtensionProxy) makeHandler(slug, routePath string) fiber.Handle
 			UserId:      0, // no auth on public routes
 		}
 
-		ctx, cancel := context.WithTimeout(c.UserContext(), vibeplugin.HTTPCallTimeout)
+		timeout := vibeplugin.HTTPCallTimeout
+		if passthrough {
+			timeout = passthroughTimeout
+		}
+		ctx, cancel := context.WithTimeout(c.UserContext(), timeout)
 		defer cancel()
 		resp, err := client.HandleHTTPRequestCtx(ctx, req)
 		if err != nil {
 			log.Printf("[public-proxy] gRPC error from %s: %v", slug, err)
+			if passthrough {
+				return decline()
+			}
 			return c.SendStatus(fiber.StatusBadGateway)
+		}
+		if passthrough && pluginDeclined(resp.Headers) {
+			return decline()
 		}
 
 		setPluginResponseHeaders(c, slug, resp.Headers)
 
 		return c.Status(int(resp.StatusCode)).Send(resp.Body)
 	}
+}
+
+// pluginDeclined reports whether a passthrough response carries a non-empty
+// PassthroughHeader (header names are matched case-insensitively).
+func pluginDeclined(headers map[string]string) bool {
+	for k, v := range headers {
+		if strings.EqualFold(strings.TrimSpace(k), PassthroughHeader) && strings.TrimSpace(v) != "" {
+			return true
+		}
+	}
+	return false
 }

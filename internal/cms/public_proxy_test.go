@@ -171,3 +171,70 @@ func TestPublicRoute_DispatchSemantics(t *testing.T) {
 		}
 	}
 }
+
+// Passthrough routes run at their own (late) mount point, never at the
+// early one, and a handler that declines hands the request to the next
+// passthrough route and finally to the page router.
+func TestPublicRoute_Passthrough(t *testing.T) {
+	app := fiber.New()
+	pp := NewPublicExtensionProxy(nil)
+	pp.running = func(string) bool { return true }
+	pp.newHandler = func(slug, _ string) fiber.Handler {
+		return func(c *fiber.Ctx) error {
+			switch {
+			case slug == "seo":
+				return c.SendString("seo")
+			case slug == "redirects" && c.Path() == "/old":
+				return c.Redirect("/new", 301)
+			case slug == "second" && c.Path() == "/other":
+				return c.SendString("second")
+			}
+			c.Locals(publicRouteDeclinedKey, true)
+			return nil
+		}
+	}
+	pp.Mount(app)
+	pp.SetExtensions([]models.Extension{
+		{Slug: "redirects", Manifest: models.JSONB(`{"public_routes":[{"method":"GET","path":"/*","passthrough":true}]}`)},
+		{Slug: "second", Manifest: models.JSONB(`{"public_routes":[{"path":"/*","passthrough":true}]}`)},
+		{Slug: "seo", Manifest: models.JSONB(`{"public_routes":[{"method":"GET","path":"/robots.txt"}]}`)},
+	})
+	app.Get("/static", func(c *fiber.Ctx) error { return c.SendString("static") })
+	pp.MountPassthrough(app)
+	app.All("/*", func(c *fiber.Ctx) error { return c.SendString("page-router") })
+
+	cases := []struct {
+		method, path string
+		code         int
+		body         string
+	}{
+		{"GET", "/robots.txt", 200, "seo"},      // ordinary route still wins early
+		{"GET", "/static", 200, "static"},       // routes above the late mount are never intercepted
+		{"GET", "/old", 301, ""},                // answered by the passthrough plugin
+		{"GET", "/other", 200, "second"},        // first declined, second answered
+		{"GET", "/about", 200, "page-router"},   // everyone declined
+		{"GET", "/", 200, "page-router"},        // "/*" also sees the homepage
+		{"POST", "/old", 200, "second-or-page"}, // method filter applies per route
+	}
+	for _, tc := range cases {
+		code, body := get(t, app, tc.method, tc.path)
+		if tc.method == "POST" {
+			if code != 200 || body != "page-router" {
+				t.Errorf("POST /old = %d %q, want page router (GET-only route skipped, second declined)", code, body)
+			}
+			continue
+		}
+		if code != tc.code || body != tc.body {
+			t.Errorf("%s %s = %d %q, want %d %q", tc.method, tc.path, code, body, tc.code, tc.body)
+		}
+	}
+}
+
+func TestPluginDeclined(t *testing.T) {
+	if !pluginDeclined(map[string]string{"x-squilla-passthrough": "1"}) {
+		t.Error("lower-case header not recognised")
+	}
+	if pluginDeclined(map[string]string{"X-Squilla-Passthrough": " "}) || pluginDeclined(nil) {
+		t.Error("empty/missing header must not decline")
+	}
+}

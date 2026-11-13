@@ -83,9 +83,17 @@ type SettingsField struct {
 
 // ExtensionManifest represents the extension.json manifest file.
 // PublicRouteEntry declares a public route that should be proxied to an extension plugin.
+//
+// Passthrough marks a route the plugin may decline. Such a route is matched
+// last — after kernel, static and ordinary extension routes, right before
+// the public page router — and when the plugin answers with the
+// X-Squilla-Passthrough response header the request carries on to the page
+// router as if the route did not exist. It is how an extension inspects
+// arbitrary public URLs (path "/*") without owning them, e.g. redirects.
 type PublicRouteEntry struct {
-	Method string `json:"method"`
-	Path   string `json:"path"`
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	Passthrough bool   `json:"passthrough,omitempty"`
 }
 
 // AdminRouteEntry declares a per-capability gate on a request the

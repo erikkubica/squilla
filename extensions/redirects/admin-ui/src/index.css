@@ -1,0 +1,4 @@
+/* Redirects extension stylesheet. Tailwind scans only this extension's
+   source; admin-ui ships the design tokens and base styles. */
+@import "tailwindcss";
+@source "./**/*.{ts,tsx}";

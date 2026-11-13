@@ -109,7 +109,7 @@ Core code that violates this rule is a bug. The recent kernel refactors (commit 
 
 ### 3.2 Extensions (`extensions/`)
 
-Nine bundled extensions ship in-tree as the reference implementation:
+Ten bundled extensions ship in-tree as the reference implementation:
 
 | Slug | Type | Purpose |
 |---|---|---|
@@ -118,6 +118,7 @@ Nine bundled extensions ship in-tree as the reference implementation:
 | `forms` (v2) | gRPC plugin + admin UI + `vibe-form` block + public route | Form builder with CAPTCHA, conditional logic, webhooks, GDPR |
 | `hello-extension` | Static | Demo / contract test |
 | `media-manager` | gRPC plugin + admin UI | Media library, image optimization, WebP, thumbnail cache. Owns `media_files` and declares `provides:["media-provider"]` so kernel `core.media.*` calls route through it; operators can hot-swap with an S3/R2/Cloudinary provider by activating it with higher priority. |
+| `redirects` | gRPC plugin + admin UI + passthrough public route | 301/302/307/308 redirects and 410 Gone for any public URL (exact, prefix, regex), hit counts, CSV import/export, automatic 301 when a published node's URL changes |
 | `resend-provider` | gRPC plugin + admin UI slot | Resend API email delivery (`provides:["email.provider"]`) |
 | `seo-extension` | gRPC plugin | Owns `/robots.txt`, site-wide SEO defaults, AI-crawler policy, OG/Twitter `head_meta`. Was part of `internal/cms/` until commit `7e49268`. |
 | `sitemap-generator` | gRPC plugin | Yoast-style XML sitemaps, rebuilds on content change |

@@ -1,0 +1,51 @@
+{
+    "name": "Redirects",
+    "slug": "redirects",
+    "version": "1.0.0",
+    "author": "Squilla",
+    "description": "301/302 redirects for any public URL: exact paths, prefixes and regex, with hit counts, CSV import/export and automatic redirects when a published page's URL changes.",
+    "provides": ["redirects"],
+    "priority": 50,
+    "auto_activate": true,
+    "capabilities": [
+        "data:read",
+        "data:write",
+        "data:delete",
+        "nodes:read",
+        "events:subscribe",
+        "log:write"
+    ],
+    "data_owned_tables": ["redirects_rules", "redirects_config"],
+    "plugins": [
+        {
+            "binary": "bin/redirects",
+            "events": ["node.created", "node.updated", "node.published", "node.deleted"]
+        }
+    ],
+    "public_routes": [
+        {"method": "GET", "path": "/*", "passthrough": true}
+    ],
+    "admin_routes": [
+        {"method": "*", "path": "/**", "required_capability": "manage_redirects"}
+    ],
+    "admin_ui": {
+        "entry": "admin-ui/dist/index.js",
+        "capabilities": [
+            {
+                "key": "manage_redirects",
+                "label": "Manage Redirects",
+                "description": "Create, edit, import and delete URL redirects."
+            }
+        ],
+        "routes": [
+            {"path": "/", "component": "RedirectsPage"}
+        ],
+        "menu": {
+            "label": "Redirects",
+            "icon": "CornerUpRight",
+            "section": "settings",
+            "position": "6",
+            "required_capability": "manage_redirects"
+        }
+    }
+}

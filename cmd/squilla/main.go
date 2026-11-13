@@ -690,6 +690,11 @@ func main() {
 	// correct behaviour for a kernel-only deployment per the
 	// kernel/extensions hard rule.
 
+	// --- Passthrough extension routes ---
+	// public_routes flagged "passthrough" see only what nothing above
+	// claimed and may hand the request on to the page router.
+	publicProxy.MountPassthrough(app)
+
 	// --- Public content routes (must be last) ---
 	publicHandler.RegisterRoutes(app)
 

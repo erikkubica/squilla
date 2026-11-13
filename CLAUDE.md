@@ -92,6 +92,7 @@ Core proxies `/admin/api/ext/{slug}/*` → plugin's `HandleHTTPRequest` RPC. Plu
     - `email-manager/`: Owns email templates, rules, logs, layouts AND the dispatcher itself — the plugin subscribes to `*` (all events) and matches admin-defined rules (gRPC plugin + React micro-frontend)
     - `seo-extension/`: Owns `/robots.txt`, SEO defaults, AI-crawler policy (gRPC plugin)
     - `sitemap-generator/`: Yoast-style XML sitemaps (gRPC plugin + Tengo scripts)
+    - `redirects/`: 301/302 redirects for any public URL via a passthrough public route (`"passthrough": true` — matched right before the page router, plugin declines with `X-Squilla-Passthrough`), automatic 301 on node URL change (gRPC plugin + React micro-frontend)
     - `smtp-provider/` / `resend-provider/`: Email delivery (declare `provides:["email.provider"]`)
     - `forms/`, `content-blocks/`, `hello-extension/`: Reference implementations
 - `themes/`: Theme repository (layouts, partials, blocks, assets, `.tgo` scripts)

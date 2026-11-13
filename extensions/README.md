@@ -356,6 +356,22 @@ After this declaration:
 
 **Common mistake:** assuming public routes are mounted under `/api/ext/{slug}/...`. They are not. The admin proxy uses `/admin/api/ext/{slug}/*`; the public proxy uses **whatever path you declare**, verbatim. See §7.
 
+##### Passthrough routes
+
+A normal public route *owns* its path: whatever the plugin returns is the response. Add `"passthrough": true` when the extension only wants to *look at* requests and answer some of them, such as redirects, vanity URLs or maintenance pages:
+
+```jsonc
+"public_routes": [
+  { "method": "GET", "path": "/*", "passthrough": true }
+]
+```
+
+- Passthrough routes are matched **last**: after kernel routes, static assets, `/admin` and every ordinary public route, right before the public page router. They never see `/admin/*`, `/media/*` or another extension's route.
+- To decline a request, return any response with the header `X-Squilla-Passthrough: 1`. The response is discarded and the request goes on to the next passthrough route, then to the page router, as if the extension were not installed.
+- The plugin call is capped at 2 seconds. A timeout, an error or a stopped plugin counts as "declined", so a broken extension can't take public pages down.
+- The route runs in front of every public page: answer from memory, never from the database. The bundled `redirects` extension is the reference.
+- Admin and public requests both arrive in `HandleHTTPRequest`. With a catch-all path, tell them apart by `user_id` (always `0` on public routes, always set on the admin proxy), never by path.
+
 #### `admin_ui`
 
 See §12 for a full walkthrough of building the micro-frontend. The `admin_ui` block tells the kernel:
