@@ -119,6 +119,34 @@ Unfiltered reports read the daily rollups for completed days and raw events
 for today. Filtered reports, hourly data, the heatmap and realtime read raw
 events, so they only cover the raw retention window.
 
+### Confirmed visits
+
+With in-page signals on, a real browser reports back about a second after a
+page loads. Scrapers that copy a full browser header set fetch the HTML and
+nothing else, so they pass every bot check and are counted as people, but they
+never send a signal.
+
+- The filter `f.verified=1` limits every filtered report (summary, timeseries,
+  breakdowns, heatmap, goal stats, exports) to visits with at least one
+  signal-confirmed pageview.
+- `GET /summary` also returns `confirmed`: the same totals for confirmed visits
+  only. The Overview shows a warning with a one-click filter when fewer than
+  half of the visits in the period were confirmed.
+- It needs `enhanced_mode`. Visits under Global Privacy Control get no signals
+  and are left out of confirmed numbers. A visitor who blocks the signal
+  requests is left out too, so treat confirmed numbers as a lower bound.
+
+## MCP tools
+
+While the extension is active, the site's MCP endpoint exposes every report as
+`ext.analytics.*` (declared under `mcp_tools` in `extension.json`): `summary`,
+`timeseries`, `breakdown`, `heatmap`, `bots`, `goals.stats`, `behaviour`,
+`exits`, `clicks`, `page`, `realtime`, `status`, `export`, plus
+`settings.get/update`, `goals.*` and `links.*`. Read tools need a token whose
+owner has *View Analytics*; the mutating ones need a `full` token and *Manage
+Analytics*. They take the same `from`, `to`, `compare` and `f.<dimension>`
+parameters as the dashboard.
+
 ## Settings
 
 | Setting | Default | Notes |

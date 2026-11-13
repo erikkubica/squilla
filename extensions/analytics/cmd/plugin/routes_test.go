@@ -287,3 +287,16 @@ func TestExportAndRouting(t *testing.T) {
 		t.Error("wrong method")
 	}
 }
+
+func TestVerifiedFilterParsing(t *testing.T) {
+	cfg := defaultConfig()
+	for in, want := range map[string]string{"1": "1", "true": "1", "0": "", "false": "", "": ""} {
+		q, err := parseStatsQuery(map[string]string{"f.verified": in}, &cfg, testNow)
+		if err != nil || q.Filters[filterVerified] != want {
+			t.Errorf("f.verified=%q → %q, %v; want %q", in, q.Filters[filterVerified], err, want)
+		}
+	}
+	if _, err := parseStatsQuery(map[string]string{"f.verified": "yes please"}, &cfg, testNow); err == nil {
+		t.Error("garbage f.verified accepted")
+	}
+}

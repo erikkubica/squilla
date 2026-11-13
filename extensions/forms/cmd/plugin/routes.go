@@ -63,7 +63,10 @@ func (p *FormsPlugin) routeRequest(ctx context.Context, req *pb.PluginHTTPReques
 			}
 		}
 	}
-	if path == "submissions" || strings.HasPrefix(path, "submissions") {
+	// Exact match only. A prefix match ("submissionsX") would serve the
+	// list on a path the manifest's /submissions admin_routes rules don't
+	// cover, i.e. to any admin user without manage_forms.
+	if path == "submissions" {
 		return p.handleSubmissions(ctx, req)
 	}
 	if path == "" {

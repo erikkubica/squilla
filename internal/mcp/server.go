@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
@@ -56,6 +57,18 @@ type Server struct {
 	// addTool. Surfaced by the core.guide meta-tool so AI clients can see
 	// every available verb in one call without trawling schema metadata.
 	toolCatalog []toolCatalogEntry
+	// catalogMu guards toolCatalog and extTools: extension tools come and
+	// go at runtime (activation/deactivation) while requests read them.
+	catalogMu sync.RWMutex
+	// extTools maps an extension slug to its registered ext.<slug>.* names.
+	extTools map[string][]string
+	// adminRoutes holds the extensions' admin_routes capability rules,
+	// applied to extension tools exactly as the admin proxy applies them.
+	adminRoutes *cms.AdminRouteRegistry
+	// extCall overrides how extension tools reach a plugin (tests).
+	extCall extPluginCaller
+	// extManifest overrides the registry lookup behind extension tools (tests).
+	extManifest func(slug string) ([]cms.McpToolEntry, bool)
 }
 
 // toolCatalogEntry is the shape returned by Server.registeredTools.
@@ -169,6 +182,11 @@ const instructionText = `Squilla — an AI-native CMS exposed via MCP.
 All tools are namespaced core.<domain>.<verb>. The verb reveals intent:
   get/list/query = read            create/update/delete = write
   activate/deactivate = lifecycle  render.* = preview without publishing
+
+Active extensions add their own tools as ext.<slug>.<name> (for example
+ext.analytics.summary). They appear and disappear with the extension;
+core.guide lists them under tools_by_domain["ext.<slug>"]. Prefer them over
+core.data.* on the extension's tables.
 
 # When lost, start here
 Call core.guide first. It returns a goal→tool decision tree and the current

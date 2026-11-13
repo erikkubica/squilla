@@ -3,7 +3,7 @@ import type { BreakdownDim, FilterDim } from "../api/types";
 import { channelInfo } from "./channels";
 import { countryName, flagEmoji, humanize, languageName } from "./format";
 
-export const DIM_LABELS: Record<BreakdownDim, string> = {
+export const DIM_LABELS: Record<BreakdownDim | FilterDim, string> = {
   page: "Page",
   entry_page: "Landing page",
   exit_page: "Last page",
@@ -27,6 +27,7 @@ export const DIM_LABELS: Record<BreakdownDim, string> = {
   goal: "Goal",
   viewport: "Screen size",
   color_scheme: "Light or dark mode",
+  verified: "Visits",
 };
 
 /** Which filter (if any) clicking a breakdown row applies. */
@@ -80,6 +81,8 @@ const VIEWPORTS: Record<string, string> = { s: "Small (phone)", m: "Medium (tabl
 export function valueLabel(dim: BreakdownDim | FilterDim, value: string, apiLabel?: string): string {
   if (!value) return EMPTY_LABELS[dim] || (apiLabel && apiLabel !== "(none)" ? apiLabel : "Not set");
   switch (dim) {
+    case "verified":
+      return "Confirmed by in-page measurement";
     case "country":
       return apiLabel && apiLabel !== value ? apiLabel : countryName(value);
     case "language":

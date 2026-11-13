@@ -43,6 +43,24 @@
             "events": ["*"]
         }
     ],
+    "mcp_tools": [
+        {
+            "name": "logs.list",
+            "description": "List sent and failed emails, newest first. Contains recipients and rendered bodies.",
+            "class": "full",
+            "method": "GET",
+            "path": "/logs",
+            "input_schema": {"type": "object", "properties": {"status": {"type": "string", "description": "sent, failed, … or all."}, "action": {"type": "string", "description": "Event that triggered the email, e.g. user.registered."}, "recipient": {"type": "string", "description": "Recipient address substring."}, "date_from": {"type": "string", "description": "YYYY-MM-DD."}, "date_to": {"type": "string", "description": "YYYY-MM-DD."}, "page": {"type": "integer", "description": "Default 1."}, "per_page": {"type": "integer", "description": "Rows per page."}}}
+        },
+        {
+            "name": "logs.get",
+            "description": "One email log entry with the rendered message and the provider error, if any.",
+            "class": "full",
+            "method": "GET",
+            "path": "/logs/{id}",
+            "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}}, "required": ["id"]}
+        }
+    ],
     "admin_ui": {
         "entry": "admin-ui/dist/index.js",
         "capabilities": [

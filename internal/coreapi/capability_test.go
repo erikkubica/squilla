@@ -653,3 +653,30 @@ func TestCapabilityDenied_NamesExtensionManifest(t *testing.T) {
 		}
 	}
 }
+
+// extension.activated / extension.deactivated drive kernel registries
+// (admin_routes rules, role capabilities, MCP extension tools): only the
+// kernel may publish them.
+func TestCapabilityGuard_ExtensionLifecycleEventsAreKernelOnly(t *testing.T) {
+	stub := &stubCoreAPI{}
+	g := NewCapabilityGuard(stub)
+	for _, typ := range []string{"grpc", "tengo"} {
+		ctx := WithCaller(context.Background(), CallerInfo{
+			Slug: "x", Type: typ, Capabilities: map[string]bool{"events:emit": true},
+		})
+		for _, action := range []string{"extension.activated", "extension.deactivated"} {
+			if err := g.Emit(ctx, action, map[string]any{"slug": "forms"}); !isCapabilityErr(err) {
+				t.Errorf("%s Emit %s: expected denial, got %v", typ, action, err)
+			}
+			if _, err := g.EmitCollect(ctx, action, map[string]any{"slug": "forms"}); !isCapabilityErr(err) {
+				t.Errorf("%s EmitCollect %s: expected denial, got %v", typ, action, err)
+			}
+		}
+	}
+	if len(stub.calls) != 0 {
+		t.Fatalf("inner invoked: %v", stub.calls)
+	}
+	if err := g.Emit(WithCaller(context.Background(), InternalCaller()), "extension.activated", nil); err != nil {
+		t.Fatalf("kernel Emit denied: %v", err)
+	}
+}

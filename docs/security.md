@@ -179,6 +179,8 @@ Extension API calls flow through `/admin/api/ext/{slug}/*` to the gRPC plugin's 
 1. **Group gate**: `auth.CapabilityRequired("admin_access")` on the catch-all proxy route.
 2. **Per-route gate**: manifest-declared `admin_routes` enforced inside `ExtensionProxy.handleRequest` before the request reaches the plugin.
 
+The same plugin routes are reachable a second way: MCP tools an extension declares under `mcp_tools` (`ext.<slug>.<name>`, see `internal/mcp/tools_extensions.go`). That path applies **both** gates plus the token scope: the MCP token must cover the tool's class, and the token owner's role must hold the `admin_routes` capability for the tool's method and path (`cms.RequiredAdminCapability`, the function the proxy itself uses). A tool on a mutating method can never be class `read`. Tool definitions come only from the manifest the kernel registered for the active extension — `extension.activated` is treated as a trigger, not as data, because any extension with `events:emit` can publish it. Path arguments are limited to one plain segment so a caller cannot steer a tool to a different route.
+
 Manifest schema (`extensions/<slug>/extension.json`):
 ```json
 "admin_routes": [

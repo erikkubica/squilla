@@ -8,12 +8,15 @@ import { ExportMenu } from "../components/ExportMenu";
 import { Highlights, OVERVIEW_ROWS, SummaryLine, useInsightInput } from "../components/Highlights";
 import { KpiTiles } from "../components/KpiTiles";
 import { MainChartCard } from "../components/MainChartCard";
+import { Notice } from "../components/Notice";
 import { ErrorNote } from "../components/Panel";
 import { PageShell } from "../components/PageShell";
 import { RealtimeCard } from "../components/RealtimeCard";
 import { SetupGuide } from "../components/SetupGuide";
 import { useAsync } from "../hooks/useAsync";
 import { useViewState } from "../hooks/useViewState";
+import { unconfirmedShare } from "../lib/insights";
+import { formatInt } from "../lib/format";
 
 export default function AnalyticsDashboard() {
   const vm = useViewState();
@@ -28,6 +31,7 @@ export default function AnalyticsDashboard() {
 
   const neverRecorded = !!status.data && !status.data.last_record_at && !!summary.data && summary.data.current.pageviews === 0;
   const goalCount = goals.data ? goals.data.length : null;
+  const unconfirmed = unconfirmedShare(summary.data);
 
   return (
     <PageShell
@@ -63,6 +67,19 @@ export default function AnalyticsDashboard() {
         ) : (
           <>
             {!!summary.error && !summary.data && <ErrorNote message={errorMessage(summary.error)} onRetry={() => summary.reload()} />}
+            {unconfirmed && summary.data?.confirmed && (
+              <Notice
+                tone="warn"
+                title={`Only ${formatInt(summary.data.confirmed.visits)} of ${formatInt(summary.data.current.visits)} visits were confirmed as real browsers`}
+                actions={
+                  <button type="button" className="an-btn an-focus" data-variant="primary" onClick={() => vm.addFilter("verified", "1")}>
+                    Show confirmed visits only
+                  </button>
+                }
+              >
+                A real browser reports back about a second after a page loads. {Math.round(unconfirmed * 100)}% of the visits in this period never did, which is what scrapers that pose as browsers look like. The numbers below include them.
+              </Notice>
+            )}
             <section className="an-card" aria-label="Summary of this period">
               <div className="an-report-lead">
                 <span className="an-report-lead-icon" aria-hidden="true"><Sparkles /></span>

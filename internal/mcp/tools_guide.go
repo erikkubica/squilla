@@ -246,10 +246,14 @@ func gotchasForTopic(topic string) []map[string]any {
 	return guideGotchas()
 }
 
-// toolDomain extracts "X" from "core.X.Y" (or "core.X" for two-part names).
+// toolDomain extracts "X" from "core.X.Y" (or "core.X" for two-part names)
+// and "ext.<slug>" from an extension tool "ext.<slug>.<name>".
 // Returns "" for malformed names.
 func toolDomain(name string) string {
 	parts := strings.Split(name, ".")
+	if len(parts) >= 3 && parts[0] == "ext" {
+		return "ext." + parts[1]
+	}
 	if len(parts) < 2 || parts[0] != "core" {
 		return ""
 	}
@@ -261,7 +265,7 @@ func toolDomain(name string) string {
 // roughly 1 k tokens versus 5–6 k for the full descriptions.
 func (s *Server) toolsByDomain() map[string][]string {
 	out := map[string][]string{}
-	for _, t := range s.toolCatalog {
+	for _, t := range s.toolIndex() {
 		d := toolDomain(t.Name)
 		if d == "" {
 			continue
@@ -292,15 +296,18 @@ func (s *Server) toolsForTopic(topic string) []toolCatalogEntry {
 	wanted, ok := topicToolDomains[topic]
 	if !ok {
 		// Unknown topic — return everything so the AI still gets useful info.
-		return s.toolCatalog
+		return s.toolIndex()
 	}
 	wantedSet := map[string]bool{}
 	for _, d := range wanted {
 		wantedSet[d] = true
 	}
-	out := make([]toolCatalogEntry, 0, len(s.toolCatalog))
-	for _, t := range s.toolCatalog {
-		if wantedSet[toolDomain(t.Name)] {
+	catalog := s.toolIndex()
+	out := make([]toolCatalogEntry, 0, len(catalog))
+	for _, t := range catalog {
+		d := toolDomain(t.Name)
+		// Extension-owned tools (ext.<slug>.*) belong to the extensions topic.
+		if wantedSet[d] || (topic == "extensions" && strings.HasPrefix(d, extToolPrefix)) {
 			out = append(out, t)
 		}
 	}
@@ -373,7 +380,7 @@ func guideRecipes(topic string) []map[string]any {
 			"goal":  "Build a new extension from scratch",
 			"topic": "extensions",
 			"steps": []string{"core.extension.standards", "core.extension.list", "core.extension.activate"},
-			"notes": "extension.json declares capabilities, plugins, admin_ui, public_routes, settings_schema. admin_ui.menu.section routes the sidebar entry into content/design/development/settings; settings_menu auto-injects into Settings. Per-extension Tailwind build is required for Docker; admin shell's @source over extensions/ only helps in local dev.",
+			"notes": "extension.json declares capabilities, plugins, admin_ui, public_routes, settings_schema, mcp_tools (MCP tools served by the plugin's admin HTTP routes, exposed as ext.<slug>.<name>). admin_ui.menu.section routes the sidebar entry into content/design/development/settings; settings_menu auto-injects into Settings. Per-extension Tailwind build is required for Docker; admin shell's @source over extensions/ only helps in local dev.",
 		},
 		{
 			"goal":  "React to schema changes in an extension",
@@ -656,7 +663,9 @@ func guideConventions() []string {
 // toolIndex returns a flat index of every currently-registered tool with its
 // one-line description, captured at registration time by addTool.
 func (s *Server) toolIndex() []toolCatalogEntry {
-	return s.toolCatalog
+	s.catalogMu.RLock()
+	defer s.catalogMu.RUnlock()
+	return append([]toolCatalogEntry(nil), s.toolCatalog...)
 }
 
 // guideTopics enumerates every topic referenced by the static recipes plus
@@ -918,7 +927,7 @@ func extensionStandardsCore() map[string]any {
 		"philosophy": "Extensions own their full stack: manifest, gRPC plugin, admin-UI micro-frontend, SQL migrations, blocks, public routes. Core is a kernel — if disabling/removing the extension would leave dead code in core, that code belongs in the extension.",
 		"manifest": map[string]any{
 			"required": []string{"name", "slug", "version"},
-			"optional": []string{"author", "description", "priority", "provides", "capabilities", "plugins", "admin_ui", "settings_schema", "blocks", "templates", "layouts", "partials", "public_routes", "assets", "data_owned_tables", "data_owned_functions"},
+			"optional": []string{"author", "description", "priority", "provides", "capabilities", "plugins", "admin_ui", "settings_schema", "blocks", "templates", "layouts", "partials", "public_routes", "admin_routes", "mcp_tools", "assets", "data_owned_tables", "data_owned_functions"},
 			"notes": []string{
 				"slug MUST match the directory name (kebab-case).",
 				"capabilities are enforced on every CoreAPI call. Declare exactly what's needed.",

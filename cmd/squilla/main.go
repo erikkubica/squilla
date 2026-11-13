@@ -543,6 +543,12 @@ func main() {
 		LayoutSvc:        layoutSvc,
 		PublicHandler:    publicHandler,
 	})
+	// Extension-declared MCP tools (manifest "mcp_tools"), gated by the same
+	// admin_routes capability rules as the admin proxy. Subscribed here,
+	// before the plugin start loop below publishes extension.activated for
+	// the already-active extensions.
+	mcpServer.SetAdminRoutes(adminRoutesRegistry)
+	mcpServer.SubscribeExtensionTools(eventBus)
 	mcpServer.Mount(app)
 	// Daily sweep of mcp_audit_log older than mcp_audit_retention_days
 	// (default 90). Each MCP tool call writes a row, so this can grow fast.

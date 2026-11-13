@@ -197,3 +197,17 @@ export function buildInsights(i: InsightInput, max = 5, skip: string[] = []): In
 
   return out.filter((x) => !skip.includes(x.id)).slice(0, max);
 }
+
+/**
+ * Share of visits no in-page signal confirmed, when it is large enough to
+ * distort the report (scrapers posing as browsers). Null otherwise, and
+ * when in-page measurement is off or the report already shows confirmed
+ * visits only (`confirmed` is then absent).
+ */
+export function unconfirmedShare(summary: SummaryResponse | null | undefined): number | null {
+  const all = summary?.current.visits ?? 0;
+  const confirmed = summary?.confirmed?.visits;
+  if (confirmed == null || all < 20) return null;
+  const share = 1 - Math.min(confirmed, all) / all;
+  return share >= 0.5 ? share : null;
+}

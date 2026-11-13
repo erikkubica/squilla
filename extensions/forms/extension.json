@@ -43,6 +43,40 @@
     { "method": "PATCH",  "path": "/**", "required_capability": "manage_forms" },
     { "method": "DELETE", "path": "/**", "required_capability": "manage_forms" }
   ],
+  "mcp_tools": [
+    {
+      "name": "list",
+      "description": "List forms.",
+      "class": "full",
+      "method": "GET",
+      "path": "/",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "get",
+      "description": "One form with its fields, notifications and settings.",
+      "class": "full",
+      "method": "GET",
+      "path": "/{id}",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}}, "required": ["id"]}
+    },
+    {
+      "name": "submissions.list",
+      "description": "List form submissions, newest first. Contains personal data.",
+      "class": "full",
+      "method": "GET",
+      "path": "/submissions",
+      "input_schema": {"type": "object", "properties": {"form_id": {"type": "integer", "description": "Only this form."}, "status": {"type": "string", "description": "Submission status."}, "search": {"type": "string", "description": "Substring of the submitted data."}, "date_from": {"type": "string", "description": "YYYY-MM-DD."}, "date_to": {"type": "string", "description": "YYYY-MM-DD."}, "page": {"type": "integer", "description": "Default 1."}, "per_page": {"type": "integer", "description": "Rows per page."}}}
+    },
+    {
+      "name": "submissions.get",
+      "description": "One submission with all submitted values.",
+      "class": "full",
+      "method": "GET",
+      "path": "/submissions/{id}",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}}, "required": ["id"]}
+    }
+  ],
   "admin_ui": {
     "entry": "admin-ui/dist/index.js",
     "capabilities": [

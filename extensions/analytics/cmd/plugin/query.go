@@ -14,7 +14,12 @@ var filterDims = map[string]bool{
 	"page": true, "entry_page": true, "source": true, "channel": true, "referrer": true,
 	"utm_source": true, "utm_medium": true, "utm_campaign": true, "utm_content": true, "utm_term": true,
 	"country": true, "language": true, "device": true, "browser": true, "os": true, "page_type": true, "goal": true,
+	// verified=1 keeps only visits confirmed by an in-page signal (see
+	// migrations/20261114_01_verified_filter.sql).
+	filterVerified: true,
 }
+
+const filterVerified = "verified"
 
 // breakdownDims mirrors analytics__dimensions() in SQL.
 var breakdownDims = []string{
@@ -106,6 +111,16 @@ func parseStatsQuery(params map[string]string, cfg *Config, now time.Time) (*sta
 		}
 		if len(v) > 512 {
 			return nil, &queryError{"INVALID_FILTER", "filter value too long"}
+		}
+		if dim == filterVerified {
+			switch strings.ToLower(strings.TrimSpace(v)) {
+			case "1", "true":
+				v = "1"
+			case "", "0", "false":
+				continue
+			default:
+				return nil, &queryError{"INVALID_FILTER", "verified must be 1 or 0"}
+			}
 		}
 		if dim == "page" || dim == "entry_page" {
 			v = normalizePath(v)

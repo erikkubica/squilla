@@ -117,6 +117,29 @@ func TestPostgresEndToEnd(t *testing.T) {
 			t.Errorf("export %s: %s", ds, resp.Body)
 		}
 	}
+	// Confirmed visits: only the first visitor's session got a signal.
+	if err := db.Exec("UPDATE analytics_events SET confirmed = true WHERE kind = 'pageview' AND path = '/tours'").Error; err != nil {
+		t.Fatal(err)
+	}
+	_, ver := doRequest(p, "GET", "/summary", map[string]string{"f.verified": "1"}, "")
+	if vc := ver["current"].(map[string]any); vc["visits"] != 1.0 || vc["pageviews"] != 3.0 || vc["visitors"] != 1.0 || vc["conversions"] != 1.0 {
+		t.Errorf("verified summary %v", ver)
+	}
+	if _, has := sum["confirmed"]; has {
+		t.Errorf("confirmed totals reported with in-page signals off: %v", sum)
+	}
+	if resp, _ := doRequest(p, "PUT", "/settings", nil, `{"timezone":"Asia/Ho_Chi_Minh","enhanced_mode":true}`); resp.StatusCode != 200 {
+		t.Fatalf("settings: %s", resp.Body)
+	}
+	_, sum = doRequest(p, "GET", "/summary", nil, "")
+	if cc, _ := sum["confirmed"].(map[string]any); cc == nil || cc["visits"] != 1.0 || cc["pageviews"] != 3.0 {
+		t.Errorf("confirmed totals %v", sum)
+	}
+	for _, path := range []string{"/timeseries", "/heatmap", "/breakdown/page", "/goals/stats", "/exits"} {
+		if resp, _ := doRequest(p, "GET", path, map[string]string{"f.verified": "1"}, ""); resp.StatusCode != 200 {
+			t.Errorf("%s verified: %s", path, resp.Body)
+		}
+	}
 	b, _ := json.Marshal(st)
 	t.Logf("status: %s", b)
 }

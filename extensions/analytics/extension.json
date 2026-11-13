@@ -72,6 +72,169 @@
     { "method": "GET", "path": "/**", "required_capability": "view_analytics" },
     { "method": "*", "path": "/**", "required_capability": "manage_analytics" }
   ],
+  "mcp_tools": [
+    {
+      "name": "summary",
+      "description": "Totals for a period: visitors, pageviews, visits, pages per visit, single-page rate, median visit length, conversions and conversion rate, plus sparklines. With in-page signals on, 'confirmed' holds the same totals for signal-confirmed visits only — compare it with 'current' to see how much of the traffic is real people. Start here.",
+      "method": "GET",
+      "path": "/summary",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "f.verified": {"type": "string", "description": "Set to \"1\" to count only visits confirmed by an in-page signal (needs enhanced_mode). Scrapers that pose as browsers never send one, so use this for real-people numbers.", "enum": ["1", "0"]}, "f.page": {"type": "string", "description": "Only this page path, e.g. /pricing."}, "f.entry_page": {"type": "string", "description": "Only visits that started on this path."}, "f.source": {"type": "string", "description": "Only events whose source equals this value."}, "f.channel": {"type": "string", "description": "Only events whose channel equals this value."}, "f.referrer": {"type": "string", "description": "Only events whose referrer equals this value."}, "f.utm_source": {"type": "string", "description": "Only events whose utm_source equals this value."}, "f.utm_medium": {"type": "string", "description": "Only events whose utm_medium equals this value."}, "f.utm_campaign": {"type": "string", "description": "Only events whose utm_campaign equals this value."}, "f.utm_content": {"type": "string", "description": "Only events whose utm_content equals this value."}, "f.utm_term": {"type": "string", "description": "Only events whose utm_term equals this value."}, "f.country": {"type": "string", "description": "Only events whose country equals this value."}, "f.language": {"type": "string", "description": "Only events whose language equals this value."}, "f.device": {"type": "string", "description": "Only events whose device equals this value."}, "f.browser": {"type": "string", "description": "Only events whose browser equals this value."}, "f.os": {"type": "string", "description": "Only events whose os equals this value."}, "f.page_type": {"type": "string", "description": "Only events whose page_type equals this value."}, "f.goal": {"type": "string", "description": "Only visits that reached this goal id."}, "compare": {"type": "string", "description": "Also return the comparison period.", "enum": ["previous", "year"]}}}
+    },
+    {
+      "name": "timeseries",
+      "description": "Visitors, pageviews, visits and conversions over time. Numbers include undetected scrapers unless f.verified=1 is set.",
+      "method": "GET",
+      "path": "/timeseries",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "f.verified": {"type": "string", "description": "Set to \"1\" to count only visits confirmed by an in-page signal (needs enhanced_mode). Scrapers that pose as browsers never send one, so use this for real-people numbers.", "enum": ["1", "0"]}, "f.page": {"type": "string", "description": "Only this page path, e.g. /pricing."}, "f.entry_page": {"type": "string", "description": "Only visits that started on this path."}, "f.source": {"type": "string", "description": "Only events whose source equals this value."}, "f.channel": {"type": "string", "description": "Only events whose channel equals this value."}, "f.referrer": {"type": "string", "description": "Only events whose referrer equals this value."}, "f.utm_source": {"type": "string", "description": "Only events whose utm_source equals this value."}, "f.utm_medium": {"type": "string", "description": "Only events whose utm_medium equals this value."}, "f.utm_campaign": {"type": "string", "description": "Only events whose utm_campaign equals this value."}, "f.utm_content": {"type": "string", "description": "Only events whose utm_content equals this value."}, "f.utm_term": {"type": "string", "description": "Only events whose utm_term equals this value."}, "f.country": {"type": "string", "description": "Only events whose country equals this value."}, "f.language": {"type": "string", "description": "Only events whose language equals this value."}, "f.device": {"type": "string", "description": "Only events whose device equals this value."}, "f.browser": {"type": "string", "description": "Only events whose browser equals this value."}, "f.os": {"type": "string", "description": "Only events whose os equals this value."}, "f.page_type": {"type": "string", "description": "Only events whose page_type equals this value."}, "f.goal": {"type": "string", "description": "Only visits that reached this goal id."}, "compare": {"type": "string", "description": "Also return the comparison period.", "enum": ["previous", "year"]}, "interval": {"type": "string", "description": "Bucket size. Default: day (hour needs a range inside the raw retention window).", "enum": ["hour", "day", "week", "month"]}}}
+    },
+    {
+      "name": "breakdown",
+      "description": "Top values of one dimension with visitors, pageviews, visits and conversions: top pages, sources, channels, countries, devices, 404 paths (not_found), downloads, outbound links, goals. Numbers include undetected scrapers unless f.verified=1 is set.",
+      "method": "GET",
+      "path": "/breakdown/{dimension}",
+      "input_schema": {"type": "object", "properties": {"dimension": {"type": "string", "description": "What to group by.", "enum": ["page", "entry_page", "exit_page", "source", "channel", "referrer", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "country", "language", "device", "browser", "os", "page_type", "not_found", "download", "outbound", "goal", "viewport", "color_scheme"]}, "from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "f.verified": {"type": "string", "description": "Set to \"1\" to count only visits confirmed by an in-page signal (needs enhanced_mode). Scrapers that pose as browsers never send one, so use this for real-people numbers.", "enum": ["1", "0"]}, "f.page": {"type": "string", "description": "Only this page path, e.g. /pricing."}, "f.entry_page": {"type": "string", "description": "Only visits that started on this path."}, "f.source": {"type": "string", "description": "Only events whose source equals this value."}, "f.channel": {"type": "string", "description": "Only events whose channel equals this value."}, "f.referrer": {"type": "string", "description": "Only events whose referrer equals this value."}, "f.utm_source": {"type": "string", "description": "Only events whose utm_source equals this value."}, "f.utm_medium": {"type": "string", "description": "Only events whose utm_medium equals this value."}, "f.utm_campaign": {"type": "string", "description": "Only events whose utm_campaign equals this value."}, "f.utm_content": {"type": "string", "description": "Only events whose utm_content equals this value."}, "f.utm_term": {"type": "string", "description": "Only events whose utm_term equals this value."}, "f.country": {"type": "string", "description": "Only events whose country equals this value."}, "f.language": {"type": "string", "description": "Only events whose language equals this value."}, "f.device": {"type": "string", "description": "Only events whose device equals this value."}, "f.browser": {"type": "string", "description": "Only events whose browser equals this value."}, "f.os": {"type": "string", "description": "Only events whose os equals this value."}, "f.page_type": {"type": "string", "description": "Only events whose page_type equals this value."}, "f.goal": {"type": "string", "description": "Only visits that reached this goal id."}, "sort": {"type": "string", "description": "Default: visitors.", "enum": ["visitors", "pageviews", "visits", "conversions"]}, "limit": {"type": "integer", "description": "Rows to return, 1-1000. Default 10."}, "offset": {"type": "integer", "description": "Rows to skip."}}, "required": ["dimension"]}
+    },
+    {
+      "name": "heatmap",
+      "description": "Pageviews by weekday and hour of day.",
+      "method": "GET",
+      "path": "/heatmap",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "f.verified": {"type": "string", "description": "Set to \"1\" to count only visits confirmed by an in-page signal (needs enhanced_mode). Scrapers that pose as browsers never send one, so use this for real-people numbers.", "enum": ["1", "0"]}, "f.page": {"type": "string", "description": "Only this page path, e.g. /pricing."}, "f.entry_page": {"type": "string", "description": "Only visits that started on this path."}, "f.source": {"type": "string", "description": "Only events whose source equals this value."}, "f.channel": {"type": "string", "description": "Only events whose channel equals this value."}, "f.referrer": {"type": "string", "description": "Only events whose referrer equals this value."}, "f.utm_source": {"type": "string", "description": "Only events whose utm_source equals this value."}, "f.utm_medium": {"type": "string", "description": "Only events whose utm_medium equals this value."}, "f.utm_campaign": {"type": "string", "description": "Only events whose utm_campaign equals this value."}, "f.utm_content": {"type": "string", "description": "Only events whose utm_content equals this value."}, "f.utm_term": {"type": "string", "description": "Only events whose utm_term equals this value."}, "f.country": {"type": "string", "description": "Only events whose country equals this value."}, "f.language": {"type": "string", "description": "Only events whose language equals this value."}, "f.device": {"type": "string", "description": "Only events whose device equals this value."}, "f.browser": {"type": "string", "description": "Only events whose browser equals this value."}, "f.os": {"type": "string", "description": "Only events whose os equals this value."}, "f.page_type": {"type": "string", "description": "Only events whose page_type equals this value."}, "f.goal": {"type": "string", "description": "Only visits that reached this goal id."}}}
+    },
+    {
+      "name": "bots",
+      "description": "Bot and AI-crawler hits by category and name (search engines, AI crawlers, AI assistants, link previews, SEO tools, probes). Bots are counted separately and never appear in the other reports.",
+      "method": "GET",
+      "path": "/bots",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}}}
+    },
+    {
+      "name": "goals.stats",
+      "description": "Conversions and conversion rate per goal.",
+      "method": "GET",
+      "path": "/goals/stats",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "f.verified": {"type": "string", "description": "Set to \"1\" to count only visits confirmed by an in-page signal (needs enhanced_mode). Scrapers that pose as browsers never send one, so use this for real-people numbers.", "enum": ["1", "0"]}, "f.page": {"type": "string", "description": "Only this page path, e.g. /pricing."}, "f.entry_page": {"type": "string", "description": "Only visits that started on this path."}, "f.source": {"type": "string", "description": "Only events whose source equals this value."}, "f.channel": {"type": "string", "description": "Only events whose channel equals this value."}, "f.referrer": {"type": "string", "description": "Only events whose referrer equals this value."}, "f.utm_source": {"type": "string", "description": "Only events whose utm_source equals this value."}, "f.utm_medium": {"type": "string", "description": "Only events whose utm_medium equals this value."}, "f.utm_campaign": {"type": "string", "description": "Only events whose utm_campaign equals this value."}, "f.utm_content": {"type": "string", "description": "Only events whose utm_content equals this value."}, "f.utm_term": {"type": "string", "description": "Only events whose utm_term equals this value."}, "f.country": {"type": "string", "description": "Only events whose country equals this value."}, "f.language": {"type": "string", "description": "Only events whose language equals this value."}, "f.device": {"type": "string", "description": "Only events whose device equals this value."}, "f.browser": {"type": "string", "description": "Only events whose browser equals this value."}, "f.os": {"type": "string", "description": "Only events whose os equals this value."}, "f.page_type": {"type": "string", "description": "Only events whose page_type equals this value."}, "f.goal": {"type": "string", "description": "Only visits that reached this goal id."}}}
+    },
+    {
+      "name": "behaviour",
+      "description": "Engagement overview from in-page signals: engaged visits, time on page, section impressions. Empty without enhanced_mode.",
+      "method": "GET",
+      "path": "/behaviour",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}}}
+    },
+    {
+      "name": "exits",
+      "description": "Why visits ended: exit reasons (converted, left_to_contact, hit_error, quick_exit, …) and the pages people leave from.",
+      "method": "GET",
+      "path": "/exits",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "f.channel": {"type": "string", "description": "Only events whose channel equals this value."}, "f.device": {"type": "string", "description": "Only events whose device equals this value."}, "f.country": {"type": "string", "description": "Only events whose country equals this value."}, "f.entry_page": {"type": "string", "description": "Only visits that started on this path."}}}
+    },
+    {
+      "name": "clicks",
+      "description": "Link and CTA clicks from in-page signals: what was clicked, on which page and block, and where it led.",
+      "method": "GET",
+      "path": "/clicks",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}}}
+    },
+    {
+      "name": "page",
+      "description": "Everything about one page: views, time on page, how far people scroll section by section, clicks, where visitors came from and went next.",
+      "method": "GET",
+      "path": "/page",
+      "input_schema": {"type": "object", "properties": {"path": {"type": "string", "description": "Page path, e.g. / or /blog/my-post."}, "from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}}, "required": ["path"]}
+    },
+    {
+      "name": "realtime",
+      "description": "Visitors and pageviews in the last 30 minutes, per minute, with the pages being viewed now.",
+      "method": "GET",
+      "path": "/realtime",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "status",
+      "description": "Health of the measurement pipeline: whether requests are arriving, today's record/pageview/bot counts, dropped records, whether in-page signals are on.",
+      "method": "GET",
+      "path": "/status",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "export",
+      "description": "Raw dataset for a period. dataset=events returns one row per counted event (no visitor or session ids, up to 100000 rows) — keep the range short.",
+      "method": "GET",
+      "path": "/export",
+      "input_schema": {"type": "object", "properties": {"dataset": {"type": "string", "description": "Which dataset.", "enum": ["summary", "timeseries", "breakdown", "events"]}, "format": {"type": "string", "description": "Default csv.", "enum": ["csv", "json"]}, "from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "f.verified": {"type": "string", "description": "Set to \"1\" to count only visits confirmed by an in-page signal (needs enhanced_mode). Scrapers that pose as browsers never send one, so use this for real-people numbers.", "enum": ["1", "0"]}, "f.page": {"type": "string", "description": "Only this page path, e.g. /pricing."}, "f.entry_page": {"type": "string", "description": "Only visits that started on this path."}, "f.source": {"type": "string", "description": "Only events whose source equals this value."}, "f.channel": {"type": "string", "description": "Only events whose channel equals this value."}, "f.referrer": {"type": "string", "description": "Only events whose referrer equals this value."}, "f.utm_source": {"type": "string", "description": "Only events whose utm_source equals this value."}, "f.utm_medium": {"type": "string", "description": "Only events whose utm_medium equals this value."}, "f.utm_campaign": {"type": "string", "description": "Only events whose utm_campaign equals this value."}, "f.utm_content": {"type": "string", "description": "Only events whose utm_content equals this value."}, "f.utm_term": {"type": "string", "description": "Only events whose utm_term equals this value."}, "f.country": {"type": "string", "description": "Only events whose country equals this value."}, "f.language": {"type": "string", "description": "Only events whose language equals this value."}, "f.device": {"type": "string", "description": "Only events whose device equals this value."}, "f.browser": {"type": "string", "description": "Only events whose browser equals this value."}, "f.os": {"type": "string", "description": "Only events whose os equals this value."}, "f.page_type": {"type": "string", "description": "Only events whose page_type equals this value."}, "f.goal": {"type": "string", "description": "Only visits that reached this goal id."}, "interval": {"type": "string", "description": "For dataset=timeseries.", "enum": ["hour", "day", "week", "month"]}, "dimension": {"type": "string", "description": "For dataset=breakdown.", "enum": ["page", "entry_page", "exit_page", "source", "channel", "referrer", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "country", "language", "device", "browser", "os", "page_type", "not_found", "download", "outbound", "goal", "viewport", "color_scheme"]}}, "required": ["dataset"]}
+    },
+    {
+      "name": "settings.get",
+      "description": "Current analytics settings (time zone, exclusions, retention, in-page signals).",
+      "method": "GET",
+      "path": "/settings",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "settings.update",
+      "description": "Change analytics settings. Send only the fields to change.",
+      "method": "PUT",
+      "path": "/settings",
+      "input_schema": {"type": "object", "properties": {"timezone": {"type": "string", "description": "IANA time zone; changing it rebuilds rollups."}, "exclude_paths": {"type": "array", "items": {"type": "string"}, "description": "Path globs to ignore, e.g. /preview/*."}, "exclude_logged_in": {"type": "boolean", "description": "Ignore signed-in users."}, "respect_gpc": {"type": "boolean", "description": "Count Global Privacy Control visitors in aggregate only."}, "raw_retention_days": {"type": "integer", "description": "1-3650."}, "session_timeout_minutes": {"type": "integer", "description": "5-240."}, "enhanced_mode": {"type": "boolean", "description": "In-page signals (CSS/HTML only, no JavaScript)."}, "signal_dwell": {"type": "boolean", "description": "Time on page."}, "signal_sections": {"type": "boolean", "description": "Section impressions."}, "signal_clicks": {"type": "boolean", "description": "Link clicks."}, "signal_forms": {"type": "boolean", "description": "Form and FAQ use."}, "download_extensions": {"type": "array", "items": {"type": "string"}, "description": "File extensions counted as downloads."}, "own_hosts": {"type": "array", "items": {"type": "string"}, "description": "Extra host names treated as internal referrers."}}}
+    },
+    {
+      "name": "goals.list",
+      "description": "All goals.",
+      "method": "GET",
+      "path": "/goals",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "goals.create",
+      "description": "Create a goal.",
+      "method": "POST",
+      "path": "/goals",
+      "input_schema": {"type": "object", "properties": {"name": {"type": "string", "description": "Display name."}, "kind": {"type": "string", "description": "pageview = a page is viewed; request = any request matches (e.g. a form POST); link = a tracked /go/<slug> link is clicked.", "enum": ["pageview", "request", "link"]}, "path_pattern": {"type": "string", "description": "Path glob for pageview/request goals, * matches anything, e.g. /forms/submit/*."}, "method": {"type": "string", "description": "HTTP method for request goals, e.g. POST. Empty = any."}, "link_slug": {"type": "string", "description": "Tracked link slug for link goals."}}, "required": ["name", "kind"]}
+    },
+    {
+      "name": "goals.update",
+      "description": "Change a goal.",
+      "method": "PUT",
+      "path": "/goals/{id}",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}, "name": {"type": "string", "description": "Display name."}, "kind": {"type": "string", "description": "pageview = a page is viewed; request = any request matches (e.g. a form POST); link = a tracked /go/<slug> link is clicked.", "enum": ["pageview", "request", "link"]}, "path_pattern": {"type": "string", "description": "Path glob for pageview/request goals, * matches anything, e.g. /forms/submit/*."}, "method": {"type": "string", "description": "HTTP method for request goals, e.g. POST. Empty = any."}, "link_slug": {"type": "string", "description": "Tracked link slug for link goals."}}, "required": ["id", "name", "kind"]}
+    },
+    {
+      "name": "goals.delete",
+      "description": "Delete a goal. Past conversions stay in the reports.",
+      "method": "DELETE",
+      "path": "/goals/{id}",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}}, "required": ["id"]}
+    },
+    {
+      "name": "links.list",
+      "description": "Tracked links (/go/<slug>) with their clicks in the last 30 days.",
+      "method": "GET",
+      "path": "/links",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "links.create",
+      "description": "Create a tracked link: /go/<slug> redirects to the destination and counts the click.",
+      "method": "POST",
+      "path": "/links",
+      "input_schema": {"type": "object", "properties": {"slug": {"type": "string", "description": "Slug in /go/<slug>."}, "label": {"type": "string", "description": "Display name."}, "destination": {"type": "string", "description": "Absolute URL the visitor is redirected to."}}, "required": ["slug", "destination"]}
+    },
+    {
+      "name": "links.update",
+      "description": "Change a tracked link.",
+      "method": "PUT",
+      "path": "/links/{id}",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}, "slug": {"type": "string", "description": "Slug in /go/<slug>."}, "label": {"type": "string", "description": "Display name."}, "destination": {"type": "string", "description": "Absolute URL the visitor is redirected to."}}, "required": ["id", "slug", "destination"]}
+    },
+    {
+      "name": "links.delete",
+      "description": "Delete a tracked link; /go/<slug> stops working.",
+      "method": "DELETE",
+      "path": "/links/{id}",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}}, "required": ["id"]}
+    }
+  ],
   "admin_ui": {
     "entry": "admin-ui/dist/index.js",
     "capabilities": [

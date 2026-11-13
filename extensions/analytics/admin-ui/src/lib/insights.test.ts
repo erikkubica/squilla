@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BreakdownRow, SummaryResponse } from "../api/types";
-import { buildInsights, buildSummary, type InsightInput, type Part } from "./insights";
+import { buildInsights, buildSummary, unconfirmedShare, type InsightInput, type Part } from "./insights";
 import { comparePhrase, rangePhrase } from "./dates";
 
 const metrics = (visitors: number, pageviews: number, conversions = 0) => ({
@@ -64,5 +64,25 @@ describe("insights", () => {
     expect(rangePhrase("custom", { from: "2026-10-03", to: "2026-10-09" })).toBe("between Oct 3 and Oct 9, 2026");
     expect(comparePhrase({ from: "2026-11-06", to: "2026-11-06" }, "previous")).toBe("the day before");
     expect(comparePhrase({ from: "2026-10-08", to: "2026-11-06" }, "year")).toBe("the same days last year");
+  });
+});
+
+describe("unconfirmedShare", () => {
+  const m = (visits: number) => ({ visitors: visits, pageviews: visits, visits, pages_per_visit: 1, single_page_rate: 0, median_visit_seconds: null, conversions: 0, conversion_rate: 0 });
+  const s = (all: number, confirmed?: number): SummaryResponse => ({
+    range: { from: "2026-11-01", to: "2026-11-08", tz: "UTC" },
+    current: m(all),
+    previous: null,
+    sparklines: { visitors: [], pageviews: [], visits: [], conversions: [] },
+    ...(confirmed == null ? {} : { confirmed: m(confirmed) }),
+  });
+  it("flags a period where most visits sent no signal", () => {
+    expect(unconfirmedShare(s(650, 44))).toBeCloseTo(0.932, 3);
+  });
+  it("stays quiet when most visits are confirmed, traffic is tiny, or signals are off", () => {
+    expect(unconfirmedShare(s(100, 70))).toBeNull();
+    expect(unconfirmedShare(s(10, 0))).toBeNull();
+    expect(unconfirmedShare(s(650))).toBeNull();
+    expect(unconfirmedShare(null)).toBeNull();
   });
 });

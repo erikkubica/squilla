@@ -54,11 +54,13 @@ func (s *Server) gate(tok *models.McpToken, class, kind string) (code string, er
 // context. Tool bodies return (data any, error); dispatch serializes data as
 // JSON into a text tool result.
 func (s *Server) addTool(tool mcp.Tool, class string, fn func(ctx context.Context, args map[string]any) (any, error)) {
+	s.catalogMu.Lock()
 	s.toolCatalog = append(s.toolCatalog, toolCatalogEntry{
 		Name:        tool.Name,
 		Description: tool.Description,
 		Class:       class,
 	})
+	s.catalogMu.Unlock()
 	handler := func(ctx context.Context, req mcp.CallToolRequest) (result *mcp.CallToolResult, err error) {
 		start := time.Now()
 		args := req.GetArguments()

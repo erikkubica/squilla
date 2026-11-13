@@ -51,6 +51,26 @@ func proxyRequiredCapability(routes *AdminRouteRegistry, slug, method, relPath s
 	return ""
 }
 
+// NormalizeAdminPath returns the rooted, cleaned form of an extension
+// admin path — the exact string the admin proxy matches admin_routes
+// against and forwards to the plugin.
+func NormalizeAdminPath(p string) string {
+	return normalizeProxyPath(p)
+}
+
+// RequiredAdminCapability is the role capability (beyond admin_access)
+// a call to an extension's admin route needs — the rule the admin proxy
+// enforces, exported so other kernel entry points to the same plugin
+// routes (MCP extension tools) apply the identical gate. relPath is
+// normalised first. A nil registry behaves like an empty one.
+func RequiredAdminCapability(routes *AdminRouteRegistry, slug, method, relPath string) string {
+	relPath = normalizeProxyPath(relPath)
+	if routes == nil {
+		routes = NewAdminRouteRegistry()
+	}
+	return proxyRequiredCapability(routes, slug, strings.ToUpper(method), relPath)
+}
+
 // defaultMutationCapability gates non-GET/HEAD proxy requests that match
 // no admin_routes rule.
 const defaultMutationCapability = "manage_settings"

@@ -18,6 +18,8 @@ export interface SummaryResponse {
   range: { from: string; to: string; tz: string };
   current: Metrics;
   previous: Metrics | null;
+  /** Totals for signal-confirmed visits only. Present when in-page measurement is on and the report is not already limited to them. */
+  confirmed?: Metrics;
   sparklines: {
     visitors: number[];
     pageviews: number[];
@@ -54,6 +56,8 @@ export const FILTER_DIMS = [
   "page", "entry_page", "source", "channel", "referrer", "utm_source",
   "utm_medium", "utm_campaign", "country", "language", "device", "browser",
   "os", "page_type", "goal",
+  // verified=1: only visits confirmed by an in-page signal.
+  "verified",
 ] as const;
 export type FilterDim = (typeof FILTER_DIMS)[number];
 

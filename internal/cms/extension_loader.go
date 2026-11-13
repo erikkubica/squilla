@@ -123,6 +123,33 @@ type AdminRouteEntry struct {
 	RequiredCapability string `json:"required_capability"`
 }
 
+// McpToolEntry declares one MCP tool an extension exposes. The kernel's
+// MCP server registers it as "ext.<slug>.<name>" while the extension is
+// active and serves it by calling the plugin's HandleHTTPRequest with
+// (Method, Path) — the same handler the admin UI reaches through
+// /admin/api/ext/<slug>/*, so a tool needs no plugin code of its own.
+//
+// Arguments: "{param}" placeholders in Path are filled from same-named
+// arguments; the remaining arguments become query parameters for
+// GET/HEAD/DELETE and a JSON body for every other method.
+//
+// Authorization is the token scope (Class) AND the admin_routes
+// capability for (Method, Path) checked against the token owner's role,
+// so MCP can never reach a route its owner couldn't call in the admin UI.
+type McpToolEntry struct {
+	// Name is the local tool name: [a-z0-9_]+ segments, optionally
+	// dot-separated ("summary", "goals.create").
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// Class is the minimum token scope: "read", "content" or "full".
+	// Empty defaults to "read" for GET/HEAD and "full" otherwise.
+	Class  string `json:"class"`
+	Method string `json:"method"`
+	Path   string `json:"path"`
+	// InputSchema is the tool's JSON Schema (type "object"). Optional.
+	InputSchema json.RawMessage `json:"input_schema"`
+}
+
 type ExtensionManifest struct {
 	Name        string   `json:"name"`
 	Slug        string   `json:"slug"`
@@ -168,8 +195,10 @@ type ExtensionManifest struct {
 	// and POST directly. Without this list, extensions are gated only by
 	// admin_access — which is fine for read-only extensions but a hole
 	// for anything mutating data the user shouldn't touch.
-	AdminRoutes []AdminRouteEntry    `json:"admin_routes"`
-	Assets      []ThemeMediaAssetDef `json:"assets"`
+	AdminRoutes []AdminRouteEntry `json:"admin_routes"`
+	// McpTools are the MCP tools this extension exposes (see McpToolEntry).
+	McpTools []McpToolEntry       `json:"mcp_tools"`
+	Assets   []ThemeMediaAssetDef `json:"assets"`
 }
 
 // CapabilityMap returns the Capabilities slice as a map for quick lookup.

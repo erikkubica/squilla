@@ -28,6 +28,44 @@
     "admin_routes": [
         {"method": "*", "path": "/**", "required_capability": "manage_redirects"}
     ],
+    "mcp_tools": [
+        {
+            "name": "rules.list",
+            "description": "List redirect rules with hit counts.",
+            "class": "full",
+            "method": "GET",
+            "path": "/rules",
+            "input_schema": {"type": "object", "properties": {"search": {"type": "string", "description": "Substring of source, target or note."}, "tab": {"type": "string", "description": "Subset.", "enum": ["manual", "auto", "disabled"]}, "sort": {"type": "string", "description": "Set to hits for most-used first.", "enum": ["hits"]}, "page": {"type": "integer", "description": "Default 1."}, "per_page": {"type": "integer", "description": "1-200. Default 25."}}}
+        },
+        {
+            "name": "rules.create",
+            "description": "Create a redirect.",
+            "method": "POST",
+            "path": "/rules",
+            "input_schema": {"type": "object", "properties": {"source": {"type": "string", "description": "Path to redirect from, e.g. /old-page (or a regex when match_type=regex)."}, "match_type": {"type": "string", "description": "Default exact.", "enum": ["exact", "prefix", "regex"]}, "target": {"type": "string", "description": "Path or absolute URL to redirect to."}, "status_code": {"type": "integer", "description": "301 (permanent) or 302 (temporary). Default 301."}, "enabled": {"type": "boolean", "description": "Default true."}, "keep_query": {"type": "boolean", "description": "Carry the query string over. Default true."}, "note": {"type": "string", "description": "Free-text note."}}, "required": ["source", "target"]}
+        },
+        {
+            "name": "rules.update",
+            "description": "Change a redirect.",
+            "method": "PUT",
+            "path": "/rules/{id}",
+            "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}, "source": {"type": "string", "description": "Path to redirect from, e.g. /old-page (or a regex when match_type=regex)."}, "match_type": {"type": "string", "description": "Default exact.", "enum": ["exact", "prefix", "regex"]}, "target": {"type": "string", "description": "Path or absolute URL to redirect to."}, "status_code": {"type": "integer", "description": "301 (permanent) or 302 (temporary). Default 301."}, "enabled": {"type": "boolean", "description": "Default true."}, "keep_query": {"type": "boolean", "description": "Carry the query string over. Default true."}, "note": {"type": "string", "description": "Free-text note."}}, "required": ["id", "source", "target"]}
+        },
+        {
+            "name": "rules.delete",
+            "description": "Delete a redirect.",
+            "method": "DELETE",
+            "path": "/rules/{id}",
+            "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}}, "required": ["id"]}
+        },
+        {
+            "name": "test",
+            "description": "Resolve a URL through the current rules and return every hop, without requesting it. Use to check a redirect or find loops.",
+            "method": "POST",
+            "path": "/test",
+            "input_schema": {"type": "object", "properties": {"url": {"type": "string", "description": "Path such as /old-page, or a full URL of this site."}}, "required": ["url"]}
+        }
+    ],
     "admin_ui": {
         "entry": "admin-ui/dist/index.js",
         "capabilities": [

@@ -285,11 +285,26 @@ const (
 	httpObserveCapability = "http:observe"
 )
 
+// kernelOnlyEvent reports events only the kernel may produce.
+//
+// extension.activated / extension.deactivated drive kernel state: the
+// admin_routes capability rules, the role-capability and settings
+// registries and the MCP extension tools are all registered and dropped
+// on them. An extension able to publish them could, for example, drop
+// another extension's admin_routes rules while its plugin keeps running.
+func kernelOnlyEvent(action string) bool {
+	switch action {
+	case httpObserveEvent, "extension.activated", "extension.deactivated":
+		return true
+	}
+	return false
+}
+
 func (g *capabilityGuard) Emit(ctx context.Context, action string, payload map[string]any) error {
 	if err := checkCapability(ctx, "events:emit"); err != nil {
 		return err
 	}
-	if action == httpObserveEvent && CallerFromContext(ctx).Type != "internal" {
+	if kernelOnlyEvent(action) && CallerFromContext(ctx).Type != "internal" {
 		return NewCapabilityDenied("events:emit " + action + " (kernel-reserved event)")
 	}
 	return g.inner.Emit(ctx, action, payload)
@@ -299,7 +314,7 @@ func (g *capabilityGuard) EmitCollect(ctx context.Context, action string, payloa
 	if err := checkCapability(ctx, "events:emit"); err != nil {
 		return nil, err
 	}
-	if action == httpObserveEvent && CallerFromContext(ctx).Type != "internal" {
+	if kernelOnlyEvent(action) && CallerFromContext(ctx).Type != "internal" {
 		return nil, NewCapabilityDenied("events:emit " + action + " (kernel-reserved event)")
 	}
 	return g.inner.EmitCollect(ctx, action, payload)

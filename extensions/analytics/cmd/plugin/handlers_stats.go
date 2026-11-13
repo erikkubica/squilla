@@ -108,12 +108,28 @@ func (p *AnalyticsPlugin) summaryData(ctx context.Context, q *statsQuery) (map[s
 		spark["visits"] = append(spark["visits"], pt.Visits)
 		spark["conversions"] = append(spark["conversions"], pt.Conversions)
 	}
-	return map[string]any{
+	out := map[string]any{
 		"range":      map[string]string{"from": q.from(), "to": q.to(), "tz": q.TZ},
 		"current":    cur,
 		"previous":   prev,
 		"sparklines": spark,
-	}, nil
+	}
+	// With in-page signals on, also report how much of the traffic a
+	// signal confirmed: a large gap means scrapers posing as browsers.
+	if p.config().EnhancedMode && q.Filters[filterVerified] == "" && cur.Visits > 0 {
+		vq := *q
+		vq.Filters = make(map[string]string, len(q.Filters)+1)
+		for k, v := range q.Filters {
+			vq.Filters[k] = v
+		}
+		vq.Filters[filterVerified] = "1"
+		if cm, err := p.metrics(ctx, &vq); err == nil {
+			out["confirmed"] = cm
+		} else {
+			p.logf(ctx, "warn", "analytics: confirmed totals failed: %v", err)
+		}
+	}
+	return out, nil
 }
 
 func (p *AnalyticsPlugin) timeseriesData(ctx context.Context, q *statsQuery, interval string) (map[string]any, error) {
