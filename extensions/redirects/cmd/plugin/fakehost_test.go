@@ -15,11 +15,15 @@ import (
 
 // FakeHost implements hostAPI in memory.
 type FakeHost struct {
-	mu     sync.Mutex
-	Tables map[string]map[uint]map[string]any
-	NextID map[string]uint
-	Nodes  map[uint]*coreapi.Node
-	Logs   []string
+	mu            sync.Mutex
+	Tables        map[string]map[uint]map[string]any
+	NextID        map[string]uint
+	Nodes         map[uint]*coreapi.Node
+	Logs          []string
+	NodeQueries   int
+	QueryNodesErr error
+	// Collect answers EmitCollect (request/response events); nil = no answer.
+	Collect func(action string, payload map[string]any) []string
 }
 
 func NewFakeHost() *FakeHost {
@@ -125,9 +129,26 @@ func (h *FakeHost) GetNode(_ context.Context, id uint) (*coreapi.Node, error) {
 func (h *FakeHost) QueryNodes(_ context.Context, q coreapi.NodeQuery) (*coreapi.NodeList, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	list := &coreapi.NodeList{}
-	for _, n := range h.Nodes {
-		cp := *n
+	h.NodeQueries++
+	if h.QueryNodesErr != nil {
+		return nil, h.QueryNodesErr
+	}
+	ids := make([]uint, 0, len(h.Nodes))
+	for id, n := range h.Nodes {
+		if q.Status == "" || n.Status == q.Status {
+			ids = append(ids, id)
+		}
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	list := &coreapi.NodeList{Total: int64(len(ids))}
+	if q.Offset > 0 {
+		ids = ids[min(q.Offset, len(ids)):]
+	}
+	if q.Limit > 0 && len(ids) > q.Limit {
+		ids = ids[:q.Limit]
+	}
+	for _, id := range ids {
+		cp := *h.Nodes[id]
 		list.Nodes = append(list.Nodes, &cp)
 	}
 	return list, nil
@@ -138,6 +159,13 @@ func (h *FakeHost) Log(_ context.Context, level, msg string, _ map[string]any) e
 	h.Logs = append(h.Logs, level+": "+msg)
 	h.mu.Unlock()
 	return nil
+}
+
+func (h *FakeHost) EmitCollect(_ context.Context, action string, payload map[string]any) ([]string, error) {
+	if h.Collect == nil {
+		return nil, nil
+	}
+	return h.Collect(action, roundTrip(payload)), nil
 }
 
 // --- test helpers ---

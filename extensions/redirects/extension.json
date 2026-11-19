@@ -3,7 +3,7 @@
     "slug": "redirects",
     "version": "1.0.0",
     "author": "Squilla",
-    "description": "301/302 redirects for any public URL: exact paths, prefixes and regex, with hit counts, CSV import/export and automatic redirects when a published page's URL changes.",
+    "description": "301/302 redirects for any public URL: exact paths, prefixes and regex, with hit counts, CSV import/export, automatic redirects when a published page's URL changes, and one-click fixes for broken links found by Analytics.",
     "provides": ["redirects"],
     "priority": 50,
     "auto_activate": true,
@@ -13,6 +13,7 @@
         "data:delete",
         "nodes:read",
         "events:subscribe",
+        "events:emit",
         "log:write"
     ],
     "data_owned_tables": ["redirects_rules", "redirects_config"],
@@ -26,6 +27,7 @@
         {"method": "GET", "path": "/*", "passthrough": true}
     ],
     "admin_routes": [
+        {"method": "GET", "path": "/broken-links", "required_capability": "view_analytics"},
         {"method": "*", "path": "/**", "required_capability": "manage_redirects"}
     ],
     "mcp_tools": [
@@ -57,6 +59,21 @@
             "method": "DELETE",
             "path": "/rules/{id}",
             "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Record id."}}, "required": ["id"]}
+        },
+        {
+            "name": "broken_links",
+            "description": "List addresses visitors hit that showed page not found (from the analytics extension), minus those a redirect or published page already covers, each with a suggested target page. available=false when analytics is not active. Needs the view_analytics permission.",
+            "class": "full",
+            "method": "GET",
+            "path": "/broken-links",
+            "input_schema": {"type": "object", "properties": {"days": {"type": "integer", "description": "Look-back window, 1-365. Default 30."}, "verified": {"type": "string", "description": "Set to 1 to count only visits confirmed by in-page measurement (needs it switched on in Analytics).", "enum": ["1"]}}}
+        },
+        {
+            "name": "rules.batch_create",
+            "description": "Create up to 500 redirects at once. Rules whose source already has a redirect, or that fail validation, are skipped and listed in errors.",
+            "method": "POST",
+            "path": "/rules/batch",
+            "input_schema": {"type": "object", "properties": {"rules": {"type": "array", "description": "Redirects to create.", "items": {"type": "object", "properties": {"source": {"type": "string"}, "target": {"type": "string"}, "match_type": {"type": "string", "enum": ["exact", "prefix", "regex"]}, "status_code": {"type": "integer", "description": "301, 302, 307, 308 or 410 (no target)."}, "note": {"type": "string"}}, "required": ["source"]}}}, "required": ["rules"]}
         },
         {
             "name": "test",

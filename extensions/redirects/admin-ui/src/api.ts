@@ -77,6 +77,46 @@ export const bulkRules = (ids: number[], action: "enable" | "disable" | "delete"
 export const testURL = (url: string) => request<TestResult>("POST", "/test", { url });
 export const importCSV = (csv: string, update_existing: boolean) =>
   request<ImportResult>("POST", "/import", { csv, update_existing });
+export interface BrokenLink {
+  path: string;
+  hits: number;
+  visitors: number;
+  suggestion?: { url: string; title: string };
+}
+
+/** 404 addresses reported by the analytics extension; available=false when it is not active. */
+export interface BrokenLinks {
+  available: boolean;
+  from?: string;
+  to?: string;
+  days?: number;
+  rows: BrokenLink[];
+  /** Addresses a redirect already covers. */
+  covered?: number;
+  /** Addresses a published page serves again. */
+  live?: number;
+  /** Addresses whose redirect exists but is switched off. */
+  disabled?: number;
+  /** True when more addresses exist than were scanned. */
+  truncated?: boolean;
+  /** The page list was incomplete: some addresses may be live pages, and no targets are suggested. */
+  partial?: boolean;
+  /** Analytics has in-page measurement on, so "confirmed visits" means something. */
+  confirm_available?: boolean;
+  /** Analytics answered but failed. */
+  error?: string;
+}
+
+export interface BatchResult {
+  created: number;
+  errors: { index: number; source: string; message: string }[];
+  /** Created, but the target redirects again (two hops). */
+  warnings: { index: number; source: string; message: string }[];
+}
+
+export const getBrokenLinks = (days: number, verified: boolean, countOnly = false) =>
+  request<BrokenLinks>("GET", `/broken-links?days=${days}${verified ? "&verified=1" : ""}${countOnly ? "&count_only=1" : ""}`);
+export const createRules = (rules: Partial<RuleInput>[]) => request<BatchResult>("POST", "/rules/batch", { rules });
 export const getSettings = () => request<{ auto_create: boolean }>("GET", "/settings");
 export const saveSettings = (auto_create: boolean) => request<{ auto_create: boolean }>("PUT", "/settings", { auto_create });
 

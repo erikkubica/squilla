@@ -220,6 +220,12 @@ Whatever map you pass becomes the plugin's payload (JSON-marshalled). Multiple p
 | `forms:render` | template → plugin | `{form_id, hidden?}` | rendered form HTML |
 | `forms:submitted` | plugin → world | `{form_id, form_slug, submission_id, data, metadata}` | n/a |
 
+**Reference: analytics extension events**
+
+| Event | Direction | Payload | Returns |
+|-------|-----------|---------|---------|
+| `analytics:broken_links` | extension → analytics (`EmitCollect`) | `{days?: 1-365 (30), limit?: 1-500 (100), offset?: 0-10000, verified?: bool}` | `{"source":"analytics","from","to","rows":[{"path","hits","visitors"}],"total","confirm_available"}`, most hits first; on failure `{"source":"analytics","error"}`. No answer = analytics not active. Check `source == "analytics"`: any extension can subscribe to the same name. Reachable from theme templates too, so it returns only dashboard-level data; callers that show it to users gate it (redirects' `GET /broken-links` requires `view_analytics`). |
+
 The `forms:upsert` pattern is the canonical way for a theme to ship its own forms — see `themes/hello-vietnam/scripts/theme.tengo` for a working example using `core/assets.read` to pull the layout HTML from a theme file.
 
 ### Front-end admin bar (`window.Squilla.adminBar`)

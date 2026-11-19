@@ -78,11 +78,14 @@ func normalizePath(p string) string {
 			p = "/"
 		}
 	}
-	if len(p) > 512 {
-		p = p[:512]
+	if len(p) > maxPathLen {
+		p = p[:maxPathLen]
 	}
 	return p
 }
+
+// maxPathLen caps stored paths so one crafted URL can't bloat the tables.
+const maxPathLen = 512
 
 func isHTML(contentType string) bool {
 	return strings.Contains(strings.ToLower(contentType), "text/html")

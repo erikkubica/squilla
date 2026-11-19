@@ -132,6 +132,7 @@ func (p *AnalyticsPlugin) GetSubscriptions() ([]*pb.Subscription, error) {
 	return []*pb.Subscription{
 		{EventName: eventHTTPRequests, Priority: 0},
 		{EventName: eventRenderTransform, Priority: 0},
+		{EventName: eventBrokenLinks, Priority: 0},
 	}, nil
 }
 
@@ -151,6 +152,8 @@ func (p *AnalyticsPlugin) HandleEvent(action string, payload []byte) (*pb.EventR
 		return &pb.EventResponse{Handled: true}, nil
 	case eventRenderTransform:
 		return p.handleTransform(payload), nil
+	case eventBrokenLinks:
+		return p.handleBrokenLinksEvent(payload), nil
 	}
 	return &pb.EventResponse{Handled: false}, nil
 }

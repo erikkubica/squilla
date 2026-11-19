@@ -31,6 +31,7 @@ type hostAPI interface {
 	GetNode(ctx context.Context, id uint) (*coreapi.Node, error)
 	QueryNodes(ctx context.Context, query coreapi.NodeQuery) (*coreapi.NodeList, error)
 	Log(ctx context.Context, level, message string, fields map[string]any) error
+	EmitCollect(ctx context.Context, action string, payload map[string]any) ([]string, error)
 }
 
 // Plugin holds the in-memory rule set every public request is matched
@@ -48,6 +49,7 @@ type Plugin struct {
 	autoCreate atomic.Bool
 	hits       hitCounter
 	nodeURLs   nodeURLTracker
+	pages      pageCache // published pages, for broken-link checks
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -135,6 +137,7 @@ func (p *Plugin) HandleEvent(action string, payload []byte) (*pb.EventResponse, 
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+	p.pages.invalidate()
 	switch action {
 	case "node.deleted":
 		p.nodeURLs.forget(ev.NodeID)

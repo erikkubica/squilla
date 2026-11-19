@@ -25,6 +25,10 @@ func (p *Plugin) routeAdmin(ctx context.Context, req *pb.PluginHTTPRequest) *pb.
 		return p.handleList(params)
 	case path == "rules" && method == "POST":
 		return p.handleSave(ctx, 0, body)
+	case path == "rules/batch" && method == "POST":
+		return p.handleBatchCreate(ctx, body)
+	case path == "broken-links" && method == "GET":
+		return p.handleBrokenLinks(ctx, params)
 	case path == "rules/bulk" && method == "POST":
 		return p.handleBulk(ctx, body)
 	case path == "import" && method == "POST":

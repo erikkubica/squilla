@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowRight, CornerUpRight, Download, FlaskConical, Upload } from "@squilla/icons";
+import { ArrowRight, CornerUpRight, Download, FlaskConical, Unlink, Upload } from "@squilla/icons";
 import {
   Button,
   Checkbox,
@@ -28,8 +28,9 @@ import {
   Tr,
 } from "@squilla/ui";
 import { toast } from "sonner";
-import { API, bulkRules, deleteRule, getSettings, listRules, saveSettings, updateRule, type Rule, type RuleList } from "./api";
+import { API, bulkRules, deleteRule, getBrokenLinks, getSettings, listRules, saveSettings, updateRule, type Rule, type RuleList } from "./api";
 import RuleDialog from "./RuleDialog";
+import { BrokenLinksDialog } from "./BrokenLinksDialog";
 import { ImportDialog, TestDialog } from "./ToolDialogs";
 
 const MATCH_LABEL: Record<string, string> = { prefix: "starts with", regex: "regex" };
@@ -89,6 +90,9 @@ export default function RedirectsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [brokenOpen, setBrokenOpen] = useState(false);
+  // null until known; stays null when no analytics extension answers.
+  const [brokenCount, setBrokenCount] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<{ ids: number[]; label: string } | null>(null);
   const [working, setWorking] = useState(false);
 
@@ -110,6 +114,14 @@ export default function RedirectsPage() {
     load();
     setSelected(new Set());
   }, [load]);
+
+  const loadBrokenCount = useCallback(() => {
+    // Hidden when analytics is off or the user may not see analytics (403).
+    getBrokenLinks(30, false, true)
+      .then((b) => setBrokenCount(b.available ? (b.error ? 0 : b.rows.length) : null))
+      .catch(() => setBrokenCount(null));
+  }, []);
+  useEffect(loadBrokenCount, [loadBrokenCount]);
 
   useEffect(() => {
     getSettings()
@@ -195,6 +207,23 @@ export default function RedirectsPage() {
         onNew={openNew}
         extra={
           <>
+            {brokenCount !== null && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBrokenOpen(true)}
+                title="Addresses that showed “page not found” in the last 30 days, from Analytics"
+                aria-label={brokenCount > 0 ? `Broken links: ${brokenCount} to fix` : "Broken links"}
+              >
+                <Unlink className="h-4 w-4" aria-hidden="true" />
+                Broken links
+                {brokenCount > 0 && (
+                  <span data-slot="count" style={{ background: "var(--warning-bg)", color: "var(--warning)" }} aria-hidden="true">
+                    {brokenCount}
+                  </span>
+                )}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setTestOpen(true)}>
               <FlaskConical className="h-4 w-4" aria-hidden="true" />
               Test a URL
@@ -368,9 +397,25 @@ export default function RedirectsPage() {
         label="redirects"
       />
 
-      <RuleDialog open={formOpen} rule={editing} onClose={() => setFormOpen(false)} onSaved={load} />
+      <RuleDialog open={formOpen} rule={editing} onClose={() => setFormOpen(false)} onSaved={() => {
+          load();
+          loadBrokenCount();
+        }}
+      />
       <TestDialog open={testOpen} onClose={() => setTestOpen(false)} />
-      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onImported={load} />
+      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onImported={() => {
+          load();
+          loadBrokenCount();
+        }}
+      />
+      <BrokenLinksDialog
+        open={brokenOpen}
+        onClose={() => {
+          setBrokenOpen(false);
+          loadBrokenCount();
+        }}
+        onCreated={load}
+      />
 
       <Dialog open={!!confirm} onOpenChange={(o: boolean) => !o && setConfirm(null)}>
         <DialogContent>
