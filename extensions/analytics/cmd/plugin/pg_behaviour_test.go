@@ -86,13 +86,23 @@ func TestPostgresBehaviour(t *testing.T) {
 		{"ts": t0.Add(70 * time.Second), "eid": cEvent.EID, "session_id": cEvent.SessionID, "path": "/tours", "kind": "dwell", "value": "60"},
 		{"ts": t0.Add(80 * time.Second), "eid": cEvent.EID, "session_id": cEvent.SessionID, "path": "/tours", "kind": "end"},
 		{"ts": t0.Add(15 * time.Second), "eid": cEvent.EID, "session_id": cEvent.SessionID, "path": "/tours", "kind": "click", "block_key": "bv-hero.0", "value": "i", "dest": "/contact"},
+		// The same view clicks the same link again, and a menu link.
+		{"ts": t0.Add(16 * time.Second), "eid": cEvent.EID, "session_id": cEvent.SessionID, "path": "/tours", "kind": "click", "block_key": "bv-hero.0", "value": "i", "dest": "/contact"},
+		{"ts": t0.Add(17 * time.Second), "eid": cEvent.EID, "session_id": cEvent.SessionID, "path": "/tours", "kind": "click", "block_key": "n", "value": "i", "dest": "/about"},
+	}
+	// Four more views see the FAQ (5 in all) and click nothing.
+	for k := 0; k < 4; k++ {
+		rows = append(rows, map[string]any{"ts": t0.Add(time.Duration(20+k) * time.Second), "eid": "faq-viewer-" + string(rune('a'+k)),
+			"path": "/tours", "kind": "section", "block_key": "bv-faq.0"})
 	}
 	if _, err := p.host.DataCall(ctx, "analytics_ingest_interactions", rows); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := p.host.DataCall(ctx, "analytics_upsert_outline", "/tours", "h1", []map[string]any{
-		{"kind": "block", "block_key": "bv-hero.0", "label": "Hero"},
-		{"kind": "link", "block_key": "bv-hero.0", "label": "Book", "href": "/contact"},
+		{"kind": "block", "block_key": "bv-hero.0", "label": "Hero", "pos": 0},
+		{"kind": "block", "block_key": "bv-faq.0", "label": "Questions", "pos": 1},
+		{"kind": "link", "block_key": "bv-hero.0", "label": "", "href": "/contact", "pos": 0}, // icon link first
+		{"kind": "link", "block_key": "bv-hero.0", "label": "Book", "href": "/contact", "pos": 1},
 		{"kind": "link", "block_key": "bv-faq.0", "label": "Nobody", "href": "/never"},
 		{"kind": "link", "block_key": "bv-faq.0", "label": "Nobody again", "href": "/never"}, // same link twice in a block
 	}); err != nil {
@@ -140,12 +150,30 @@ func TestPostgresBehaviour(t *testing.T) {
 	if len(blocks) != 2 || len(links) != 2 {
 		t.Errorf("blocks/links %v / %v", blocks, links)
 	}
-	if first, _ := links[0].(map[string]any); first["href"] != "/contact" || first["clicks"] != 1.0 {
+	if first, _ := links[0].(map[string]any); first["href"] != "/contact" || first["clicks"] != 2.0 || first["label"] != "Book" || first["section"] != "Hero" {
 		t.Errorf("links %v", links)
 	}
+	if b0, _ := blocks[0].(map[string]any); b0["label"] != "Hero" || b0["clicked"] != 1.0 {
+		t.Errorf("blocks must be in page order with clicked views: %v", blocks)
+	}
 	_, ck := doRequest(p, "GET", "/clicks", nil, "")
-	if tot, _ := ck["totals"].(map[string]any); tot["sections_seen"] != 2.0 || tot["clicks"] != 1.0 {
-		t.Errorf("clicks %v", ck)
+	tot, _ := ck["totals"].(map[string]any)
+	if tot["sections_seen"] != 6.0 || tot["clicks"] != 3.0 || tot["clicking_views"] != 1.0 || tot["views"] != 5.0 || tot["nav_clicks"] != 1.0 {
+		t.Errorf("clicks totals %v", tot)
+	}
+	cl, _ := ck["links"].([]any)
+	if top, _ := cl[0].(map[string]any); len(cl) != 2 || top["text"] != "Book" || top["section"] != "Hero" || top["clicks"] != 2.0 || top["views"] != 1.0 || top["nav"] != false {
+		t.Errorf("click links %v", cl)
+	}
+	for _, raw := range ck["sections"].([]any) {
+		sec := raw.(map[string]any)
+		if sec["block_key"] == "bv-hero.0" && (sec["seen"] != 1.0 || sec["clicked"] != 1.0 || sec["clicks"] != 2.0) {
+			t.Errorf("hero section %v: clicked counts views, not clicks", sec)
+		}
+	}
+	ig, _ := ck["ignored"].([]any)
+	if len(ig) != 1 || ig[0].(map[string]any)["dest"] != "/never" || ig[0].(map[string]any)["seen"] != 5.0 || ig[0].(map[string]any)["section"] != "Questions" {
+		t.Errorf("ignored %v", ig)
 	}
 	if resp, _ := doRequest(p, "GET", "/page", nil, ""); resp.StatusCode != 400 {
 		t.Errorf("page without path = %d", resp.StatusCode)

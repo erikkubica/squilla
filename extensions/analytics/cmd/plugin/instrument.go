@@ -28,6 +28,7 @@ const maxSections = 40
 type section struct {
 	K       int    // value of data-sq-b
 	Key     string // block key shared by all elements of one block
+	Label   string // first heading (h1–h4) of the block, or its aria-label
 	Layout  bool
 	Form    bool
 	Details bool
@@ -182,7 +183,20 @@ func instrument(src string, o instrumentOpts) *instrumented {
 		curLink           = -1
 		hiddenDepth       = -1 // inside an aria-hidden subtree (icons): not part of a link label
 		sections          = 0
+		labels            = map[string]string{} // block key → heading text
+		headKey           string                // block key whose heading is being read
+		headDepth         = -1
 	)
+	// sectionKey is the measured section the cursor is in ("" outside one).
+	sectionKey := func() string {
+		switch {
+		case blockKey != "":
+			return blockKey
+		case partial != "":
+			return "p." + partial
+		}
+		return layoutKey
+	}
 	zone := func() string {
 		switch {
 		case blockKey != "":
@@ -266,6 +280,11 @@ func instrument(src string, o instrumentOpts) *instrumented {
 				if key == "" {
 					key = "p." + partial
 				}
+				if labels[key] == "" && tag != "a" && tag != "details" {
+					if v, ok := attrValue(z, "aria-label"); ok {
+						labels[key] = clipLabel(v)
+					}
+				}
 				if sections < maxSections {
 					curSection = newSection(key, blockKey == "")
 					extra = append(extra, `data-sq-b="`+strconv.Itoa(curSection)+`"`)
@@ -280,6 +299,14 @@ func instrument(src string, o instrumentOpts) *instrumented {
 				}
 			}
 			switch tag {
+			case "br":
+				if headDepth >= 0 {
+					labels[headKey] += " "
+				}
+			case "h1", "h2", "h3", "h4":
+				if k := sectionKey(); k != "" && strings.TrimSpace(labels[k]) == "" && headDepth < 0 && tt == html.StartTagToken {
+					headKey, headDepth = k, len(stack)
+				}
 			case "form":
 				if curSection >= 0 {
 					res.Sections[curSection].Form = true
@@ -327,11 +354,19 @@ func instrument(src string, o instrumentOpts) *instrumented {
 			if hiddenDepth >= 0 && len(stack) <= hiddenDepth {
 				hiddenDepth = -1
 			}
+			if headDepth >= 0 && len(stack) <= headDepth {
+				headKey, headDepth = "", -1
+			}
 			if tag == "a" {
 				curLink = -1
 			}
 			out.Write(raw)
 		case html.TextToken:
+			// Raw text, so "Build <span>this</span>." keeps its spacing;
+			// clipped once at the end.
+			if headDepth >= 0 && hiddenDepth < 0 && len(labels[headKey]) < 400 {
+				labels[headKey] += string(z.Text())
+			}
 			if curLink >= 0 && hiddenDepth < 0 {
 				l := &res.Links[curLink]
 				if len(l.Label) < 80 {
@@ -348,12 +383,23 @@ func instrument(src string, o instrumentOpts) *instrumented {
 	}
 	res.HTML = out.String()
 	h := sha256.New()
-	for _, s := range res.Sections {
-		h.Write([]byte("s|" + s.Key + "\n"))
+	for i := range res.Sections {
+		res.Sections[i].Label = clipLabel(labels[res.Sections[i].Key])
+		h.Write([]byte("s|" + res.Sections[i].Key + "|" + res.Sections[i].Label + "\n"))
 	}
 	for _, l := range res.Links {
 		h.Write([]byte("l|" + l.Block + "|" + l.Dest + "|" + l.Label + "\n"))
 	}
 	res.Hash = hex.EncodeToString(h.Sum(nil))[:16]
 	return res
+}
+
+// clipLabel collapses whitespace and cuts a label to 80 characters on a
+// rune boundary.
+func clipLabel(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if r := []rune(s); len(r) > 80 {
+		return strings.TrimSpace(string(r[:80])) + "…"
+	}
+	return s
 }

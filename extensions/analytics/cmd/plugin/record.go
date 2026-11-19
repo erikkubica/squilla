@@ -84,6 +84,8 @@ type Event struct {
 	ServerMS     int       `json:"server_ms"`
 	Spec         string    `json:"spec"`
 	Cached       bool      `json:"cached"`
+	// Search is the on-site search term of a pageview (see searchTerm).
+	Search string `json:"search"`
 }
 
 // Event kinds.

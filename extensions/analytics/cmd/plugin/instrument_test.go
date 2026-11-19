@@ -223,3 +223,30 @@ func TestGenerateE2EFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestInstrumentLabelsSectionsByHeading(t *testing.T) {
+	page := `<html><body><main>
+<!--sqx:b:0:bv-hero--><section><p>kicker</p><h1>Find your <em>tour</em><br>now<span aria-hidden="true">star</span>.</h1><h2>second</h2><a href="/t">Go</a></section><!--sqx:/b-->
+<!--sqx:b:1:bv-faq--><section aria-label="Questions people ask"><h2>FAQ</h2></section><!--sqx:/b-->
+<!--sqx:b:2:bv-cards--><div><a href="/a">A</a></div><!--sqx:/b-->
+<!--sqx:b:3:bv-long--><section><h3>` + strings.Repeat("word ", 30) + `</h3></section><!--sqx:/b-->
+</main></body></html>`
+	res := instrument(page, testOpts())
+	if res == nil {
+		t.Fatal("nil result")
+	}
+	got := map[string]string{}
+	for _, s := range res.Sections {
+		got[s.Key] = s.Label
+	}
+	if got["bv-hero.0"] != "Find your tour now." || got["bv-faq.0"] != "Questions people ask" || got["bv-cards.0"] != "" {
+		t.Errorf("labels = %q", got)
+	}
+	if l := got["bv-long.0"]; !strings.HasSuffix(l, "…") || len([]rune(l)) != 80 {
+		t.Errorf("long label = %q (%d runes)", l, len([]rune(l)))
+	}
+	other := instrument(strings.Replace(page, "Find your", "Pick a", 1), testOpts())
+	if other.Hash == res.Hash {
+		t.Error("a changed heading must change the outline hash")
+	}
+}

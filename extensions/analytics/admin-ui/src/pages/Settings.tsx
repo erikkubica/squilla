@@ -6,6 +6,7 @@ import { ErrorNote, Skeleton } from "../components/Panel";
 import { useAsync } from "../hooks/useAsync";
 import { useHashScroll } from "../hooks/useHashScroll";
 import { PrivacyFaq } from "./settings/PrivacyExplainer";
+import { ResetPanel } from "./settings/ResetPanel";
 import { SettingsForm } from "./settings/SettingsForm";
 import { StatusBanner } from "./settings/StatusPanel";
 
@@ -25,6 +26,10 @@ const DEFAULTS: AnalyticsSettings = {
   download_extensions: [],
   own_hosts: [],
   geoip_db_path: "",
+  recordings: false,
+  recording_sample: 100,
+  recording_consent: false,
+  recording_retention_days: 30,
 };
 
 /** Fill gaps (null arrays, missing keys) so the form is always controlled. */
@@ -70,6 +75,9 @@ export default function AnalyticsSettingsPage() {
                 }}
               />
             )}
+            <div className="mt-4">
+              <ResetPanel onDone={() => status.reload(true)} />
+            </div>
           </div>
           <aside className="min-w-0" aria-label="Questions and answers">
             <PrivacyFaq prefix={current?.beacon_prefix} />

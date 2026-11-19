@@ -27,6 +27,7 @@ export const DIM_LABELS: Record<BreakdownDim | FilterDim, string> = {
   goal: "Goal",
   viewport: "Screen size",
   color_scheme: "Light or dark mode",
+  search: "Search term",
   verified: "Visits",
 };
 

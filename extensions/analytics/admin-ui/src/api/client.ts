@@ -1,10 +1,10 @@
 // Tiny typed client for /admin/api/ext/analytics/ (contract: §2.4).
 import type {
+  RecInsights, SearchStats, Funnel, FunnelStats,
   AnalyticsSettings, BotsResponse, BreakdownDim, BreakdownResponse, ExportDataset, ExportFormat,
   Goal, GoalInput, GoalStatsResponse, HeatmapResponse, Interval, LinkInput, RealtimeResponse,
   BehaviourSummary, ClicksResponse, ExitStats, PageInsightsResponse,
-  StatusResponse, SummaryResponse, TimeseriesResponse, TrackedLink,
-} from "./types";
+  StatusResponse, SummaryResponse, TimeseriesResponse, TrackedLink, HotspotsResponse, Recording, RecordingList, ResetScope } from "./types";
 
 export const API_BASE = "/admin/api/ext/analytics/";
 
@@ -132,6 +132,19 @@ export const api = {
   settings: (signal?: AbortSignal) => get<AnalyticsSettings>("settings", undefined, signal),
   saveSettings: (s: AnalyticsSettings) => request<AnalyticsSettings>("PUT", "settings", { body: s }),
   status: (signal?: AbortSignal) => get<StatusResponse>("status", undefined, signal),
+
+  recordings: (q: URLSearchParams, signal?: AbortSignal) => get<RecordingList>("recordings", q, signal),
+  recording: (pid: string, signal?: AbortSignal) => get<Recording>(`recordings/${encodeURIComponent(pid)}`, undefined, signal),
+  funnels: (signal?: AbortSignal) => get<{ rows: Funnel[] }>("funnels", undefined, signal).then((r) => r.rows),
+  createFunnel: (f: Omit<Funnel, "id">) => request<Funnel>("POST", "funnels", { body: f }),
+  updateFunnel: (id: number, f: Omit<Funnel, "id">) => request<Funnel>("PUT", `funnels/${id}`, { body: f }),
+  deleteFunnel: (id: number) => request<unknown>("DELETE", `funnels/${id}`),
+  funnelStats: (id: number, q: URLSearchParams, signal?: AbortSignal) => get<FunnelStats>(`funnels/${id}/stats`, q, signal),
+  search: (q: URLSearchParams, signal?: AbortSignal) => get<SearchStats>("search", q, signal),
+  recordingInsights: (q: URLSearchParams, signal?: AbortSignal) => get<RecInsights>("recordings/insights", q, signal),
+  deleteRecordings: (ids: string[]) => request<{ deleted: number }>("POST", "recordings/delete", { body: { ids } }),
+  hotspots: (q: URLSearchParams, signal?: AbortSignal) => get<HotspotsResponse>("hotspots", q, signal),
+  reset: (scope: ResetScope) => request<{ reset: string }>("POST", "reset", { body: { scope, confirm: scope } }),
 };
 
 /** List endpoints: accept a bare array or `{rows: [...]}` (contract leaves the envelope open). */

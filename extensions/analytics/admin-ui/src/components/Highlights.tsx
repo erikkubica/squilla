@@ -25,6 +25,31 @@ const ICONS: Record<InsightIcon, ComponentType<{ "aria-hidden"?: "true" }>> = {
   engaged: MousePointerClick,
 };
 
+/** A list of findings, as on the Overview. */
+export function InsightList({ items, cols }: { items: Insight[]; cols?: 2 }) {
+  return (
+    <ul className="an-insights" data-cols={cols}>
+      {items.map((x) => {
+        const Icon = ICONS[x.icon];
+        return (
+          <li key={x.id} className="an-insight" data-tone={x.tone}>
+            <span className="an-insight-icon"><Icon aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <p className="an-insight-text"><Parts parts={x.parts} /></p>
+              {x.link && (
+                <Link to={x.link.to} className="an-insight-link an-focus">
+                  {x.link.label}
+                  <ArrowRight className="size-3.5" aria-hidden="true" />
+                </Link>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function Parts({ parts }: { parts: Part[] }) {
   return <>{parts.map((p, i) => (typeof p === "string" ? <span key={i}>{p}</span> : <strong key={i}>{p.b}</strong>))}</>;
 }
@@ -108,25 +133,7 @@ export function Highlights({ input }: { input: InsightInput | null }) {
       ) : items.length === 0 ? (
         <p className="px-4 py-8 text-center text-sm text-an-muted">Nothing unusual. Check back when more people have visited.</p>
       ) : (
-        <ul className="an-insights" data-cols="2">
-          {items.map((x) => {
-            const Icon = ICONS[x.icon];
-            return (
-              <li key={x.id} className="an-insight" data-tone={x.tone}>
-                <span className="an-insight-icon"><Icon aria-hidden="true" /></span>
-                <div className="min-w-0">
-                  <p className="an-insight-text"><Parts parts={x.parts} /></p>
-                  {x.link && (
-                    <Link to={x.link.to} className="an-insight-link an-focus">
-                      {x.link.label}
-                      <ArrowRight className="size-3.5" aria-hidden="true" />
-                    </Link>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <InsightList items={items} cols={2} />
       )}
     </Panel>
   );

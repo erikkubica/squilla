@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -25,6 +26,14 @@ func (p *AnalyticsPlugin) routeRequest(ctx context.Context, req *pb.PluginHTTPRe
 	}
 	if raw == "/_s/optout" || raw == p.config().BeaconPrefix+"/optout" {
 		return p.handleOptOut(req)
+	}
+	for _, pre := range []string{"/_s", p.config().BeaconPrefix} {
+		switch raw {
+		case pre + "/r.js":
+			return recScriptResponse()
+		case pre + "/r":
+			return p.handleRecord(req)
+		}
 	}
 	for _, pre := range []string{"/_s/", p.config().BeaconPrefix + "/"} {
 		if rest, ok := strings.CutPrefix(raw, pre); ok && len(rest) == 1 {
@@ -57,11 +66,56 @@ func (p *AnalyticsPlugin) routeRequest(ctx context.Context, req *pb.PluginHTTPRe
 		return p.handleSaveLink(ctx, 0, req.GetBody())
 	case path == "export" && method == "GET":
 		return p.handleExport(ctx, params)
+	case path == "recordings" && method == "GET":
+		return p.handleRecordingList(ctx, params)
+	case path == "recordings/delete" && method == "POST":
+		var in struct {
+			IDs []string `json:"ids"`
+		}
+		if json.Unmarshal(req.GetBody(), &in) != nil {
+			return jsonError(400, "INVALID_JSON", "invalid body")
+		}
+		return p.handleRecordingDelete(ctx, in.IDs)
+	case path == "funnels" && method == "GET":
+		return p.handleListFunnels(ctx)
+	case path == "funnels" && method == "POST":
+		return p.handleSaveFunnel(ctx, 0, req.GetBody())
+	case path == "search" && method == "GET":
+		return p.handleSearchStats(ctx, params)
+	case path == "recordings/insights" && method == "GET":
+		return p.handleRecordingInsights(ctx, params)
+	case path == "hotspots" && method == "GET":
+		return p.handleHotspots(ctx, params)
+	case path == "reset" && method == "POST":
+		return p.handleReset(ctx, req.GetBody())
+	}
+	if pid, ok := strings.CutPrefix(path, "recordings/"); ok {
+		switch method {
+		case "GET":
+			return p.handleRecordingGet(ctx, pid)
+		case "DELETE":
+			return p.handleRecordingDelete(ctx, []string{pid})
+		}
 	}
 
 	if method == "GET" {
 		if resp, ok := p.routeStats(ctx, path, params); ok {
 			return resp
+		}
+	}
+
+	if rest, ok := strings.CutPrefix(path, "funnels/"); ok {
+		idPart, stats := strings.CutSuffix(rest, "/stats")
+		id, err := strconv.ParseInt(idPart, 10, 64)
+		if err == nil && id > 0 {
+			switch {
+			case stats && method == "GET":
+				return p.handleFunnelStats(ctx, id, params)
+			case !stats && method == "PUT":
+				return p.handleSaveFunnel(ctx, id, req.GetBody())
+			case !stats && method == "DELETE":
+				return p.handleDeleteFunnel(ctx, id)
+			}
 		}
 	}
 

@@ -2,6 +2,7 @@ import { api } from "../api/client";
 import { PageShell } from "../components/PageShell";
 import { useAsync } from "../hooks/useAsync";
 import { useViewState } from "../hooks/useViewState";
+import { FunnelsPanel } from "./goals/FunnelsPanel";
 import { GoalsPanel } from "./goals/GoalsPanel";
 import { LinksPanel } from "./goals/LinksPanel";
 
@@ -37,6 +38,7 @@ export default function AnalyticsGoals() {
           onAutoOpened={clearNew}
           onChanged={refresh}
         />
+        <FunnelsPanel vm={vm} goals={goals.data ?? []} />
         <LinksPanel links={links.data} error={links.error} onChanged={refresh} />
       </div>
     </PageShell>

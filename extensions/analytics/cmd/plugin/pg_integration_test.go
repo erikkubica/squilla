@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -40,7 +41,7 @@ func TestPostgresEndToEnd(t *testing.T) {
 			}
 		}
 	}
-	db.Exec("TRUNCATE analytics_events, analytics_interactions, analytics_visits, analytics_page_elements, analytics_daily, analytics_bots_daily, analytics_goals, analytics_links, analytics_config RESTART IDENTITY")
+	db.Exec("TRUNCATE analytics_events, analytics_interactions, analytics_visits, analytics_page_elements, analytics_daily, analytics_bots_daily, analytics_goals, analytics_links, analytics_config, analytics_funnels RESTART IDENTITY")
 
 	api := coreapi.NewCoreImpl(db, nil, nil, nil, nil, nil, nil, nil)
 	host := ctxHost{api}
@@ -60,6 +61,7 @@ func TestPostgresEndToEnd(t *testing.T) {
 		r := browserRecord(path)
 		r.TS = now.Add(time.Duration(i-5) * time.Minute)
 		r.Referer = map[int]string{0: "https://www.google.com/"}[i]
+		r.Query = map[int]string{1: "q=Old+Quarter"}[i]
 		recs = append(recs, r)
 	}
 	submit := browserRecord("/forms/submit/contact")
@@ -103,6 +105,47 @@ func TestPostgresEndToEnd(t *testing.T) {
 		if resp, _ := doRequest(p, "GET", path, nil, ""); resp.StatusCode != 200 {
 			t.Errorf("%s: %s", path, resp.Body)
 		}
+	}
+	_, ss := doRequest(p, "GET", "/search", nil, "")
+	terms, _ := ss["terms"].([]any)
+	if st, _ := ss["totals"].(map[string]any); st["searches"] != 1.0 || len(terms) != 1 ||
+		terms[0].(map[string]any)["term"] != "old quarter" || terms[0].(map[string]any)["top_next"] != "/tours/old-quarter" {
+		t.Errorf("search stats %v", ss)
+	}
+	_, sb := doRequest(p, "GET", "/breakdown/search", nil, "")
+	if rows := sb["rows"].([]any); len(rows) != 1 || rows[0].(map[string]any)["value"] != "old quarter" {
+		t.Errorf("search breakdown %v", sb)
+	}
+	if resp, _ := doRequest(p, "POST", "/funnels", nil, `{"name":"x","steps":[{"kind":"page","value":"/"}]}`); resp.StatusCode != 422 && resp.StatusCode != 400 {
+		t.Errorf("one-step funnel = %d", resp.StatusCode)
+	}
+	if resp, _ := doRequest(p, "POST", "/funnels", nil, `{"name":"x","steps":[{"kind":"page","value":"/"},{"kind":"goal","value":"999"}]}`); resp.StatusCode == 200 {
+		t.Error("funnel with an unknown goal accepted")
+	}
+	_, fn := doRequest(p, "POST", "/funnels", nil, `{"name":"Book","steps":[{"kind":"page","value":"/"},{"kind":"page","value":"/Tours/*","label":"A tour"},{"kind":"goal","value":"1"}]}`)
+	_, fs := doRequest(p, "GET", fmt.Sprintf("/funnels/%v/stats", fn["id"]), nil, "")
+	stats, _ := fs["stats"].(map[string]any)
+	fsteps, _ := stats["steps"].([]any)
+	reached := []any{}
+	for _, x := range fsteps {
+		reached = append(reached, x.(map[string]any)["reached"])
+	}
+	if fmt.Sprint(reached) != "[1 1 1]" {
+		t.Errorf("funnel reached = %v (%v)", reached, fs)
+	}
+	_, fn2 := doRequest(p, "POST", "/funnels", nil, `{"name":"Pricing","steps":[{"kind":"page","value":"/"},{"kind":"page","value":"/pricing"}]}`)
+	_, fs2 := doRequest(p, "GET", fmt.Sprintf("/funnels/%v/stats", fn2["id"]), nil, "")
+	st2 := fs2["stats"].(map[string]any)["steps"].([]any)
+	next, _ := st2[0].(map[string]any)["next"].([]any)
+	if st2[1].(map[string]any)["reached"] != 0.0 || len(next) != 1 || next[0].(map[string]any)["path"] != "/tours" {
+		t.Errorf("funnel drop-off = %v", st2)
+	}
+	_, fl := doRequest(p, "GET", "/funnels", nil, "")
+	if rows, _ := fl["rows"].([]any); len(rows) != 2 || rows[0].(map[string]any)["steps"].([]any)[1].(map[string]any)["value"] != "/tours/*" {
+		t.Errorf("funnels = %v", fl)
+	}
+	if resp, _ := doRequest(p, "DELETE", fmt.Sprintf("/funnels/%v", fn2["id"]), nil, ""); resp.StatusCode != 200 {
+		t.Errorf("delete funnel = %d", resp.StatusCode)
 	}
 	_, rt := doRequest(p, "GET", "/realtime", nil, "")
 	if len(rt["per_minute"].([]any)) != 30 || rt["pageviews_30m"] != 4.0 {

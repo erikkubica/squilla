@@ -26,7 +26,7 @@ var breakdownDims = []string{
 	"page", "entry_page", "exit_page", "source", "channel", "referrer",
 	"utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
 	"country", "language", "device", "browser", "os", "page_type",
-	"not_found", "download", "outbound", "goal", "viewport", "color_scheme",
+	"not_found", "download", "outbound", "goal", "viewport", "color_scheme", "search",
 }
 
 func isBreakdownDim(d string) bool {

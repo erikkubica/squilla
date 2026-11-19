@@ -90,6 +90,8 @@ Detection runs in this order:
 - Query strings are never stored.
   - Only `utm_source`/`medium`/`campaign`/`content`/`term` (with `ref`, `source` and `via` as source fallbacks) are extracted.
   - Click IDs (`gclid`, `gbraid`, `wbraid`, `msclkid`, `fbclid`, `ttclid`) are stored only as *present yes/no*.
+  - The site search term (`q`, `s`, `search`, `query`, `keyword(s)`, `term`, `k`) is stored lower-cased and cut to 80 characters. A term with an `@` or a number of 7+ digits (email, phone, card or ID numbers) is dropped.
+- **Everything is first-party.** Data is processed by your own server and stored in your own database: no third-party script, no analytics vendor, no transfer outside your hosting (so no US transfer, no vendor DPA, no cross-site profile).
 - **Global Privacy Control** (`Sec-GPC: 1`, setting *respect GPC*): these requests get no visitor or session ID and are counted in aggregate only. Each visit that starts a session counts as one visitor. They also receive no in-page signal markup at all.
 - **Opt-out**: `/_s/optout` sets one cookie, `analytics_optout` (declared in the manifest as `observe_cookies` / `public_route_cookies`; the kernel only passes cookies that start with the extension's slug and never the session cookie). Opted-out browsers are not measured and get no signal markup.
 - **Midnight carry-over**: the previous day's salt stays in memory for one session timeout, so a visit open at midnight is not cut in two. It is never written anywhere.
@@ -141,8 +143,9 @@ never send a signal.
 While the extension is active, the site's MCP endpoint exposes every report as
 `ext.analytics.*` (declared under `mcp_tools` in `extension.json`): `summary`,
 `timeseries`, `breakdown`, `heatmap`, `bots`, `goals.stats`, `behaviour`,
-`exits`, `clicks`, `page`, `realtime`, `status`, `export`, plus
-`settings.get/update`, `goals.*` and `links.*`. Read tools need a token whose
+`exits`, `clicks`, `page`, `realtime`, `status`, `export`, `site_search`,
+`funnels`, `funnel_stats`, `recordings`, `recording_insights`, `hotspots`, plus
+`settings.get/update`, `goals.*`, `funnels.create/delete` and `links.*`. Read tools need a token whose
 owner has *View Analytics*; the mutating ones need a `full` token and *Manage
 Analytics*. They take the same `from`, `to`, `compare` and `f.<dimension>`
 parameters as the dashboard.
@@ -203,6 +206,97 @@ strictly anonymous audience measurement from consent when visitors are
 informed and can opt out. This mode is built for that: add the privacy-notice
 paragraph shown under Settings and link to `/_s/optout`. Other regulators may
 differ; check yours before enabling it.
+
+## Session recordings and heatmaps (opt-in, JavaScript)
+
+`recordings: true` adds `<prefix>/r.js` (~4 KB, hashed URL, cached for a year) to public pages. It samples cursor,
+scroll, clicks (CSS selector + link URL), form focus/submit, tab visibility and page exit at 10 Hz and posts a batch
+once a second to `<prefix>/r` (`fetch` with `keepalive`, `credentials: 'omit'`). It never sends page text, input
+values, keystrokes, query strings or cookies, stops after 30 minutes on one page, and does nothing in frames, under
+automation, or with Do Not Track / Global Privacy Control. `recording_sample` records a share of page views;
+`recording_retention_days` (default 30) purges nightly.
+
+The collector (`recorder.go`) checks origin and host, drops bots, opted-out and GPC/DNT visitors, validates every
+event, caps each page view (4000 batches / 4 MB) and each visitor (150 batches a minute), and links the recording
+to the analytics page view and visit. Rows live in `analytics_rec_views` / `analytics_rec_chunks`.
+
+Admin → Analytics → **Recordings**: a list (page, device, length, clicks, scroll depth, how the visit ended), a
+player that replays the visit over the live page in a same-origin frame (cursor, clicks, rage clicks, idle skipping,
+1–8× speed, the other pages of the visit), and **Heatmaps** per page and device: clicks, cursor, scroll reach and
+attention. Replays show the page as it is today.
+
+The script also reports frustration and speed: **rage clicks** (3 clicks within 1 s and 30 px), **dead clicks**
+(a click on a non-interactive element with no DOM change, scroll or navigation within 1 s), **JavaScript errors**
+(message, file name and line only; at most 20 per page) and **Core Web Vitals** measured in the visitor's browser
+(LCP, CLS, INP, TTFB, FCP). They are summed onto `analytics_rec_views` at ingest. **Recordings → Frustration &
+speed** (`GET /recordings/insights`) shows the share of recordings with each signal, quick backs and excessive
+scrolling, the elements and error messages behind them, and 75th-percentile vitals per page rated by Google's
+thresholds. The list filters by signal, channel, country, landing page and converted visits.
+
+Privacy: recordings are the only part that runs JavaScript. They stay first-party and capture nothing personal,
+which most regulators accept under legitimate interest, but a strict reading of ePrivacy Art. 5(3) (e.g. §25 TDDDG
+in Germany) requires consent for any script that reads device details. Settings shows a ready privacy-page
+paragraph and says so plainly.
+
+Consent mode (`recording_consent: true`): for sites that want consent under a strict ePrivacy reading. The script
+loads but records nothing until the consent tool runs `window.squillaRecordingConsent = true;
+window.dispatchEvent(new Event('squilla:recording-consent'))`. Everything else (server-side counting, in-page
+signals) still needs no consent.
+
+Masking: wrap anything sensitive in `data-sq-private` — clicks inside it are kept as a position only (no selector,
+no link target) and its links fire no hover events. A whole page opts out with `<meta name="squilla-recording"
+content="off">` or `<html data-sq-norecord>` (checkout, account and health pages).
+
+Never measured: signed-in users are never recorded (whatever `exclude_logged_in` says), and the admin's own replay
+and heatmap frames (`?sq_replay=1`, or an iframe embedded by an `/admin` page) are dropped from page views, in-page
+signals and recordings.
+
+## Site search
+
+Page views with a search parameter (see *Privacy model*) store the normalised term in `analytics_events.search`.
+`breakdown/search` ranks terms like any dimension (rolled up daily), and `GET /search` (Pages → **Site search**)
+adds the share of visits that searched, and per term how often the visit ended on the results ("left"), the next
+page was another search ("searched again"), and the page people usually opened next.
+
+## Funnels
+
+Goals → **Funnels**: 2–10 ordered steps, each a page glob (`/tours/*`) or a goal. A visit counts for a step when it
+reaches it after the previous ones (other pages in between are fine). `GET /funnels/{id}/stats` walks every visit
+in the period (`analytics__funnel_walk`): visits per step, drop-off, median time from step 1, where the visits that
+stopped at a step went next (or left), and completion per device. Funnels are computed from stored visits, so a new
+funnel works on past data too.
+
+## Compared with Google Analytics, Hotjar and Microsoft Clarity
+
+| Feature | Here | Notes |
+|---|---|---|
+| Visitors, visits, page views, real time | ✅ | Counted on the server, so ad blockers can't hide visits. Bots and AI crawlers are reported separately. |
+| Sources, channels, campaigns (utm), referrers | ✅ | Click IDs are kept only as present yes/no. |
+| Landing/exit pages, 404s, downloads, outbound links | ✅ | |
+| Goals / conversions, tracked links | ✅ | Page, request (e.g. form POST) and link goals. |
+| Funnels | ✅ | Ordered pages/goals, drop-off, where people went instead. |
+| Site search terms | ✅ | Emails and phone numbers dropped. |
+| Engagement: scroll depth, time on page, clicks per section | ✅ | Without JavaScript (CSS/HTML signals). |
+| Session replay, click/scroll/attention heatmaps | ✅ | Opt-in script, first-party, no text or input captured. |
+| Rage clicks, dead clicks, JS errors, quick backs | ✅ | Clarity-style insights. |
+| Core Web Vitals from real visitors | ✅ | LCP, INP, CLS, TTFB, FCP at p75. |
+| Server response time per page | ✅ | Measured where GA can't see it. |
+| AI assistant access | ✅ | Every report as an MCP tool. |
+| Returning users, retention cohorts, cross-device users | ❌ by design | Needs a lasting identifier (cookie or fingerprint), so it can't work without consent. Visitors are counted once per day. |
+| Demographics and interests | ❌ by design | Comes from ad-network profiles. |
+| Surveys and feedback widgets | — | Not built in. Use a form (the forms extension) and a goal. |
+| Ads integrations (Google Ads audiences, remarketing) | ❌ by design | That would mean sending data to third parties. |
+
+Where this is better than the hosted tools: nothing leaves your server (no US transfer, no vendor DPA, no tracker
+for ad blockers to block), page views are counted even when JavaScript is off or blocked, and it needs no cookie banner.
+The one exception is session recordings, where a strict ePrivacy reading may want consent — turn on consent mode
+for those sites.
+
+## Resetting data
+
+Settings → **Reset data** (or `POST /reset` with `{"scope": "...", "confirm": "..."}`, scope repeated as
+confirmation): `recordings`, `behaviour` (in-page signals, visits, page outlines) or `all`. Settings, goals and
+tracked links are kept. Needs `manage_analytics`.
 
 ## Exit reasons
 

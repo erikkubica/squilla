@@ -35,6 +35,14 @@ type Config struct {
 	DownloadExtensions []string `json:"download_extensions"`
 	OwnHosts           []string `json:"own_hosts"`
 	GeoIPDBPath        string   `json:"geoip_db_path"`
+	// Recordings adds a small script that records cursor, scroll and
+	// clicks for replays and heatmaps (JavaScript, unlike in-page signals).
+	Recordings             bool `json:"recordings"`
+	RecordingSample        int  `json:"recording_sample"`         // % of page views, 1-100
+	// RecordingConsent: record only after the site's consent tool says so
+	// (window.squillaRecordingConsent = true + a squilla:recording-consent event).
+	RecordingConsent bool `json:"recording_consent"`
+	RecordingRetentionDays int  `json:"recording_retention_days"` // 1-365
 
 	loc *time.Location
 }
@@ -43,20 +51,22 @@ var defaultDownloadExtensions = []string{"pdf", "zip", "docx", "xlsx", "pptx", "
 
 func defaultConfig() Config {
 	return Config{
-		Timezone:              "UTC",
-		ExcludePaths:          []string{},
-		ExcludeLoggedIn:       true,
-		RespectGPC:            true,
-		RawRetentionDays:      90,
-		SessionTimeoutMinutes: 30,
-		SignalDwell:           true,
-		SignalSections:        true,
-		SignalClicks:          true,
-		SignalForms:           true,
-		BeaconPrefix:          "/_s",
-		DownloadExtensions:    append([]string(nil), defaultDownloadExtensions...),
-		OwnHosts:              []string{},
-		loc:                   time.UTC,
+		Timezone:               "UTC",
+		ExcludePaths:           []string{},
+		ExcludeLoggedIn:        true,
+		RespectGPC:             true,
+		RawRetentionDays:       90,
+		SessionTimeoutMinutes:  30,
+		SignalDwell:            true,
+		SignalSections:         true,
+		SignalClicks:           true,
+		SignalForms:            true,
+		BeaconPrefix:           "/_s",
+		DownloadExtensions:     append([]string(nil), defaultDownloadExtensions...),
+		OwnHosts:               []string{},
+		RecordingSample:        100,
+		RecordingRetentionDays: 30,
+		loc:                    time.UTC,
 	}
 }
 
@@ -146,6 +156,12 @@ func (c *Config) normalize() map[string]string {
 			errs["own_hosts"] = "invalid host name " + fmt.Sprintf("%q", h)
 			break
 		}
+	}
+	if c.RecordingSample < 1 || c.RecordingSample > 100 {
+		errs["recording_sample"] = "must be between 1 and 100"
+	}
+	if c.RecordingRetentionDays < 1 || c.RecordingRetentionDays > 365 {
+		errs["recording_retention_days"] = "must be between 1 and 365"
 	}
 	c.GeoIPDBPath = strings.TrimSpace(c.GeoIPDBPath)
 	if len(c.GeoIPDBPath) > 1024 {

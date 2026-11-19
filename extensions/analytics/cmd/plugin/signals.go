@@ -149,7 +149,7 @@ func (p *AnalyticsPlugin) handleSignal(_ context.Context, rest string, req *pb.P
 	if strings.EqualFold(h("sec-fetch-site"), "cross-site") || (rest == "c" && !strings.EqualFold(req.GetMethod(), "POST")) {
 		return reply
 	}
-	if matchSignature(strings.ToLower(h("user-agent"))).isBot() {
+	if matchSignature(strings.ToLower(h("user-agent"))).isBot() || isReplayFrame("", h("referer"), "") {
 		return reply
 	}
 	sr := signalRequest{key: cleanKey(q["k"])}
@@ -403,6 +403,13 @@ func (o *outlineCache) changed(path, hash string) bool {
 	}
 	o.m[path] = hash
 	return true
+}
+
+// reset forgets every page, so outlines are stored again after a data reset.
+func (o *outlineCache) reset() {
+	o.mu.Lock()
+	o.m = nil
+	o.mu.Unlock()
 }
 
 func (o *outlineCache) forget(path string) {

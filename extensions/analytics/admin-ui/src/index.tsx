@@ -10,6 +10,8 @@ import AnalyticsSettings from "./pages/Settings";
 import AnalyticsExits from "./pages/Exits";
 import AnalyticsClicks from "./pages/Clicks";
 import AnalyticsPageInsights from "./pages/PageInsights";
+import AnalyticsRecordings from "./pages/Recordings";
+import AnalyticsRecording from "./pages/RecordingPlayer";
 
 export {
   AnalyticsDashboard,
@@ -23,4 +25,6 @@ export {
   AnalyticsExits,
   AnalyticsClicks,
   AnalyticsPageInsights,
+  AnalyticsRecordings,
+  AnalyticsRecording,
 };

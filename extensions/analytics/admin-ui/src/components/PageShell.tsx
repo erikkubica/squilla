@@ -1,11 +1,11 @@
 import { useEffect, useRef, type ComponentType, type ReactNode, type RefObject } from "react";
-import { ArrowLeft, Bot, FileText, LayoutDashboard, MousePointerClick, Settings2, Target, Users } from "@squilla/icons";
+import { ArrowLeft, Bot, FileText, LayoutDashboard, MousePointerClick, Settings2, Target, Users, Video } from "@squilla/icons";
 import type { ViewModel } from "../hooks/useViewState";
 import { carryParams } from "../lib/params";
 import { BASE_PATH, Link, useSearchParams } from "../shared";
 import { ActiveFilters, CompareControl, PeriodControl } from "./FilterBar";
 
-export type NavKey = "overview" | "visitors" | "pages" | "engagement" | "goals" | "bots" | "settings";
+export type NavKey = "overview" | "visitors" | "pages" | "engagement" | "recordings" | "goals" | "bots" | "settings";
 
 type Icon = ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }>;
 
@@ -21,6 +21,7 @@ export const NAV: NavItem[] = [
   { key: "visitors", label: "Visitors", path: "/visitors" },
   { key: "pages", label: "Pages", path: "/pages" },
   { key: "engagement", label: "Engagement", path: "/engagement" },
+  { key: "recordings", label: "Recordings", path: "/recordings" },
   { key: "goals", label: "Goals", path: "/goals" },
   { key: "bots", label: "Bots & AI", path: "/bots" },
 ];
@@ -30,6 +31,7 @@ const ICONS: Record<NavKey, Icon> = {
   visitors: Users,
   pages: FileText,
   engagement: MousePointerClick,
+  recordings: Video,
   goals: Target,
   bots: Bot,
   settings: Settings2,
@@ -41,6 +43,7 @@ export const PAGE_INTRO: Record<NavKey, { title: string; intro: string }> = {
   visitors: { title: "Visitors", intro: "How people find your site, where they are and what they use to visit it." },
   pages: { title: "Pages", intro: "Which pages people open, where their visits start and end, and links that lead nowhere." },
   engagement: { title: "Engagement", intro: "What people do on your pages: how visits end, which sections they see and what they click." },
+  recordings: { title: "Recordings", intro: "Watch real visits play back, and see heatmaps of where people click, how far they scroll and what holds their attention." },
   goals: { title: "Goals", intro: "Count the moments that matter, such as a sent form, a WhatsApp chat or a booking click." },
   bots: { title: "Bots & AI", intro: "Search engines, AI assistants and link previews reading your site. They are never counted as visitors." },
   settings: { title: "Analytics settings", intro: "What gets measured, how long it is kept and what your visitors need to be told." },

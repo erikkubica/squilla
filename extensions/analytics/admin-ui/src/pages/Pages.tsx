@@ -2,6 +2,7 @@ import { BreakdownCard } from "../components/BreakdownCard";
 import { CARDS } from "../components/breakdownConfig";
 import { PagePicker } from "../components/PagePicker";
 import { PageShell } from "../components/PageShell";
+import { SiteSearch } from "../components/SiteSearch";
 import { useHashScroll } from "../hooks/useHashScroll";
 import { useViewState } from "../hooks/useViewState";
 
@@ -20,6 +21,7 @@ export default function AnalyticsPages() {
           </div>
           <BreakdownCard def={CARDS.files} vm={vm} limit={8} empty="Nothing in this period." />
         </div>
+        <SiteSearch vm={vm} />
       </div>
     </PageShell>
   );

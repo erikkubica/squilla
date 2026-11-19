@@ -33,7 +33,7 @@ var passThrough = &pb.EventResponse{Handled: true}
 // paths never get any measurement markup.
 func (p *AnalyticsPlugin) handleTransform(payload []byte) *pb.EventResponse {
 	cfg := p.config()
-	if !cfg.EnhancedMode {
+	if !cfg.EnhancedMode && !cfg.Recordings {
 		return &pb.EventResponse{Handled: false}
 	}
 	var in transformPayload
@@ -48,20 +48,26 @@ func (p *AnalyticsPlugin) handleTransform(payload []byte) *pb.EventResponse {
 		isHardExcluded(norm, cfg), isUserExcluded(norm, cfg):
 		return passThrough
 	}
-	host := in.Host
-	res := instrument(in.HTML, instrumentOpts{
-		Prefix: cfg.BeaconPrefix, NodeID: in.Node.ID, Host: host, Clicks: cfg.SignalClicks,
-		Own: func(h string) bool { return isOwnHost(h, host, cfg) },
-	})
 	doc := in.HTML
-	var secs []section
-	if res != nil {
-		doc, secs = res.HTML, res.Sections
-		p.noteOutline(norm, res)
+	if cfg.EnhancedMode {
+		host := in.Host
+		res := instrument(in.HTML, instrumentOpts{
+			Prefix: cfg.BeaconPrefix, NodeID: in.Node.ID, Host: host, Clicks: cfg.SignalClicks,
+			Own: func(h string) bool { return isOwnHost(h, host, cfg) },
+		})
+		var secs []section
+		if res != nil {
+			doc, secs = res.HTML, res.Sections
+			p.noteOutline(norm, res)
+		}
+		style, container := signalsMarkup(cfg, in.Node.ID, secs)
+		doc = injectBefore(doc, "</head>", style, true)
+		doc = injectBefore(doc, "</body>", container, false)
 	}
-	style, container := signalsMarkup(cfg, in.Node.ID, secs)
-	doc = injectBefore(doc, "</head>", style, true)
-	doc = injectBefore(doc, "</body>", container, false)
+	// Signed-in users are never recorded, whatever exclude_logged_in says.
+	if cfg.Recordings && in.User.ID == 0 {
+		doc = injectBefore(doc, "</body>", recScriptTag(cfg), false)
+	}
 	p.nodes.set(in.Node.ID, norm)
 	return &pb.EventResponse{Handled: true, Result: []byte(doc)}
 }
@@ -74,14 +80,16 @@ func (p *AnalyticsPlugin) noteOutline(path string, res *instrumented) {
 	}
 	rows := make([]map[string]any, 0, len(res.Sections)+len(res.Links))
 	seen := map[string]bool{}
+	// pos is the order on the page, so reports can list sections and links
+	// top to bottom.
 	for _, s := range res.Sections {
 		if !seen[s.Key] {
 			seen[s.Key] = true
-			rows = append(rows, map[string]any{"kind": "block", "block_key": s.Key, "label": ""})
+			rows = append(rows, map[string]any{"kind": "block", "block_key": s.Key, "label": s.Label, "pos": len(rows)})
 		}
 	}
-	for _, l := range res.Links {
-		rows = append(rows, map[string]any{"kind": "link", "block_key": l.Block, "label": l.Label, "href": l.Dest})
+	for i, l := range res.Links {
+		rows = append(rows, map[string]any{"kind": "link", "block_key": l.Block, "label": l.Label, "href": l.Dest, "pos": i})
 	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

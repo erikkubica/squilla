@@ -51,6 +51,7 @@ type AnalyticsPlugin struct {
 	rate     *rateTracker
 	beacons  *beaconTracker
 	buf      *pipelineBuffer
+	rec      *recorder
 	goals    atomic.Pointer[[]Goal]
 	links    atomic.Pointer[map[string]Link]
 
@@ -85,6 +86,7 @@ func (p *AnalyticsPlugin) setup(h hostAPI) {
 	// on the visitor's first request under the new salt.
 	p.salt.onRotate = []func(){p.rate.reset, p.beacons.reset}
 	p.buf = newPipelineBuffer()
+	p.rec = newRecorder()
 	p.startedAt = p.now()
 	empty := []Goal{}
 	p.goals.Store(&empty)
@@ -125,6 +127,7 @@ func (p *AnalyticsPlugin) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	p.flush(ctx)
+	p.flushRecordings(ctx)
 	return nil
 }
 

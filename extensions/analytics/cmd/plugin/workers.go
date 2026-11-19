@@ -28,6 +28,7 @@ func (p *AnalyticsPlugin) startWorkers(ctx context.Context) {
 			p.settleOrphans(p.now())
 			fctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 			p.flush(fctx)
+			p.flushRecordings(fctx)
 			cancel()
 		}
 	}()
@@ -70,6 +71,7 @@ func (p *AnalyticsPlugin) runMaintenance(ctx context.Context, m *maintenance, st
 	p.salt.current(now, loc)
 	p.sessions.sweep(now, cfg.sessionTimeout())
 	p.beacons.sweep(now, cfg.sessionTimeout())
+	p.rec.sweep(now)
 
 	local := now.In(loc)
 	sinceMidnight := local.Sub(time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, loc))
@@ -102,6 +104,10 @@ func (p *AnalyticsPlugin) runMaintenance(ctx context.Context, m *maintenance, st
 			if _, err := p.host.DataCall(ctx, "analytics_purge_behaviour", cutoff.UTC().Format(time.RFC3339Nano),
 				now.AddDate(-1, -1, 0).UTC().Format(time.RFC3339Nano)); err != nil {
 				p.logf(ctx, "error", "analytics: behaviour purge failed: %v", err)
+			}
+			recCut := now.AddDate(0, 0, -cfg.RecordingRetentionDays)
+			if _, err := p.host.DataCall(ctx, "analytics_purge_recordings", recCut.UTC().Format(time.RFC3339Nano)); err != nil {
+				p.logf(ctx, "error", "analytics: recordings purge failed: %v", err)
 			}
 			if len(rows) > 0 && num(rows[0], "deleted") > 0 {
 				p.logf(ctx, "info", "analytics: purged %d raw events older than %d days", num(rows[0], "deleted"), cfg.RawRetentionDays)

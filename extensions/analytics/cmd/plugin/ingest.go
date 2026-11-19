@@ -53,6 +53,9 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 	if r.UserID > 0 && cfg.ExcludeLoggedIn {
 		return
 	}
+	if isReplayFrame(r.Query, r.Referer, r.header("sec-fetch-dest")) {
+		return // the admin's own replay or heatmap frame, never a visit
+	}
 	if r.Cookies[optOutCookie] != "" {
 		return // the visitor opted out of measurement
 	}
@@ -130,6 +133,7 @@ func (p *AnalyticsPlugin) processRecord(r *Record, cfg *Config) {
 	case kindPageview:
 		ev := base
 		ev.Kind, ev.EID, ev.IsPrefetch = kindPageview, randomHex(8), prefetch
+		ev.Search = searchTerm(r.Query)
 		p.attachSession(&ev, req, cfg, !prefetch)
 		p.buf.addEvent(ev)
 		if vid != "" {

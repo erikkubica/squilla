@@ -6,7 +6,7 @@ import { setCachedTimezone } from "../../hooks/useSiteTimezone";
 import { Panel } from "../../components/Panel";
 import { toast, ui } from "../../shared";
 import { ListInput, Row, ToggleRow, cleanList } from "./fields";
-import { PRIVACY_NOTICE } from "./PrivacyExplainer";
+import { PRIVACY_NOTICE, recordingNotice } from "./PrivacyExplainer";
 
 const { Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } = ui;
 
@@ -72,7 +72,7 @@ export function SettingsForm({ initial, onSaved }: { initial: AnalyticsSettings;
   const here = useMemo(browserZone, []);
   const dirty = JSON.stringify(s) !== JSON.stringify(initial);
   const set = <K extends keyof AnalyticsSettings>(k: K, v: AnalyticsSettings[K]) => setS((p) => ({ ...p, [k]: v }));
-  const num = (k: "raw_retention_days" | "session_timeout_minutes", min: number, max: number) => (e: ChangeEvent<HTMLInputElement>) =>
+  const num = (k: "raw_retention_days" | "session_timeout_minutes" | "recording_sample" | "recording_retention_days", min: number, max: number) => (e: ChangeEvent<HTMLInputElement>) =>
     set(k, clampInt(e.target.value, min, max, initial[k]));
   const prefix = "/" + (s.beacon_prefix || "/_s").trim().replace(/^\/+|\/+$/g, "");
   const optOutUrl = `${typeof window !== "undefined" ? window.location.origin : ""}${prefix}/optout`;
@@ -167,6 +167,51 @@ export function SettingsForm({ initial, onSaved }: { initial: AnalyticsSettings;
               <ToggleRow id="an-sig-sections" label="Sections seen and scroll depth" hint="Which parts of a page came into view." checked={s.signal_sections} onChange={(v) => set("signal_sections", v)} />
               <ToggleRow id="an-sig-clicks" label="Link clicks" hint="Which links people click, including links to other sites." checked={s.signal_clicks} onChange={(v) => set("signal_clicks", v)} />
               <ToggleRow id="an-sig-forms" label="Forms started and FAQs opened" hint="The first time someone starts filling in a form or opens an FAQ answer." checked={s.signal_forms} onChange={(v) => set("signal_forms", v)} />
+            </>
+          )}
+        </Panel>
+      </div>
+
+      <div id="recordings" className="an-anchor">
+        <Panel title="Session recordings" subtitle="Replay visits and see heatmaps of clicks, scrolling and attention" bodyClassName="divide-y divide-an-line px-4">
+          <ToggleRow
+            id="an-rec"
+            label="Record visits for replays and heatmaps"
+            hint="Adds a small script (about 4 KB) to your pages that records where the cursor moves, how far people scroll and what they click. It never records text on the page, what people type, query strings or cookies, and it skips visitors with Do Not Track or Global Privacy Control."
+            checked={s.recordings}
+            onChange={(v) => set("recordings", v)}
+          >
+            <div className="an-note mt-3" data-tone="warn" role="note">
+              <TriangleAlert className="an-note-icon" aria-hidden="true" />
+              <div className="min-w-0 space-y-3">
+                <p>
+                  <strong className="text-an-ink">This one uses JavaScript.</strong> Everything stays on your server and nothing personal is captured, which most EU regulators
+                  accept under legitimate interest. A strict reading of the ePrivacy rules (for example in Germany) still asks for consent for any script that reads device
+                  details — if that applies to you, keep this off or load it only after consent. Keep the retention short and delete single recordings when someone asks. Mark sensitive parts of a page with <code>data-sq-private</code>, or switch a whole page off with <code>&lt;meta name="squilla-recording" content="off"&gt;</code>.
+                </p>
+                <CopyField id="an-rec-notice" label="Paragraph for your privacy page" value={recordingNotice(s.recording_retention_days, s.recording_sample)} rows={6} />
+              </div>
+            </div>
+          </ToggleRow>
+          {s.recordings && (
+            <>
+              <ToggleRow
+                id="an-rec-consent"
+                label="Record only after consent"
+                hint="For sites that must ask first. Nothing is recorded until your consent tool runs this when the visitor agrees:"
+                checked={s.recording_consent}
+                onChange={(v) => set("recording_consent", v)}
+              >
+                {s.recording_consent && (
+                  <CopyField id="an-rec-consent-js" label="Call from your consent tool" value={"window.squillaRecordingConsent = true; window.dispatchEvent(new Event('squilla:recording-consent'));"} rows={2} />
+                )}
+              </ToggleRow>
+              <Row id="an-rec-sample" label="Share of page views to record (%)" hint="100 records every page view. Lower it on busy sites.">
+                <Input id="an-rec-sample" type="number" min={1} max={100} value={s.recording_sample} onChange={num("recording_sample", 1, 100)} aria-describedby="an-rec-sample-hint" className="w-32" />
+              </Row>
+              <Row id="an-rec-keep" label="Keep recordings for (days)" hint="Older recordings are deleted every night.">
+                <Input id="an-rec-keep" type="number" min={1} max={365} value={s.recording_retention_days} onChange={num("recording_retention_days", 1, 365)} aria-describedby="an-rec-keep-hint" className="w-32" />
+              </Row>
             </>
           )}
         </Panel>

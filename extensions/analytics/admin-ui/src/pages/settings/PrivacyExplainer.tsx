@@ -5,8 +5,20 @@ import { Panel } from "../../components/Panel";
 export const PRIVACY_NOTICE =
   "We measure how our website is used without cookies and without storing your IP address. Each day a random value that exists only in memory " +
   "turns your connection into an anonymous visit number; it is replaced at midnight, so we cannot recognise you from one day to the next. " +
-  "We count page views, how far down a page a section scrolled into view, how long a page stayed open and which links were clicked. " +
-  "We do not share this data. You can switch measurement off at any time on the opt-out page, and we respect the Global Privacy Control signal.";
+  "We count page views, the words searched with our site search, how far down a page a section scrolled into view, how long a page stayed open and which links were clicked. " +
+  "All of this is processed on our own server: no analytics company receives it, nothing is sent outside our hosting, and we do not share or sell it. " +
+  "You can switch measurement off at any time on the opt-out page, and we respect the Global Privacy Control signal.";
+
+/** Paragraph for the privacy page when session recordings are on. */
+export function recordingNotice(days: number, sample: number): string {
+  return (
+    `To find and fix problems on our website, we record ${sample >= 100 ? "visits" : "some visits"} as anonymous replays: where the mouse moves, ` +
+    "how far the page is scrolled, what is clicked, the screen size, how fast the page loads and any technical errors. We never record what you type, " +
+    "the text on the page, your IP address or cookies, and a replay is not linked to your name or account. Signed-in users are never recorded. " +
+    `Recordings stay on our own server, are seen only by our team and are deleted after ${days} days. Our legal basis is our legitimate interest in a working website ` +
+    "(Art. 6(1)(f) GDPR). Browsers that send Do Not Track or Global Privacy Control are not recorded, and the opt-out page switches recording off as well."
+  );
+}
 
 function Q({ q, children, id }: { q: string; children: ReactNode; id?: string }) {
   return (
@@ -32,12 +44,36 @@ export function PrivacyFaq({ prefix = "/_s" }: { prefix?: string }) {
             French CNIL’s exemption for anonymous audience measurement. Rules differ between countries, so check yours if you are unsure.
           </p>
         </Q>
+        <Q q="Where is the data processed?">
+          <p>
+            On your own server, in your own database — the same place your pages come from. No analytics company receives it, no third-party script loads on your
+            pages, and nothing goes to Google, Microsoft or a US cloud. That means no international data transfer to justify, no data processing agreement with a
+            tracking vendor, and nothing an ad network can combine with other sites.
+          </p>
+          <p>The only processor is whoever hosts your server, as for the rest of your site.</p>
+        </Q>
+        <Q q="And session recordings?">
+          <p>
+            Recordings are the one part that runs JavaScript in the visitor’s browser. They never capture typed text, page text, IP addresses or cookies, skip signed-in
+            users and Do Not Track / Global Privacy Control, and stay on your server for a limited time.
+          </p>
+          <p>
+            Honestly: most EU regulators accept this kind of first-party, privacy-preserving measurement under legitimate interest, but a strict reading of the ePrivacy rules
+            (for example Germany’s §25 TDDDG) treats any script that reads device details as needing consent. If you want zero risk, keep recordings off and use in-page
+            measurement and heatmaps from the other reports, or turn recordings on only behind your consent tool. Either way, add the recordings paragraph to your privacy page.
+          </p>
+        </Q>
         <Q q="What exactly is stored?">
           <ul>
             <li>The page address, the site that sent the visitor, and campaign tags (utm_…). Other query strings are dropped.</li>
             <li>Country, browser language, device type, browser and operating system.</li>
             <li>An anonymous daily visit number. IP addresses are never stored.</li>
+            <li>Site search terms (from ?q=, ?s= and similar). Terms that look like an email address or a phone number are dropped.</li>
             <li>With in-page measurement: which sections were seen, time marks (10 s, 30 s, 1 min, 3 min) and which links were clicked.</li>
+            <li>
+              With session recordings: cursor, scrolling, clicks (as a CSS selector), page speed (Core Web Vitals) and JavaScript error messages — never typed text
+              or page content.
+            </li>
           </ul>
         </Q>
         <Q q="How are visitors counted without cookies?">

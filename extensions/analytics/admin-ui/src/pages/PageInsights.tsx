@@ -175,7 +175,7 @@ function Body({ d, enhanced }: { d: PageInsightsResponse; enhanced: boolean }) {
                     <span className="an-trunc block font-medium" title={l.label || l.href}>{l.label || l.href}</span>
                     <span className="an-trunc block text-xs text-an-muted" title={l.href}>{l.href}</span>
                   </td>
-                  <td className="an-col-wide an-dim"><span className="an-trunc block">{blockName(l.block_key)}</span></td>
+                  <td className="an-col-wide an-dim"><span className="an-trunc block">{blockName(l.block_key, l.section)}</span></td>
                   <td className="an-r">{l.clicks === 0 ? <span className="whitespace-nowrap text-xs text-an-subtle">None</span> : formatInt(l.clicks)}</td>
                 </tr>
               ))}

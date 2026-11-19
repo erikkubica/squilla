@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // matchSource returns the known source (name, kind) for a referrer host.
@@ -122,6 +123,61 @@ func parseCampaign(rawQuery string) campaign {
 	c.Fbclid = has("fbclid")
 	c.Ttclid = has("ttclid")
 	return c
+}
+
+// searchParams are the query parameters site search forms use (WordPress
+// s, most others q or query).
+var searchParams = []string{"q", "s", "search", "query", "keyword", "keywords", "term", "k"}
+
+var (
+	reSearchSpace  = regexp.MustCompile(`\s+`)
+	reSearchDigits = regexp.MustCompile(`\d[\d\s().+/-]*\d`)
+)
+
+// looksPersonal: personal data typed into a search box is never stored —
+// anything with an @ (email), or a number of 7+ digits, however spaced
+// (phone, card, ID and account numbers).
+func looksPersonal(v string) bool {
+	if strings.Contains(v, "@") {
+		return true
+	}
+	for _, m := range reSearchDigits.FindAllString(v, -1) {
+		n := 0
+		for _, c := range m {
+			if c >= '0' && c <= '9' {
+				n++
+			}
+		}
+		if n >= 7 {
+			return true
+		}
+	}
+	return false
+}
+
+// searchTerm is the normalised on-site search term in rawQuery, or "".
+func searchTerm(rawQuery string) string {
+	if rawQuery == "" {
+		return ""
+	}
+	q, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return ""
+	}
+	for _, k := range searchParams {
+		v := strings.ToLower(strings.TrimSpace(reSearchSpace.ReplaceAllString(q.Get(k), " ")))
+		if v == "" {
+			continue
+		}
+		if looksPersonal(v) || !utf8.ValidString(v) {
+			return ""
+		}
+		if r := []rune(v); len(r) > 80 {
+			v = string(r[:80])
+		}
+		return v
+	}
+	return ""
 }
 
 var (

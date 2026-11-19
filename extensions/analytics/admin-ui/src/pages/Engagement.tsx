@@ -1,25 +1,25 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { api, errorMessage } from "../api/client";
-import type { ClicksResponse, ExitSegmentRow, ExitStats, StatusResponse } from "../api/types";
+import type { ExitSegmentRow, ExitStats, StatusResponse } from "../api/types";
 import { InfoTip } from "../components/InfoTip";
-import { NavButton, NeedsSignalsNotice, Notice } from "../components/Notice";
+import { NavButton, Notice } from "../components/Notice";
 import { PageShell } from "../components/PageShell";
 import { ErrorNote, Panel, Skeleton } from "../components/Panel";
-import { Segmented } from "../components/Segmented";
 import { Tile } from "../components/Tile";
 import { useAsync } from "../hooks/useAsync";
 import { useViewState, type ViewModel } from "../hooks/useViewState";
-import { EXIT_REASONS, EXIT_TONE, blockName, pct, reasonLabel, seconds } from "../lib/behaviour";
+import { EXIT_REASONS, EXIT_TONE, pct, reasonLabel, seconds } from "../lib/behaviour";
 import { valueLabel } from "../lib/dims";
 import { formatInt } from "../lib/format";
 import { withCarry } from "../lib/params";
 import { BASE_PATH, Link, useSearchParams } from "../shared";
+import { ClicksReport } from "./ClicksReport";
 
 type Tab = "endings" | "clicks";
 
 const TABS: { key: Tab; title: string; desc: string }[] = [
   { key: "endings", title: "How visits end", desc: "Did people get in touch, read and leave, or give up?" },
-  { key: "clicks", title: "What gets clicked", desc: "Which parts of your pages people see and click" },
+  { key: "clicks", title: "What gets clicked", desc: "Which links people use, and which they ignore" },
 ];
 
 /** What people do on the site. `/exits` and `/clicks` open a tab directly. */
@@ -49,7 +49,7 @@ export function EngagementPage({ initial = "endings" }: { initial?: Tab }) {
           ))}
         </div>
         <div id="an-tabpanel" role="tabpanel" aria-labelledby={`an-tab-${tab}`}>
-          {tab === "endings" ? <Endings vm={vm} enhanced={enhanced} /> : <Clicks vm={vm} enhanced={enhanced} />}
+          {tab === "endings" ? <Endings vm={vm} enhanced={enhanced} /> : <ClicksReport vm={vm} enhanced={enhanced} />}
         </div>
       </div>
     </PageShell>
@@ -222,150 +222,5 @@ function Segment({ title, dim, rows }: { title: string; dim: "channel" | "device
         </table>
       )}
     </Panel>
-  );
-}
-
-/* ───────────────────────────── What gets clicked ───────────────────────────── */
-
-function Clicks({ vm, enhanced }: { vm: ViewModel; enhanced: boolean }) {
-  const q = useQuery(vm);
-  const res = useAsync((s) => api.clicks(q, s), `clicks|${q}`);
-  const d = res.data;
-  if (res.error && !d) return <ErrorNote message={errorMessage(res.error)} onRetry={() => res.reload()} />;
-  if (!d) return <div className="an-stack"><div className="an-kpis-3">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div><Skeleton className="h-72" /></div>;
-  const empty = d.totals.sections_seen + d.totals.clicks === 0;
-  if (empty && !enhanced) return <NeedsSignalsNotice what="Which sections people see and which links they click" />;
-  if (empty) {
-    return (
-      <Panel>
-        <p className="py-10 text-center text-sm text-an-muted">
-          Nothing recorded in this period yet. Section views and clicks appear within a minute of people browsing your site.
-        </p>
-      </Panel>
-    );
-  }
-  return <ClicksBody d={d} vm={vm} enhanced={enhanced} />;
-}
-
-const SECTION_ROWS = 15;
-
-type SectionView = "sections" | "pages";
-
-interface SectionRow {
-  key: string;
-  name: string;
-  path?: string;
-  pages: number;
-  seen: number;
-  clicks: number;
-}
-
-const rate = (clicks: number, seen: number) => (seen > 0 ? `${((clicks / seen) * 100).toFixed(1).replace(/\.0$/, "")}%` : "—");
-
-function ClicksBody({ d, vm, enhanced }: { d: ClicksResponse; vm: ViewModel; enhanced: boolean }) {
-  const [view, setView] = useState<SectionView>("sections");
-  const [all, setAll] = useState(false);
-  const rows: SectionRow[] = useMemo(() => {
-    const live = d.blocks.filter((b) => b.seen > 0 || b.clicks > 0);
-    if (view === "pages") {
-      return live.map((b) => ({ key: b.path + b.block_key, name: blockName(b.block_key, b.label), path: b.path, pages: 1, seen: b.seen, clicks: b.clicks }));
-    }
-    const m = new Map<string, SectionRow & { paths: Set<string> }>();
-    for (const b of live) {
-      const name = blockName(b.block_key, b.label);
-      const e = m.get(name) ?? { key: name, name, pages: 0, seen: 0, clicks: 0, paths: new Set<string>() };
-      e.seen += b.seen;
-      e.clicks += b.clicks;
-      e.paths.add(b.path);
-      e.pages = e.paths.size;
-      m.set(name, e);
-    }
-    return [...m.values()].sort((a, b) => b.clicks - a.clicks || b.seen - a.seen);
-  }, [d.blocks, view]);
-  const shown = all ? rows : rows.slice(0, SECTION_ROWS);
-
-  return (
-    <div className="an-stack">
-      {!enhanced && <NeedsSignalsNotice what="New section views and clicks" />}
-      <div className="an-kpis-3">
-        <Tile label="Sections seen" value={formatInt(d.totals.sections_seen)} hint="Times a part of a page scrolled into view" />
-        <Tile
-          label="Link clicks"
-          value={formatInt(d.totals.clicks)}
-          hint={`${pct(d.totals.clicks, d.totals.sections_seen)} of sections seen led to a click`}
-          info="Some browsers (Firefox, and some ad blockers) don’t report link clicks, so the real number is a bit higher."
-        />
-        <Tile label="Clicks to other sites" value={formatInt(d.totals.outbound_clicks)} hint="WhatsApp, email, partners and other sites" />
-      </div>
-      <Panel
-        title="Sections that get clicked"
-        subtitle={view === "sections" ? "Each kind of section, added up over all pages" : "Each section of each page"}
-        actions={
-          <Segmented<SectionView>
-            label="Group sections"
-            size="xs"
-            value={view}
-            onChange={(v) => { setView(v); setAll(false); }}
-            options={[{ value: "sections", label: "All pages together" }, { value: "pages", label: "Page by page" }]}
-          />
-        }
-        bodyClassName="px-2 py-2"
-      >
-        <table className="an-table">
-          <caption className="an-sr-only">Sections ranked by clicks</caption>
-          <thead>
-            <tr>
-              <th scope="col">Section</th>
-              <th scope="col" className="an-col-wide" style={{ width: view === "pages" ? "32%" : 88 }}>{view === "pages" ? "Page" : "Pages"}</th>
-              <th scope="col" className="an-r" style={{ width: 64 }}>Seen</th>
-              <th scope="col" className="an-r" style={{ width: 64 }}>Clicks</th>
-              <th scope="col" className="an-r" style={{ width: 84 }} title="Clicks divided by times seen">Click rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((r) => (
-              <tr key={r.key}>
-                <td><span className="an-trunc block font-medium" title={r.name}>{r.name}</span></td>
-                <td className="an-col-wide">
-                  {r.path ? (
-                    <Link className="an-rowlink an-focus an-trunc block text-an-muted" to={withCarry(`${BASE_PATH}/page?path=${encodeURIComponent(r.path)}`, vm.searchParams)} title={`Open the report for ${r.path}`}>{r.path}</Link>
-                  ) : (
-                    <span className="an-dim">{formatInt(r.pages)}</span>
-                  )}
-                </td>
-                <td className="an-r">{r.seen > 0 ? formatInt(r.seen) : <span className="an-dim" title="This part of the page isn’t measured as a section">—</span>}</td>
-                <td className="an-r">{formatInt(r.clicks)}</td>
-                <td className="an-r">{rate(r.clicks, r.seen)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {rows.length > SECTION_ROWS && (
-          <div className="an-showall">
-            <button type="button" className="an-btn an-focus" data-variant="ghost" data-size="sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>
-              {all ? "Show fewer" : `Show all ${formatInt(rows.length)}`}
-            </button>
-          </div>
-        )}
-      </Panel>
-      <Panel title="Where clicks to other sites go" bodyClassName="px-2 py-2">
-        {d.destinations.length === 0 ? (
-          <p className="py-6 text-center text-sm text-an-muted">No clicks to other sites in this period.</p>
-        ) : (
-          <table className="an-table">
-            <thead><tr><th scope="col">Destination</th><th scope="col" className="an-col-wide" style={{ width: "36%" }}>Most clicked from</th><th scope="col" className="an-r" style={{ width: 64 }}>Clicks</th></tr></thead>
-            <tbody>
-              {d.destinations.map((x) => (
-                <tr key={x.dest + x.class}>
-                  <td><span className="an-trunc block" title={x.dest}>{x.dest}</span></td>
-                  <td className="an-col-wide an-dim"><span className="an-trunc block" title={x.top_page}>{x.top_page}</span></td>
-                  <td className="an-r">{formatInt(x.clicks)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Panel>
-    </div>
   );
 }

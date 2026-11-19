@@ -3,7 +3,7 @@
   "slug": "analytics",
   "version": "1.0.0",
   "author": "Squilla",
-  "description": "First-party, cookieless web analytics measured on the server. Zero JavaScript on the public site; optional CSS beacon for viewport and colour scheme. Bots and AI crawlers are counted separately.",
+  "description": "First-party, cookieless web analytics measured on the server. No JavaScript on the public site by default; optional CSS/HTML in-page signals, and opt-in session recordings with replays and heatmaps. Bots and AI crawlers are counted separately.",
   "provides": ["analytics"],
   "auto_activate": false,
   "capabilities": [
@@ -22,11 +22,14 @@
     "analytics_daily",
     "analytics_bots_daily",
     "analytics_goals",
+    "analytics_funnels",
     "analytics_links",
     "analytics_config",
     "analytics_interactions",
     "analytics_visits",
-    "analytics_page_elements"
+    "analytics_page_elements",
+    "analytics_rec_views",
+    "analytics_rec_chunks"
   ],
   "data_owned_functions": [
     "analytics_ingest",
@@ -53,7 +56,18 @@
     "analytics_exit_stats",
     "analytics_page_insights",
     "analytics_clicks_stats",
-    "analytics_behaviour_summary"
+    "analytics_behaviour_summary",
+    "analytics_rec_ingest",
+    "analytics_rec_list",
+    "analytics_rec_get",
+    "analytics_rec_delete",
+    "analytics_rec_heat",
+    "analytics_rec_devices",
+    "analytics_purge_recordings",
+    "analytics_rec_insights",
+    "analytics_search_stats",
+    "analytics_funnel_stats",
+    "analytics_reset"
   ],
   "plugins": [
     {
@@ -144,6 +158,63 @@
       "input_schema": {"type": "object", "properties": {"path": {"type": "string", "description": "Page path, e.g. / or /blog/my-post."}, "from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}}, "required": ["path"]}
     },
     {
+      "name": "recordings",
+      "description": "Session recordings (needs the recordings setting): newest first, with page, device, length, clicks, scroll depth and how the visit ended. Use it to find visits worth replaying in the admin.",
+      "method": "GET",
+      "path": "/recordings",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD in the site time zone. Default: 29 days before 'to'."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD. Default: today."}, "path": {"type": "string", "description": "Only this page path."}, "device": {"type": "string", "enum": ["desktop", "tablet", "mobile"]}, "min_s": {"type": "integer", "description": "Only recordings at least this many seconds long."}, "clicked": {"type": "string", "enum": ["1"], "description": "Only recordings with a click."}, "signal": {"type": "string", "enum": ["rage", "dead", "error", "slow"], "description": "Only recordings with rage clicks, dead clicks, JavaScript errors or poor Web Vitals."}, "channel": {"type": "string", "description": "Only visits from this channel, e.g. organic, social, referral, direct."}, "country": {"type": "string", "description": "Two-letter country code."}, "entry": {"type": "string", "enum": ["1"], "description": "Only landing pages (first page of the visit)."}, "converted": {"type": "string", "enum": ["1"], "description": "Only visits that reached a goal."}, "limit": {"type": "integer", "description": "1-200, default 50."}, "offset": {"type": "integer"}}}
+    },
+    {
+      "name": "funnels",
+      "description": "Saved funnels (ordered steps of pages or goals a visit should pass through), with their ids for funnel_stats.",
+      "method": "GET",
+      "path": "/funnels",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "funnels.create",
+      "description": "Create a funnel: 2-10 ordered steps, each a page (glob) or a goal. A visit counts for a step when it reaches it after the previous steps.",
+      "method": "POST",
+      "path": "/funnels",
+      "input_schema": {"type": "object", "properties": {"name": {"type": "string"}, "steps": {"type": "array", "minItems": 2, "maxItems": 10, "description": "Steps in order.", "items": {"type": "object", "properties": {"kind": {"type": "string", "enum": ["page", "goal"]}, "value": {"type": "string", "description": "Page path (* as wildcard, e.g. /tours/*) or a goal id."}, "label": {"type": "string", "description": "Short name shown in reports."}}, "required": ["kind", "value"]}}}, "required": ["name", "steps"]}
+    },
+    {
+      "name": "funnels.delete",
+      "description": "Delete a funnel definition (no data is lost: funnels are computed from visits).",
+      "method": "DELETE",
+      "path": "/funnels/{id}",
+      "class": "full",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer"}}, "required": ["id"]}
+    },
+    {
+      "name": "funnel_stats",
+      "description": "How visits moved through one funnel: visits reaching each step in order, drop-off between steps, median time from the first step, the pages people opened instead when they dropped off, and completion per device.",
+      "method": "GET",
+      "path": "/funnels/{id}/stats",
+      "input_schema": {"type": "object", "properties": {"id": {"type": "integer", "description": "Funnel id from the funnels tool."}, "from": {"type": "string", "description": "First day, YYYY-MM-DD."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD."}}, "required": ["id"]}
+    },
+    {
+      "name": "site_search",
+      "description": "What visitors searched for on the site (from ?q=, ?s= and similar on page views): searches, the share of visits that searched, top terms with how often people left or searched again right after, the page they usually opened next, and the pages searches started from. Emails and phone numbers typed into search are never stored.",
+      "method": "GET",
+      "path": "/search",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD."}}}
+    },
+    {
+      "name": "recording_insights",
+      "description": "Frustration signals and speed from session recordings: how many recordings had rage clicks, dead clicks, JavaScript errors, quick backs or excessive scrolling; the elements and error messages behind them; and Core Web Vitals (LCP, INP, CLS, TTFB at the 75th percentile) per page and device.",
+      "method": "GET",
+      "path": "/recordings/insights",
+      "input_schema": {"type": "object", "properties": {"from": {"type": "string", "description": "First day, YYYY-MM-DD."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD."}}}
+    },
+    {
+      "name": "hotspots",
+      "description": "Heatmap data for one page from session recordings: clicked elements (CSS selector, link, clicks, average y), scroll reach and attention per 50 px row, for one device type.",
+      "method": "GET",
+      "path": "/hotspots",
+      "input_schema": {"type": "object", "properties": {"path": {"type": "string", "description": "Page path, e.g. /."}, "device": {"type": "string", "enum": ["desktop", "tablet", "mobile"], "description": "Default: the device with most recordings."}, "from": {"type": "string", "description": "First day, YYYY-MM-DD."}, "to": {"type": "string", "description": "Last day (inclusive), YYYY-MM-DD."}}, "required": ["path"]}
+    },
+    {
       "name": "realtime",
       "description": "Visitors and pageviews in the last 30 minutes, per minute, with the pages being viewed now.",
       "method": "GET",
@@ -176,7 +247,7 @@
       "description": "Change analytics settings. Send only the fields to change.",
       "method": "PUT",
       "path": "/settings",
-      "input_schema": {"type": "object", "properties": {"timezone": {"type": "string", "description": "IANA time zone; changing it rebuilds rollups."}, "exclude_paths": {"type": "array", "items": {"type": "string"}, "description": "Path globs to ignore, e.g. /preview/*."}, "exclude_logged_in": {"type": "boolean", "description": "Ignore signed-in users."}, "respect_gpc": {"type": "boolean", "description": "Count Global Privacy Control visitors in aggregate only."}, "raw_retention_days": {"type": "integer", "description": "1-3650."}, "session_timeout_minutes": {"type": "integer", "description": "5-240."}, "enhanced_mode": {"type": "boolean", "description": "In-page signals (CSS/HTML only, no JavaScript)."}, "signal_dwell": {"type": "boolean", "description": "Time on page."}, "signal_sections": {"type": "boolean", "description": "Section impressions."}, "signal_clicks": {"type": "boolean", "description": "Link clicks."}, "signal_forms": {"type": "boolean", "description": "Form and FAQ use."}, "download_extensions": {"type": "array", "items": {"type": "string"}, "description": "File extensions counted as downloads."}, "own_hosts": {"type": "array", "items": {"type": "string"}, "description": "Extra host names treated as internal referrers."}}}
+      "input_schema": {"type": "object", "properties": {"timezone": {"type": "string", "description": "IANA time zone; changing it rebuilds rollups."}, "exclude_paths": {"type": "array", "items": {"type": "string"}, "description": "Path globs to ignore, e.g. /preview/*."}, "exclude_logged_in": {"type": "boolean", "description": "Ignore signed-in users."}, "respect_gpc": {"type": "boolean", "description": "Count Global Privacy Control visitors in aggregate only."}, "raw_retention_days": {"type": "integer", "description": "1-3650."}, "session_timeout_minutes": {"type": "integer", "description": "5-240."}, "enhanced_mode": {"type": "boolean", "description": "In-page signals (CSS/HTML only, no JavaScript)."}, "signal_dwell": {"type": "boolean", "description": "Time on page."}, "signal_sections": {"type": "boolean", "description": "Section impressions."}, "signal_clicks": {"type": "boolean", "description": "Link clicks."}, "signal_forms": {"type": "boolean", "description": "Form and FAQ use."}, "download_extensions": {"type": "array", "items": {"type": "string"}, "description": "File extensions counted as downloads."}, "own_hosts": {"type": "array", "items": {"type": "string"}, "description": "Extra host names treated as internal referrers."}, "recordings": {"type": "boolean", "description": "Session recordings for replays and heatmaps (adds a small script to public pages)."}, "recording_sample": {"type": "integer", "description": "Percent of page views recorded, 1-100."}, "recording_retention_days": {"type": "integer", "description": "Days recordings are kept, 1-365."}, "recording_consent": {"type": "boolean", "description": "Record only after the site's consent tool sets window.squillaRecordingConsent = true and dispatches a squilla:recording-consent event."}}}
     },
     {
       "name": "goals.list",
@@ -241,12 +312,12 @@
       {
         "key": "view_analytics",
         "label": "View Analytics",
-        "description": "Read dashboards, breakdowns, bot reports, goals, links, settings and exports."
+        "description": "Read dashboards, breakdowns, bot reports, goals, links, settings, exports and session recordings."
       },
       {
         "key": "manage_analytics",
         "label": "Manage Analytics",
-        "description": "Create and edit goals and tracked links, and change analytics settings."
+        "description": "Create and edit goals and tracked links, change analytics settings, delete recordings and reset data."
       }
     ],
     "routes": [
@@ -258,6 +329,8 @@
       { "path": "/exits", "component": "AnalyticsExits" },
       { "path": "/clicks", "component": "AnalyticsClicks" },
       { "path": "/page", "component": "AnalyticsPageInsights" },
+      { "path": "/recordings", "component": "AnalyticsRecordings" },
+      { "path": "/recording", "component": "AnalyticsRecording" },
       { "path": "/bots", "component": "AnalyticsBots" },
       { "path": "/goals", "component": "AnalyticsGoals" },
       { "path": "/settings", "component": "AnalyticsSettings" }
@@ -273,6 +346,7 @@
         { "label": "Visitors", "route": "/admin/ext/analytics/visitors" },
         { "label": "Pages", "route": "/admin/ext/analytics/pages" },
         { "label": "Engagement", "route": "/admin/ext/analytics/engagement" },
+        { "label": "Recordings", "route": "/admin/ext/analytics/recordings" },
         { "label": "Goals", "route": "/admin/ext/analytics/goals" },
         { "label": "Bots & AI", "route": "/admin/ext/analytics/bots" },
         { "label": "Settings", "route": "/admin/ext/analytics/settings" }
